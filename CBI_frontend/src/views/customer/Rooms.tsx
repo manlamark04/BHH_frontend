@@ -135,7 +135,7 @@ export default function CustomerRooms({ customerName }: Props) {
   const minRate = rooms.length > 0 ? Math.min(...rooms.map((r) => Number(r.rate_per_night || 9999))) : 0
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto space-y-6 font-sans">
+    <div className="p-4 sm:p-5 max-w-7xl mx-auto space-y-4 font-sans">
       
       {/* Toast Alert */}
       {toast && (
@@ -145,104 +145,98 @@ export default function CustomerRooms({ customerName }: Props) {
         </div>
       )}
 
-      {/* ─── 1. PAGE HEADER ─── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-stone/20">
-        <div>
-          <h1 className="font-display text-3xl sm:text-4xl font-bold text-ink tracking-tight">Browse Accommodations</h1>
-          <p className="text-xs sm:text-sm text-ink-muted mt-0.5">Explore our handcrafted rooms, suites and tropical villas</p>
+      {/* ─── 1. STATISTIC KPI SUMMARY CARDS ─── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+        
+        <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-[#B48454]">TOTAL INVENTORY</span>
+            <div className="w-6 h-6 rounded-lg bg-[#B48454]/10 text-[#B48454] flex items-center justify-center">
+              <Building2 className="w-3.5 h-3.5" strokeWidth={1.5} />
+            </div>
+          </div>
+          <div className="mt-1.5">
+            <p className="font-display text-xl sm:text-2xl font-bold text-neutral-900 dark:text-white leading-tight">{rooms.length}</p>
+            <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5 block">Rooms & suites</span>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-700 dark:text-emerald-400">AVAILABLE NOW</span>
+            <div className="w-6 h-6 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50 flex items-center justify-center">
+              <CheckCircle2 className="w-3.5 h-3.5" strokeWidth={1.5} />
+            </div>
+          </div>
+          <div className="mt-1.5">
+            <p className="font-display text-xl sm:text-2xl font-bold text-emerald-700 dark:text-emerald-400 leading-tight">{availableCount}</p>
+            <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5 block">Ready for booking</span>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-[#B48454]">STARTING FROM</span>
+            <div className="w-6 h-6 rounded-lg bg-[#B48454]/10 text-[#B48454] flex items-center justify-center">
+              <Sparkles className="w-3.5 h-3.5" strokeWidth={1.5} />
+            </div>
+          </div>
+          <div className="mt-1.5">
+            <p className="font-display text-lg sm:text-xl font-bold text-neutral-900 dark:text-white leading-tight">
+              ₱{minRate.toLocaleString()} <span className="text-[10px] font-sans font-normal text-neutral-500 dark:text-neutral-400">/ night</span>
+            </p>
+            <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5 block">Best value available</span>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-blue-700 dark:text-blue-400">FILTERED ROOMS</span>
+            <div className="w-6 h-6 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/50 flex items-center justify-center">
+              <BedDouble className="w-3.5 h-3.5" strokeWidth={1.5} />
+            </div>
+          </div>
+          <div className="mt-1.5">
+            <p className="font-display text-xl sm:text-2xl font-bold text-blue-700 dark:text-blue-400 leading-tight">{filteredRooms.length}</p>
+            <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5 block">Matching current filters</span>
+          </div>
+        </div>
+
+      </div>
+
+      {/* ─── 2. CONTROLS & FILTER TABS BAR ─── */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        <div className="flex flex-wrap gap-1 p-1 bg-neutral-100/70 dark:bg-[#14171C] rounded-lg border border-black/[0.06] dark:border-neutral-800 text-xs w-fit">
+          {ROOM_TYPES.map((type) => (
+            <button
+              key={type}
+              onClick={() => setActiveType(type)}
+              className={`px-3 py-1.5 rounded-md font-semibold transition-all cursor-pointer ${
+                activeType === type
+                  ? 'bg-[#B48454] text-white shadow-xs'
+                  : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-white dark:hover:bg-neutral-800'
+              }`}
+            >
+              {type === 'All' ? 'All Rooms' : `${type}s`}
+            </button>
+          ))}
         </div>
 
         {/* Search Bar */}
-        <div className="relative w-full sm:w-80 text-xs">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-muted w-3.5 h-3.5" strokeWidth={1.5} />
+        <div className="relative w-full sm:w-72 text-xs">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400 w-3.5 h-3.5" strokeWidth={1.5} />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search room type, number..."
-            className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] text-ink focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+            className="w-full pl-9 pr-4 py-2 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
           />
         </div>
       </div>
 
-      {/* ─── 2. STATISTIC KPI SUMMARY CARDS ─── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        
-        <div className="bg-white p-5 rounded-2xl border border-stone/20 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase font-bold tracking-widest text-[#B48454]">TOTAL INVENTORY</span>
-            <div className="w-7 h-7 rounded-lg bg-[#B48454]/10 text-[#B48454] flex items-center justify-center">
-              <Building2 className="w-4 h-4" strokeWidth={1.5} />
-            </div>
-          </div>
-          <div>
-            <p className="font-display text-3xl font-bold text-ink mt-2">{rooms.length}</p>
-            <span className="text-xs text-ink-muted mt-1 block">Rooms & suites</span>
-          </div>
-        </div>
-
-        <div className="bg-white p-5 rounded-2xl border border-stone/20 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase font-bold tracking-widest text-emerald-700">AVAILABLE NOW</span>
-            <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center">
-              <CheckCircle2 className="w-4 h-4" strokeWidth={1.5} />
-            </div>
-          </div>
-          <div>
-            <p className="font-display text-3xl font-bold text-emerald-700 mt-2">{availableCount}</p>
-            <span className="text-xs text-ink-muted mt-1 block">Ready for instant booking</span>
-          </div>
-        </div>
-
-        <div className="bg-white p-5 rounded-2xl border border-stone/20 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase font-bold tracking-widest text-[#B48454]">STARTING FROM</span>
-            <div className="w-7 h-7 rounded-lg bg-[#B48454]/10 text-[#B48454] flex items-center justify-center">
-              <Sparkles className="w-4 h-4" strokeWidth={1.5} />
-            </div>
-          </div>
-          <div>
-            <p className="font-display text-2xl sm:text-3xl font-bold text-ink mt-2">
-              ₱{minRate.toLocaleString()} <span className="text-xs font-sans font-normal text-ink-muted">/ night</span>
-            </p>
-            <span className="text-xs text-ink-muted mt-1 block">Best value available</span>
-          </div>
-        </div>
-
-        <div className="bg-white p-5 rounded-2xl border border-stone/20 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase font-bold tracking-widest text-blue-700">FILTERED ROOMS</span>
-            <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-700 border border-blue-200 flex items-center justify-center">
-              <BedDouble className="w-4 h-4" strokeWidth={1.5} />
-            </div>
-          </div>
-          <div>
-            <p className="font-display text-3xl font-bold text-blue-800 mt-2">{filteredRooms.length}</p>
-            <span className="text-xs text-ink-muted mt-1 block">Matching current filters</span>
-          </div>
-        </div>
-
-      </div>
-
-      {/* ─── 3. FILTER TABS BAR ─── */}
-      <div className="flex flex-wrap gap-1.5 p-1 bg-sand/40 rounded-xl border border-stone/20 text-xs w-fit">
-        {ROOM_TYPES.map((type) => (
-          <button
-            key={type}
-            onClick={() => setActiveType(type)}
-            className={`px-4 py-2 rounded-lg font-semibold transition-all ${
-              activeType === type
-                ? 'bg-[#B48454] text-white shadow-sm'
-                : 'text-ink-muted hover:text-ink hover:bg-white/60'
-            }`}
-          >
-            {type === 'All' ? 'All Rooms' : `${type}s`}
-          </button>
-        ))}
-      </div>
-
-      {/* ─── 4. ROOMS GRID ─── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* ─── 3. ROOMS GRID ─── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredRooms.map((r) => {
           const isAvail = String(r.status).toLowerCase() === 'available'
           const imgSrc = getPrimaryImage(r)

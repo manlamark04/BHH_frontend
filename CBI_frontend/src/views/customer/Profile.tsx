@@ -101,7 +101,7 @@ export default function CustomerProfile({ userName, userId }: CustomerProfilePro
   }
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 max-w-4xl mx-auto space-y-6 font-sans">
+    <div className="p-4 sm:p-5 max-w-4xl mx-auto space-y-4 font-sans">
       
       {/* Toast Alert */}
       {toast && (
@@ -111,17 +111,29 @@ export default function CustomerProfile({ userName, userId }: CustomerProfilePro
         </div>
       )}
 
-      {/* ─── 1. PAGE HEADER ─── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-stone/20">
-        <div>
-          <h1 className="font-display text-3xl sm:text-4xl font-bold text-ink tracking-tight">Guest Profile</h1>
-          <p className="text-xs sm:text-sm text-ink-muted mt-0.5">Manage personal information, contact credentials & account security</p>
+      {/* ─── 1. MEMBER OVERVIEW BANNER CARD ─── */}
+      <div className="bg-white dark:bg-[#181B20] rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-full bg-[#B48454] text-white font-display text-lg font-bold flex items-center justify-center shadow-xs shrink-0">
+            {name.charAt(0).toUpperCase()}
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="font-display text-lg sm:text-xl font-bold text-neutral-900 dark:text-white leading-tight">{name}</h2>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50 uppercase">
+                ● {status.toUpperCase()}
+              </span>
+            </div>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
+              Guest ID: <strong className="font-mono text-[#B48454] font-bold">{userId}</strong> · Member since {createdAt || '2026'}
+            </p>
+          </div>
         </div>
 
         {!editing && (
           <button
             onClick={() => setEditing(true)}
-            className="px-5 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl font-semibold text-xs shadow-sm hover:shadow-md transition-all flex items-center gap-2 self-start sm:self-auto"
+            className="px-3.5 py-1.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-lg font-semibold text-xs shadow-xs hover:shadow-sm transition-all flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
           >
             <Edit3 className="w-3.5 h-3.5" strokeWidth={2} />
             <span>Edit Profile</span>
@@ -129,122 +141,91 @@ export default function CustomerProfile({ userName, userId }: CustomerProfilePro
         )}
       </div>
 
-      {/* ─── 2. MEMBER OVERVIEW BANNER CARD ─── */}
-      <div className="bg-white rounded-2xl border border-stone/20 shadow-sm p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-full bg-[#B48454] text-white font-display text-2xl font-bold flex items-center justify-center shadow-sm shrink-0">
-            {name.charAt(0).toUpperCase()}
-          </div>
+      {/* ─── 2. PERSONAL DETAILS CARD ─── */}
+      <div className="bg-white dark:bg-[#181B20] rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-4 sm:p-5 space-y-4">
+        <div className="pb-2.5 border-b border-black/[0.06] dark:border-neutral-800 flex items-center justify-between">
           <div>
-            <div className="flex items-center gap-2">
-              <h2 className="font-display text-2xl font-bold text-ink leading-tight">{name}</h2>
-              <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 uppercase">
-                ● {status.toUpperCase()}
-              </span>
-            </div>
-            <p className="text-xs text-ink-muted mt-1">
-              Guest ID: <strong className="font-mono text-[#B48454] font-bold">{userId}</strong> · Member since {createdAt || '2026'}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* ─── 3. PERSONAL DETAILS CARD ─── */}
-      <div className="bg-white rounded-2xl border border-stone/20 shadow-sm p-6 sm:p-8 space-y-6">
-        <div className="pb-3 border-b border-stone/15 flex items-center justify-between">
-          <div>
-            <h3 className="font-display font-bold text-xl text-ink">Personal Information</h3>
-            <p className="text-xs text-ink-muted mt-0.5">Your official registered details for reservations & check-in</p>
+            <h3 className="font-display font-bold text-base text-neutral-900 dark:text-white">Personal Information</h3>
+            <p className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5">Your official registered details for reservations & check-in</p>
           </div>
         </div>
 
         {editing ? (
-          <div className="space-y-4 text-xs">
-            <div className="grid sm:grid-cols-2 gap-4">
+          <div className="space-y-3.5 text-xs">
+            <div className="grid sm:grid-cols-2 gap-3">
               <div>
-                <label className="block font-semibold text-ink uppercase tracking-wider mb-1.5">Full Name *</label>
+                <label className="block font-semibold text-neutral-900 dark:text-white uppercase tracking-wider mb-1">Full Name *</label>
                 <input
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] text-ink font-medium focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                  className="w-full px-3.5 py-2 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
                 />
               </div>
               <div>
-                <label className="block font-semibold text-ink uppercase tracking-wider mb-1.5">Phone Number</label>
+                <label className="block font-semibold text-neutral-900 dark:text-white uppercase tracking-wider mb-1">Phone Number</label>
                 <input
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="e.g. 0917-123-4567"
-                  className="w-full px-4 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] text-ink font-medium focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                  className="w-full px-3.5 py-2 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block font-semibold text-ink uppercase tracking-wider mb-1.5">Registered Email (Read Only)</label>
+              <label className="block font-semibold text-neutral-900 dark:text-white uppercase tracking-wider mb-1">Registered Email (Read Only)</label>
               <input
                 disabled
                 value={email}
-                className="w-full px-4 py-2.5 rounded-xl border border-stone/30 bg-sand/30 text-ink-muted cursor-not-allowed font-mono"
+                className="w-full px-3.5 py-2 rounded-lg border border-black/[0.06] dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-800/60 text-neutral-500 dark:text-neutral-400 font-mono text-xs cursor-not-allowed"
               />
             </div>
 
-            <div className="flex gap-3 pt-3">
+            <div className="flex gap-2.5 pt-2">
               <button
                 type="button"
                 onClick={() => setEditing(false)}
-                className="flex-1 py-2.5 border border-stone/30 rounded-xl font-semibold text-ink-muted hover:bg-sand transition-all"
+                className="flex-1 py-2 border border-black/[0.08] dark:border-neutral-700 rounded-lg font-semibold text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleSave}
-                disabled={saving || !name}
-                className="flex-1 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl font-semibold shadow-sm disabled:opacity-50 transition-all"
+                disabled={saving}
+                className="flex-1 py-2 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-lg font-semibold shadow-xs disabled:opacity-50 transition-all cursor-pointer"
               >
                 {saving ? 'Saving Changes...' : 'Save Profile Details'}
               </button>
             </div>
           </div>
         ) : (
-          <div className="grid sm:grid-cols-2 gap-6 text-xs">
-            <div className="p-4 bg-[#FAF8F5] border border-stone/20 rounded-2xl">
-              <span className="text-[10px] uppercase font-bold text-ink-muted tracking-wider block">FULL NAME</span>
-              <p className="font-display font-bold text-ink text-base mt-1">{name}</p>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div className="p-3 bg-neutral-50/70 dark:bg-[#14171C] border border-black/[0.06] dark:border-neutral-800 rounded-lg">
+              <span className="text-[10px] uppercase font-bold text-neutral-500 dark:text-neutral-400 tracking-wider block">REGISTERED EMAIL</span>
+              <p className="font-mono text-neutral-900 dark:text-white text-xs mt-0.5">{email || '—'}</p>
             </div>
-
-            <div className="p-4 bg-[#FAF8F5] border border-stone/20 rounded-2xl">
-              <span className="text-[10px] uppercase font-bold text-ink-muted tracking-wider block">CUSTOMER ID</span>
-              <p className="font-mono font-bold text-[#B48454] text-sm mt-1">{userId}</p>
-            </div>
-
-            <div className="p-4 bg-[#FAF8F5] border border-stone/20 rounded-2xl">
-              <span className="text-[10px] uppercase font-bold text-ink-muted tracking-wider block">EMAIL ADDRESS</span>
-              <p className="font-medium text-ink text-sm mt-1">{email}</p>
-            </div>
-
-            <div className="p-4 bg-[#FAF8F5] border border-stone/20 rounded-2xl">
-              <span className="text-[10px] uppercase font-bold text-ink-muted tracking-wider block">CONTACT NUMBER</span>
-              <p className="font-medium text-ink text-sm mt-1">{phone || 'Not provided'}</p>
+            <div className="p-3 bg-neutral-50/70 dark:bg-[#14171C] border border-black/[0.06] dark:border-neutral-800 rounded-lg">
+              <span className="text-[10px] uppercase font-bold text-neutral-500 dark:text-neutral-400 tracking-wider block">CONTACT NUMBER</span>
+              <p className="font-medium text-neutral-900 dark:text-white text-xs mt-0.5">{phone || 'Not provided'}</p>
             </div>
           </div>
         )}
       </div>
 
-      {/* ─── 4. CHANGE PASSWORD CARD ─── */}
-      <div className="bg-white rounded-2xl border border-stone/20 shadow-sm p-6 sm:p-8 space-y-6">
-        <div className="pb-3 border-b border-stone/15 flex items-center justify-between">
+      {/* ─── 3. CHANGE PASSWORD CARD ─── */}
+      <div className="bg-white dark:bg-[#181B20] rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-4 sm:p-5 space-y-4">
+        <div className="pb-2.5 border-b border-black/[0.06] dark:border-neutral-800 flex items-center justify-between">
           <div>
-            <h3 className="font-display font-bold text-xl text-ink">Account Security & Password</h3>
-            <p className="text-xs text-ink-muted mt-0.5">Ensure your customer portal account stays protected</p>
+            <h3 className="font-display font-bold text-base text-neutral-900 dark:text-white">Account Security & Password</h3>
+            <p className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5">Ensure your customer portal account stays protected</p>
           </div>
 
           {!changingPassword && (
             <button
               onClick={() => setChangingPassword(true)}
-              className="px-4 py-2 border border-[#B48454] text-[#B48454] hover:bg-[#B48454] hover:text-white rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5"
+              className="px-3.5 py-1.5 border border-[#B48454] text-[#B48454] hover:bg-[#B48454] hover:text-white rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer"
             >
               <Key className="w-3.5 h-3.5" />
               <span>Change Password</span>
@@ -253,54 +234,54 @@ export default function CustomerProfile({ userName, userId }: CustomerProfilePro
         </div>
 
         {changingPassword ? (
-          <div className="space-y-4 text-xs">
+          <div className="space-y-3 text-xs">
             {pwError && (
-              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 font-semibold flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+              <div className="p-2.5 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/40 rounded-lg text-rose-800 dark:text-rose-300 font-semibold flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
                 <span>{pwError}</span>
               </div>
             )}
 
             <div>
-              <label className="block font-semibold text-ink uppercase tracking-wider mb-1.5">Current Password *</label>
+              <label className="block font-semibold text-neutral-900 dark:text-white uppercase tracking-wider mb-1">Current Password *</label>
               <input
                 type="password"
                 value={currentPw}
                 onChange={(e) => setCurrentPw(e.target.value)}
                 placeholder="Enter current password"
-                className="w-full px-4 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] text-ink focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                className="w-full px-3.5 py-2 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
               />
             </div>
 
-            <div className="grid sm:grid-cols-2 gap-4">
+            <div className="grid sm:grid-cols-2 gap-3">
               <div>
-                <label className="block font-semibold text-ink uppercase tracking-wider mb-1.5">New Password *</label>
+                <label className="block font-semibold text-neutral-900 dark:text-white uppercase tracking-wider mb-1">New Password *</label>
                 <input
                   type="password"
                   value={newPw}
                   onChange={(e) => setNewPw(e.target.value)}
                   placeholder="Minimum 6 characters"
-                  className="w-full px-4 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] text-ink focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                  className="w-full px-3.5 py-2 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
                 />
               </div>
 
               <div>
-                <label className="block font-semibold text-ink uppercase tracking-wider mb-1.5">Confirm New Password *</label>
+                <label className="block font-semibold text-neutral-900 dark:text-white uppercase tracking-wider mb-1">Confirm New Password *</label>
                 <input
                   type="password"
                   value={confirmPw}
                   onChange={(e) => setConfirmPw(e.target.value)}
                   placeholder="Re-enter new password"
-                  className="w-full px-4 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] text-ink focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                  className="w-full px-3.5 py-2 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
                 />
               </div>
             </div>
 
-            <div className="flex gap-3 pt-3">
+            <div className="flex gap-2.5 pt-2">
               <button
                 type="button"
                 onClick={() => { setChangingPassword(false); setPwError(''); }}
-                className="flex-1 py-2.5 border border-stone/30 rounded-xl font-semibold text-ink-muted hover:bg-sand transition-all"
+                className="flex-1 py-2 border border-black/[0.08] dark:border-neutral-700 rounded-lg font-semibold text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all cursor-pointer"
               >
                 Cancel
               </button>
@@ -308,14 +289,14 @@ export default function CustomerProfile({ userName, userId }: CustomerProfilePro
                 type="button"
                 onClick={handleChangePassword}
                 disabled={saving}
-                className="flex-1 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl font-semibold shadow-sm disabled:opacity-50 transition-all"
+                className="flex-1 py-2 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-lg font-semibold shadow-xs disabled:opacity-50 transition-all cursor-pointer"
               >
                 {saving ? 'Updating Password...' : 'Update Password'}
               </button>
             </div>
           </div>
         ) : (
-          <p className="text-xs text-ink-muted leading-relaxed">
+          <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed">
             Your login password protects your reservation statements and transactions. We recommend choosing a strong password with letters, numbers, and symbols.
           </p>
         )}

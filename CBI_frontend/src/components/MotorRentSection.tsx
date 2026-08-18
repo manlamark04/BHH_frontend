@@ -22,6 +22,44 @@ interface Props {
   customerName?: string
 }
 
+const TIME_OPTIONS = [
+  { value: '06:00', label: '06:00 AM (Early Morning)' },
+  { value: '07:00', label: '07:00 AM' },
+  { value: '08:00', label: '08:00 AM (Morning Pickup)' },
+  { value: '09:00', label: '09:00 AM' },
+  { value: '10:00', label: '10:00 AM' },
+  { value: '11:00', label: '11:00 AM' },
+  { value: '12:00', label: '12:00 PM (Noon)' },
+  { value: '13:00', label: '01:00 PM (Afternoon)' },
+  { value: '14:00', label: '02:00 PM' },
+  { value: '15:00', label: '03:00 PM' },
+  { value: '16:00', label: '04:00 PM' },
+  { value: '17:00', label: '05:00 PM (Sunset Return)' },
+  { value: '18:00', label: '06:00 PM (Evening)' },
+  { value: '19:00', label: '07:00 PM' },
+  { value: '20:00', label: '08:00 PM (Night)' },
+  { value: '21:00', label: '09:00 PM' },
+  { value: '22:00', label: '10:00 PM' },
+]
+
+export const formatDateTimeWithAmPm = (dateStr?: string) => {
+  if (!dateStr) return '—'
+  try {
+    const d = new Date(dateStr)
+    if (isNaN(d.getTime())) return String(dateStr).replace('T', ' ').substring(0, 16)
+    return d.toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    })
+  } catch (_) {
+    return String(dateStr).replace('T', ' ').substring(0, 16)
+  }
+}
+
 export default function MotorRentSection({ userRole = 'customer', customerId, customerName }: Props) {
   const [motorcycles, setMotorcycles] = useState<Motorcycle[]>([])
   const [rentals, setRentals] = useState<MotorRental[]>([])
@@ -181,14 +219,14 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
       {activeTab === 'fleet' && (
         <>
           {/* Filters Bar */}
-          <div className="flex flex-wrap gap-3 items-center justify-between bg-white p-4 rounded-2xl border border-stone/20 shadow-sm">
-            <div className="flex flex-wrap gap-3 items-center">
+          <div className="flex flex-wrap gap-3 items-center justify-between bg-white dark:bg-[#181B20] p-3.5 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+            <div className="flex flex-wrap gap-2.5 items-center">
               <div>
-                <label className="text-[10px] font-bold text-ink-muted uppercase block mb-1">Brand</label>
+                <label className="text-[10px] font-bold text-neutral-500 dark:text-neutral-400 uppercase block mb-1">Brand</label>
                 <select
                   value={brandFilter}
                   onChange={(e) => setBrandFilter(e.target.value)}
-                  className="px-3 py-1.5 rounded-xl border border-stone/30 text-xs bg-[#FAF8F5] text-ink font-semibold focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                  className="px-2.5 py-1.5 rounded-lg border border-black/[0.08] dark:border-neutral-700 text-xs bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white font-semibold focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
                 >
                   {uniqueBrands.map((b) => (
                     <option key={b} value={b}>{b}</option>
@@ -197,11 +235,11 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
               </div>
 
               <div>
-                <label className="text-[10px] font-bold text-ink-muted uppercase block mb-1">Type</label>
+                <label className="text-[10px] font-bold text-neutral-500 dark:text-neutral-400 uppercase block mb-1">Type</label>
                 <select
                   value={typeFilter}
                   onChange={(e) => setTypeFilter(e.target.value)}
-                  className="px-3 py-1.5 rounded-xl border border-stone/30 text-xs bg-[#FAF8F5] text-ink font-semibold focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                  className="px-2.5 py-1.5 rounded-lg border border-black/[0.08] dark:border-neutral-700 text-xs bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white font-semibold focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
                 >
                   {uniqueTypes.map((t) => (
                     <option key={t} value={t}>{t}</option>
@@ -210,11 +248,11 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
               </div>
 
               <div>
-                <label className="text-[10px] font-bold text-ink-muted uppercase block mb-1">Availability</label>
+                <label className="text-[10px] font-bold text-neutral-500 dark:text-neutral-400 uppercase block mb-1">Availability</label>
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="px-3 py-1.5 rounded-xl border border-stone/30 text-xs bg-[#FAF8F5] text-ink font-semibold focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                  className="px-2.5 py-1.5 rounded-lg border border-black/[0.08] dark:border-neutral-700 text-xs bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white font-semibold focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
                 >
                   <option value="ALL">All Statuses</option>
                   <option value="AVAILABLE">Available Now</option>
@@ -225,13 +263,13 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
               </div>
             </div>
 
-            <span className="text-xs font-medium text-ink-muted">
+            <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
               Showing {filteredMotors.length} of {motorcycles.length} motorcycles
             </span>
           </div>
 
           {/* Motorcycle Fleet Grid */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
             {filteredMotors.map((motor) => {
               const isAvailable = motor.status === 'AVAILABLE'
               const rate = Number(motor.rental_rate)
@@ -240,15 +278,15 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
               return (
                 <div
                   key={motor.id}
-                  className={`bg-white rounded-2xl overflow-hidden border shadow-sm transition-all flex flex-col justify-between group ${
+                  className={`bg-white dark:bg-[#181B20] rounded-xl overflow-hidden border shadow-[0_1px_3px_rgba(0,0,0,0.04)] transition-all flex flex-col justify-between group ${
                     isAvailable
-                      ? 'border-stone/20 hover:shadow-md hover:border-[#B48454]/40'
-                      : 'border-stone/30 opacity-80 bg-stone/5'
+                      ? 'border-black/[0.07] dark:border-neutral-800 hover:shadow-md hover:border-[#B48454]/40'
+                      : 'border-black/[0.08] dark:border-neutral-800 opacity-80 bg-neutral-50/50 dark:bg-neutral-900/40'
                   }`}
                 >
                   <div>
                     {/* Image / Header */}
-                    <div className="relative h-48 overflow-hidden bg-sand flex items-center justify-center">
+                    <div className="relative h-40 overflow-hidden bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center">
                       {motor.image_url ? (
                         <img
                           src={motor.image_url}
@@ -257,49 +295,49 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
                         />
                       ) : (
                         <div className="text-center p-4">
-                          <Bike className="w-10 h-10 text-ink-muted mx-auto mb-1" strokeWidth={1.5} />
-                          <p className="font-display font-bold text-[#B48454] text-base">{motor.brand} {motor.model}</p>
+                          <Bike className="w-8 h-8 text-neutral-400 mx-auto mb-1" strokeWidth={1.5} />
+                          <p className="font-display font-bold text-[#B48454] text-sm">{motor.brand} {motor.model}</p>
                         </div>
                       )}
-                      <div className="absolute top-3 left-3">
+                      <div className="absolute top-2.5 left-2.5">
                         <StatusBadge status={motor.status} />
                       </div>
-                      <div className="absolute top-3 right-3 flex items-center gap-1.5">
-                        <div className="bg-black/60 backdrop-blur-xs text-white font-mono text-xs px-2.5 py-1 rounded-full font-bold shadow-sm">
+                      <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5">
+                        <div className="bg-black/60 backdrop-blur-xs text-white font-mono text-[10px] px-2 py-0.5 rounded-full font-bold shadow-xs">
                           {motor.plate_number}
                         </div>
                         {userRole === 'admin' && (
                           <button
                             type="button"
                             onClick={() => setEditingMotor(motor)}
-                            className="w-7 h-7 rounded-full bg-white/90 hover:bg-white text-ink hover:text-[#B48454] shadow-md border border-white/60 backdrop-blur-md flex items-center justify-center transition-all hover:scale-110"
+                            className="w-6 h-6 rounded-full bg-white/90 dark:bg-neutral-800 hover:bg-white text-neutral-900 dark:text-white hover:text-[#B48454] shadow-xs border border-white/60 dark:border-neutral-700 backdrop-blur-md flex items-center justify-center transition-all cursor-pointer"
                             title="Edit Motorcycle Listing (Admin Only)"
                             aria-label="Edit Motorcycle"
                           >
-                            <Pencil className="w-3.5 h-3.5" strokeWidth={1.5} />
+                            <Pencil className="w-3 h-3" strokeWidth={1.5} />
                           </button>
                         )}
                       </div>
                     </div>
 
                     {/* Content */}
-                    <div className="p-5">
-                      <div className="flex items-start justify-between mb-1.5">
+                    <div className="p-3.5 sm:p-4">
+                      <div className="flex items-start justify-between mb-1">
                         <div>
                           <span className="text-[10px] font-bold uppercase tracking-wider text-[#B48454]">{motor.brand} · {motor.type}</span>
-                          <h3 className="font-display text-lg font-bold text-ink">{motor.model}</h3>
+                          <h3 className="font-display text-base font-bold text-neutral-900 dark:text-white leading-tight">{motor.model}</h3>
                         </div>
                         <div className="text-right">
-                          <span className="font-display text-xl font-bold text-ink">₱{rate.toLocaleString()}</span>
-                          <span className="text-[10px] text-ink-muted block font-mono">/{rateType}</span>
+                          <span className="font-display text-lg font-bold text-neutral-900 dark:text-white">₱{rate.toLocaleString()}</span>
+                          <span className="text-[10px] text-neutral-500 dark:text-neutral-400 block font-mono">/{rateType}</span>
                         </div>
                       </div>
 
-                      <p className="text-xs text-ink-muted leading-relaxed line-clamp-2 mt-2">
+                      <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed line-clamp-2 mt-1.5">
                         {motor.description || 'Reliable and well-maintained motorcycle for local Bohol tours.'}
                       </p>
 
-                      <div className="mt-4 pt-3 border-t border-stone/15 flex items-center justify-between text-xs text-ink-muted font-mono">
+                      <div className="mt-3 pt-2 border-t border-black/[0.05] dark:border-neutral-800 flex items-center justify-between text-[11px] text-neutral-500 dark:text-neutral-400 font-mono">
                         <span>ID: {motor.motor_id}</span>
                         <span>Plate: {motor.plate_number}</span>
                       </div>
@@ -307,14 +345,14 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
                   </div>
 
                   {/* Rent Button */}
-                  <div className="p-5 pt-0">
+                  <div className="p-3.5 sm:p-4 pt-0">
                     <button
                       onClick={() => handleOpenRentalModal(motor)}
                       disabled={!isAvailable}
-                      className={`w-full py-2.5 rounded-xl font-semibold text-xs transition-all shadow-sm flex items-center justify-center gap-2 ${
+                      className={`w-full py-2 rounded-lg font-semibold text-xs transition-all shadow-xs flex items-center justify-center gap-2 ${
                         isAvailable
-                          ? 'bg-[#B48454] hover:bg-[#9E6E3E] text-white cursor-pointer hover:shadow-md'
-                          : 'bg-stone-200 text-stone-400 cursor-not-allowed'
+                          ? 'bg-[#B48454] hover:bg-[#9E6E3E] text-white cursor-pointer hover:shadow-sm'
+                          : 'bg-neutral-200 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-500 cursor-not-allowed'
                       }`}
                     >
                       {isAvailable ? 'Rent This Motorcycle' : `Unavailable (${motor.status})`}
@@ -325,10 +363,10 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
             })}
           </div>
 
-          {loading && <p className="text-center py-12 text-ink-muted text-xs">Loading motorcycle fleet from database...</p>}
+          {loading && <p className="text-center py-8 text-neutral-500 dark:text-neutral-400 text-xs">Loading motorcycle fleet from database...</p>}
           {!loading && filteredMotors.length === 0 && (
-            <div className="bg-white rounded-2xl p-12 text-center border border-stone/20">
-              <p className="text-ink font-display font-bold text-base">No motorcycles found matching your filters.</p>
+            <div className="bg-white dark:bg-[#181B20] rounded-xl p-8 text-center border border-black/[0.07] dark:border-neutral-800">
+              <p className="text-neutral-900 dark:text-white font-display font-bold text-sm">No motorcycles found matching your filters.</p>
             </div>
           )}
         </>
@@ -336,10 +374,10 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
 
       {/* Rentals Records Tab */}
       {activeTab === 'my-rentals' && (
-        <div className="bg-white rounded-2xl border border-stone/20 shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b border-stone/15 bg-[#FCFAF7] flex items-center justify-between">
+        <div className="bg-white dark:bg-[#181B20] rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+          <div className="px-4 py-3 border-b border-black/[0.06] dark:border-neutral-800 bg-neutral-50/50 dark:bg-[#14171C] flex items-center justify-between">
             <div>
-              <h3 className="font-display font-bold text-lg text-ink">
+              <h3 className="font-display font-bold text-base text-neutral-900 dark:text-white">
                 {userRole === 'customer' ? 'My Motorcycle Rental Records' : 'All Motorcycle Rental Records'}
               </h3>
               <p className="text-xs text-ink-muted">Rental logs and returned units</p>
@@ -373,10 +411,10 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
                       <p className="text-[10px] text-ink-muted font-mono">{r.customer_phone}</p>
                     </td>
                     <td className="px-5 py-4 text-xs font-mono text-ink-muted">
-                      {String(r.start_datetime).replace('T', ' ').substring(0, 16)}
+                      {formatDateTimeWithAmPm(r.start_datetime)}
                     </td>
                     <td className="px-5 py-4 text-xs font-mono text-ink-muted">
-                      {String(r.expected_return_datetime).replace('T', ' ').substring(0, 16)}
+                      {formatDateTimeWithAmPm(r.actual_return_datetime || r.expected_return_datetime)}
                     </td>
                     <td className="px-5 py-4 font-display font-bold text-ink text-sm">
                       ₱{Number(r.final_amount || r.total_amount).toLocaleString()}
@@ -432,7 +470,7 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
               </div>
             </div>
 
-            {/* Rental Duration / Date Pickers */}
+            {/* Rental Duration / Date & Time Pickers with AM/PM */}
             <div className="grid sm:grid-cols-2 gap-3">
               <div>
                 <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Rental Start Date *</label>
@@ -447,14 +485,19 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
               </div>
 
               <div>
-                <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Start Time *</label>
-                <input
-                  type="time"
+                <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Start Time (AM / PM) *</label>
+                <select
                   value={startTime}
                   onChange={(e) => setStartTime(e.target.value)}
                   required
-                  className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] font-mono text-xs focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
-                />
+                  className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] font-mono text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                >
+                  {TIME_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>
@@ -470,14 +513,19 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
               </div>
 
               <div>
-                <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Return Time *</label>
-                <input
-                  type="time"
+                <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Return Time (AM / PM) *</label>
+                <select
                   value={returnTime}
                   onChange={(e) => setReturnTime(e.target.value)}
                   required
-                  className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] font-mono text-xs focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
-                />
+                  className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] font-mono text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                >
+                  {TIME_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 
@@ -495,9 +543,21 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
               />
             </div>
 
-            {/* Live Cost Calculation Summary */}
+            {/* Live Cost Calculation & Schedule Summary with AM/PM */}
             <div className="bg-[#FAF8F5] border border-stone/20 rounded-2xl p-4 space-y-1.5 text-xs">
               <div className="flex justify-between text-ink-muted">
+                <span>Pickup Schedule:</span>
+                <span className="font-semibold text-ink font-mono">
+                  {startDate ? formatDateTimeWithAmPm(`${startDate}T${startTime}:00`) : '—'}
+                </span>
+              </div>
+              <div className="flex justify-between text-ink-muted">
+                <span>Expected Return:</span>
+                <span className="font-semibold text-amber-800 font-mono">
+                  {returnDate ? formatDateTimeWithAmPm(`${returnDate}T${returnTime}:00`) : '—'}
+                </span>
+              </div>
+              <div className="flex justify-between text-ink-muted pt-1 border-t border-stone/15">
                 <span>Calculated Duration:</span>
                 <span className="font-bold text-ink font-mono">{duration} {unit}</span>
               </div>
@@ -522,7 +582,7 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
               <button
                 type="submit"
                 disabled={submitting || duration <= 0}
-                className="flex-1 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl text-xs font-semibold shadow-sm disabled:opacity-50 flex items-center justify-center gap-1.5 transition-all"
+                className="flex-1 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl text-xs font-semibold shadow-sm disabled:opacity-50 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
               >
                 {submitting ? 'Confirming Rental...' : 'Confirm & Reserve'}
               </button>
@@ -555,12 +615,12 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
                 <span className="font-mono font-semibold text-[#B48454]">{successRental.plate_number}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-ink-muted">Start:</span>
-                <span className="font-mono">{String(successRental.start_datetime).replace('T', ' ').substring(0, 16)}</span>
+                <span className="text-ink-muted">Start Time:</span>
+                <span className="font-mono font-medium text-ink">{formatDateTimeWithAmPm(successRental.start_datetime)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-ink-muted">Expected Return:</span>
-                <span className="font-mono">{String(successRental.expected_return_datetime).replace('T', ' ').substring(0, 16)}</span>
+                <span className="font-mono font-medium text-amber-800">{formatDateTimeWithAmPm(successRental.expected_return_datetime)}</span>
               </div>
               <div className="flex justify-between pt-1 border-t border-stone/20">
                 <span className="text-ink-muted">Total Amount:</span>

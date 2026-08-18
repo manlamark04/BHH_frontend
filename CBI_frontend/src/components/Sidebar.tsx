@@ -1,7 +1,8 @@
-import { useState, type ReactNode } from 'react'
+import { useState } from 'react'
 import type { View, Role } from '../types'
 import logo from '../imports/logo.png'
 import ConfirmDialog from './ConfirmDialog'
+import { useTheme } from '../context/ThemeContext'
 import {
   LayoutDashboard,
   CalendarDays,
@@ -20,6 +21,8 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  Moon,
+  Sun,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -37,7 +40,7 @@ const ADMIN_NAV: NavItem[] = [
   { label: 'Motor Rent', view: 'staff-motorcycles', icon: Bike },
   { label: 'Pickleball Court', view: 'staff-pickleball', icon: Trophy },
   { label: 'Check-In / Out', view: 'admin-checkinout', icon: ArrowLeftRight },
-  { label: 'Staff Management', view: 'admin-users', icon: UserCog },
+  { label: 'User Management', view: 'admin-users', icon: UserCog },
   { label: 'Payments', view: 'admin-payments', icon: CreditCard },
   { label: 'Reports & Analytics', view: 'admin-reports', icon: BarChart3 },
   { label: 'Audit Log', view: 'admin-audit', icon: History },
@@ -46,6 +49,7 @@ const ADMIN_NAV: NavItem[] = [
 const STAFF_NAV: NavItem[] = [
   { label: 'Dashboard', view: 'staff-dashboard', icon: LayoutDashboard },
   { label: 'Bookings', view: 'staff-bookings', icon: CalendarDays },
+  { label: 'Rooms', view: 'staff-rooms', icon: BedDouble },
   { label: 'Check-In / Out', view: 'staff-checkinout', icon: ArrowLeftRight },
   { label: 'Walk-In Registration', view: 'staff-walkin', icon: UserPlus },
   { label: 'Motor Rent', view: 'staff-motorcycles', icon: Bike },
@@ -93,6 +97,15 @@ interface SidebarProps {
   onMobileClose: () => void
 }
 
+// ─── Espresso palette — hardcoded, never tied to dark mode toggle ───
+// bg:         #2B2420  warm espresso brown
+// text-logo:  #F5F1EC  off-white
+// active bg:  rgba(184,128,79,0.15)
+// active fg:  #B8804F  terracotta/gold
+// inactive:   #A8A29E  warm gray
+// hover bg:   rgba(255,255,255,0.05)
+// border:     rgba(255,255,255,0.08)
+
 export default function Sidebar({
   currentView,
   onNavigate,
@@ -106,26 +119,40 @@ export default function Sidebar({
 }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false)
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false)
+  const { isDarkMode, toggleDarkMode } = useTheme()
+
   const navItems = ROLE_NAV[role] || []
 
   const SidebarContent = () => (
     <aside
-      className={`flex flex-col h-full bg-[#FAF8F5] text-ink border-r border-stone/20 shadow-[1px_0_16px_rgba(0,0,0,0.02)] transition-all duration-300 ${
-        collapsed ? 'w-20' : 'w-64'
-      }`}
+      style={{ backgroundColor: '#2B2420', borderRight: '1px solid rgba(255,255,255,0.06)' }}
+      className={`flex flex-col h-full transition-all duration-300 ${collapsed ? 'w-20' : 'w-64'}`}
     >
       {/* ─── Top Branding ─── */}
-      <div className="px-4 py-4 border-b border-stone/15 flex items-center justify-between min-h-[64px]">
+      <div
+        style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', backgroundColor: '#2B2420' }}
+        className="px-4 py-4 flex items-center justify-between min-h-[64px]"
+      >
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-9 h-9 rounded-xl bg-[#B48454]/10 border border-[#B48454]/20 flex items-center justify-center p-1 shrink-0 shadow-xs">
+          <div
+            style={{ backgroundColor: 'rgba(184,128,79,0.15)', borderColor: 'rgba(184,128,79,0.28)' }}
+            className="w-9 h-9 rounded-xl border flex items-center justify-center p-1 shrink-0"
+          >
             <img src={logo} alt="Cambacay Breeze Inn" className="w-full h-full object-contain" />
           </div>
+
           {!collapsed && (
             <div className="min-w-0">
-              <p className="font-display text-[15px] font-bold text-ink leading-tight tracking-tight truncate">
+              <p
+                style={{ color: '#F5F1EC' }}
+                className="font-display text-[15px] font-bold leading-tight tracking-tight truncate"
+              >
                 Cambacay Breeze Inn
               </p>
-              <p className="text-[9.5px] text-[#B48454] font-bold uppercase tracking-[0.14em] leading-none mt-1">
+              <p
+                style={{ color: '#B8804F' }}
+                className="text-[9.5px] font-bold uppercase tracking-[0.14em] leading-none mt-1"
+              >
                 {SUITE_LABELS[role] || 'HOSPITALITY'}
               </p>
             </div>
@@ -134,32 +161,46 @@ export default function Sidebar({
 
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="text-ink-muted hover:text-ink p-1.5 rounded-lg hover:bg-stone/10 transition-colors hidden lg:flex items-center justify-center shrink-0"
+          style={{ color: '#A8A29E' }}
+          className="p-1.5 rounded-lg transition-all hidden lg:flex items-center justify-center shrink-0 hover:bg-white/[0.07]"
           title={collapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
           aria-label={collapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
         >
           {collapsed ? (
-            <ChevronRight className="w-4 h-4 text-ink-muted" strokeWidth={1.5} />
+            <ChevronRight className="w-4 h-4" strokeWidth={1.5} />
           ) : (
-            <ChevronLeft className="w-4 h-4 text-ink-muted" strokeWidth={1.5} />
+            <ChevronLeft className="w-4 h-4" strokeWidth={1.5} />
           )}
         </button>
       </div>
 
-      {/* ─── User Role & ID Chip ─── */}
+      {/* ─── Role Label & User ID Chip ─── */}
       {!collapsed && (
-        <div className="px-4 py-2.5 border-b border-stone/10 bg-[#EDE9DF]/40 flex items-center justify-between">
-          <span className="text-[10px] text-ink-muted uppercase font-bold tracking-wider">
+        <div
+          style={{
+            backgroundColor: 'rgba(0,0,0,0.15)',
+            borderBottom: '1px solid rgba(255,255,255,0.06)',
+          }}
+          className="px-4 py-2 flex items-center justify-between"
+        >
+          <span style={{ color: '#A8A29E' }} className="text-[10px] uppercase font-bold tracking-wider">
             {ROLE_LABELS[role]}
           </span>
-          <span className="font-mono text-[10px] text-[#B48454] font-bold bg-[#B48454]/10 border border-[#B48454]/15 px-2 py-0.5 rounded-md">
+          <span
+            style={{
+              color: '#B8804F',
+              backgroundColor: 'rgba(184,128,79,0.14)',
+              borderColor: 'rgba(184,128,79,0.25)',
+            }}
+            className="font-mono text-[10px] font-bold border px-2 py-0.5 rounded-md"
+          >
             {userId}
           </span>
         </div>
       )}
 
       {/* ─── Navigation Menu ─── */}
-      <nav className="flex-1 px-3 py-3.5 space-y-1 overflow-y-auto scrollbar-thin">
+      <nav className="flex-1 px-2.5 py-3 space-y-0.5 overflow-y-auto scrollbar-thin">
         {navItems.map((item) => {
           const active = currentView === item.view
           const Icon = item.icon
@@ -172,64 +213,144 @@ export default function Sidebar({
                 onMobileClose()
               }}
               title={collapsed ? item.label : undefined}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all text-left group ${
+              style={
                 active
-                  ? 'bg-[#B48454]/12 text-[#B48454] font-semibold shadow-xs'
-                  : 'text-[#6B6358] hover:bg-[#EDE9DF]/60 hover:text-ink'
-              } ${collapsed ? 'justify-center px-2' : ''}`}
+                  ? {
+                      backgroundColor: 'rgba(184,128,79,0.15)',
+                      color: '#B8804F',
+                      borderLeft: '3px solid #B8804F',
+                      paddingLeft: collapsed ? '10px' : '10px',
+                    }
+                  : {
+                      color: '#A8A29E',
+                      borderLeft: '3px solid transparent',
+                      paddingLeft: collapsed ? '10px' : '10px',
+                    }
+              }
+              onMouseEnter={(e) => {
+                if (!active) {
+                  const el = e.currentTarget as HTMLButtonElement
+                  el.style.backgroundColor = 'rgba(255,255,255,0.05)'
+                  el.style.color = '#D6CFC7'
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!active) {
+                  const el = e.currentTarget as HTMLButtonElement
+                  el.style.backgroundColor = 'transparent'
+                  el.style.color = '#A8A29E'
+                }
+              }}
+              className={`w-full flex items-center gap-3 pr-3 py-2 rounded-xl text-xs transition-all text-left cursor-pointer ${
+                active ? 'font-semibold' : 'font-medium'
+              } ${collapsed ? 'justify-center' : ''}`}
             >
-              <span
-                className={`flex items-center justify-center shrink-0 ${
-                  active ? 'text-[#B48454]' : 'text-[#8C827A] group-hover:text-ink transition-colors'
-                }`}
-              >
+              <span className="flex items-center justify-center shrink-0">
                 <Icon className="w-4 h-4" strokeWidth={1.5} />
               </span>
-              
+
               {!collapsed && (
                 <span className="truncate leading-normal">{item.label}</span>
               )}
 
               {active && !collapsed && (
-                <span className="ml-auto w-1.5 h-1.5 rounded-full bg-[#B48454] shrink-0" />
+                <span
+                  style={{ backgroundColor: '#B8804F' }}
+                  className="ml-auto w-1.5 h-1.5 rounded-full shrink-0"
+                />
               )}
             </button>
           )
         })}
       </nav>
 
-      {/* ─── Bottom Admin Profile & Sign Out ─── */}
-      <div className="p-3 border-t border-stone/15 bg-[#F5F1EB]/50 space-y-2">
+      {/* ─── Bottom: Dark Mode Toggle + Profile + Sign Out ─── */}
+      <div
+        style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}
+        className="p-3 space-y-1"
+      >
+        {/* Dark Mode Toggle */}
+        <button
+          onClick={toggleDarkMode}
+          style={{ color: '#A8A29E' }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'rgba(255,255,255,0.05)' }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent' }}
+          className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl transition-all text-left cursor-pointer ${
+            collapsed ? 'justify-center px-0' : ''
+          }`}
+          title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+          aria-label="Toggle Theme"
+        >
+          <div className="flex items-center gap-2.5">
+            {isDarkMode ? (
+              <Sun className="w-4 h-4 shrink-0" style={{ color: '#B8804F' }} strokeWidth={1.5} />
+            ) : (
+              <Moon className="w-4 h-4 shrink-0" style={{ color: '#A8A29E' }} strokeWidth={1.5} />
+            )}
+            {!collapsed && (
+              <span className="text-xs font-medium">Dark Mode</span>
+            )}
+          </div>
+
+          {!collapsed && (
+            <div
+              style={{ backgroundColor: isDarkMode ? '#B8804F' : 'rgba(255,255,255,0.18)' }}
+              className="w-8 h-4.5 flex items-center rounded-full p-0.5 transition-colors duration-200"
+            >
+              <div
+                className={`bg-white w-3.5 h-3.5 rounded-full shadow-xs transform transition-transform duration-200 ${
+                  isDarkMode ? 'translate-x-3.5' : 'translate-x-0'
+                }`}
+              />
+            </div>
+          )}
+        </button>
+
+        {/* User Profile Block */}
         <div
           className={`flex items-center gap-2.5 px-2 py-1.5 rounded-xl ${
             collapsed ? 'justify-center px-0' : ''
           }`}
         >
-          <div className="w-8 h-8 rounded-full bg-[#B48454] text-white font-display font-bold text-xs flex items-center justify-center shrink-0 shadow-xs">
+          <div
+            style={{ backgroundColor: '#B8804F' }}
+            className="w-7 h-7 rounded-full text-white font-display font-bold text-xs flex items-center justify-center shrink-0"
+          >
             {userName.charAt(0).toUpperCase()}
           </div>
           {!collapsed && (
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-bold text-ink truncate leading-tight">{userName}</p>
-              <p className="text-[10px] text-ink-muted truncate leading-none mt-0.5">
+              <p style={{ color: '#F5F1EC' }} className="text-xs font-semibold truncate leading-tight">
+                {userName}
+              </p>
+              <p style={{ color: '#A8A29E' }} className="text-[10px] truncate leading-none mt-0.5">
                 {ROLE_LABELS[role]}
               </p>
             </div>
           )}
         </div>
 
+        {/* Sign Out */}
         <button
           onClick={() => setShowSignOutConfirm(true)}
-          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-stone-500 hover:bg-red-50/80 hover:text-red-600 transition-all text-left group ${
+          style={{ color: '#A8A29E' }}
+          onMouseEnter={(e) => {
+            const el = e.currentTarget as HTMLButtonElement
+            el.style.backgroundColor = 'rgba(220,38,38,0.12)'
+            el.style.color = '#f87171'
+          }}
+          onMouseLeave={(e) => {
+            const el = e.currentTarget as HTMLButtonElement
+            el.style.backgroundColor = 'transparent'
+            el.style.color = '#A8A29E'
+          }}
+          className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all text-left cursor-pointer ${
             collapsed ? 'justify-center px-2' : ''
           }`}
           title={collapsed ? 'Sign Out' : undefined}
           aria-label="Sign Out"
         >
-          <LogOut
-            className="w-4 h-4 text-stone-400 group-hover:text-red-500 shrink-0 transition-colors"
-            strokeWidth={1.5}
-          />
+          <LogOut className="w-4 h-4 shrink-0" style={{ color: 'inherit' }} strokeWidth={1.5} />
           {!collapsed && <span>Sign Out</span>}
         </button>
       </div>
@@ -251,7 +372,7 @@ export default function Sidebar({
       {isMobileOpen && (
         <div className="lg:hidden fixed inset-0 z-50">
           <div
-            className="absolute inset-0 bg-ink/40 backdrop-blur-xs"
+            className="absolute inset-0 bg-black/50 backdrop-blur-xs"
             onClick={onMobileClose}
           />
           <div className="absolute left-0 top-0 bottom-0 w-72 shadow-2xl">

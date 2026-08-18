@@ -201,7 +201,7 @@ export default function AdminServices() {
   }
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto space-y-6 font-sans">
+    <div className="p-4 sm:p-5 max-w-7xl mx-auto space-y-4 sm:space-y-5 font-sans">
       
       {/* Toast Alert */}
       {toast && (
@@ -212,18 +212,18 @@ export default function AdminServices() {
       )}
 
       {/* ─── PAGE HEADER ─── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-stone/20">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-black/[0.06] dark:border-neutral-800">
         <div>
-          <h1 className="font-display text-3xl sm:text-4xl font-bold text-ink tracking-tight">Services & Facilities</h1>
-          <p className="text-xs sm:text-sm text-ink-muted mt-0.5">Manage motorcycle rentals, pickleball court, and hostel amenities</p>
+          <h1 className="font-display text-lg sm:text-xl font-bold text-neutral-900 dark:text-white tracking-tight">Services & Facilities</h1>
+          <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">Manage motorcycle rentals, pickleball court, and hostel amenities</p>
         </div>
 
         {tab === 'motor' && (
           <button
             onClick={() => setShowAddMotor(true)}
-            className="px-5 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl font-semibold text-xs shadow-sm hover:shadow-md transition-all flex items-center gap-2 self-start sm:self-auto"
+            className="px-3.5 py-1.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-lg font-semibold text-xs shadow-xs hover:shadow-sm transition-all flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
           >
-            <Plus className="w-4 h-4" strokeWidth={2} />
+            <Plus className="w-3.5 h-3.5" strokeWidth={2} />
             <span>Add Motorcycle</span>
           </button>
         )}
@@ -231,43 +231,43 @@ export default function AdminServices() {
         {tab === 'activities' && (
           <button
             onClick={() => setShowAddActivity(true)}
-            className="px-5 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl font-semibold text-xs shadow-sm hover:shadow-md transition-all flex items-center gap-2 self-start sm:self-auto"
+            className="px-3.5 py-1.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-lg font-semibold text-xs shadow-xs hover:shadow-sm transition-all flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
           >
-            <Plus className="w-4 h-4" strokeWidth={2} />
+            <Plus className="w-3.5 h-3.5" strokeWidth={2} />
             <span>Add Facility / Activity</span>
           </button>
         )}
       </div>
 
       {/* ─── NAVIGATION TABS ─── */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex gap-2 p-1 bg-sand/40 rounded-xl border border-stone/20 text-xs">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex gap-1 p-1 bg-neutral-100/70 dark:bg-[#20252E] rounded-lg border border-black/[0.06] dark:border-neutral-700/80 text-xs">
           <button
             onClick={() => setTab('motor')}
-            className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+            className={`px-3 py-1.5 rounded-md font-semibold transition-all cursor-pointer ${
               tab === 'motor'
-                ? 'bg-[#B48454] text-white shadow-sm'
-                : 'text-ink-muted hover:text-ink hover:bg-white/60'
+                ? 'bg-[#B48454] text-white shadow-2xs'
+                : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-white dark:hover:bg-neutral-800'
             }`}
           >
             <span>Motor Rent ({motorcycles.length})</span>
           </button>
           <button
             onClick={() => setTab('activities')}
-            className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+            className={`px-3 py-1.5 rounded-md font-semibold transition-all cursor-pointer ${
               tab === 'activities'
-                ? 'bg-[#B48454] text-white shadow-sm'
-                : 'text-ink-muted hover:text-ink hover:bg-white/60'
+                ? 'bg-[#B48454] text-white shadow-2xs'
+                : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-white dark:hover:bg-neutral-800'
             }`}
           >
             <span>Pickleball Court</span>
           </button>
           <button
             onClick={() => setTab('services')}
-            className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+            className={`px-3 py-1.5 rounded-md font-semibold transition-all cursor-pointer ${
               tab === 'services'
-                ? 'bg-[#B48454] text-white shadow-sm'
-                : 'text-ink-muted hover:text-ink hover:bg-white/60'
+                ? 'bg-[#B48454] text-white shadow-2xs'
+                : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-white dark:hover:bg-neutral-800'
             }`}
           >
             <span>Hotel Services ({services.length})</span>
@@ -276,13 +276,13 @@ export default function AdminServices() {
 
         {/* Quick Search */}
         <div className="relative w-full sm:w-64 text-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted w-3.5 h-3.5" strokeWidth={1.5} />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 w-3.5 h-3.5" strokeWidth={1.5} />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search fleet, plate, ref..."
-            className="w-full pl-8 pr-3 py-2 rounded-xl border border-stone/30 bg-[#FAF8F5] text-ink focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+            className="w-full pl-8.5 pr-3 py-1.5 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-neutral-50/80 dark:bg-[#20252E] text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#B48454]/40 text-xs"
           />
         </div>
       </div>
@@ -291,32 +291,32 @@ export default function AdminServices() {
           1. MOTOR RENT SUITE
          ══════════════════════════════════════════════════════════════ */}
       {tab === 'motor' && (
-        <div className="space-y-6">
+        <div className="space-y-4">
           
           {/* Motor KPI Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="bg-white p-5 rounded-2xl border border-stone/20 shadow-sm">
-              <span className="text-[10px] uppercase font-bold tracking-widest text-[#B48454]">TOTAL FLEET</span>
-              <p className="font-display text-3xl sm:text-4xl font-bold text-ink mt-1">{motorStats.total}</p>
-              <span className="text-[11px] text-ink-faint">Registered motor units</span>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+            <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-[#B48454]">TOTAL FLEET</span>
+              <p className="font-display text-xl sm:text-2xl font-bold text-neutral-900 dark:text-white mt-1 leading-tight">{motorStats.total}</p>
+              <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5 block">Registered motor units</span>
             </div>
 
-            <div className="bg-white p-5 rounded-2xl border border-stone/20 shadow-sm">
-              <span className="text-[10px] uppercase font-bold tracking-widest text-emerald-700">AVAILABLE</span>
-              <p className="font-display text-3xl sm:text-4xl font-bold text-emerald-700 mt-1">{motorStats.available}</p>
-              <span className="text-[11px] text-emerald-600 font-medium">Ready for guest rental</span>
+            <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-600 dark:text-emerald-400">AVAILABLE</span>
+              <p className="font-display text-xl sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1 leading-tight">{motorStats.available}</p>
+              <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium mt-0.5 block">Ready for guest rental</span>
             </div>
 
-            <div className="bg-white p-5 rounded-2xl border border-stone/20 shadow-sm">
-              <span className="text-[10px] uppercase font-bold tracking-widest text-[#B48454]">ACTIVE RENTED</span>
-              <p className="font-display text-3xl sm:text-4xl font-bold text-[#B48454] mt-1">{motorStats.rented}</p>
-              <span className="text-[11px] text-[#B48454] font-medium">Out on the road</span>
+            <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-[#B48454]">ACTIVE RENTED</span>
+              <p className="font-display text-xl sm:text-2xl font-bold text-[#B48454] mt-1 leading-tight">{motorStats.rented}</p>
+              <span className="text-[11px] text-[#B48454] font-medium mt-0.5 block">Out on the road</span>
             </div>
 
-            <div className="bg-white p-5 rounded-2xl border border-stone/20 shadow-sm">
-              <span className="text-[10px] uppercase font-bold tracking-widest text-red-700">OVERDUE</span>
-              <p className="font-display text-3xl sm:text-4xl font-bold text-red-700 mt-1">{motorStats.overdue}</p>
-              <span className="text-[11px] text-red-600 font-medium">Past return timestamp</span>
+            <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-rose-600 dark:text-rose-400">OVERDUE</span>
+              <p className="font-display text-xl sm:text-2xl font-bold text-rose-600 dark:text-rose-400 mt-1 leading-tight">{motorStats.overdue}</p>
+              <span className="text-[11px] text-rose-600 dark:text-rose-400 font-medium mt-0.5 block">Past return timestamp</span>
             </div>
           </div>
 
@@ -543,7 +543,7 @@ export default function AdminServices() {
                         {(r.status === 'ACTIVE' || r.status === 'OVERDUE') && (
                           <button
                             onClick={() => setReturnRentalModal(r)}
-                            className="px-3 py-1.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-lg text-xs font-semibold shadow-sm transition-all"
+                            className="px-2.5 py-1 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-lg text-xs font-semibold shadow-xs transition-all cursor-pointer"
                           >
                             Return
                           </button>
@@ -562,91 +562,91 @@ export default function AdminServices() {
           2. PICKLEBALL COURT SUITE
          ══════════════════════════════════════════════════════════════ */}
       {tab === 'activities' && (
-        <div className="space-y-6">
+        <div className="space-y-4">
           
           {/* 4 KPI Metric Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="bg-white p-5 rounded-2xl border border-stone/20 shadow-sm">
-              <span className="text-[10px] uppercase font-bold tracking-widest text-emerald-700">COURT STATUS</span>
-              <p className="font-display text-3xl font-bold text-emerald-700 mt-1">AVAILABLE</p>
-              <span className="text-[11px] text-emerald-600 font-medium">2 Regulation Courts</span>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+            <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-600 dark:text-emerald-400">COURT STATUS</span>
+              <p className="font-display text-xl sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1 leading-tight">AVAILABLE</p>
+              <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium mt-0.5 block">2 Regulation Courts</span>
             </div>
 
-            <div className="bg-white p-5 rounded-2xl border border-stone/20 shadow-sm">
-              <span className="text-[10px] uppercase font-bold tracking-widest text-[#B48454]">HOURLY RATE</span>
-              <p className="font-display text-3xl font-bold text-[#B48454] mt-1">₱150 <span className="text-xs font-normal text-ink-muted">/ hr</span></p>
-              <span className="text-[11px] text-ink-faint">Paddles & balls included</span>
+            <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-[#B48454]">HOURLY RATE</span>
+              <p className="font-display text-xl sm:text-2xl font-bold text-[#B48454] mt-1 leading-tight">₱150 <span className="text-xs font-normal text-neutral-500">/ hr</span></p>
+              <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5 block">Paddles & balls included</span>
             </div>
 
-            <div className="bg-white p-5 rounded-2xl border border-stone/20 shadow-sm">
-              <span className="text-[10px] uppercase font-bold tracking-widest text-[#B48454]">EQUIPMENT STOCK</span>
-              <p className="font-display text-2xl font-bold text-ink mt-1">8 Paddles · 16 Balls</p>
-              <span className="text-[11px] text-ink-faint">Pro tournament gear</span>
+            <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-[#B48454]">EQUIPMENT STOCK</span>
+              <p className="font-display text-xl sm:text-2xl font-bold text-neutral-900 dark:text-white mt-1 leading-tight">8 Paddles · 16 Balls</p>
+              <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5 block">Pro tournament gear</span>
             </div>
 
-            <div className="bg-white p-5 rounded-2xl border border-stone/20 shadow-sm">
-              <span className="text-[10px] uppercase font-bold tracking-widest text-amber-700">OPERATING HOURS</span>
-              <p className="font-display text-2xl font-bold text-ink mt-1">6 AM – 9 PM</p>
-              <span className="text-[11px] text-amber-600 font-medium">Night floodlights enabled</span>
+            <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-amber-600 dark:text-amber-400">OPERATING HOURS</span>
+              <p className="font-display text-xl sm:text-2xl font-bold text-amber-600 dark:text-amber-400 mt-1 leading-tight">6 AM – 9 PM</p>
+              <span className="text-[11px] text-amber-600 dark:text-amber-400 font-medium mt-0.5 block">Night floodlights enabled</span>
             </div>
           </div>
 
           {/* Court Facility Card */}
-          <div className="bg-white rounded-[2rem] border border-stone/20 shadow-sm overflow-hidden flex flex-col lg:flex-row">
-            <div className="lg:w-2/5 h-64 lg:h-auto bg-sand overflow-hidden relative">
+          <div className="bg-white dark:bg-[#181B20] rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden flex flex-col lg:flex-row">
+            <div className="lg:w-2/5 h-48 lg:h-auto bg-neutral-100 dark:bg-neutral-800 overflow-hidden relative">
               <img
                 src={pickleballCourtImg}
                 alt="Outdoor Pickleball Court"
                 className="w-full h-full object-cover"
               />
-              <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-xs text-white text-xs font-bold px-3 py-1 rounded-full font-mono">
+              <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-xs text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full font-mono">
                 ₱150 / hour
               </div>
             </div>
 
-            <div className="lg:w-3/5 p-6 sm:p-8 space-y-5 flex flex-col justify-between">
+            <div className="lg:w-3/5 p-4 sm:p-5 space-y-3.5 flex flex-col justify-between">
               <div>
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-stone/20">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-black/[0.06] dark:border-neutral-800">
                   <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-bold uppercase tracking-wider text-[#B48454]">Hostel Sports Facility</span>
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#B48454]">Hostel Sports Facility</span>
                       <StatusBadge status="AVAILABLE" />
                     </div>
-                    <h3 className="font-display text-2xl sm:text-3xl font-bold text-ink">Outdoor Pickleball Court</h3>
+                    <h3 className="font-display text-base font-bold text-neutral-900 dark:text-white">Outdoor Pickleball Court</h3>
                   </div>
                   <div className="sm:text-right">
-                    <span className="font-display text-3xl font-bold text-[#B48454]">₱150</span>
-                    <span className="text-xs text-ink-muted ml-1">/ hour</span>
+                    <span className="font-display text-xl font-bold text-[#B48454]">₱150</span>
+                    <span className="text-xs text-neutral-500 ml-1">/ hour</span>
                   </div>
                 </div>
 
-                <p className="text-ink-muted text-xs sm:text-sm leading-relaxed mt-4">
+                <p className="text-neutral-500 dark:text-neutral-400 text-xs leading-relaxed mt-2">
                   Full-sized regulation outdoor hardcourt surrounded by tropical greenery. Every booking includes complimentary use of 4 tournament-grade paddles, outdoor pickleball balls, and night floodlighting for evening matches.
                 </p>
 
                 {/* Features Grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs mt-4">
-                  <div className="p-3 bg-sand/30 rounded-xl border border-stone/20">
-                    <span className="text-ink-muted block text-[10px] uppercase font-bold">Total Courts</span>
-                    <span className="font-display font-bold text-ink text-sm">2 Regulation</span>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs mt-3">
+                  <div className="p-2.5 bg-neutral-50 dark:bg-neutral-800/60 rounded-lg border border-black/[0.05] dark:border-neutral-800">
+                    <span className="text-neutral-400 block text-[10px] uppercase font-bold">Total Courts</span>
+                    <span className="font-display font-bold text-neutral-900 dark:text-white text-xs">2 Regulation</span>
                   </div>
-                  <div className="p-3 bg-sand/30 rounded-xl border border-stone/20">
-                    <span className="text-ink-muted block text-[10px] uppercase font-bold">Surface</span>
-                    <span className="font-display font-bold text-ink text-sm">Acrylic Hardcourt</span>
+                  <div className="p-2.5 bg-neutral-50 dark:bg-neutral-800/60 rounded-lg border border-black/[0.05] dark:border-neutral-800">
+                    <span className="text-neutral-400 block text-[10px] uppercase font-bold">Surface</span>
+                    <span className="font-display font-bold text-neutral-900 dark:text-white text-xs">Acrylic Hardcourt</span>
                   </div>
-                  <div className="p-3 bg-sand/30 rounded-xl border border-stone/20">
-                    <span className="text-ink-muted block text-[10px] uppercase font-bold">Lighting</span>
-                    <span className="font-display font-bold text-ink text-sm">LED Floodlights</span>
+                  <div className="p-2.5 bg-neutral-50 dark:bg-neutral-800/60 rounded-lg border border-black/[0.05] dark:border-neutral-800">
+                    <span className="text-neutral-400 block text-[10px] uppercase font-bold">Lighting</span>
+                    <span className="font-display font-bold text-neutral-900 dark:text-white text-xs">LED Floodlights</span>
                   </div>
-                  <div className="p-3 bg-sand/30 rounded-xl border border-stone/20">
-                    <span className="text-ink-muted block text-[10px] uppercase font-bold">Equipment</span>
-                    <span className="font-display font-bold text-ink text-sm">Included</span>
+                  <div className="p-2.5 bg-neutral-50 dark:bg-neutral-800/60 rounded-lg border border-black/[0.05] dark:border-neutral-800">
+                    <span className="text-neutral-400 block text-[10px] uppercase font-bold">Equipment</span>
+                    <span className="font-display font-bold text-neutral-900 dark:text-white text-xs">Included</span>
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between pt-4 border-t border-stone/20">
-                <span className="text-xs text-emerald-700 font-semibold bg-emerald-50 px-3.5 py-1.5 rounded-full border border-emerald-200">
+              <div className="flex items-center justify-between pt-2.5 border-t border-black/[0.06] dark:border-neutral-800">
+                <span className="text-[11px] text-emerald-700 dark:text-emerald-300 font-semibold bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 rounded-full border border-emerald-200 dark:border-emerald-800/50">
                   ✓ Active for Guest Bookings
                 </span>
               </div>

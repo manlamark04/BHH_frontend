@@ -77,8 +77,9 @@ export default function StaffCheckInOut() {
   const filteredList = applySearch(currentList)
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto space-y-6 font-sans">
-      {/* Toast */}
+    <div className="p-4 sm:p-5 max-w-7xl mx-auto space-y-4 sm:space-y-5 font-sans">
+      
+      {/* Toast Alert */}
       {toast && (
         <div className="fixed top-6 right-6 z-50 px-5 py-3.5 bg-emerald-700 text-white font-medium text-xs rounded-2xl shadow-xl border border-emerald-500 animate-slideDown flex items-center gap-2">
           <Check className="w-4 h-4 text-emerald-200" strokeWidth={2} />
@@ -87,85 +88,85 @@ export default function StaffCheckInOut() {
       )}
 
       {/* ─── 1. PAGE HEADER ─── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-stone/20">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-black/[0.06] dark:border-neutral-800">
         <div>
-          <h1 className="font-display text-3xl sm:text-4xl font-bold text-ink tracking-tight">Front Desk Operations</h1>
-          <p className="text-xs sm:text-sm text-ink-muted mt-0.5">Guest check-in, check-out processing & live room occupancy</p>
+          <h1 className="font-display text-lg sm:text-xl font-bold text-neutral-900 dark:text-white tracking-tight">Front Desk Operations</h1>
+          <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">Guest check-in, check-out processing & live room occupancy</p>
         </div>
       </div>
 
       {/* ─── 2. METRICS KPI SUMMARY ─── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-white p-5 rounded-2xl border border-stone/20 shadow-sm flex flex-col justify-between">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+        <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase font-bold tracking-widest text-[#B48454]">ARRIVALS TODAY</span>
-            <div className="w-7 h-7 rounded-lg bg-[#B48454]/10 text-[#B48454] flex items-center justify-center">
-              <Luggage className="w-4 h-4" strokeWidth={1.5} />
+            <span className="text-[10px] uppercase font-bold tracking-wider text-[#B48454]">ARRIVALS TODAY</span>
+            <div className="w-6 h-6 rounded-lg bg-[#B48454]/10 text-[#B48454] flex items-center justify-center">
+              <Luggage className="w-3.5 h-3.5" strokeWidth={1.5} />
             </div>
           </div>
           <div>
-            <p className="font-display text-3xl font-bold text-ink mt-2">{todaysArrivals.length}</p>
-            <span className="text-xs text-ink-muted mt-1 block">Scheduled check-ins</span>
+            <p className="font-display text-xl sm:text-2xl font-bold text-neutral-900 dark:text-white mt-1 leading-tight">{todaysArrivals.length}</p>
+            <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5 block">Scheduled check-ins</span>
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-stone/20 shadow-sm flex flex-col justify-between">
+        <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase font-bold tracking-widest text-emerald-700">IN-HOUSE GUESTS</span>
-            <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center">
-              <Users className="w-4 h-4" strokeWidth={1.5} />
+            <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-600 dark:text-emerald-400">IN-HOUSE GUESTS</span>
+            <div className="w-6 h-6 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+              <Users className="w-3.5 h-3.5" strokeWidth={1.5} />
             </div>
           </div>
           <div>
-            <p className="font-display text-3xl font-bold text-emerald-700 mt-2">{inHouseGuests.length}</p>
-            <span className="text-xs text-ink-muted mt-1 block">Currently checked in</span>
+            <p className="font-display text-xl sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1 leading-tight">{inHouseGuests.length}</p>
+            <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5 block">Currently checked in</span>
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-stone/20 shadow-sm flex flex-col justify-between">
+        <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase font-bold tracking-widest text-amber-700">UPCOMING</span>
-            <div className="w-7 h-7 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 flex items-center justify-center">
-              <Calendar className="w-4 h-4" strokeWidth={1.5} />
+            <span className="text-[10px] uppercase font-bold tracking-wider text-amber-600 dark:text-amber-400">UPCOMING</span>
+            <div className="w-6 h-6 rounded-lg bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+              <Calendar className="w-3.5 h-3.5" strokeWidth={1.5} />
             </div>
           </div>
           <div>
-            <p className="font-display text-3xl font-bold text-amber-800 mt-2">{upcomingArrivals.length}</p>
-            <span className="text-xs text-ink-muted mt-1 block">Future scheduled stays</span>
+            <p className="font-display text-xl sm:text-2xl font-bold text-amber-600 dark:text-amber-400 mt-1 leading-tight">{upcomingArrivals.length}</p>
+            <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5 block">Future scheduled stays</span>
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-stone/20 shadow-sm flex flex-col justify-between">
+        <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase font-bold tracking-widest text-blue-700">TOTAL ROOMS</span>
-            <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-700 border border-blue-200 flex items-center justify-center">
-              <Building2 className="w-4 h-4" strokeWidth={1.5} />
+            <span className="text-[10px] uppercase font-bold tracking-wider text-blue-600 dark:text-blue-400">TOTAL ROOMS</span>
+            <div className="w-6 h-6 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+              <Building2 className="w-3.5 h-3.5" strokeWidth={1.5} />
             </div>
           </div>
           <div>
-            <p className="font-display text-3xl font-bold text-blue-800 mt-2">{rooms.length}</p>
-            <span className="text-xs text-ink-muted mt-1 block">Room inventory units</span>
+            <p className="font-display text-xl sm:text-2xl font-bold text-blue-700 dark:text-blue-400 mt-1 leading-tight">{rooms.length}</p>
+            <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5 block">Room inventory units</span>
           </div>
         </div>
       </div>
 
       {/* ─── 3. TAB BAR & SEARCH ─── */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-        <div className="flex gap-1.5 p-1 bg-sand/40 rounded-xl border border-stone/20 text-xs w-fit">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+        <div className="flex gap-1 p-1 bg-neutral-100/70 dark:bg-[#20252E] rounded-lg border border-black/[0.06] dark:border-neutral-700/80 text-xs w-fit">
           {tabs.map((t) => (
             <button
               key={t.id}
               onClick={() => { setTab(t.id); setSearch('') }}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-semibold transition-all cursor-pointer ${
                 tab === t.id
-                  ? 'bg-[#B48454] text-white shadow-sm'
-                  : 'text-ink-muted hover:text-ink hover:bg-white/60'
+                  ? 'bg-[#B48454] text-white shadow-2xs'
+                  : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-white dark:hover:bg-neutral-800'
               }`}
             >
               <span>{t.label}</span>
               {t.count > 0 && (
-                <span className={`w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center ${
-                  tab === t.id ? 'bg-white/25 text-white' : 'bg-sand text-ink'
+                <span className={`w-4 h-4 rounded-full text-[10px] font-bold flex items-center justify-center ${
+                  tab === t.id ? 'bg-white/25 text-white' : 'bg-neutral-200 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-300'
                 }`}>
                   {t.count}
                 </span>
@@ -175,24 +176,24 @@ export default function StaffCheckInOut() {
         </div>
 
         <div className="relative w-full sm:w-80">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-muted w-3.5 h-3.5" strokeWidth={1.5} />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 w-3.5 h-3.5" strokeWidth={1.5} />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search guest name, booking ID, room..."
-            className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] text-xs focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+            className="w-full pl-8.5 pr-3.5 py-1.5 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
           />
         </div>
       </div>
 
       {/* ─── 4. GUEST TABLE ─── */}
-      <div className="bg-white rounded-2xl border border-stone/20 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-[#181B20] rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
         {filteredList.length === 0 ? (
-          <div className="py-16 text-center text-xs text-ink-muted">
-            <div className="w-12 h-12 rounded-2xl bg-sand/60 border border-stone/20 flex items-center justify-center mx-auto mb-3 text-ink-muted">
-              {tab === 'arrivals' ? <Luggage className="w-6 h-6" strokeWidth={1.5} /> : tab === 'inhouse' ? <Users className="w-6 h-6" strokeWidth={1.5} /> : <Calendar className="w-6 h-6" strokeWidth={1.5} />}
+          <div className="py-12 text-center text-xs text-neutral-500 dark:text-neutral-400">
+            <div className="w-10 h-10 rounded-xl bg-neutral-100 dark:bg-neutral-800 border border-black/[0.06] dark:border-neutral-700 flex items-center justify-center mx-auto mb-2 text-neutral-400">
+              {tab === 'arrivals' ? <Luggage className="w-5 h-5" strokeWidth={1.5} /> : tab === 'inhouse' ? <Users className="w-5 h-5" strokeWidth={1.5} /> : <Calendar className="w-5 h-5" strokeWidth={1.5} />}
             </div>
-            <p className="font-display font-bold text-ink text-sm">
+            <p className="font-display font-bold text-neutral-900 dark:text-white text-xs sm:text-sm">
               {tab === 'arrivals' ? 'No arrivals today' : tab === 'inhouse' ? 'No guests in-house' : 'No upcoming reservations'}
             </p>
           </div>
@@ -200,14 +201,14 @@ export default function StaffCheckInOut() {
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead>
-                <tr className="border-b border-stone/20 bg-sand/30 text-[10px] uppercase font-bold text-ink-muted tracking-wider">
-                  <th className="px-5 py-3.5">GUEST</th>
-                  <th className="px-5 py-3.5">BOOKING ID</th>
-                  <th className="px-5 py-3.5">ROOM</th>
-                  <th className="px-5 py-3.5">CHECK-IN</th>
-                  <th className="px-5 py-3.5">CHECK-OUT</th>
-                  <th className="px-5 py-3.5">STATUS</th>
-                  <th className="px-5 py-3.5 text-right">ACTION</th>
+                <tr className="border-b border-black/[0.06] dark:border-neutral-800 bg-neutral-50/60 dark:bg-[#14171C] text-[10px] uppercase font-bold text-neutral-500 dark:text-neutral-400 tracking-wider">
+                  <th className="px-4 py-3">GUEST</th>
+                  <th className="px-4 py-3">BOOKING ID</th>
+                  <th className="px-4 py-3">ROOM</th>
+                  <th className="px-4 py-3">CHECK-IN</th>
+                  <th className="px-4 py-3">CHECK-OUT</th>
+                  <th className="px-4 py-3">STATUS</th>
+                  <th className="px-4 py-3 text-right">ACTION</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-stone/15">

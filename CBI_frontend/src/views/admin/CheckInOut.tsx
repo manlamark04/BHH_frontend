@@ -204,67 +204,67 @@ export default function AdminCheckInOut() {
       )}
 
       {/* ─── 1. PAGE HEADER ─── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-stone/20">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-black/[0.06] dark:border-neutral-800">
         <div>
-          <h1 className="font-display text-3xl sm:text-4xl font-bold text-ink tracking-tight">Check-In / Out</h1>
-          <p className="text-xs sm:text-sm text-ink-muted mt-0.5">Arrivals, in-house guests & departures</p>
+          <h1 className="font-display text-lg sm:text-xl font-bold text-neutral-900 dark:text-white tracking-tight">Check-In / Out</h1>
+          <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">Arrivals, in-house guests & departures</p>
         </div>
 
         {/* Global Search Bar */}
-        <div className="relative w-full sm:w-72 text-xs">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-muted w-3.5 h-3.5" strokeWidth={1.5} />
+        <div className="relative w-full sm:w-64 text-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 dark:text-neutral-500 w-3.5 h-3.5" strokeWidth={1.5} />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search guest, room 101, BK-ref..."
-            className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] text-ink focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+            className="w-full pl-8.5 pr-3.5 py-2 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
           />
         </div>
       </div>
 
       {/* ─── 2. SUMMARY STATISTIC CARDS (3 CARDS) ─── */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
         
         {/* Card 1: Arrivals Today */}
-        <div className="bg-white p-5 sm:p-6 rounded-2xl border border-stone/20 shadow-sm flex flex-col justify-between">
+        <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[10px] uppercase font-bold tracking-widest text-[#B48454]">ARRIVALS TODAY</span>
-            <div className="w-7 h-7 rounded-lg bg-[#B48454]/10 text-[#B48454] flex items-center justify-center">
-              <Luggage className="w-4 h-4" strokeWidth={1.5} />
+            <div className="w-6 h-6 rounded-lg bg-[#B48454]/10 text-[#B48454] flex items-center justify-center">
+              <Luggage className="w-3.5 h-3.5" strokeWidth={1.5} />
             </div>
           </div>
           <div>
-            <p className="font-display text-3xl sm:text-4xl font-bold text-ink mt-2">{todaysArrivals.length}</p>
-            <span className="text-xs text-ink-muted mt-1 block">Confirmed guest arrivals scheduled today</span>
+            <p className="font-display text-xl sm:text-2xl font-bold text-neutral-900 dark:text-white mt-1.5">{todaysArrivals.length}</p>
+            <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5 block">Confirmed guest arrivals scheduled today</span>
           </div>
         </div>
 
         {/* Card 2: Guests In-House */}
-        <div className="bg-white p-5 sm:p-6 rounded-2xl border border-stone/20 shadow-sm flex flex-col justify-between">
+        <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase font-bold tracking-widest text-emerald-700">GUESTS IN-HOUSE</span>
-            <span className="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 rounded-full font-semibold">
+            <span className="text-[10px] uppercase font-bold tracking-widest text-emerald-700 dark:text-emerald-400">GUESTS IN-HOUSE</span>
+            <span className="text-[10px] bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50 px-2 py-0.5 rounded-full font-semibold">
               {occupiedRoomsCount} rooms
             </span>
           </div>
           <div>
-            <p className="font-display text-3xl sm:text-4xl font-bold text-emerald-700 mt-2">{inHouseGuests.length}</p>
-            <span className="text-xs text-ink-muted mt-1 block">Currently checked-in occupants</span>
+            <p className="font-display text-xl sm:text-2xl font-bold text-emerald-700 dark:text-emerald-400 mt-1.5">{inHouseGuests.length}</p>
+            <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5 block">Currently checked-in occupants</span>
           </div>
         </div>
 
         {/* Card 3: Departures Today */}
-        <div className="bg-white p-5 sm:p-6 rounded-2xl border border-stone/20 shadow-sm flex flex-col justify-between">
+        <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase font-bold tracking-widest text-amber-700">DEPARTURES TODAY</span>
-            <div className="w-7 h-7 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 flex items-center justify-center">
-              <PlaneTakeoff className="w-4 h-4" strokeWidth={1.5} />
+            <span className="text-[10px] uppercase font-bold tracking-widest text-amber-700 dark:text-amber-400">DEPARTURES TODAY</span>
+            <div className="w-6 h-6 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50 flex items-center justify-center">
+              <PlaneTakeoff className="w-3.5 h-3.5" strokeWidth={1.5} />
             </div>
           </div>
           <div>
-            <p className="font-display text-3xl sm:text-4xl font-bold text-amber-700 mt-2">{todaysDepartures.length}</p>
-            <span className="text-xs text-ink-muted mt-1 block">Guests scheduled for check-out today</span>
+            <p className="font-display text-xl sm:text-2xl font-bold text-amber-700 dark:text-amber-400 mt-1.5">{todaysDepartures.length}</p>
+            <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5 block">Guests scheduled for check-out today</span>
           </div>
         </div>
 
@@ -297,21 +297,21 @@ export default function AdminCheckInOut() {
       </div>
 
       {/* ─── 3. MAIN THREE-COLUMN LAYOUT ─── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3.5">
 
         {/* ══════════════════════════════════════════════════════════════
             COLUMN 1: TODAY'S ARRIVALS
            ══════════════════════════════════════════════════════════════ */}
         {showArrivals && (
-          <div className="bg-white rounded-2xl border border-stone/20 shadow-sm p-5 sm:p-6 flex flex-col justify-between space-y-4">
+          <div className="bg-white dark:bg-[#181B20] rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-3.5 sm:p-4 flex flex-col justify-between space-y-3">
             
             {/* Column Header */}
-            <div className="pb-3 border-b border-stone/15 flex items-center justify-between">
+            <div className="pb-2.5 border-b border-black/[0.06] dark:border-neutral-800 flex items-center justify-between">
               <div>
-                <h2 className="font-display text-xl font-bold text-ink">Today's Arrivals</h2>
-                <p className="text-xs text-ink-muted mt-0.5">Check-in from 3:00 PM</p>
+                <h2 className="font-display text-base font-bold text-neutral-900 dark:text-white">Today's Arrivals</h2>
+                <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">Check-in from 3:00 PM</p>
               </div>
-              <span className="text-xs bg-[#B48454]/10 text-[#B48454] font-bold px-2.5 py-1 rounded-full">
+              <span className="text-[10px] bg-[#B48454]/10 text-[#B48454] font-bold px-2 py-0.5 rounded-full">
                 {displayArrivals.length} scheduled
               </span>
             </div>
@@ -375,15 +375,15 @@ export default function AdminCheckInOut() {
             COLUMN 2: IN-HOUSE GUESTS
            ══════════════════════════════════════════════════════════════ */}
         {showInHouse && (
-          <div className="bg-white rounded-2xl border border-stone/20 shadow-sm p-5 sm:p-6 flex flex-col justify-between space-y-4">
+          <div className="bg-white dark:bg-[#181B20] rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-3.5 sm:p-4 flex flex-col justify-between space-y-3">
             
             {/* Column Header */}
-            <div className="pb-3 border-b border-stone/15 flex items-center justify-between">
+            <div className="pb-2.5 border-b border-black/[0.06] dark:border-neutral-800 flex items-center justify-between">
               <div>
-                <h2 className="font-display text-xl font-bold text-ink">In-House Guests</h2>
-                <p className="text-xs text-ink-muted mt-0.5">Check-out by 12:00 PM</p>
+                <h2 className="font-display text-base font-bold text-neutral-900 dark:text-white">In-House Guests</h2>
+                <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">Check-out by 12:00 PM</p>
               </div>
-              <span className="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold px-2.5 py-1 rounded-full">
+              <span className="text-[10px] bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50 font-bold px-2 py-0.5 rounded-full">
                 {displayInHouse.length} in-house
               </span>
             </div>
@@ -468,15 +468,15 @@ export default function AdminCheckInOut() {
             COLUMN 3: UPCOMING ARRIVALS
            ══════════════════════════════════════════════════════════════ */}
         {showUpcoming && (
-          <div className="bg-white rounded-2xl border border-stone/20 shadow-sm p-5 sm:p-6 flex flex-col justify-between space-y-4">
+          <div className="bg-white dark:bg-[#181B20] rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-3.5 sm:p-4 flex flex-col justify-between space-y-3">
             
             {/* Column Header */}
-            <div className="pb-3 border-b border-stone/15 flex items-center justify-between">
+            <div className="pb-2.5 border-b border-black/[0.06] dark:border-neutral-800 flex items-center justify-between">
               <div>
-                <h2 className="font-display text-xl font-bold text-ink">Upcoming Arrivals</h2>
-                <p className="text-xs text-ink-muted mt-0.5">Next confirmed reservations</p>
+                <h2 className="font-display text-base font-bold text-neutral-900 dark:text-white">Upcoming Arrivals</h2>
+                <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">Next confirmed reservations</p>
               </div>
-              <span className="text-xs bg-[#B48454]/10 text-[#B48454] font-bold px-2.5 py-1 rounded-full">
+              <span className="text-[10px] bg-[#B48454]/10 text-[#B48454] font-bold px-2 py-0.5 rounded-full">
                 {displayUpcoming.length} future
               </span>
             </div>

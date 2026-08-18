@@ -18,7 +18,7 @@ import StatusBadge from '../../components/StatusBadge'
 import Modal from '../../components/Modal'
 import ConfirmDialog from '../../components/ConfirmDialog'
 
-type FilterTab = 'all' | 'confirmed' | 'checked_in' | 'completed' | 'cancelled'
+type FilterTab = 'all' | 'pending_approval' | 'pending_payment' | 'confirmed' | 'checked_in' | 'completed' | 'rejected' | 'cancelled'
 type SortField = 'newest' | 'oldest' | 'checkin' | 'checkout' | 'amount' | 'status'
 
 export default function AdminBookings() {
@@ -102,9 +102,12 @@ export default function AdminBookings() {
     if (activeFilter !== 'all') {
       result = result.filter((b) => {
         const s = String(b.status || '').toLowerCase().replace('-', '_').replace(' ', '_')
+        if (activeFilter === 'pending_approval') return s === 'pending_approval'
+        if (activeFilter === 'pending_payment') return s === 'pending_payment' || s === 'pending' || s === 'requested'
         if (activeFilter === 'confirmed') return s === 'confirmed'
         if (activeFilter === 'checked_in') return s === 'checked_in'
         if (activeFilter === 'completed') return s === 'completed' || s === 'checked_out'
+        if (activeFilter === 'rejected') return s === 'rejected'
         if (activeFilter === 'cancelled') return s === 'cancelled' || s === 'no_show'
         return true
       })
@@ -279,7 +282,7 @@ export default function AdminBookings() {
   }
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto space-y-6 font-sans">
+    <div className="p-4 sm:p-5 max-w-7xl mx-auto space-y-4 sm:space-y-5 font-sans">
       
       {/* Toast Alert */}
       {toast && (
@@ -290,50 +293,53 @@ export default function AdminBookings() {
       )}
 
       {/* ─── 1. PAGE HEADER ─── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-stone/20">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-black/[0.06] dark:border-neutral-800">
         <div>
-          <h1 className="font-display text-2xl sm:text-3xl font-bold text-ink tracking-tight">Bookings</h1>
-          <p className="text-xs sm:text-sm text-ink-muted mt-0.5">Manage all reservations & guest stay lifecycles</p>
+          <h1 className="font-display text-lg sm:text-xl font-bold text-neutral-900 dark:text-white tracking-tight">Bookings</h1>
+          <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">Manage all reservations & guest stay lifecycles</p>
         </div>
         <button
           onClick={() => { setShowNewModal(true); setFormError('') }}
-          className="px-5 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl font-semibold text-xs shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-2"
+          className="px-3.5 py-1.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-lg font-semibold text-xs shadow-xs hover:shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer self-start sm:self-auto"
         >
-          <Plus className="w-4 h-4" strokeWidth={2} />
+          <Plus className="w-3.5 h-3.5" strokeWidth={2} />
           <span>New Booking</span>
         </button>
       </div>
 
       {/* ─── 2. BOOKING MANAGEMENT CONTAINER ─── */}
-      <div className="bg-white rounded-2xl border border-stone/20 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-[#181B20] rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden transition-colors">
         
         {/* Container Top: Title + Live Count */}
-        <div className="p-5 sm:p-6 border-b border-stone/15 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#FCFAF7]">
+        <div className="p-3.5 sm:p-4 border-b border-black/[0.06] dark:border-neutral-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-neutral-50/60 dark:bg-[#14171C]">
           <div>
-            <h2 className="font-display text-xl font-bold text-ink">Reservations</h2>
-            <p className="text-xs text-ink-muted mt-0.5">
+            <h2 className="font-display text-base font-bold text-neutral-900 dark:text-white">Reservations</h2>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
               <span className="font-bold text-[#B48454]">{filteredBookings.length}</span> bookings found
             </p>
           </div>
 
           {/* 3. Filter Tabs */}
-          <div className="flex flex-wrap gap-1.5 p-1 bg-sand/40 rounded-xl border border-stone/20">
+          <div className="flex flex-wrap gap-1 p-1 bg-neutral-100/70 dark:bg-[#20252E] rounded-lg border border-black/[0.06] dark:border-neutral-700/80 text-xs">
             {(
               [
                 { id: 'all', label: 'All' },
+                { id: 'pending_approval', label: 'Pending Approval' },
+                { id: 'pending_payment', label: 'Awaiting Payment' },
                 { id: 'confirmed', label: 'Confirmed' },
                 { id: 'checked_in', label: 'Checked In' },
                 { id: 'completed', label: 'Completed' },
+                { id: 'rejected', label: 'Rejected' },
                 { id: 'cancelled', label: 'Cancelled' },
               ] as const
             ).map((t) => (
               <button
                 key={t.id}
                 onClick={() => { setActiveFilter(t.id); setCurrentPage(1) }}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer ${
                   activeFilter === t.id
-                    ? 'bg-[#B48454] text-white shadow-sm'
-                    : 'text-ink-muted hover:text-ink hover:bg-white/60'
+                    ? 'bg-[#B48454] text-white shadow-2xs'
+                    : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-white dark:hover:bg-neutral-800'
                 }`}
               >
                 {t.label}
@@ -343,24 +349,24 @@ export default function AdminBookings() {
         </div>
 
         {/* Search & Sort Controls */}
-        <div className="p-4 sm:p-6 border-b border-stone/15 bg-white flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="p-3 sm:p-4 border-b border-black/[0.06] dark:border-neutral-800 bg-white dark:bg-[#181B20] flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="relative w-full sm:w-80">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-muted w-3.5 h-3.5" strokeWidth={1.5} />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 w-3.5 h-3.5" strokeWidth={1.5} />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1) }}
               placeholder="Search by ref, guest, room, phone..."
-              className="w-full pl-9 pr-4 py-2.5 rounded-xl text-xs border border-stone/30 bg-[#FBF9F6] text-ink focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+              className="w-full pl-8.5 pr-3.5 py-1.5 rounded-lg text-xs border border-black/[0.08] dark:border-neutral-700 bg-neutral-50/80 dark:bg-[#20252E] text-neutral-900 dark:text-white placeholder:text-neutral-400 dark:placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
             />
           </div>
 
           <div className="flex items-center gap-2 w-full sm:w-auto justify-end text-xs">
-            <span className="text-ink-muted font-medium">Sort by:</span>
+            <span className="text-neutral-500 dark:text-neutral-400 font-medium">Sort by:</span>
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as SortField)}
-              className="px-3 py-2 rounded-xl border border-stone/30 bg-[#FBF9F6] text-xs text-ink font-semibold focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+              className="px-2.5 py-1.5 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-neutral-50/80 dark:bg-[#20252E] text-xs text-neutral-900 dark:text-white font-semibold focus:outline-none focus:ring-2 focus:ring-[#B48454]/40 cursor-pointer"
             >
               <option value="newest">Newest First</option>
               <option value="oldest">Oldest First</option>
@@ -376,7 +382,7 @@ export default function AdminBookings() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
             <thead>
-              <tr className="border-b border-stone/20 bg-sand/30 text-[11px] uppercase tracking-wider font-bold text-ink-muted">
+              <tr className="border-b border-black/[0.06] dark:border-neutral-800 bg-neutral-50/80 dark:bg-[#14171C] text-[10px] uppercase tracking-wider font-bold text-neutral-500 dark:text-neutral-400">
                 <th className="px-5 py-3.5">REF</th>
                 <th className="px-5 py-3.5">GUEST</th>
                 <th className="px-5 py-3.5">ROOM</th>
@@ -387,7 +393,7 @@ export default function AdminBookings() {
                 <th className="px-5 py-3.5 text-right">ACTIONS</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-stone/15 text-xs">
+            <tbody className="divide-y divide-black/[0.04] dark:divide-neutral-800 text-xs">
               {paginatedBookings.map((b) => {
                 const statusStr = String(b.status || 'CONFIRMED').toUpperCase()
                 const payStatusStr = String(b.payment_status || 'PENDING').toUpperCase()
@@ -398,7 +404,7 @@ export default function AdminBookings() {
                 const canPay = Number(b.remaining_balance || 0) > 0 && statusStr !== 'CANCELLED'
 
                 return (
-                  <tr key={String(b.id)} className="hover:bg-sand/20 transition-colors">
+                  <tr key={String(b.id)} className="hover:bg-neutral-50/70 dark:hover:bg-slate-800/40 transition-colors">
                     {/* REF */}
                     <td className="px-5 py-4 font-mono font-bold text-[#B48454]">
                       {String(b.booking_ref || `#BK-${b.id}`)}
@@ -407,12 +413,12 @@ export default function AdminBookings() {
                     {/* GUEST */}
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-full bg-forest/10 text-forest font-bold text-xs flex items-center justify-center shrink-0 border border-forest/20">
+                        <div className="w-8 h-8 rounded-full bg-[#B48454]/10 dark:bg-[#B48454]/20 text-[#B48454] dark:text-[#C99A6B] font-bold text-xs flex items-center justify-center shrink-0 border border-[#B48454]/20">
                           {String(b.customer_name || 'G').charAt(0)}
                         </div>
                         <div>
-                          <p className="font-semibold text-ink leading-tight">{String(b.customer_name)}</p>
-                          <p className="text-[10px] text-ink-muted mt-0.5">
+                          <p className="font-semibold text-neutral-900 dark:text-white leading-tight">{String(b.customer_name)}</p>
+                          <p className="text-[10px] text-neutral-500 dark:text-neutral-400 mt-0.5">
                             {String(b.num_guests || 2)} guests
                           </p>
                         </div>
@@ -421,22 +427,22 @@ export default function AdminBookings() {
 
                     {/* ROOM */}
                     <td className="px-5 py-4">
-                      <p className="font-semibold text-ink leading-tight">Room {String(b.room_number)}</p>
-                      <p className="text-[10px] text-ink-muted mt-0.5">{String(b.room_type || 'Standard')}</p>
+                      <p className="font-semibold text-neutral-900 dark:text-white leading-tight">Room {String(b.room_number)}</p>
+                      <p className="text-[10px] text-neutral-500 dark:text-neutral-400 mt-0.5">{String(b.room_type || 'Standard')}</p>
                     </td>
 
                     {/* STAY */}
                     <td className="px-5 py-4">
-                      <p className="font-medium text-ink leading-tight">
+                      <p className="font-medium text-neutral-900 dark:text-white leading-tight">
                         {String(b.check_in).substring(0, 10)} → {String(b.check_out).substring(0, 10)}
                       </p>
-                      <p className="text-[10px] text-ink-muted font-mono mt-0.5">
+                      <p className="text-[10px] text-neutral-500 dark:text-neutral-400 font-mono mt-0.5">
                         {String(b.nights || 1)} night{Number(b.nights) > 1 ? 's' : ''}
                       </p>
                     </td>
 
                     {/* TOTAL */}
-                    <td className="px-5 py-4 font-display font-bold text-forest text-sm">
+                    <td className="px-5 py-4 font-display font-bold text-neutral-900 dark:text-white text-sm">
                       ₱{Number(b.total_price || 0).toLocaleString()}
                     </td>
 
@@ -444,12 +450,12 @@ export default function AdminBookings() {
                     <td className="px-5 py-4">
                       <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold border ${
                         payStatusStr === 'PAID'
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/50'
                           : payStatusStr === 'PARTIALLY PAID'
-                          ? 'bg-amber-50 text-amber-700 border-amber-200'
+                          ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/50'
                           : payStatusStr === 'REFUNDED'
-                          ? 'bg-purple-50 text-purple-700 border-purple-200'
-                          : 'bg-stone/20 text-ink-muted border-stone/30'
+                          ? 'bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800/50'
+                          : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 border-neutral-200 dark:border-neutral-700'
                       }`}>
                         {payStatusStr}
                       </span>
@@ -467,7 +473,7 @@ export default function AdminBookings() {
                         <button
                           onClick={() => setViewBooking(b)}
                           title="View Details"
-                          className="p-1.5 rounded-lg border border-stone/20 hover:bg-sand text-ink-muted hover:text-ink text-xs transition-colors"
+                          className="p-1.5 rounded-lg border border-black/[0.08] dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white text-xs transition-colors cursor-pointer"
                           aria-label="View Details"
                         >
                           <Eye className="w-3.5 h-3.5" strokeWidth={1.5} />
@@ -478,7 +484,7 @@ export default function AdminBookings() {
                           <button
                             onClick={() => openEditModal(b)}
                             title="Edit Reservation"
-                            className="p-1.5 rounded-lg border border-stone/20 hover:bg-sand text-ink-muted hover:text-ink text-xs transition-colors"
+                            className="p-1.5 rounded-lg border border-black/[0.08] dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white text-xs transition-colors cursor-pointer"
                             aria-label="Edit Reservation"
                           >
                             <Edit2 className="w-3.5 h-3.5" strokeWidth={1.5} />
@@ -490,7 +496,7 @@ export default function AdminBookings() {
                           <button
                             onClick={() => { setPaymentBooking(b); setPayAmount(String(b.remaining_balance || '')) }}
                             title="Record Payment"
-                            className="p-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-semibold transition-colors"
+                            className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50 text-xs font-semibold transition-colors cursor-pointer"
                             aria-label="Record Payment"
                           >
                             <CreditCard className="w-3.5 h-3.5" strokeWidth={1.5} />
@@ -501,7 +507,7 @@ export default function AdminBookings() {
                         {canCheckIn && (
                           <button
                             onClick={() => handleCheckIn(b)}
-                            className="px-2.5 py-1 rounded-lg bg-forest hover:bg-forest-hover text-white text-[11px] font-semibold transition-all shadow-sm"
+                            className="px-2.5 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-semibold transition-all shadow-2xs cursor-pointer"
                           >
                             Check In
                           </button>
@@ -511,7 +517,7 @@ export default function AdminBookings() {
                         {canCheckOut && (
                           <button
                             onClick={() => handleCheckOut(b)}
-                            className="px-2.5 py-1 rounded-lg bg-[#B48454] hover:bg-[#9E6E3E] text-white text-[11px] font-semibold transition-all shadow-sm"
+                            className="px-2.5 py-1 rounded-lg bg-[#B48454] hover:bg-[#9E6E3E] text-white text-[11px] font-semibold transition-all shadow-2xs cursor-pointer"
                           >
                             Check Out
                           </button>
@@ -522,7 +528,7 @@ export default function AdminBookings() {
                           <button
                             onClick={() => setCancelBooking(b)}
                             title="Cancel Booking"
-                            className="p-1.5 rounded-lg border border-red-200 hover:bg-red-50 text-red-600 text-xs transition-colors"
+                            className="p-1.5 rounded-lg border border-red-200 dark:border-red-800/50 hover:bg-red-50 dark:hover:bg-red-950/40 text-red-600 dark:text-red-400 text-xs transition-colors cursor-pointer"
                             aria-label="Cancel Booking"
                           >
                             <X className="w-3.5 h-3.5" strokeWidth={1.5} />
@@ -539,37 +545,37 @@ export default function AdminBookings() {
 
         {/* Loading & Empty State */}
         {loading && (
-          <div className="py-16 text-center text-ink-muted text-xs">
+          <div className="py-16 text-center text-neutral-400 text-xs">
             <div className="w-6 h-6 border-2 border-[#B48454] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
             <p>Loading reservations...</p>
           </div>
         )}
 
         {!loading && paginatedBookings.length === 0 && (
-          <div className="py-16 text-center text-ink-muted">
-            <div className="w-12 h-12 rounded-2xl bg-sand/60 border border-stone/20 flex items-center justify-center mx-auto mb-3 text-ink-muted">
+          <div className="py-16 text-center text-neutral-500 dark:text-neutral-400">
+            <div className="w-12 h-12 rounded-2xl bg-neutral-100 dark:bg-neutral-800 border border-black/[0.06] dark:border-neutral-700 flex items-center justify-center mx-auto mb-3 text-neutral-400">
               <ConciergeBell className="w-6 h-6" strokeWidth={1.5} />
             </div>
-            <p className="font-display font-bold text-ink text-base">No reservations found.</p>
-            <p className="text-xs text-ink-muted mt-1 max-w-sm mx-auto">
+            <p className="font-display font-bold text-neutral-900 dark:text-white text-base">No reservations found.</p>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1 max-w-sm mx-auto">
               {searchQuery ? `No results match "${searchQuery}". Try refining your search.` : `No ${activeFilter !== 'all' ? activeFilter : ''} bookings registered in the system yet.`}
             </p>
           </div>
         )}
 
         {/* Pagination Footer */}
-        <div className="p-4 sm:p-6 border-t border-stone/15 bg-[#FCFAF7] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-          <span className="text-ink-muted">
-            Showing <span className="font-bold text-ink">{filteredBookings.length > 0 ? (currentPage - 1) * pageSize + 1 : 0}</span> to{' '}
-            <span className="font-bold text-ink">{Math.min(currentPage * pageSize, filteredBookings.length)}</span> of{' '}
-            <span className="font-bold text-ink">{filteredBookings.length}</span> bookings
+        <div className="p-4 sm:p-6 border-t border-black/[0.06] dark:border-neutral-800 bg-neutral-50/60 dark:bg-[#14171C] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+          <span className="text-neutral-500 dark:text-neutral-400">
+            Showing <span className="font-bold text-neutral-900 dark:text-white">{filteredBookings.length > 0 ? (currentPage - 1) * pageSize + 1 : 0}</span> to{' '}
+            <span className="font-bold text-neutral-900 dark:text-white">{Math.min(currentPage * pageSize, filteredBookings.length)}</span> of{' '}
+            <span className="font-bold text-neutral-900 dark:text-white">{filteredBookings.length}</span> bookings
           </span>
 
           <div className="flex items-center gap-1">
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="px-3 py-1.5 rounded-xl border border-stone/20 bg-white font-semibold text-ink hover:bg-sand disabled:opacity-40 disabled:cursor-not-allowed"
+              className="px-3 py-1.5 rounded-xl border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] font-semibold text-neutral-900 dark:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
             >
               Previous
             </button>
@@ -578,10 +584,10 @@ export default function AdminBookings() {
               <button
                 key={pg}
                 onClick={() => setCurrentPage(pg)}
-                className={`w-8 h-8 rounded-xl text-xs font-bold transition-all ${
+                className={`w-8 h-8 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                   currentPage === pg
-                    ? 'bg-[#B48454] text-white shadow-sm'
-                    : 'bg-white border border-stone/20 text-ink hover:bg-sand'
+                    ? 'bg-[#B48454] text-white shadow-2xs'
+                    : 'bg-white dark:bg-[#20252E] border border-black/[0.08] dark:border-neutral-700 text-neutral-900 dark:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800'
                 }`}
               >
                 {pg}
@@ -591,13 +597,12 @@ export default function AdminBookings() {
             <button
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
-              className="px-3 py-1.5 rounded-xl border border-stone/20 bg-white font-semibold text-ink hover:bg-sand disabled:opacity-40 disabled:cursor-not-allowed"
+              className="px-3 py-1.5 rounded-xl border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] font-semibold text-neutral-900 dark:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
             >
               Next
             </button>
           </div>
         </div>
-
       </div>
 
       {/* ─── MODAL: VIEW BOOKING DETAILS ─── */}

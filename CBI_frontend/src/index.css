@@ -2,30 +2,32 @@
 
 @import 'tailwindcss';
 
-@theme {
-  --color-cream: #F8F5EE;
-  --color-cream-dark: #EDE9DF;
-  --color-forest: #2D5016;
-  --color-forest-hover: #3A6620;
-  --color-forest-muted: #5A8A30;
-  --color-leaf: #7AAD48;
-  --color-amber: #C47B2B;
-  --color-amber-light: #E8A94D;
-  --color-bark: #5C3D1E;
-  --color-sand: #EDE9E0;
-  --color-stone: #D4CEC3;
-  --color-stone-light: #E8E4DC;
-  --color-ink: #1C1A16;
-  --color-ink-muted: #7A7166;
-  --color-ink-faint: #A8A29C;
-  --color-white: #FFFFFF;
-  --color-red-soft: #C0392B;
-  --color-blue-soft: #2874A6;
-  --color-teal-soft: #1A7F6E;
+@custom-variant dark (&:where(.dark, .dark *));
 
-  --font-display: 'Cormorant Garamond', 'Fraunces', serif;
-  --font-body: 'Inter', sans-serif;
-  --font-sans: 'Inter', sans-serif;
+@theme {
+  --color-cream: #FAFAFA;
+  --color-cream-dark: #F4F4F5;
+  --color-forest: #1F2937;
+  --color-forest-hover: #111827;
+  --color-forest-muted: #4B5563;
+  --color-leaf: #10B981;
+  --color-amber: #B48454;
+  --color-amber-light: #C99A6B;
+  --color-bark: #4A3525;
+  --color-sand: #F4F4F5;
+  --color-stone: #E4E4E7;
+  --color-stone-light: #F4F4F5;
+  --color-ink: #18181B;
+  --color-ink-muted: #71717A;
+  --color-ink-faint: #A1A1AA;
+  --color-white: #FFFFFF;
+  --color-red-soft: #EF4444;
+  --color-blue-soft: #3B82F6;
+  --color-teal-soft: #10B981;
+
+  --font-display: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 }
 
@@ -38,10 +40,103 @@ html {
 }
 
 body {
-  font-family: 'Outfit', sans-serif;
-  background-color: #F8F5EE;
-  color: #1C1A16;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: #FAFAFA;
+  color: #18181B;
   -webkit-font-smoothing: antialiased;
+}
+
+html.dark body {
+  background-color: #121418;
+  color: #F4F4F5;
+}
+
+html.dark {
+  --color-cream: #121418;
+  --color-cream-dark: #181B20;
+  --color-sand: #1E232B;
+  --color-stone: #2A303C;
+  --color-stone-light: #1A1E26;
+  --color-ink: #F4F4F5;
+  --color-ink-muted: #A1A1AA;
+  --color-ink-faint: #71717A;
+}
+
+/* ─── Global Enterprise Dark Mode Surfaces & Contrast ─── */
+html.dark {
+  color-scheme: dark;
+}
+
+html.dark .bg-white {
+  background-color: #181B20;
+}
+
+html.dark .bg-\[\#FCFAF7\],
+html.dark .bg-\[\#FAF8F5\],
+html.dark .bg-\[\#FBF9F6\],
+html.dark .bg-sand\/40,
+html.dark .bg-sand\/30,
+html.dark .bg-sand\/20,
+html.dark .bg-neutral-50,
+html.dark .bg-neutral-50\/60,
+html.dark .bg-neutral-50\/70,
+html.dark .bg-neutral-50\/80 {
+  background-color: #14171C;
+}
+
+html.dark tr.bg-sand\/30,
+html.dark tr.bg-neutral-50\/80,
+html.dark thead tr {
+  background-color: #14171C;
+  color: #9CA3AF;
+}
+
+html.dark tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.035);
+}
+
+html.dark input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]),
+html.dark select,
+html.dark textarea {
+  background-color: #20252E;
+  color: #F4F4F5;
+  border-color: #374151;
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: #6B7280;
+}
+
+html.dark .border-stone\/15,
+html.dark .border-stone\/20,
+html.dark .border-stone\/30,
+html.dark .border-stone,
+html.dark .border-black\/\[0\.04\],
+html.dark .border-black\/\[0\.05\],
+html.dark .border-black\/\[0\.06\],
+html.dark .border-black\/\[0\.07\],
+html.dark .border-black\/\[0\.08\],
+html.dark .border-black\/\[0\.1\] {
+  border-color: #27272A;
+}
+
+html.dark .divide-stone\/15,
+html.dark .divide-stone\/20,
+html.dark .divide-black\/\[0\.04\] {
+  border-color: #27272A;
+}
+
+html.dark .text-ink {
+  color: #F4F4F5;
+}
+
+html.dark .text-ink-muted {
+  color: #9CA3AF;
+}
+
+html.dark .text-forest {
+  color: #F4F4F5;
 }
 
 /* Custom scrollbar */
@@ -53,11 +148,18 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #D4CEC3;
+  background: #E4E4E7;
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #A8A29C;
+  background: #D4D4D8;
+}
+
+html.dark ::-webkit-scrollbar-thumb {
+  background: #27272A;
+}
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: #3F3F46;
 }
 
 /* Hide scrollbar when not hovering */
@@ -67,10 +169,23 @@ body {
 
 /* Utility for display font */
 .font-display {
-  font-family: 'Fraunces', serif;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+.font-serif-brand {
+  font-family: 'Fraunces', 'Cormorant Garamond', serif;
 }
 .font-mono {
   font-family: 'JetBrains Mono', monospace;
+}
+
+/* ─── Compact Card Container Standards ─── */
+.card-compact {
+  padding: 1rem;
+  border-radius: 0.75rem;
+}
+.stat-card-compact {
+  padding: 0.875rem 1rem;
+  border-radius: 0.75rem;
 }
 
 /* ─── Landing page: scroll-reveal ─── */

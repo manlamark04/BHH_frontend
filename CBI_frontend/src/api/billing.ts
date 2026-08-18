@@ -32,9 +32,16 @@ export interface InvoiceItem {
   check_in?: string
   check_out?: string
   activity_rental_id?: number
+  activity_name?: string
+  service_type?: string
+  service_name?: string
+  service_details?: string
+  line_items_summary?: string
   total_amount: number
   paid_amount: number
   remaining_balance: number
+  balance?: number
+  payment_status?: string
   status: 'PAID' | 'PARTIALLY PAID' | 'PENDING' | 'REFUNDED' | 'FAILED' | 'VOID' | string
   method: string
   issued_by_name?: string
@@ -100,4 +107,8 @@ export const billingApi = {
       new_total_paid: number
       bill_status: string
     }>(`/api/bills/payments/${payment_id}/refund`, { reason }),
+
+  /** POST /api/bills/:id/cancel — Staff/Admin: cancel unpaid bill */
+  cancelBill: (bill_id: number, reason?: string) =>
+    api.post<{ message: string }>(`/api/bills/${bill_id}/cancel`, { reason }),
 }

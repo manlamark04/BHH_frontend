@@ -26,6 +26,7 @@ import CustomerProfile from './views/customer/Profile'
 import StaffCheckInOut from './views/staff/CheckInOut'
 import StaffDashboard from './views/staff/Dashboard'
 import StaffBookings from './views/staff/Bookings'
+import StaffRooms from './views/staff/Rooms'
 import StaffWalkIn from './views/staff/WalkIn'
 import StaffMotorcycles from './views/staff/Motorcycles'
 import StaffPickleball from './views/staff/Pickleball'
@@ -53,6 +54,7 @@ const VIEW_TITLES: Partial<Record<View, { title: string; subtitle?: string }>> =
   'customer-transactions': { title: 'My Transactions', subtitle: 'Booking & payment history' },
   'customer-profile': { title: 'My Profile', subtitle: 'Manage your account' },
   'staff-dashboard': { title: 'Staff Dashboard', subtitle: 'Operations overview' },
+  'staff-rooms': { title: 'Room Inventory', subtitle: 'Live room occupancy and status management' },
   'staff-checkinout': { title: 'Check-In / Out', subtitle: 'Arrivals, in-house guests & departures' },
   'staff-bookings': { title: 'Booking Management', subtitle: 'Confirm, check-in, and check-out guests' },
   'staff-walkin': { title: 'Walk-In Registration', subtitle: 'Register new walk-in customers' },
@@ -180,6 +182,8 @@ export default function App() {
       // Staff
       case 'staff-dashboard':
         return <StaffDashboard onNavigate={navigate} userName={name} userId={userId} />
+      case 'staff-rooms':
+        return <StaffRooms />
       case 'staff-checkinout':
         return <AdminCheckInOut />
       case 'staff-bookings':
@@ -227,7 +231,7 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-screen bg-cream overflow-hidden">
+    <div className="flex h-screen bg-[#FAFAFA] dark:bg-[#121418] text-[#18181B] dark:text-slate-100 overflow-hidden transition-colors duration-300">
       <Sidebar
         currentView={view}
         onNavigate={navigate}
@@ -240,7 +244,7 @@ export default function App() {
         onMobileClose={() => setMobileMenuOpen(false)}
       />
 
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[#FAFAFA] dark:bg-[#121418] transition-colors duration-300">
         {role !== 'admin' && role !== 'staff' && (
           <TopBar
             title={titleInfo?.title ?? 'Cambacay Breeze Inn'}
@@ -251,15 +255,15 @@ export default function App() {
 
         {/* Mobile top-bar only for responsive sidebar trigger in admin/staff */}
         {(role === 'admin' || role === 'staff') && (
-          <div className="lg:hidden p-3 bg-[#FAF8F5] border-b border-stone/20 flex items-center justify-between">
+          <div className="lg:hidden p-3 bg-white dark:bg-[#181B20] border-b border-black/[0.06] dark:border-neutral-800 flex items-center justify-between transition-colors">
             <button
               onClick={() => setMobileMenuOpen(true)}
-              className="w-9 h-9 rounded-lg border border-stone/30 flex items-center justify-center text-ink hover:bg-sand/60 transition-colors shadow-xs"
+              className="w-9 h-9 rounded-lg border border-black/[0.08] dark:border-neutral-700 flex items-center justify-center text-ink dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shadow-xs"
               aria-label="Open Navigation Menu"
             >
-              <Menu className="w-4 h-4 text-ink" strokeWidth={1.5} />
+              <Menu className="w-4 h-4 text-ink dark:text-neutral-200" strokeWidth={1.5} />
             </button>
-            <span className="font-display font-semibold text-ink text-sm">Cambacay Breeze Inn</span>
+            <span className="font-display font-semibold text-ink dark:text-white text-sm">Cambacay Breeze Inn</span>
           </div>
         )}
 

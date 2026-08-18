@@ -44,27 +44,27 @@ export default function ConfirmDialog({
   return (
     <div className="fixed inset-0 z-60 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-ink/40 backdrop-blur-xs" onClick={onCancel} />
-      <div className="relative bg-white rounded-2xl shadow-[0_24px_48px_rgba(0,0,0,0.12)] p-6 max-w-md w-full border border-stone/20">
+      <div className="relative bg-white dark:bg-[#181B20] rounded-2xl shadow-[0_24px_48px_rgba(0,0,0,0.12)] p-6 max-w-md w-full border border-black/[0.08] dark:border-neutral-800 transition-colors">
         <div className="flex items-start gap-3.5 mb-4">
           <div className={`w-10 h-10 rounded-xl flex items-center justify-center border shrink-0 ${iconBgs[variant]}`}>
             {icons[variant]}
           </div>
           <div>
-            <h3 className="font-display text-lg font-bold text-ink leading-tight">{title}</h3>
-            <p className="text-ink-muted text-xs leading-relaxed mt-1">{message}</p>
+            <h3 className="font-display text-lg font-bold text-neutral-900 dark:text-white leading-tight">{title}</h3>
+            <p className="text-neutral-500 dark:text-neutral-400 text-xs leading-relaxed mt-1">{message}</p>
           </div>
         </div>
 
-        <div className="flex gap-2.5 justify-end pt-2 border-t border-stone/15 mt-4">
+        <div className="flex gap-2.5 justify-end pt-3 border-t border-black/[0.06] dark:border-neutral-800 mt-4">
           <button
             onClick={onCancel}
-            className="px-4 py-2 rounded-xl border border-stone/30 text-ink-muted text-xs font-semibold hover:bg-sand/60 hover:text-ink transition-colors"
+            className="px-4 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-700 text-neutral-600 dark:text-neutral-300 text-xs font-semibold hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-white transition-colors cursor-pointer"
           >
             {cancelLabel}
           </button>
           <button
             onClick={onConfirm}
-            className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ${btnStyles[variant]}`}
+            className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${btnStyles[variant]}`}
           >
             {confirmLabel}
           </button>

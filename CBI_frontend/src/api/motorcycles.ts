@@ -107,6 +107,14 @@ export const motorcyclesApi = {
       data || {}
     ),
 
+  /** PATCH /api/motorcycles/rentals/:id/approve — Staff/Admin: Approve rental */
+  approveRental: (id: number | string) =>
+    api.patch<{ success: boolean; status: string; message: string }>(`/api/motorcycles/rentals/${id}/approve`, {}),
+
+  /** PATCH /api/motorcycles/rentals/:id/reject — Staff/Admin: Reject rental with reason & refund */
+  rejectRental: (id: number | string, reason: string, notes?: string) =>
+    api.patch<{ success: boolean; status: string; message: string; refund_pending: boolean; refund_amount: number }>(`/api/motorcycles/rentals/${id}/reject`, { reason, notes }),
+
   /** POST /api/motorcycles/rentals/:id/cancel — Cancel Rental */
   cancelRental: (id: number | string) =>
     api.post<{ message: string }>(`/api/motorcycles/rentals/${id}/cancel`),

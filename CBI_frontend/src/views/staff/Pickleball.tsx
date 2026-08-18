@@ -15,10 +15,13 @@ import StatusBadge from '../../components/StatusBadge'
 import Modal from '../../components/Modal'
 import pickleballCourtImg from '../../imports/pickleball_court.jpg'
 
+import { formatCourtDateTime } from '../customer/Pickleball'
+
 export default function StaffPickleball() {
   const [rentals, setRentals] = useState<Record<string, unknown>[]>([])
   const [customers, setCustomers] = useState<Record<string, unknown>[]>([])
   const [loading, setLoading] = useState(true)
+  const [tab, setTab] = useState<'schedule' | 'facility'>('schedule')
   const [successMsg, setSuccessMsg] = useState('')
 
   // Reserve modal state
@@ -38,7 +41,7 @@ export default function StaffPickleball() {
   const loadData = () => {
     setLoading(true)
     Promise.all([
-      bookingsApi.getMyRentals().catch(() => []),
+      bookingsApi.getAllRentals().catch(() => []),
       usersApi.getCustomers().catch(() => ({ customers: [] })),
     ]).then(([rnts, custRes]) => {
       setRentals(rnts as Record<string, unknown>[])
@@ -52,20 +55,57 @@ export default function StaffPickleball() {
     setDate(today)
   }, [])
 
+  // Filter court bookings
+  const courtBookings = rentals.filter((r) =>
+    String(r.activity_name || '').toLowerCase().includes('pickleball') ||
+    String(r.activity_name || '').toLowerCase().includes('court') ||
+    r.activity_id === 2
+  )
+
+  const parseMs = (val: unknown) => {
+    if (!val) return 0
+    const s = String(val).replace(' ', 'T').replace('Z', '')
+    const t = new Date(s).getTime()
+    return isNaN(t) ? 0 : t
+  }
+
+  // Status-driven live court availability
+  // RENTED/Unavailable: any booking with status 'active' (currently playing)
+  const currentOngoingMatch = courtBookings.find((r) => {
+    const s = String(r.status_raw || r.status || '').toLowerCase()
+    return s === 'active'
+  })
+
+  // Reserved: confirmed or approved, not yet active
+  const upcomingMatch = courtBookings.find((r) => {
+    const s = String(r.status_raw || r.status || '').toLowerCase()
+    return s === 'confirmed' || s === 'approved'
+  })
+
+  // Pending payment or approval
+  const pendingMatch = courtBookings.find((r) => {
+    const s = String(r.status_raw || r.status || '').toLowerCase()
+    return s === 'pending_payment' || s === 'pending_approval' || s === 'pending'
+  })
+
   const handleCreateCourtBooking = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedCustomerId || !date || !startTime) return
     setSubmitting(true)
     setError('')
     try {
-      const startISO = `${date}T${startTime}:00`
-      const endDate = new Date(startISO)
-      endDate.setHours(endDate.getHours() + duration)
+      const [startHour, startMin] = startTime.split(':').map(Number)
+      const startFormatted = `${date} ${String(startHour).padStart(2, '0')}:${String(startMin || 0).padStart(2, '0')}:00`
+      
+      const endHour = startHour + duration
+      const endFormatted = `${date} ${String(endHour).padStart(2, '0')}:${String(startMin || 0).padStart(2, '0')}:00`
 
       await bookingsApi.createRental({
         activity_id: 2, // Pickleball Court ID
-        start_time: startISO,
-        end_time: endDate.toISOString(),
+        customer_id: Number(selectedCustomerId),
+        start_time: startFormatted,
+        end_time: endFormatted,
+        notes: `${players} players · ${notes || 'Staff booking'}`,
       })
 
       setShowReserveModal(false)
@@ -81,15 +121,8 @@ export default function StaffPickleball() {
     }
   }
 
-  // Filter court bookings
-  const courtBookings = rentals.filter((r) =>
-    String(r.activity_name || '').toLowerCase().includes('pickleball') ||
-    String(r.activity_name || '').toLowerCase().includes('court') ||
-    r.activity_id === 2
-  )
-
   return (
-    <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto space-y-6 font-sans">
+    <div className="p-4 sm:p-5 max-w-7xl mx-auto space-y-4 sm:space-y-5 font-sans">
       {successMsg && (
         <div className="fixed top-6 right-6 z-50 px-5 py-3.5 bg-emerald-700 text-white font-medium text-xs rounded-2xl shadow-xl border border-emerald-500 animate-slideDown flex items-center gap-2">
           <Check className="w-4 h-4 text-emerald-200" strokeWidth={2} />
@@ -98,74 +131,139 @@ export default function StaffPickleball() {
       )}
 
       {/* ─── TOP HEADER ─── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-stone/20">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-black/[0.06] dark:border-neutral-800">
         <div>
-          <h1 className="font-display text-3xl sm:text-4xl font-bold text-ink tracking-tight">Pickleball Court Management</h1>
-          <p className="text-xs sm:text-sm text-ink-muted mt-0.5 max-w-xl">
+          <h1 className="font-display text-lg sm:text-xl font-bold text-neutral-900 dark:text-white tracking-tight">Pickleball Court Management</h1>
+          <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5 max-w-xl">
             Manage court schedule, equipment dispatch (paddles & balls), and reservations for hotel guests.
           </p>
         </div>
         <button
           onClick={() => { setShowReserveModal(true); setError('') }}
-          className="px-5 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl font-semibold text-xs shadow-sm hover:shadow-md transition-all flex items-center gap-2 self-start sm:self-auto"
+          className="px-3.5 py-1.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-lg font-semibold text-xs shadow-xs hover:shadow-sm transition-all flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
         >
-          <Plus className="w-4 h-4" strokeWidth={2} />
+          <Plus className="w-3.5 h-3.5" strokeWidth={2} />
           <span>Reserve Court for Guest</span>
         </button>
       </div>
 
+      {/* ─── TAB NAVIGATION ─── */}
+      <div className="flex items-center gap-1.5 border-b border-black/[0.06] dark:border-neutral-800 pb-2.5">
+        <button
+          onClick={() => setTab('schedule')}
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+            tab === 'schedule'
+              ? 'bg-[#B48454] text-white shadow-xs'
+              : 'bg-white dark:bg-[#181B20] text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white border border-black/[0.06] dark:border-neutral-800'
+          }`}
+        >
+          Active Reservations & History ({courtBookings.length})
+        </button>
+        <button
+          onClick={() => setTab('facility')}
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+            tab === 'facility'
+              ? 'bg-[#B48454] text-white shadow-xs'
+              : 'bg-white dark:bg-[#181B20] text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white border border-black/[0.06] dark:border-neutral-800'
+          }`}
+        >
+          Facility Info & Overview (2)
+        </button>
+      </div>
+
       {/* ─── COURT PREVIEW BANNER ─── */}
-      <div className="bg-white rounded-2xl border border-stone/20 shadow-sm overflow-hidden flex flex-col md:flex-row">
-        <div className="md:w-1/3 h-48 md:h-auto bg-sand overflow-hidden relative">
+      <div className="bg-white dark:bg-[#181B20] rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden flex flex-col md:flex-row">
+        <div className="md:w-1/3 h-40 md:h-auto bg-neutral-100 dark:bg-neutral-800 overflow-hidden relative">
           <img
             src={pickleballCourtImg}
             alt="Outdoor Pickleball Court"
             className="w-full h-full object-cover"
           />
-          <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-xs text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full font-mono">
+          <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-xs text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full font-mono">
             ₱150 / hr
           </div>
         </div>
-        <div className="md:w-2/3 p-5 sm:p-6 flex flex-col justify-between space-y-3">
+        <div className="md:w-2/3 p-3.5 sm:p-4 flex flex-col justify-between space-y-2.5">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-[10px] uppercase font-bold tracking-widest text-[#B48454]">FACILITY OVERVIEW</span>
-              <StatusBadge status="AVAILABLE" />
+              <span className="text-[10px] uppercase font-bold tracking-wider text-[#B48454]">FACILITY OVERVIEW</span>
+              {currentOngoingMatch ? (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 border border-rose-300 dark:border-rose-800/50 animate-pulse">
+                  ● Rented / Unavailable (Playing Now)
+                </span>
+              ) : upcomingMatch ? (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800/50">
+                  ● Rented / Reserved · Next: {formatCourtDateTime(upcomingMatch.start_time as string)}
+                </span>
+              ) : pendingMatch ? (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800/50">
+                  ● Reserved · Pending Verification
+                </span>
+              ) : (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800/50">
+                  ● Available for Booking
+                </span>
+              )}
             </div>
-            <h2 className="font-display font-bold text-xl text-ink">Outdoor Regulation Pickleball Court</h2>
-            <p className="text-xs text-ink-muted leading-relaxed mt-1">
+            <h2 className="font-display font-bold text-base text-neutral-900 dark:text-white">Outdoor Regulation Pickleball Court</h2>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed mt-0.5">
               Acrylic hardcourt facility with LED evening floodlights. Every reservation includes 4 tournament-grade paddles and outdoor balls provided by the front desk.
             </p>
           </div>
-          <div className="flex flex-wrap gap-2 text-[11px]">
-            <span className="px-3 py-1 bg-[#FAF8F5] border border-stone/20 rounded-lg text-ink font-medium">2 Regulation Courts</span>
-            <span className="px-3 py-1 bg-[#FAF8F5] border border-stone/20 rounded-lg text-ink font-medium">Night Floodlighting</span>
-            <span className="px-3 py-1 bg-[#FAF8F5] border border-stone/20 rounded-lg text-ink font-medium">Paddles & Balls Included</span>
+          <div className="flex flex-wrap gap-1.5 text-[10px]">
+            <span className="px-2.5 py-0.5 bg-neutral-100 dark:bg-[#14171C] border border-black/[0.06] dark:border-neutral-800 rounded-md text-neutral-700 dark:text-neutral-300 font-medium">2 Regulation Courts</span>
+            <span className="px-2.5 py-0.5 bg-neutral-100 dark:bg-[#14171C] border border-black/[0.06] dark:border-neutral-800 rounded-md text-neutral-700 dark:text-neutral-300 font-medium">Night Floodlighting</span>
+            <span className="px-2.5 py-0.5 bg-neutral-100 dark:bg-[#14171C] border border-black/[0.06] dark:border-neutral-800 rounded-md text-neutral-700 dark:text-neutral-300 font-medium">Paddles & Balls Included</span>
           </div>
         </div>
       </div>
 
       {/* ─── FACILITY OVERVIEW CARDS ─── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-white p-5 rounded-2xl border border-stone/20 shadow-sm flex flex-col justify-between">
-          <span className="text-[10px] text-[#B48454] uppercase font-bold tracking-widest">Court Status</span>
-          <p className="text-2xl sm:text-3xl font-display font-bold text-emerald-700 mt-1">AVAILABLE</p>
-          <span className="text-[11px] text-emerald-600 font-medium mt-1">2 Regulation Courts</span>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="bg-white dark:bg-[#181B20] p-3 rounded-lg border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] flex flex-col gap-1">
+          <span className="text-[9px] text-[#B48454] uppercase font-bold tracking-wider">Court Status</span>
+          {currentOngoingMatch ? (
+            <div>
+              <p className="text-base font-display font-bold text-rose-600 dark:text-rose-400 leading-tight">RENTED</p>
+              <span className="text-[10px] text-rose-600 dark:text-rose-400 font-medium block truncate">
+                In-Use: {String(currentOngoingMatch.customer_name || 'Guest')}
+              </span>
+            </div>
+          ) : upcomingMatch ? (
+            <div>
+              <p className="text-base font-display font-bold text-amber-600 dark:text-amber-400 leading-tight">RENTED</p>
+              <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium block truncate">
+                {String(upcomingMatch.customer_name || 'Guest')}
+              </span>
+            </div>
+          ) : pendingMatch ? (
+            <div>
+              <p className="text-base font-display font-bold text-amber-600 dark:text-amber-400 leading-tight">PENDING</p>
+              <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium block truncate">
+                {String(pendingMatch.customer_name || 'Guest')}
+              </span>
+            </div>
+          ) : (
+            <div>
+              <p className="text-base font-display font-bold text-emerald-600 dark:text-emerald-400 leading-tight">AVAILABLE</p>
+              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium block">2 Regulation Courts</span>
+            </div>
+          )}
         </div>
-        <div className="bg-white p-5 rounded-2xl border border-stone/20 shadow-sm flex flex-col justify-between">
-          <span className="text-[10px] text-[#B48454] uppercase font-bold tracking-widest">Hourly Rate</span>
-          <p className="text-2xl sm:text-3xl font-display font-bold text-[#B48454] mt-1">₱150 <span className="text-xs font-normal text-ink-muted">/ hr</span></p>
-          <span className="text-[11px] text-ink-faint mt-1">Paddles & balls included</span>
+        <div className="bg-white dark:bg-[#181B20] p-3 rounded-lg border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] flex flex-col gap-1">
+          <span className="text-[9px] text-[#B48454] uppercase font-bold tracking-wider">Hourly Rate</span>
+          <p className="text-base font-display font-bold text-[#B48454] leading-tight">₱150 <span className="text-[10px] font-normal text-neutral-500">/ hr</span></p>
+          <span className="text-[10px] text-neutral-500 dark:text-neutral-400">Paddles & balls included</span>
         </div>
-        <div className="bg-white p-5 rounded-2xl border border-stone/20 shadow-sm flex flex-col justify-between">
-          <span className="text-[10px] text-[#B48454] uppercase font-bold tracking-widest">Total Reservations</span>
-          <p className="text-2xl sm:text-3xl font-display font-bold text-ink mt-1">{courtBookings.length}</p>
-          <span className="text-[11px] text-ink-faint mt-1">Scheduled bookings</span>
+        <div className="bg-white dark:bg-[#181B20] p-3 rounded-lg border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] flex flex-col gap-1">
+          <span className="text-[9px] text-[#B48454] uppercase font-bold tracking-wider">Total Reservations</span>
+          <p className="text-base font-display font-bold text-neutral-900 dark:text-white leading-tight">{courtBookings.length}</p>
+          <span className="text-[10px] text-neutral-500 dark:text-neutral-400">Scheduled bookings</span>
         </div>
-        <div className="bg-white p-5 rounded-2xl border border-stone/20 shadow-sm flex flex-col justify-between">
-          <span className="text-[10px] text-[#B48454] uppercase font-bold tracking-widest">Operating Hours</span>
-          <p className="text-xl sm:text-2xl font-display font-bold text-ink mt-1">6 AM – 9 PM</p>
-          <span className="text-[11px] text-[#B48454] font-medium mt-1">Floodlights enabled</span>
+        <div className="bg-white dark:bg-[#181B20] p-3 rounded-lg border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] flex flex-col gap-1">
+          <span className="text-[9px] text-[#B48454] uppercase font-bold tracking-wider">Operating Hours</span>
+          <p className="text-base font-display font-bold text-neutral-900 dark:text-white leading-tight">6 AM – 9 PM</p>
+          <span className="text-[10px] text-[#B48454] font-medium">Floodlights enabled</span>
         </div>
       </div>
 
@@ -183,40 +281,123 @@ export default function StaffPickleball() {
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="border-b border-stone/20 bg-sand/30 text-[10px] uppercase font-bold text-ink-muted tracking-wider">
-                <th className="px-5 py-3.5">BOOKING ID</th>
+                <th className="px-5 py-3.5">RESERVATION ID</th>
                 <th className="px-5 py-3.5">FACILITY</th>
+                <th className="px-5 py-3.5">CUSTOMER</th>
                 <th className="px-5 py-3.5">START TIME</th>
                 <th className="px-5 py-3.5">END TIME</th>
+                <th className="px-5 py-3.5">TOTAL AMOUNT</th>
                 <th className="px-5 py-3.5">STATUS</th>
                 <th className="px-5 py-3.5 text-right">ACTIONS</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-stone/15">
-              {courtBookings.map((b) => (
-                <tr key={String(b.id)} className="hover:bg-sand/20 transition-colors">
-                  <td className="px-5 py-4 font-mono text-xs text-[#B48454] font-bold">
-                    #{String(b.id).padStart(4, '0')}
-                  </td>
-                  <td className="px-5 py-4">
-                    <p className="font-semibold text-ink text-sm">Pickleball Court</p>
-                    <p className="text-xs text-ink-muted">Outdoor Court 1</p>
-                  </td>
-                  <td className="px-5 py-4 text-xs font-mono text-ink-muted">
-                    {String(b.start_time || '').replace('T', ' ').substring(0, 16)}
-                  </td>
-                  <td className="px-5 py-4 text-xs font-mono text-ink-muted">
-                    {String(b.end_time || '').replace('T', ' ').substring(0, 16)}
-                  </td>
-                  <td className="px-5 py-4">
-                    <StatusBadge status={String(b.status || 'PENDING').toUpperCase()} />
-                  </td>
-                  <td className="px-5 py-4 text-right">
-                    <span className="text-xs text-emerald-700 font-semibold bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
-                      Reserved
-                    </span>
-                  </td>
-                </tr>
-              ))}
+              {courtBookings.map((b) => {
+                const status = String(b.status || '').toUpperCase()
+                const id = Number(b.id)
+                return (
+                  <tr key={String(b.id)} className="hover:bg-sand/20 transition-colors">
+                    <td className="px-5 py-4 font-mono text-xs text-[#B48454] font-bold">
+                      {b.rental_ref || `AR-${new Date().getFullYear()}-${String(b.id).padStart(4, '0')}`}
+                    </td>
+                    <td className="px-5 py-4">
+                      <p className="font-semibold text-ink text-sm">Pickleball Court</p>
+                      <p className="text-xs text-ink-muted">Outdoor Regulation Court</p>
+                    </td>
+                    <td className="px-5 py-4">
+                      <p className="font-medium text-ink text-sm">{String(b.customer_name || 'Guest')}</p>
+                      <p className="text-xs text-ink-muted font-mono">{String(b.customer_phone || b.customer_email || '—')}</p>
+                    </td>
+                    <td className="px-5 py-4 text-xs font-mono text-ink-muted">
+                      {formatCourtDateTime(b.start_time as string)}
+                    </td>
+                    <td className="px-5 py-4 text-xs font-mono text-ink-muted">
+                      {formatCourtDateTime(b.end_time as string)}
+                    </td>
+                    <td className="px-5 py-4">
+                      <span className="font-display font-bold text-[#B48454] text-sm">
+                        ₱{Number(b.total_price || b.total_amount || 150).toLocaleString()}
+                      </span>
+                    </td>
+                    <td className="px-5 py-4">
+                      <StatusBadge status={status} />
+                      {b.rejection_reason && (
+                        <p className="text-[10px] text-rose-600 mt-1 truncate max-w-[140px]">{String(b.rejection_reason)}</p>
+                      )}
+                    </td>
+                    <td className="px-5 py-4 text-right">
+                      {status === 'PENDING_PAYMENT' && (
+                        <span className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-md font-medium">
+                          Awaiting Payment
+                        </span>
+                      )}
+                      {(status === 'CONFIRMED' || status === 'APPROVED') && (
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={async () => {
+                              try {
+                                await bookingsApi.updateRentalStatus(id, 'active')
+                                setSuccessMsg(`Court session #${id} marked as Active/Playing! Court is now in-use.`)
+                                setTimeout(() => setSuccessMsg(''), 4500)
+                                loadData()
+                              } catch (err) {
+                                alert(err instanceof Error ? err.message : 'Failed to start match')
+                              }
+                            }}
+                            className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-semibold shadow-xs transition-all cursor-pointer"
+                          >
+                            Start Match (Playing)
+                          </button>
+                          <button
+                            onClick={async () => {
+                              if (!confirm(`Mark court session #${id} as Completed and free the court?`)) return
+                              try {
+                                await bookingsApi.updateRentalStatus(id, 'completed')
+                                setSuccessMsg(`Court reservation #${id} marked as completed. Court is now available!`)
+                                setTimeout(() => setSuccessMsg(''), 4500)
+                                loadData()
+                              } catch (err) {
+                                alert(err instanceof Error ? err.message : 'Failed to complete session')
+                              }
+                            }}
+                            className="px-2.5 py-1.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-lg text-[11px] font-semibold shadow-xs transition-all cursor-pointer"
+                          >
+                            Complete Match
+                          </button>
+                        </div>
+                      )}
+                      {status === 'ACTIVE' && (
+                        <button
+                          onClick={async () => {
+                            if (!confirm(`Mark court session #${id} as Completed and free the court?`)) return
+                            try {
+                              await bookingsApi.updateRentalStatus(id, 'completed')
+                              setSuccessMsg(`Court reservation #${id} marked as completed. Court is now available!`)
+                              setTimeout(() => setSuccessMsg(''), 4500)
+                              loadData()
+                            } catch (err) {
+                              alert(err instanceof Error ? err.message : 'Failed to complete session')
+                            }
+                          }}
+                          className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold shadow-xs transition-all cursor-pointer"
+                        >
+                          Finish / Free Court
+                        </button>
+                      )}
+                      {status === 'COMPLETED' && (
+                        <span className="text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-md font-medium">
+                          Completed (Freed)
+                        </span>
+                      )}
+                      {(status === 'REJECTED' || status === 'CANCELLED') && (
+                        <span className="text-[11px] text-rose-600 bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-md font-medium">
+                          {status === 'REJECTED' ? 'Rejected' : 'Cancelled'}
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>
@@ -286,17 +467,34 @@ export default function StaffPickleball() {
                 onChange={(e) => setStartTime(e.target.value)}
                 className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#FAF8F5] text-xs font-semibold"
               >
-                <option value="06:00">06:00 AM (Early Morning)</option>
-                <option value="07:00">07:00 AM</option>
-                <option value="08:00">08:00 AM</option>
-                <option value="09:00">09:00 AM</option>
-                <option value="10:00">10:00 AM</option>
-                <option value="15:00">03:00 PM (Afternoon)</option>
-                <option value="16:00">04:00 PM</option>
-                <option value="17:00">05:00 PM (Sunset)</option>
-                <option value="18:00">06:00 PM (Night Match)</option>
-                <option value="19:00">07:00 PM (Night Match)</option>
-                <option value="20:00">08:00 PM (Night Match)</option>
+                {[
+                  { t: '06:00', label: '06:00 AM (Early Morning)' },
+                  { t: '07:00', label: '07:00 AM' },
+                  { t: '08:00', label: '08:00 AM' },
+                  { t: '09:00', label: '09:00 AM' },
+                  { t: '10:00', label: '10:00 AM' },
+                  { t: '15:00', label: '03:00 PM (Afternoon)' },
+                  { t: '16:00', label: '04:00 PM' },
+                  { t: '17:00', label: '05:00 PM (Sunset)' },
+                  { t: '18:00', label: '06:00 PM (Night Match)' },
+                  { t: '19:00', label: '07:00 PM (Night Match)' },
+                  { t: '20:00', label: '08:00 PM (Night Match)' },
+                ].map(({ t, label }) => {
+                  const targetStart = date ? new Date(`${date}T${t}:00`).getTime() : 0
+                  const targetEnd = targetStart + duration * 3600000
+                  const booked = rentals.some((r) => {
+                    const s = String(r.status_raw || r.status || '').toLowerCase()
+                    if (['cancelled', 'rejected'].includes(s)) return false
+                    const rStart = new Date(r.start_time as string).getTime()
+                    const rEnd = new Date(r.end_time as string).getTime()
+                    return targetStart < rEnd && targetEnd > rStart
+                  })
+                  return (
+                    <option key={t} value={t} disabled={booked} className={booked ? 'text-rose-400 bg-rose-50' : ''}>
+                      {label} {booked ? '— Booked (Unavailable)' : ''}
+                    </option>
+                  )
+                })}
               </select>
             </div>
           </div>

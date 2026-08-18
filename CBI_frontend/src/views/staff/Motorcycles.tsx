@@ -14,6 +14,7 @@ import { usersApi } from '../../api/users'
 import StatusBadge from '../../components/StatusBadge'
 import Modal from '../../components/Modal'
 import EditMotorDrawer from '../../components/EditMotorDrawer'
+import { formatDateTimeWithAmPm } from '../../components/MotorRentSection'
 
 interface Props {
   userRole?: 'staff' | 'admin' | 'customer'
@@ -138,7 +139,7 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
   }
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto space-y-6 font-sans">
+    <div className="p-4 sm:p-5 max-w-7xl mx-auto space-y-4 sm:space-y-5 font-sans">
       {successMsg && (
         <div className="fixed top-6 right-6 z-50 px-5 py-3.5 bg-emerald-700 text-white font-medium text-xs rounded-2xl shadow-xl border border-emerald-500 animate-slideDown flex items-center gap-2">
           <Check className="w-4 h-4 text-emerald-200" strokeWidth={2} />
@@ -147,60 +148,60 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
       )}
 
       {/* ─── TOP HEADER ─── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-stone/20">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-black/[0.06] dark:border-neutral-800">
         <div>
-          <h1 className="font-display text-3xl sm:text-4xl font-bold text-ink tracking-tight">Motorcycle Rental Management</h1>
-          <p className="text-xs sm:text-sm text-ink-muted mt-0.5">
+          <h1 className="font-display text-lg sm:text-xl font-bold text-neutral-900 dark:text-white tracking-tight">Motorcycle Rental Management</h1>
+          <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
             Dispatch, track, and process returns for all hostel rental motorcycles.
           </p>
         </div>
         <button
           onClick={() => { setShowAddRentModal(true); setRentError('') }}
-          className="px-5 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl font-semibold text-xs shadow-sm hover:shadow-md transition-all flex items-center gap-2 self-start sm:self-auto"
+          className="px-3.5 py-1.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-lg font-semibold text-xs shadow-xs hover:shadow-sm transition-all flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
         >
-          <Plus className="w-4 h-4" strokeWidth={2} />
+          <Plus className="w-3.5 h-3.5" strokeWidth={2} />
           <span>New Motorcycle Rental</span>
         </button>
       </div>
 
       {/* ─── STATS ROW ─── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-white p-5 rounded-2xl border border-stone/20 shadow-sm flex flex-col justify-between">
-          <span className="text-[10px] text-[#B48454] uppercase font-bold tracking-widest">Available Fleet</span>
-          <p className="text-2xl sm:text-3xl font-display font-bold text-emerald-700 mt-1">{availableMotors.length} <span className="text-xs text-ink-muted font-normal">/ {motorcycles.length} units</span></p>
-          <span className="text-[11px] text-emerald-600 font-medium mt-1">Ready for dispatch</span>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+        <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] flex flex-col justify-between">
+          <span className="text-[10px] text-[#B48454] uppercase font-bold tracking-wider">Available Fleet</span>
+          <p className="text-xl sm:text-2xl font-display font-bold text-emerald-600 dark:text-emerald-400 mt-1 leading-tight">{availableMotors.length} <span className="text-xs text-neutral-500 font-normal">/ {motorcycles.length} units</span></p>
+          <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium mt-0.5 block">Ready for dispatch</span>
         </div>
-        <div className="bg-white p-5 rounded-2xl border border-stone/20 shadow-sm flex flex-col justify-between">
-          <span className="text-[10px] text-[#B48454] uppercase font-bold tracking-widest">Active Rentals</span>
-          <p className="text-2xl sm:text-3xl font-display font-bold text-[#B48454] mt-1">{rentals.filter(r => r.status === 'ACTIVE').length}</p>
-          <span className="text-[11px] text-[#B48454] font-medium mt-1">In circulation</span>
+        <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] flex flex-col justify-between">
+          <span className="text-[10px] text-[#B48454] uppercase font-bold tracking-wider">Active Rentals</span>
+          <p className="text-xl sm:text-2xl font-display font-bold text-[#B48454] mt-1 leading-tight">{rentals.filter(r => r.status === 'ACTIVE').length}</p>
+          <span className="text-[11px] text-[#B48454] font-medium mt-0.5 block">In circulation</span>
         </div>
-        <div className="bg-white p-5 rounded-2xl border border-stone/20 shadow-sm flex flex-col justify-between">
-          <span className="text-[10px] text-rose-700 uppercase font-bold tracking-widest">Overdue Returns</span>
-          <p className="text-2xl sm:text-3xl font-display font-bold text-rose-700 mt-1">{rentals.filter(r => r.status === 'OVERDUE').length}</p>
-          <span className="text-[11px] text-rose-600 font-medium mt-1">Action required</span>
+        <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] flex flex-col justify-between">
+          <span className="text-[10px] text-rose-600 dark:text-rose-400 uppercase font-bold tracking-wider">Overdue Returns</span>
+          <p className="text-xl sm:text-2xl font-display font-bold text-rose-600 dark:text-rose-400 mt-1 leading-tight">{rentals.filter(r => r.status === 'OVERDUE').length}</p>
+          <span className="text-[11px] text-rose-600 dark:text-rose-400 font-medium mt-0.5 block">Action required</span>
         </div>
-        <div className="bg-white p-5 rounded-2xl border border-stone/20 shadow-sm flex flex-col justify-between">
-          <span className="text-[10px] text-ink-muted uppercase font-bold tracking-widest">Completed Trips</span>
-          <p className="text-2xl sm:text-3xl font-display font-bold text-ink mt-1">{rentals.filter(r => r.status === 'COMPLETED').length}</p>
-          <span className="text-[11px] text-ink-faint mt-1">Successfully returned</span>
+        <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] flex flex-col justify-between">
+          <span className="text-[10px] text-neutral-500 uppercase font-bold tracking-wider">Completed Trips</span>
+          <p className="text-xl sm:text-2xl font-display font-bold text-neutral-900 dark:text-white mt-1 leading-tight">{rentals.filter(r => r.status === 'COMPLETED').length}</p>
+          <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5 block">Successfully returned</span>
         </div>
       </div>
 
       {/* ─── TABS ─── */}
-      <div className="flex gap-1.5 p-1 bg-sand/40 rounded-xl border border-stone/20 text-xs self-start w-fit">
+      <div className="flex gap-1 p-1 bg-neutral-100/70 dark:bg-[#20252E] rounded-lg border border-black/[0.06] dark:border-neutral-700/80 text-xs self-start w-fit">
         <button
           onClick={() => setTab('rentals')}
-          className={`px-4 py-2 rounded-lg font-semibold transition-all ${
-            tab === 'rentals' ? 'bg-[#B48454] text-white shadow-sm' : 'text-ink-muted hover:text-ink hover:bg-white/60'
+          className={`px-3 py-1.5 rounded-md font-semibold transition-all cursor-pointer ${
+            tab === 'rentals' ? 'bg-[#B48454] text-white shadow-2xs' : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-white dark:hover:bg-neutral-800'
           }`}
         >
           <span>Active Rentals & History ({rentals.length})</span>
         </button>
         <button
           onClick={() => setTab('fleet')}
-          className={`px-4 py-2 rounded-lg font-semibold transition-all ${
-            tab === 'fleet' ? 'bg-[#B48454] text-white shadow-sm' : 'text-ink-muted hover:text-ink hover:bg-white/60'
+          className={`px-3 py-1.5 rounded-md font-semibold transition-all cursor-pointer ${
+            tab === 'fleet' ? 'bg-[#B48454] text-white shadow-2xs' : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-white dark:hover:bg-neutral-800'
           }`}
         >
           <span>Motor Fleet ({motorcycles.length})</span>
@@ -209,7 +210,7 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
 
       {/* ─── TAB 1: RENTALS TABLE ─── */}
       {tab === 'rentals' && (
-        <div className="bg-white rounded-2xl border border-stone/20 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-[#181B20] rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead>
@@ -237,12 +238,10 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
                       <p className="text-xs text-ink-muted font-mono">{r.customer_phone}</p>
                     </td>
                     <td className="px-5 py-4 text-xs font-mono text-ink-muted">
-                      {String(r.start_datetime).replace('T', ' ').substring(0, 16)}
+                      {formatDateTimeWithAmPm(r.start_datetime)}
                     </td>
                     <td className="px-5 py-4 text-xs font-mono text-ink-muted">
-                      {r.actual_return_datetime
-                        ? String(r.actual_return_datetime).replace('T', ' ').substring(0, 16)
-                        : String(r.expected_return_datetime).replace('T', ' ').substring(0, 16)}
+                      {formatDateTimeWithAmPm(r.actual_return_datetime || r.expected_return_datetime)}
                     </td>
                     <td className="px-5 py-4">
                       <span className="font-display font-bold text-[#B48454] text-sm">
@@ -254,15 +253,28 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
                     </td>
                     <td className="px-5 py-4">
                       <StatusBadge status={r.status} />
+                      {r.notes && r.notes.includes('Rejection') && (
+                        <p className="text-[10px] text-rose-600 mt-1">{r.notes}</p>
+                      )}
                     </td>
                     <td className="px-5 py-4 text-right">
+                      {r.status === 'PENDING_PAYMENT' && (
+                        <span className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-md font-medium">
+                          Awaiting Payment
+                        </span>
+                      )}
                       {(r.status === 'ACTIVE' || r.status === 'OVERDUE') && (
                         <button
                           onClick={() => setReturnRentalModal(r)}
-                          className="px-3 py-1.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-lg text-xs font-semibold shadow-xs transition-all"
+                          className="px-3 py-1.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-lg text-xs font-semibold shadow-xs transition-all cursor-pointer"
                         >
                           Process Return
                         </button>
+                      )}
+                      {r.status === 'COMPLETED' && (
+                        <span className="text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-md font-medium">
+                          Returned
+                        </span>
                       )}
                     </td>
                   </tr>

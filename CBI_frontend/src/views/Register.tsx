@@ -203,7 +203,7 @@ export default function Register({ onNavigate }: RegisterProps) {
 
                   <div>
                     <label className="block font-semibold text-ink uppercase tracking-wider mb-1">
-                      Middle Name <span className="text-ink-faint font-normal">(Optional)</span>
+                      Middle Name
                     </label>
                     <input
                       value={middleName}
@@ -240,12 +240,7 @@ export default function Register({ onNavigate }: RegisterProps) {
                   </div>
 
                   <div>
-                    <div className="flex justify-between items-center mb-1">
-                      <label className="font-semibold text-ink uppercase tracking-wider">Phone Number *</label>
-                      <span className="text-[10px] font-mono text-ink-muted">
-                        {phone.length}/11 digits
-                      </span>
-                    </div>
+                    <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Phone Number *</label>
                     <input
                       required
                       type="tel"
@@ -318,19 +313,6 @@ export default function Register({ onNavigate }: RegisterProps) {
                     onChange={(e) => setAddress(e.target.value)}
                     placeholder="e.g. Brgy. Poblacion, Batuan, Bohol, Philippines"
                     className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-white text-ink focus:outline-none focus:ring-2 focus:ring-[#B48454]/40 resize-none"
-                  />
-                </div>
-
-                {/* 5. Desired Username */}
-                <div>
-                  <label className="block font-semibold text-ink uppercase tracking-wider mb-1">
-                    Desired Username <span className="text-ink-faint font-normal">(Optional — auto-generated if left empty)</span>
-                  </label>
-                  <input
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    placeholder="e.g. juandelacruz"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-white text-ink font-mono focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
                   />
                 </div>
 

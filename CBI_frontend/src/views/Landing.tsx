@@ -10,8 +10,6 @@ import {
   SprayCan,
   UtensilsCrossed,
   Shirt,
-  Car,
-  Waves,
   Leaf,
   Home,
   MapPin,
@@ -92,8 +90,6 @@ const SERVICES = [
   { Icon: SprayCan,      name: 'Housekeeping', description: 'Daily cleaning and fresh linen service to keep your stay pristine and restful.' },
   { Icon: UtensilsCrossed, name: 'Food & Dining', description: 'Authentic Boholano and Filipino cuisine prepared with fresh local harvest.' },
   { Icon: Shirt,         name: 'Laundry Service', description: 'Same-day laundry and press services with gentle fabric care.' },
-  { Icon: Car,           name: 'Airport Transfer', description: 'Panglao Airport and Tagbilaran Port transfers in air-conditioned comfort.' },
-  { Icon: Waves,         name: 'Swimming Pool', description: 'Scenic open-air swimming pool surrounded by tropical flora and mountain breeze.' },
 ]
 
 const WHY_CHOOSE = [
@@ -507,7 +503,7 @@ interface ActivityItem {
             </div>
           </Reveal>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {SERVICES.map((svc, idx) => (
               <Reveal key={svc.name} delay={Math.min(idx + 1, 5)}>
                 <div className="bg-[#FBF9F5] rounded-2xl p-6 border border-stone/10 hover:border-stone/25 hover:shadow-[0_4px_16px_rgba(0,0,0,0.04)] transition-all duration-250 h-full">

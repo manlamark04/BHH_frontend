@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import {
   Search,
   Plus,
@@ -9,6 +9,10 @@ import {
   Building2,
   Check,
   AlertCircle,
+  Upload,
+  Camera,
+  Sparkles,
+  X,
 } from 'lucide-react'
 import { roomsApi, type RoomRecord } from '../../api/rooms'
 import StatusBadge from '../../components/StatusBadge'
@@ -60,7 +64,12 @@ const DEFAULT_ROOM_IMAGES: Record<string, string> = {
   'Presidential Suite': 'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=800&auto=format&fit=crop&q=80',
 }
 
-export default function AdminRooms() {
+interface AdminRoomsProps {
+  userRole?: 'admin' | 'staff'
+}
+
+export default function AdminRooms({ userRole = 'admin' }: AdminRoomsProps) {
+  const isStaff = userRole === 'staff'
   const [rooms, setRooms] = useState<RoomRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all')
@@ -85,6 +94,8 @@ export default function AdminRooms() {
   const [addRate, setAddRate] = useState('')
   const [addDescription, setAddDescription] = useState('')
   const [addImageUrl, setAddImageUrl] = useState('')
+  const [isDraggingAdd, setIsDraggingAdd] = useState(false)
+  const addFileInputRef = useRef<HTMLInputElement>(null)
   const [addAmenities, setAddAmenities] = useState<string[]>([
     'High-Speed Wi-Fi',
     'Air Conditioning',
@@ -103,9 +114,77 @@ export default function AdminRooms() {
   const [editStatus, setEditStatus] = useState('available')
   const [editDescription, setEditDescription] = useState('')
   const [editImageUrl, setEditImageUrl] = useState('')
+  const [isDraggingEdit, setIsDraggingEdit] = useState(false)
+  const editFileInputRef = useRef<HTMLInputElement>(null)
   const [editAmenities, setEditAmenities] = useState<string[]>([])
   const [savingEdit, setSavingEdit] = useState(false)
   const [editError, setEditError] = useState('')
+
+  // Helper for processing image file upload (converts to optimized Base64 data URL)
+  const processImageFile = (
+    file: File,
+    onSuccess: (dataUrl: string) => void,
+    onError: (err: string) => void
+  ) => {
+    onError('')
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg']
+    if (!validTypes.includes(file.type)) {
+      onError('Invalid format. Please select a JPG, PNG, or WebP image.')
+      return
+    }
+
+    const MAX_SIZE = 5 * 1024 * 1024 // 5MB
+    if (file.size > MAX_SIZE) {
+      onError(`File size exceeds 5MB limit (${(file.size / (1024 * 1024)).toFixed(1)}MB). Please choose a smaller photo.`)
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const src = e.target?.result as string
+      if (!src) return
+
+      const img = new Image()
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas')
+          const maxDim = 1200
+          let width = img.width
+          let height = img.height
+
+          if (width > height) {
+            if (width > maxDim) {
+              height = Math.round((height * maxDim) / width)
+              width = maxDim
+            }
+          } else {
+            if (height > maxDim) {
+              width = Math.round((width * maxDim) / height)
+              height = maxDim
+            }
+          }
+
+          canvas.width = width
+          canvas.height = height
+          const ctx = canvas.getContext('2d')
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height)
+            const optimized = canvas.toDataURL('image/jpeg', 0.85)
+            onSuccess(optimized)
+          } else {
+            onSuccess(src)
+          }
+        } catch {
+          onSuccess(src)
+        }
+      }
+      img.onerror = () => {
+        onSuccess(src)
+      }
+      img.src = src
+    }
+    reader.readAsDataURL(file)
+  }
 
   // Quick Status Change State
   const [targetStatus, setTargetStatus] = useState('available')
@@ -309,7 +388,7 @@ export default function AdminRooms() {
   }
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto space-y-6 font-sans">
+    <div className="p-4 sm:p-5 max-w-7xl mx-auto space-y-4 sm:space-y-5 font-sans">
       
       {/* Toast Alert */}
       {toast && (
@@ -320,92 +399,104 @@ export default function AdminRooms() {
       )}
 
       {/* ─── 3. PAGE HEADER ─── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-stone/20">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-black/[0.06] dark:border-neutral-800">
         <div>
-          <h1 className="font-display text-3xl sm:text-4xl font-bold text-ink tracking-tight">Rooms</h1>
-          <p className="text-xs sm:text-sm text-ink-muted mt-0.5">Room inventory & status breakdown</p>
+          <h1 className="font-display text-lg sm:text-xl font-bold text-neutral-900 dark:text-white tracking-tight">
+            {isStaff ? 'Room Inventory' : 'Rooms'}
+          </h1>
+          <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
+            {isStaff ? 'Live occupancy overview and room status management' : 'Room inventory & status breakdown'}
+          </p>
         </div>
-        <button
-          onClick={() => { setShowAddModal(true); setAddError('') }}
-          className="px-5 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl font-semibold text-xs shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-2 self-start sm:self-auto"
-        >
-          <Plus className="w-4 h-4" strokeWidth={2} />
-          <span>Add Room</span>
-        </button>
+        {!isStaff && (
+          <button
+            onClick={() => { setShowAddModal(true); setAddError('') }}
+            className="px-3.5 py-1.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-lg font-semibold text-xs shadow-xs hover:shadow-sm transition-all flex items-center justify-center gap-1.5 self-start sm:self-auto cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5" strokeWidth={2} />
+            <span>Add Room</span>
+          </button>
+        )}
       </div>
 
       {/* ─── 4. ROOM STATISTICS CARDS (4 CARDS) ─── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
         
         {/* Card 1: TOTAL ROOMS */}
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-stone/20 shadow-sm flex flex-col justify-between">
+        <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.04)] transition-all flex flex-col justify-between">
           <div className="flex justify-between items-center mb-1">
-            <span className="text-[10px] uppercase font-bold tracking-widest text-[#B48454]">TOTAL ROOMS</span>
-            <div className="w-7 h-7 rounded-lg bg-[#B48454]/10 text-[#B48454] flex items-center justify-center">
-              <Building2 className="w-4 h-4" strokeWidth={1.5} />
+            <span className="text-[10px] uppercase font-bold tracking-wider text-[#B48454]">TOTAL ROOMS</span>
+            <div className="w-6 h-6 rounded-lg bg-[#B48454]/10 text-[#B48454] flex items-center justify-center">
+              <Building2 className="w-3.5 h-3.5" strokeWidth={1.5} />
             </div>
           </div>
           <div>
-            <p className="font-display text-2xl sm:text-3xl font-bold text-ink leading-tight">{stats.total}</p>
-            <span className="text-[11px] text-ink-muted mt-1 block">Full room inventory</span>
+            <p className="font-display text-xl sm:text-2xl font-bold text-neutral-900 dark:text-white leading-tight">{stats.total}</p>
+            <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5 block">Full inventory</span>
           </div>
         </div>
 
         {/* Card 2: AVAILABLE */}
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-stone/20 shadow-sm flex flex-col justify-between">
+        <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.04)] transition-all flex flex-col justify-between">
           <div className="flex justify-between items-center mb-1">
-            <span className="text-[10px] uppercase font-bold tracking-widest text-emerald-700">AVAILABLE</span>
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+            <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-600 dark:text-emerald-400">AVAILABLE</span>
+            <div className="w-6 h-6 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+              <Check className="w-3.5 h-3.5" strokeWidth={2} />
+            </div>
           </div>
           <div>
-            <p className="font-display text-2xl sm:text-3xl font-bold text-emerald-700 leading-tight">{stats.available}</p>
-            <span className="text-[11px] text-emerald-600 font-medium mt-1 block">Ready for guest check-in</span>
+            <p className="font-display text-xl sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400 leading-tight">{stats.available}</p>
+            <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium mt-0.5 block">Ready for check-in</span>
           </div>
         </div>
 
         {/* Card 3: OCCUPIED */}
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-stone/20 shadow-sm flex flex-col justify-between">
+        <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.04)] transition-all flex flex-col justify-between">
           <div className="flex justify-between items-center mb-1">
-            <span className="text-[10px] uppercase font-bold tracking-widest text-[#B48454]">OCCUPIED</span>
-            <span className="w-2.5 h-2.5 rounded-full bg-[#B48454]" />
+            <span className="text-[10px] uppercase font-bold tracking-wider text-rose-600 dark:text-rose-400">OCCUPIED</span>
+            <div className="w-6 h-6 rounded-lg bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 flex items-center justify-center">
+              <Users className="w-3.5 h-3.5" strokeWidth={1.5} />
+            </div>
           </div>
           <div>
-            <p className="font-display text-2xl sm:text-3xl font-bold text-[#B48454] leading-tight">{stats.occupied}</p>
-            <span className="text-[11px] text-[#B48454] font-medium mt-1 block">In-house guests active</span>
+            <p className="font-display text-xl sm:text-2xl font-bold text-rose-600 dark:text-rose-400 leading-tight">{stats.occupied}</p>
+            <span className="text-[11px] text-rose-600 dark:text-rose-400 font-medium mt-0.5 block">In-house guests</span>
           </div>
         </div>
 
-        {/* Card 4: CLEANING / MAINTENANCE */}
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-stone/20 shadow-sm flex flex-col justify-between">
+        {/* Card 4: CLEANING */}
+        <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.04)] transition-all flex flex-col justify-between">
           <div className="flex justify-between items-center mb-1">
-            <span className="text-[10px] uppercase font-bold tracking-widest text-amber-700">CLEANING / MAINT.</span>
-            <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+            <span className="text-[10px] uppercase font-bold tracking-wider text-amber-600 dark:text-amber-400">CLEANING</span>
+            <div className="w-6 h-6 rounded-lg bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+              <Sparkles className="w-3.5 h-3.5" strokeWidth={1.5} />
+            </div>
           </div>
           <div>
-            <p className="font-display text-2xl sm:text-3xl font-bold text-amber-700 leading-tight">{stats.cleaningOrMaint}</p>
-            <span className="text-[11px] text-amber-600 font-medium mt-1 block">Housekeeping in progress</span>
+            <p className="font-display text-xl sm:text-2xl font-bold text-amber-600 dark:text-amber-400 leading-tight">{stats.cleaningOrMaint}</p>
+            <span className="text-[11px] text-amber-600 dark:text-amber-400 font-medium mt-0.5 block">Housekeeping</span>
           </div>
         </div>
 
       </div>
 
       {/* ─── 5. ROOM INVENTORY SECTION ─── */}
-      <div className="bg-white rounded-2xl border border-stone/20 shadow-sm p-5 sm:p-6 space-y-6">
+      <div className="bg-white dark:bg-[#181B20] rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-3.5 sm:p-4 space-y-4 transition-colors">
         
         {/* Controls Bar: Section Title + Filter Tabs + View Mode */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-stone/15">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-3 border-b border-black/[0.06] dark:border-neutral-800">
           <div>
-            <h2 className="font-display text-2xl font-bold text-ink">Room Inventory</h2>
-            <p className="text-xs text-ink-muted mt-0.5">
+            <h2 className="font-display text-base font-bold text-neutral-900 dark:text-white">Room Inventory</h2>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
               Showing <span className="font-bold text-[#B48454]">{filteredRooms.length}</span> of {rooms.length} registered rooms
             </p>
           </div>
 
           {/* Right Controls: Filters & View Switcher */}
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2.5">
             
             {/* Filter Tabs */}
-            <div className="flex flex-wrap gap-1 p-1 bg-sand/40 rounded-xl border border-stone/20 text-xs">
+            <div className="flex flex-wrap gap-1 p-1 bg-neutral-100/70 dark:bg-[#20252E] rounded-lg border border-black/[0.06] dark:border-neutral-700/80 text-xs">
               {(
                 [
                   { id: 'all', label: 'All' },
@@ -418,10 +509,10 @@ export default function AdminRooms() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveFilter(tab.id)}
-                  className={`px-3.5 py-1.5 rounded-lg font-semibold transition-all ${
+                  className={`px-3.5 py-1.5 rounded-lg font-semibold transition-all cursor-pointer ${
                     activeFilter === tab.id
-                      ? 'bg-[#B48454] text-white shadow-sm'
-                      : 'text-ink-muted hover:text-ink hover:bg-white/60'
+                      ? 'bg-[#B48454] text-white shadow-2xs'
+                      : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-white dark:hover:bg-neutral-800'
                   }`}
                 >
                   {tab.label}
@@ -430,11 +521,13 @@ export default function AdminRooms() {
             </div>
 
             {/* View Mode Toggle: Grid / List */}
-            <div className="flex items-center p-1 bg-sand/40 rounded-xl border border-stone/20 text-xs">
+            <div className="flex items-center p-1 bg-neutral-100/70 dark:bg-[#20252E] rounded-xl border border-black/[0.06] dark:border-neutral-700/80 text-xs">
               <button
                 onClick={() => setViewMode('grid')}
-                className={`flex items-center gap-1.5 p-1.5 px-2.5 rounded-lg font-bold transition-all ${
-                  viewMode === 'grid' ? 'bg-white text-ink shadow-sm' : 'text-ink-muted hover:text-ink'
+                className={`flex items-center gap-1.5 p-1.5 px-2.5 rounded-lg font-bold transition-all cursor-pointer ${
+                  viewMode === 'grid'
+                    ? 'bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white shadow-2xs'
+                    : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white'
                 }`}
                 title="Grid View"
                 aria-label="Grid View"
@@ -444,8 +537,10 @@ export default function AdminRooms() {
               </button>
               <button
                 onClick={() => setViewMode('list')}
-                className={`flex items-center gap-1.5 p-1.5 px-2.5 rounded-lg font-bold transition-all ${
-                  viewMode === 'list' ? 'bg-white text-ink shadow-sm' : 'text-ink-muted hover:text-ink'
+                className={`flex items-center gap-1.5 p-1.5 px-2.5 rounded-lg font-bold transition-all cursor-pointer ${
+                  viewMode === 'list'
+                    ? 'bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white shadow-2xs'
+                    : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white'
                 }`}
                 title="List View"
                 aria-label="List View"
@@ -461,22 +556,22 @@ export default function AdminRooms() {
         {/* Search & Sorting Bar */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
           <div className="relative w-full sm:w-80">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-muted w-3.5 h-3.5" strokeWidth={1.5} />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400 w-3.5 h-3.5" strokeWidth={1.5} />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search room 101, deluxe, floor 2..."
-              className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-stone/30 bg-[#FBF9F6] text-ink focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+              className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-black/[0.08] dark:border-neutral-700 bg-neutral-50/80 dark:bg-[#20252E] text-neutral-900 dark:text-white placeholder:text-neutral-400 dark:placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
             />
           </div>
 
           <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-            <span className="text-ink-muted font-medium">Sort by:</span>
+            <span className="text-neutral-500 dark:text-neutral-400 font-medium">Sort by:</span>
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as SortOption)}
-              className="px-3 py-2 rounded-xl border border-stone/30 bg-[#FBF9F6] text-ink font-semibold focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+              className="px-3 py-2 rounded-xl border border-black/[0.08] dark:border-neutral-700 bg-neutral-50/80 dark:bg-[#20252E] text-neutral-900 dark:text-white font-semibold focus:outline-none focus:ring-2 focus:ring-[#B48454]/40 cursor-pointer"
             >
               <option value="number_asc">Room Number (Ascending)</option>
               <option value="number_desc">Room Number (Descending)</option>
@@ -488,21 +583,21 @@ export default function AdminRooms() {
           </div>
         </div>
 
-        {/* ─── 7. ROOM CARDS GRID (3-COLUMN RESPONSIVE) ─── */}
+        {/* ─── GRID VIEW ─── */}
         {viewMode === 'grid' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {filteredRooms.map((r) => {
-              const statusStr = String(r.status || 'available').toUpperCase()
+              const statusStr = String(r.status || 'AVAILABLE').toUpperCase()
               const floorNum = r.room_number.charAt(0) || '1'
               const roomImg = r.image || r.image_urls?.[0] || DEFAULT_ROOM_IMAGES[r.room_type] || DEFAULT_ROOM_IMAGES['Standard Queen']
 
               return (
                 <div
                   key={r.id}
-                  className="bg-[#FAF8F5] rounded-2xl border border-stone/20 overflow-hidden shadow-sm hover:shadow-md hover:border-[#B48454]/30 transition-all duration-300 flex flex-col justify-between group"
+                  className="bg-[#FAF8F5] dark:bg-[#14171C] rounded-2xl border border-black/[0.07] dark:border-neutral-800 overflow-hidden shadow-2xs hover:shadow-md hover:border-[#B48454]/30 dark:hover:border-[#B48454]/50 transition-all duration-300 flex flex-col justify-between group"
                 >
                   {/* Top Image Container */}
-                  <div className="relative h-48 sm:h-52 w-full overflow-hidden bg-sand/50">
+                  <div className="relative h-48 sm:h-52 w-full overflow-hidden bg-sand/50 dark:bg-neutral-800">
                     <img
                       src={roomImg}
                       alt={r.name || `Room ${r.room_number}`}
@@ -536,63 +631,84 @@ export default function AdminRooms() {
                   <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between space-y-4">
                     
                     {/* Capacity & Price Row */}
-                    <div className="flex items-center justify-between pb-3 border-b border-stone/20 text-xs">
-                      <div className="flex items-center gap-1.5 text-ink-muted">
+                    <div className="flex items-center justify-between pb-3 border-b border-black/[0.06] dark:border-neutral-800 text-xs">
+                      <div className="flex items-center gap-1.5 text-neutral-500 dark:text-neutral-400">
                         <Users className="w-3.5 h-3.5" strokeWidth={1.5} />
-                        <span className="font-semibold text-ink">Sleeps {r.capacity || r.max_guests || 2}</span>
+                        <span className="font-semibold text-neutral-900 dark:text-white">Sleeps {r.capacity || r.max_guests || 2}</span>
                       </div>
                       <div className="text-right">
-                        <span className="font-display text-lg font-bold text-[#B48454]">
+                        <span className="font-display text-lg font-bold text-[#B48454] dark:text-[#C99A6B]">
                           ₱{Number(r.price_per_night || r.rate_per_night || 0).toLocaleString()}
                         </span>
-                        <span className="text-[10px] text-ink-muted ml-0.5">/ night</span>
+                        <span className="text-[10px] text-neutral-500 dark:text-neutral-400 ml-0.5">/ night</span>
                       </div>
                     </div>
 
                     {/* Description snippet */}
-                    <p className="text-ink-muted text-xs line-clamp-2 leading-relaxed">
+                    <p className="text-neutral-500 dark:text-neutral-400 text-xs line-clamp-2 leading-relaxed">
                       {r.description || `${r.room_type} equipped with modern amenities and tropical nature view.`}
                     </p>
 
                     {/* Current Guest info if occupied */}
                     {statusStr === 'OCCUPIED' && r.current_guest_name && (
-                      <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 flex items-center justify-between">
-                        <span className="text-[10px] uppercase font-bold text-amber-700">Guest In-House:</span>
+                      <div className="p-2.5 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 rounded-xl text-xs text-amber-900 dark:text-amber-200 flex items-center justify-between">
+                        <span className="text-[10px] uppercase font-bold text-amber-700 dark:text-amber-300">Guest In-House:</span>
                         <span className="font-semibold truncate ml-2">{r.current_guest_name}</span>
                       </div>
                     )}
 
                     {/* Action Buttons Row */}
                     <div className="flex items-center justify-between gap-2 pt-2">
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          onClick={() => setViewRoom(r)}
-                          className="px-3 py-1.5 bg-white hover:bg-sand rounded-xl border border-stone/20 text-xs font-semibold text-ink transition-colors shadow-sm"
-                        >
-                          View
-                        </button>
-                        <button
-                          onClick={() => openEditModal(r)}
-                          className="px-3 py-1.5 bg-white hover:bg-sand rounded-xl border border-stone/20 text-xs font-semibold text-ink transition-colors shadow-sm"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => { setStatusRoom(r); setTargetStatus(r.status.toLowerCase()) }}
-                          className="px-3 py-1.5 bg-[#B48454]/10 hover:bg-[#B48454]/20 text-[#B48454] border border-[#B48454]/30 rounded-xl text-xs font-semibold transition-colors"
-                        >
-                          Status
-                        </button>
-                      </div>
+                      {isStaff ? (
+                        <div className="w-full flex items-center justify-end">
+                          <button
+                            onClick={() => { setStatusRoom(r); setTargetStatus(r.status.toLowerCase()) }}
+                            className="w-full sm:w-auto px-4 py-2 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl text-xs font-semibold transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer"
+                          >
+                            <span className={`w-2 h-2 rounded-full ${
+                              statusStr === 'AVAILABLE' ? 'bg-emerald-300' :
+                              statusStr === 'OCCUPIED' ? 'bg-amber-300' :
+                              statusStr === 'CLEANING' ? 'bg-blue-300' :
+                              'bg-rose-300'
+                            }`} />
+                            <span>Update Status</span>
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => setViewRoom(r)}
+                              className="px-3 py-1.5 bg-white dark:bg-[#20252E] hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-xl border border-black/[0.08] dark:border-neutral-700 text-xs font-semibold text-neutral-900 dark:text-white transition-colors shadow-2xs cursor-pointer"
+                            >
+                              View
+                            </button>
+                            <button
+                              onClick={() => openEditModal(r)}
+                              className="px-3 py-1.5 bg-white dark:bg-[#20252E] hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-xl border border-black/[0.08] dark:border-neutral-700 text-xs font-semibold text-neutral-900 dark:text-white transition-colors shadow-2xs cursor-pointer"
+                            >
+                              Edit
+                            </button>
+                          </div>
 
-                      <button
-                        onClick={() => setDeleteRoomTarget(r)}
-                        className="p-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 text-xs transition-colors"
-                        title="Remove / Deactivate Room"
-                        aria-label="Remove Room"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" strokeWidth={1.5} />
-                      </button>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => { setStatusRoom(r); setTargetStatus(r.status.toLowerCase()) }}
+                              className="px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
+                            >
+                              Status
+                            </button>
+                            <button
+                              onClick={() => setDeleteRoomTarget(r)}
+                              className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-xl transition-colors cursor-pointer"
+                              title="Delete Room"
+                              aria-label="Delete Room"
+                            >
+                              <Trash2 className="w-4 h-4" strokeWidth={1.5} />
+                            </button>
+                          </div>
+                        </>
+                      )}
                     </div>
 
                   </div>
@@ -604,10 +720,10 @@ export default function AdminRooms() {
 
         {/* ─── LIST VIEW MODE ─── */}
         {viewMode === 'list' && (
-          <div className="overflow-x-auto border border-stone/20 rounded-2xl">
+          <div className="overflow-x-auto border border-black/[0.06] dark:border-neutral-800 rounded-2xl">
             <table className="w-full text-left text-xs">
               <thead>
-                <tr className="border-b border-stone/20 bg-sand/30 text-[10px] uppercase font-bold text-ink-muted tracking-wider">
+                <tr className="border-b border-black/[0.06] dark:border-neutral-800 bg-neutral-50/80 dark:bg-[#14171C] text-[10px] uppercase font-bold text-neutral-500 dark:text-neutral-400 tracking-wider">
                   <th className="px-5 py-3.5">ROOM</th>
                   <th className="px-5 py-3.5">TYPE</th>
                   <th className="px-5 py-3.5">FLOOR</th>
@@ -617,22 +733,22 @@ export default function AdminRooms() {
                   <th className="px-5 py-3.5 text-right">ACTIONS</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-stone/15">
+              <tbody className="divide-y divide-black/[0.04] dark:divide-neutral-800">
                 {filteredRooms.map((r) => (
-                  <tr key={r.id} className="hover:bg-sand/20 transition-colors">
-                    <td className="px-5 py-3.5 font-display font-bold text-sm text-ink">
+                  <tr key={r.id} className="hover:bg-neutral-50/70 dark:hover:bg-slate-800/40 transition-colors">
+                    <td className="px-5 py-3.5 font-display font-bold text-sm text-neutral-900 dark:text-white">
                       Room {r.room_number}
                     </td>
-                    <td className="px-5 py-3.5 font-medium text-ink">
+                    <td className="px-5 py-3.5 font-medium text-neutral-900 dark:text-neutral-200">
                       {r.room_type || r.type}
                     </td>
-                    <td className="px-5 py-3.5 font-mono text-ink-muted">
+                    <td className="px-5 py-3.5 font-mono text-neutral-500 dark:text-neutral-400">
                       Floor {r.room_number.charAt(0)}
                     </td>
-                    <td className="px-5 py-3.5 text-ink-muted">
+                    <td className="px-5 py-3.5 text-neutral-500 dark:text-neutral-400">
                       {r.capacity || r.max_guests || 2} guests
                     </td>
-                    <td className="px-5 py-3.5 font-display font-bold text-[#B48454] text-sm">
+                    <td className="px-5 py-3.5 font-display font-bold text-[#B48454] dark:text-[#C99A6B] text-sm">
                       ₱{Number(r.price_per_night || r.rate_per_night || 0).toLocaleString()}
                     </td>
                     <td className="px-5 py-3.5">
@@ -640,31 +756,49 @@ export default function AdminRooms() {
                     </td>
                     <td className="px-5 py-3.5 text-right">
                       <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          onClick={() => setViewRoom(r)}
-                          className="px-2.5 py-1 bg-white border border-stone/20 hover:bg-sand rounded-lg font-semibold text-[11px]"
-                        >
-                          View
-                        </button>
-                        <button
-                          onClick={() => openEditModal(r)}
-                          className="px-2.5 py-1 bg-white border border-stone/20 hover:bg-sand rounded-lg font-semibold text-[11px]"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => { setStatusRoom(r); setTargetStatus(r.status.toLowerCase()) }}
-                          className="px-2.5 py-1 bg-[#B48454]/10 text-[#B48454] border border-[#B48454]/30 hover:bg-[#B48454]/20 rounded-lg font-semibold text-[11px]"
-                        >
-                          Status
-                        </button>
-                        <button
-                          onClick={() => setDeleteRoomTarget(r)}
-                          className="p-1 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 text-[11px]"
-                          aria-label="Remove Room"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" strokeWidth={1.5} />
-                        </button>
+                        {isStaff ? (
+                          <button
+                            onClick={() => { setStatusRoom(r); setTargetStatus(r.status.toLowerCase()) }}
+                            className="px-3 py-1.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-lg font-semibold text-xs transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                          >
+                            <span className={`w-1.5 h-1.5 rounded-full ${
+                              String(r.status).toUpperCase() === 'AVAILABLE' ? 'bg-emerald-300' :
+                              String(r.status).toUpperCase() === 'OCCUPIED' ? 'bg-amber-300' :
+                              String(r.status).toUpperCase() === 'CLEANING' ? 'bg-blue-300' :
+                              'bg-rose-300'
+                            }`} />
+                            <span>Status</span>
+                          </button>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => setViewRoom(r)}
+                              className="px-2.5 py-1 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-xs font-semibold text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
+                            >
+                              View
+                            </button>
+                            <button
+                              onClick={() => openEditModal(r)}
+                              className="px-2.5 py-1 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-xs font-semibold text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => { setStatusRoom(r); setTargetStatus(r.status.toLowerCase()) }}
+                              className="px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50 text-xs font-semibold text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-colors cursor-pointer"
+                            >
+                              Status
+                            </button>
+                            <button
+                              onClick={() => setDeleteRoomTarget(r)}
+                              className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition-colors cursor-pointer"
+                              title="Delete Room"
+                              aria-label="Delete Room"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" strokeWidth={1.5} />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -801,14 +935,79 @@ export default function AdminRooms() {
             </div>
           </div>
 
+          {/* ─── ADD ROOM PHOTO UPLOAD ─── */}
           <div>
-            <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Photo URL</label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="font-semibold text-ink uppercase tracking-wider text-[10px] flex items-center gap-1.5">
+                <Camera className="w-3.5 h-3.5 text-[#B48454]" />
+                <span>Room Photo</span>
+              </label>
+              {addImageUrl && (
+                <button
+                  type="button"
+                  onClick={() => setAddImageUrl('')}
+                  className="text-[10px] text-rose-600 hover:text-rose-700 font-semibold transition-colors cursor-pointer"
+                >
+                  Remove Photo
+                </button>
+              )}
+            </div>
+
+            <div
+              onDragOver={(e) => { e.preventDefault(); setIsDraggingAdd(true) }}
+              onDragLeave={() => setIsDraggingAdd(false)}
+              onDrop={(e) => {
+                e.preventDefault()
+                setIsDraggingAdd(false)
+                if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                  processImageFile(e.dataTransfer.files[0], setAddImageUrl, setAddError)
+                }
+              }}
+              onClick={() => addFileInputRef.current?.click()}
+              className={`relative h-40 rounded-2xl overflow-hidden border-2 border-dashed transition-all cursor-pointer group bg-sand/30 flex flex-col items-center justify-center ${
+                isDraggingAdd
+                  ? 'border-[#B48454] bg-[#B48454]/10 shadow-inner'
+                  : 'border-stone/30 hover:border-[#B48454]/70 hover:bg-sand/50'
+              }`}
+            >
+              {addImageUrl ? (
+                <>
+                  <img
+                    src={addImageUrl}
+                    alt="Room Preview"
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-102"
+                  />
+                  <div className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white p-4 backdrop-blur-xs">
+                    <Camera className="w-6 h-6 mb-1 drop-shadow" strokeWidth={1.5} />
+                    <span className="text-xs font-bold tracking-wide">Click or Drag to Replace Photo</span>
+                    <span className="text-[10px] text-white/80 mt-0.5">JPG, PNG, WebP (Max 5MB)</span>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center p-5 space-y-1.5">
+                  <div className="w-10 h-10 rounded-xl bg-white/90 border border-stone/20 text-[#B48454] flex items-center justify-center mx-auto shadow-xs">
+                    <Upload className="w-5 h-5" strokeWidth={1.5} />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-ink block">Upload Room Photo</span>
+                    <span className="text-[11px] text-ink-muted block">Drag & drop image or browse from device</span>
+                  </div>
+                  <span className="text-[10px] text-ink-faint block font-mono">JPG, PNG, WebP · Max 5MB</span>
+                </div>
+              )}
+            </div>
+
+            {/* Hidden native file input */}
             <input
-              type="url"
-              value={addImageUrl}
-              onChange={(e) => setAddImageUrl(e.target.value)}
-              placeholder="https://images.unsplash.com/..."
-              className="w-full px-3 py-2 rounded-xl border border-stone text-xs bg-cream"
+              ref={addFileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/jpg"
+              onChange={(e) => {
+                if (e.target.files && e.target.files[0]) {
+                  processImageFile(e.target.files[0], setAddImageUrl, setAddError)
+                }
+              }}
+              className="hidden"
             />
           </div>
 
@@ -912,13 +1111,79 @@ export default function AdminRooms() {
             </div>
           </div>
 
+          {/* ─── EDIT ROOM PHOTO UPLOAD ─── */}
           <div>
-            <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Photo URL</label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="font-semibold text-ink uppercase tracking-wider text-[10px] flex items-center gap-1.5">
+                <Camera className="w-3.5 h-3.5 text-[#B48454]" />
+                <span>Room Photo</span>
+              </label>
+              {editImageUrl && (
+                <button
+                  type="button"
+                  onClick={() => setEditImageUrl('')}
+                  className="text-[10px] text-rose-600 hover:text-rose-700 font-semibold transition-colors cursor-pointer"
+                >
+                  Remove Photo
+                </button>
+              )}
+            </div>
+
+            <div
+              onDragOver={(e) => { e.preventDefault(); setIsDraggingEdit(true) }}
+              onDragLeave={() => setIsDraggingEdit(false)}
+              onDrop={(e) => {
+                e.preventDefault()
+                setIsDraggingEdit(false)
+                if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                  processImageFile(e.dataTransfer.files[0], setEditImageUrl, setEditError)
+                }
+              }}
+              onClick={() => editFileInputRef.current?.click()}
+              className={`relative h-44 rounded-2xl overflow-hidden border-2 border-dashed transition-all cursor-pointer group bg-sand/30 flex flex-col items-center justify-center ${
+                isDraggingEdit
+                  ? 'border-[#B48454] bg-[#B48454]/10 shadow-inner'
+                  : 'border-stone/30 hover:border-[#B48454]/70 hover:bg-sand/50'
+              }`}
+            >
+              {editImageUrl ? (
+                <>
+                  <img
+                    src={editImageUrl}
+                    alt={`Room ${editNumber}`}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-102"
+                  />
+                  <div className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white p-4 backdrop-blur-xs">
+                    <Camera className="w-6 h-6 mb-1 drop-shadow" strokeWidth={1.5} />
+                    <span className="text-xs font-bold tracking-wide">Click or Drag to Replace Photo</span>
+                    <span className="text-[10px] text-white/80 mt-0.5">JPG, PNG, WebP (Max 5MB)</span>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center p-5 space-y-1.5">
+                  <div className="w-10 h-10 rounded-xl bg-white/90 border border-stone/20 text-[#B48454] flex items-center justify-center mx-auto shadow-xs">
+                    <Upload className="w-5 h-5" strokeWidth={1.5} />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-ink block">Upload Room Photo</span>
+                    <span className="text-[11px] text-ink-muted block">Drag & drop image or browse from device</span>
+                  </div>
+                  <span className="text-[10px] text-ink-faint block font-mono">JPG, PNG, WebP · Max 5MB</span>
+                </div>
+              )}
+            </div>
+
+            {/* Hidden native file input */}
             <input
-              type="url"
-              value={editImageUrl}
-              onChange={(e) => setEditImageUrl(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl border border-stone text-xs bg-cream"
+              ref={editFileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/jpg"
+              onChange={(e) => {
+                if (e.target.files && e.target.files[0]) {
+                  processImageFile(e.target.files[0], setEditImageUrl, setEditError)
+                }
+              }}
+              className="hidden"
             />
           </div>
 

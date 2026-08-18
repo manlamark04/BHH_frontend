@@ -62,95 +62,95 @@ export default function StaffCustomers() {
   const pendingCount = customers.filter((c) => String(c.status).toLowerCase() === 'pending').length
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto space-y-6 font-sans">
+    <div className="p-4 sm:p-5 max-w-7xl mx-auto space-y-4 sm:space-y-5 font-sans">
       
       {/* ─── 1. PAGE HEADER ─── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-stone/20">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-black/[0.06] dark:border-neutral-800">
         <div>
-          <h1 className="font-display text-3xl sm:text-4xl font-bold text-ink tracking-tight">Customer Records</h1>
-          <p className="text-xs sm:text-sm text-ink-muted mt-0.5">Directory of registered guests, profile details & audit history</p>
+          <h1 className="font-display text-lg sm:text-xl font-bold text-neutral-900 dark:text-white tracking-tight">Customer Records</h1>
+          <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">Directory of registered guests, profile details & audit history</p>
         </div>
 
         {/* Global Search Bar */}
         <div className="relative w-full sm:w-80 text-xs">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-muted w-3.5 h-3.5" strokeWidth={1.5} />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 w-3.5 h-3.5" strokeWidth={1.5} />
           <input
             type="text"
             value={search}
             onChange={(e) => handleSearch(e.target.value)}
             placeholder="Search customer ID, name, email..."
-            className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] text-ink focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+            className="w-full pl-8.5 pr-3.5 py-1.5 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
           />
         </div>
       </div>
 
       {/* ─── 2. STATISTIC KPI SUMMARY CARDS ─── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
         
-        <div className="bg-white p-5 rounded-2xl border border-stone/20 shadow-sm flex flex-col justify-between">
+        <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase font-bold tracking-widest text-[#B48454]">TOTAL REGISTERED</span>
-            <div className="w-7 h-7 rounded-lg bg-[#B48454]/10 text-[#B48454] flex items-center justify-center">
-              <Users className="w-4 h-4" strokeWidth={1.5} />
+            <span className="text-[10px] uppercase font-bold tracking-wider text-[#B48454]">TOTAL REGISTERED</span>
+            <div className="w-6 h-6 rounded-lg bg-[#B48454]/10 text-[#B48454] flex items-center justify-center">
+              <Users className="w-3.5 h-3.5" strokeWidth={1.5} />
             </div>
           </div>
           <div>
-            <p className="font-display text-3xl font-bold text-ink mt-2">{customers.length}</p>
-            <span className="text-xs text-ink-muted mt-1 block">Guest accounts on file</span>
+            <p className="font-display text-xl sm:text-2xl font-bold text-neutral-900 dark:text-white mt-1 leading-tight">{customers.length}</p>
+            <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5 block">Guest accounts on file</span>
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-stone/20 shadow-sm flex flex-col justify-between">
+        <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase font-bold tracking-widest text-emerald-700">ACTIVE PROFILES</span>
-            <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center">
-              <UserCheck className="w-4 h-4" strokeWidth={1.5} />
+            <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-600 dark:text-emerald-400">ACTIVE PROFILES</span>
+            <div className="w-6 h-6 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+              <UserCheck className="w-3.5 h-3.5" strokeWidth={1.5} />
             </div>
           </div>
           <div>
-            <p className="font-display text-3xl font-bold text-emerald-700 mt-2">{activeCount}</p>
-            <span className="text-xs text-ink-muted mt-1 block">Verified customer accounts</span>
+            <p className="font-display text-xl sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1 leading-tight">{activeCount}</p>
+            <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5 block">Verified customer accounts</span>
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-stone/20 shadow-sm flex flex-col justify-between">
+        <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase font-bold tracking-widest text-amber-700">PENDING APPROVAL</span>
-            <div className="w-7 h-7 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 flex items-center justify-center">
-              <Clock className="w-4 h-4" strokeWidth={1.5} />
+            <span className="text-[10px] uppercase font-bold tracking-wider text-amber-600 dark:text-amber-400">PENDING APPROVAL</span>
+            <div className="w-6 h-6 rounded-lg bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+              <Clock className="w-3.5 h-3.5" strokeWidth={1.5} />
             </div>
           </div>
           <div>
-            <p className="font-display text-3xl font-bold text-amber-800 mt-2">{pendingCount}</p>
-            <span className="text-xs text-ink-muted mt-1 block">Awaiting ID verification</span>
+            <p className="font-display text-xl sm:text-2xl font-bold text-amber-600 dark:text-amber-400 mt-1 leading-tight">{pendingCount}</p>
+            <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5 block">Awaiting ID verification</span>
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-stone/20 shadow-sm flex flex-col justify-between">
+        <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase font-bold tracking-widest text-blue-700">SEARCH RESULTS</span>
-            <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-700 border border-blue-200 flex items-center justify-center">
-              <Search className="w-4 h-4" strokeWidth={1.5} />
+            <span className="text-[10px] uppercase font-bold tracking-wider text-blue-600 dark:text-blue-400">SEARCH RESULTS</span>
+            <div className="w-6 h-6 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+              <Search className="w-3.5 h-3.5" strokeWidth={1.5} />
             </div>
           </div>
           <div>
-            <p className="font-display text-3xl font-bold text-blue-800 mt-2">{customers.length}</p>
-            <span className="text-xs text-ink-muted mt-1 block">Matching current filters</span>
+            <p className="font-display text-xl sm:text-2xl font-bold text-blue-700 dark:text-blue-400 mt-1 leading-tight">{customers.length}</p>
+            <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5 block">Matching current filters</span>
           </div>
         </div>
 
       </div>
 
       {/* ─── 3. FILTER TABS BAR ─── */}
-      <div className="flex flex-wrap gap-1.5 p-1 bg-sand/40 rounded-xl border border-stone/20 text-xs w-fit">
+      <div className="flex flex-wrap gap-1 p-1 bg-neutral-100/70 dark:bg-[#20252E] rounded-lg border border-black/[0.06] dark:border-neutral-700/80 text-xs w-fit">
         {['All', 'active', 'pending', 'rejected', 'suspended'].map((st) => (
           <button
             key={st}
             onClick={() => handleStatusFilter(st)}
-            className={`px-4 py-2 rounded-lg font-semibold uppercase text-[10px] tracking-wider transition-all ${
+            className={`px-3 py-1 rounded-md font-semibold uppercase text-[10px] tracking-wider transition-all cursor-pointer ${
               statusFilter === st
-                ? 'bg-[#B48454] text-white shadow-sm'
-                : 'text-ink-muted hover:text-ink hover:bg-white/60'
+                ? 'bg-[#B48454] text-white shadow-2xs'
+                : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-white dark:hover:bg-neutral-800'
             }`}
           >
             {st === 'All' ? 'All Statuses' : st}
@@ -159,11 +159,11 @@ export default function StaffCustomers() {
       </div>
 
       {/* ─── 4. CUSTOMER DIRECTORY TABLE ─── */}
-      <div className="bg-white rounded-2xl border border-stone/20 shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-stone/15 bg-[#FCFAF7] flex items-center justify-between">
+      <div className="bg-white dark:bg-[#181B20] rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+        <div className="px-4 py-3 border-b border-black/[0.06] dark:border-neutral-800 bg-neutral-50/60 dark:bg-[#14171C] flex items-center justify-between">
           <div>
-            <h3 className="font-display font-bold text-lg text-ink">Guest Profiles Directory</h3>
-            <p className="text-xs text-ink-muted">Master database of all guest accounts</p>
+            <h3 className="font-display font-bold text-base text-neutral-900 dark:text-white">Guest Profiles Directory</h3>
+            <p className="text-[11px] text-neutral-500 dark:text-neutral-400">Master database of all guest accounts</p>
           </div>
           <span className="text-xs font-mono font-bold text-[#B48454]">{customers.length} records</span>
         </div>

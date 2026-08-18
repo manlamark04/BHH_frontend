@@ -41,19 +41,26 @@ export default function StaffDashboard({ onNavigate, userName, userId }: StaffDa
   }, [])
 
   const pendingBookings = useMemo(() => {
-    return bookings.filter((b) => ['pending', 'requested'].includes(String(b.status).toLowerCase()))
+    return bookings.filter((b) => {
+      const s = String(b.status_raw || b.status || '').toLowerCase().replace(/[\s-]/g, '_')
+      return s === 'pending' || s === 'requested' || s === 'pending_approval' || s === 'pending_payment' || s === 'reserved' || s === 'unpaid'
+    })
   }, [bookings])
 
   const activeInHouse = useMemo(() => {
-    return bookings.filter((b) => String(b.status).toLowerCase() === 'checked_in')
+    return bookings.filter((b) => {
+      const s = String(b.status_raw || b.status || '').toLowerCase().replace(/[\s-]/g, '_')
+      return s === 'checked_in'
+    })
   }, [bookings])
 
   const todayArrivals = useMemo(() => {
     const todayStr = new Date().toISOString().split('T')[0]
     return bookings.filter((b) => {
-      const isConfirmed = ['confirmed', 'requested', 'pending'].includes(String(b.status).toLowerCase())
+      const s = String(b.status_raw || b.status || '').toLowerCase().replace(/[\s-]/g, '_')
+      const isEligible = ['confirmed', 'requested', 'pending', 'pending_approval', 'pending_payment', 'reserved'].includes(s)
       const checkInDate = String(b.check_in || '').split('T')[0]
-      return isConfirmed && checkInDate <= todayStr
+      return isEligible && checkInDate <= todayStr
     })
   }, [bookings])
 
@@ -73,128 +80,111 @@ export default function StaffDashboard({ onNavigate, userName, userId }: StaffDa
   }
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto space-y-6 font-sans">
+    <div className="p-4 sm:p-5 max-w-7xl mx-auto space-y-4 sm:space-y-5 font-sans">
       
       {/* ─── 1. PAGE HEADER ─── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-stone/20">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-black/[0.06] dark:border-neutral-800">
         <div>
-          <h1 className="font-display text-3xl sm:text-4xl font-bold text-ink tracking-tight">Front Desk Operations</h1>
-          <p className="text-xs sm:text-sm text-ink-muted mt-0.5">Welcome back, <strong className="text-ink">{userName}</strong> · Duty Station</p>
-        </div>
-
-        <div className="flex items-center gap-2.5 self-start sm:self-auto">
-          <button
-            onClick={() => onNavigate('staff-walkin')}
-            className="px-4 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl font-semibold text-xs shadow-sm hover:shadow-md transition-all flex items-center gap-1.5"
-          >
-            <UserPlus className="w-4 h-4" strokeWidth={1.5} />
-            <span>Walk-In Registration</span>
-          </button>
-          <button
-            onClick={() => onNavigate('staff-checkinout')}
-            className="px-4 py-2.5 bg-[#FAF8F5] hover:bg-sand border border-stone/30 text-ink rounded-xl font-semibold text-xs transition-all shadow-xs flex items-center gap-1.5"
-          >
-            <ArrowLeftRight className="w-4 h-4" strokeWidth={1.5} />
-            <span>Check-In / Out Desk</span>
-          </button>
+          <h1 className="font-display text-lg sm:text-xl font-bold text-neutral-900 dark:text-white tracking-tight">Front Desk Operations</h1>
+          <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">Welcome back, <strong className="text-neutral-900 dark:text-white">{userName}</strong> · Duty Station</p>
         </div>
       </div>
 
       {/* ─── 2. STAFF DUTY BADGE CARD ─── */}
-      <div className="bg-white rounded-2xl border border-stone/20 shadow-sm p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-full bg-[#B48454] text-white font-display text-xl font-bold flex items-center justify-center shadow-sm shrink-0">
+      <div className="bg-white dark:bg-[#181B20] rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-[#B48454] text-white font-display text-base font-bold flex items-center justify-center shadow-xs shrink-0">
             {userName.charAt(0).toUpperCase()}
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="font-display text-xl sm:text-2xl font-bold text-ink">{userName}</h2>
-              <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#B48454]/10 text-[#B48454] border border-[#B48454]/20 uppercase">
+              <h2 className="font-display text-base sm:text-lg font-bold text-neutral-900 dark:text-white">{userName}</h2>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#B48454]/10 text-[#B48454] border border-[#B48454]/20 uppercase">
                 Front Desk Staff
               </span>
             </div>
-            <p className="text-xs text-ink-muted mt-0.5">
+            <p className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5">
               Staff ID: <strong className="font-mono text-[#B48454] font-bold">{userId}</strong> · Terminal Session Active
             </p>
           </div>
         </div>
 
         <div className="text-right self-end sm:self-auto">
-          <p className="text-[10px] uppercase font-bold text-ink-muted tracking-wider">Today's Date</p>
-          <p className="font-display font-bold text-ink text-base">
+          <p className="text-[10px] uppercase font-bold text-neutral-400 tracking-wider">Today's Date</p>
+          <p className="font-display font-bold text-neutral-900 dark:text-white text-xs sm:text-sm">
             {new Date().toLocaleDateString('en-PH', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}
           </p>
         </div>
       </div>
 
       {/* ─── 3. STATISTIC KPI SUMMARY CARDS ─── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
         
         <button
           onClick={() => onNavigate('staff-checkinout')}
-          className="bg-white p-5 rounded-2xl border border-stone/20 shadow-sm hover:shadow-md hover:border-[#B48454]/40 transition-all text-left flex flex-col justify-between"
+          className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-md hover:border-[#B48454]/40 transition-all text-left flex flex-col justify-between cursor-pointer"
         >
           <div className="flex items-center justify-between w-full">
-            <span className="text-[10px] uppercase font-bold tracking-widest text-[#B48454]">ARRIVALS TODAY</span>
-            <div className="w-7 h-7 rounded-lg bg-[#B48454]/10 text-[#B48454] flex items-center justify-center">
-              <Luggage className="w-4 h-4" strokeWidth={1.5} />
+            <span className="text-[10px] uppercase font-bold tracking-wider text-[#B48454]">ARRIVALS TODAY</span>
+            <div className="w-6 h-6 rounded-lg bg-[#B48454]/10 text-[#B48454] flex items-center justify-center">
+              <Luggage className="w-3.5 h-3.5" strokeWidth={1.5} />
             </div>
           </div>
           <div>
-            <p className="font-display text-3xl font-bold text-ink mt-2">{todayArrivals.length}</p>
-            <span className="text-xs text-ink-muted mt-1 block">Scheduled guest arrivals</span>
+            <p className="font-display text-xl sm:text-2xl font-bold text-neutral-900 dark:text-white mt-1 leading-tight">{todayArrivals.length}</p>
+            <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5 block">Scheduled guest arrivals</span>
           </div>
         </button>
 
         <button
           onClick={() => onNavigate('staff-checkinout')}
-          className="bg-white p-5 rounded-2xl border border-stone/20 shadow-sm hover:shadow-md hover:border-emerald-300 transition-all text-left flex flex-col justify-between"
+          className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-md hover:border-emerald-300 transition-all text-left flex flex-col justify-between cursor-pointer"
         >
           <div className="flex items-center justify-between w-full">
-            <span className="text-[10px] uppercase font-bold tracking-widest text-emerald-700">IN-HOUSE GUESTS</span>
-            <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center">
-              <Users className="w-4 h-4" strokeWidth={1.5} />
+            <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-600 dark:text-emerald-400">IN-HOUSE GUESTS</span>
+            <div className="w-6 h-6 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+              <Users className="w-3.5 h-3.5" strokeWidth={1.5} />
             </div>
           </div>
           <div>
-            <p className="font-display text-3xl font-bold text-emerald-700 mt-2">{activeInHouse.length}</p>
-            <span className="text-xs text-ink-muted mt-1 block">Currently checked in</span>
+            <p className="font-display text-xl sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1 leading-tight">{activeInHouse.length}</p>
+            <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5 block">Currently checked in</span>
           </div>
         </button>
 
-        <div className="bg-white p-5 rounded-2xl border border-stone/20 shadow-sm flex flex-col justify-between">
+        <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] flex flex-col justify-between">
           <div className="flex items-center justify-between w-full">
-            <span className="text-[10px] uppercase font-bold tracking-widest text-blue-700">AVAILABLE ROOMS</span>
-            <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-700 border border-blue-200 flex items-center justify-center">
-              <BedDouble className="w-4 h-4" strokeWidth={1.5} />
+            <span className="text-[10px] uppercase font-bold tracking-wider text-blue-600 dark:text-blue-400">AVAILABLE ROOMS</span>
+            <div className="w-6 h-6 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+              <BedDouble className="w-3.5 h-3.5" strokeWidth={1.5} />
             </div>
           </div>
           <div>
-            <p className="font-display text-3xl font-bold text-blue-800 mt-2">{availableRooms.length}</p>
-            <span className="text-xs text-ink-muted mt-1 block">{occupiedRooms.length} occupied · {cleaningRooms.length} cleaning</span>
+            <p className="font-display text-xl sm:text-2xl font-bold text-blue-700 dark:text-blue-400 mt-1 leading-tight">{availableRooms.length}</p>
+            <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5 block">{occupiedRooms.length} occupied · {cleaningRooms.length} cleaning</span>
           </div>
         </div>
 
         <button
           onClick={() => onNavigate('staff-bookings')}
-          className="bg-white p-5 rounded-2xl border border-stone/20 shadow-sm hover:shadow-md hover:border-amber-300 transition-all text-left flex flex-col justify-between"
+          className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-md hover:border-amber-300 transition-all text-left flex flex-col justify-between cursor-pointer"
         >
           <div className="flex items-center justify-between w-full">
-            <span className="text-[10px] uppercase font-bold tracking-widest text-amber-700">PENDING REQUESTS</span>
-            <div className="w-7 h-7 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 flex items-center justify-center">
-              <Clock className="w-4 h-4" strokeWidth={1.5} />
+            <span className="text-[10px] uppercase font-bold tracking-wider text-amber-600 dark:text-amber-400">PENDING REQUESTS</span>
+            <div className="w-6 h-6 rounded-lg bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+              <Clock className="w-3.5 h-3.5" strokeWidth={1.5} />
             </div>
           </div>
           <div>
-            <p className="font-display text-3xl font-bold text-amber-800 mt-2">{pendingBookings.length}</p>
-            <span className="text-xs text-ink-muted mt-1 block">Require staff confirmation</span>
+            <p className="font-display text-xl sm:text-2xl font-bold text-amber-600 dark:text-amber-400 mt-1 leading-tight">{pendingBookings.length}</p>
+            <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5 block">Require staff confirmation</span>
           </div>
         </button>
 
       </div>
 
       {/* ─── 4. QUICK DISPATCH SERVICE CARDS ─── */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
         {[
           { label: 'Booking Management', desc: 'Confirm, modify & manage stays', Icon: CalendarDays, view: 'staff-bookings' as View },
           { label: 'Walk-In Registration', desc: 'Instant guest account creation', Icon: UserPlus, view: 'staff-walkin' as View },
@@ -204,42 +194,42 @@ export default function StaffDashboard({ onNavigate, userName, userId }: StaffDa
           <button
             key={item.label}
             onClick={() => onNavigate(item.view)}
-            className="p-5 bg-white rounded-2xl border border-stone/20 shadow-sm hover:shadow-md hover:border-[#B48454]/40 transition-all text-left flex flex-col justify-between group"
+            className="p-3.5 sm:p-4 bg-white dark:bg-[#181B20] rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-md hover:border-[#B48454]/40 transition-all text-left flex flex-col justify-between group cursor-pointer"
           >
-            <div className="w-10 h-10 rounded-xl bg-sand/60 border border-stone/20 flex items-center justify-center text-ink-muted mb-3 group-hover:bg-[#B48454]/10 group-hover:text-[#B48454] transition-colors">
-              <item.Icon className="w-5 h-5" strokeWidth={1.5} />
+            <div className="w-8 h-8 rounded-lg bg-neutral-100 dark:bg-neutral-800 border border-black/[0.06] dark:border-neutral-700 flex items-center justify-center text-neutral-500 dark:text-neutral-400 mb-2.5 group-hover:bg-[#B48454]/10 group-hover:text-[#B48454] transition-colors">
+              <item.Icon className="w-4 h-4" strokeWidth={1.5} />
             </div>
             <div>
-              <h4 className="font-display font-bold text-ink text-base leading-snug">{item.label}</h4>
-              <p className="text-xs text-ink-muted mt-1 leading-relaxed">{item.desc}</p>
+              <h4 className="font-display font-bold text-neutral-900 dark:text-white text-xs sm:text-sm leading-snug">{item.label}</h4>
+              <p className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5 leading-relaxed">{item.desc}</p>
             </div>
           </button>
         ))}
       </div>
 
       {/* ─── 5. TWO-COLUMN SECTION: PENDING BOOKINGS & ROOM INVENTORY ─── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5">
 
         {/* Left Column: Pending Bookings Requiring Attention */}
-        <div className="bg-white rounded-2xl border border-stone/20 shadow-sm p-6 flex flex-col justify-between space-y-4">
-          <div className="pb-3 border-b border-stone/15 flex items-center justify-between">
+        <div className="bg-white dark:bg-[#181B20] rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-3.5 sm:p-4 flex flex-col justify-between space-y-3">
+          <div className="pb-2.5 border-b border-black/[0.06] dark:border-neutral-800 flex items-center justify-between">
             <div>
-              <h3 className="font-display text-xl font-bold text-ink">Pending Reservations</h3>
-              <p className="text-xs text-ink-muted mt-0.5">Online customer booking requests</p>
+              <h3 className="font-display text-base font-bold text-neutral-900 dark:text-white">Pending Reservations</h3>
+              <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">Online customer booking requests</p>
             </div>
             <button
               onClick={() => onNavigate('staff-bookings')}
-              className="text-xs font-semibold text-[#B48454] hover:underline"
+              className="text-xs font-semibold text-[#B48454] hover:underline cursor-pointer"
             >
               View All ({bookings.length}) →
             </button>
           </div>
 
-          <div className="space-y-3 flex-1 overflow-y-auto max-h-96 pr-1">
+          <div className="space-y-2.5 flex-1 overflow-y-auto max-h-96 pr-1">
             {pendingBookings.slice(0, 6).map((b) => (
               <div
                 key={String(b.id)}
-                className="p-4 bg-[#FAF8F5] border border-stone/20 rounded-xl flex items-center justify-between gap-3 hover:border-[#B48454]/40 transition-all shadow-xs"
+                className="p-3 bg-neutral-50/70 dark:bg-[#14171C] border border-black/[0.06] dark:border-neutral-800 rounded-lg flex items-center justify-between gap-3 hover:border-[#B48454]/40 transition-all shadow-2xs"
               >
                 <div>
                   <div className="flex items-center gap-2">
@@ -248,15 +238,15 @@ export default function StaffDashboard({ onNavigate, userName, userId }: StaffDa
                     </span>
                     <StatusBadge status={String(b.status || 'PENDING').toUpperCase()} />
                   </div>
-                  <p className="font-semibold text-ink text-xs mt-1">{String(b.customer_name || 'Guest')}</p>
-                  <p className="text-[11px] text-ink-muted">
+                  <p className="font-semibold text-neutral-900 dark:text-white text-xs mt-1">{String(b.customer_name || 'Guest')}</p>
+                  <p className="text-[11px] text-neutral-500 dark:text-neutral-400">
                     {String(b.room_type || 'Room')} · {formatDate(String(b.check_in))} → {formatDate(String(b.check_out))}
                   </p>
                 </div>
 
                 <button
                   onClick={() => onNavigate('staff-bookings')}
-                  className="px-3 py-1.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl text-xs font-semibold shadow-xs transition-all"
+                  className="px-2.5 py-1 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-lg text-xs font-semibold shadow-2xs transition-all cursor-pointer"
                 >
                   Review
                 </button>
@@ -264,29 +254,29 @@ export default function StaffDashboard({ onNavigate, userName, userId }: StaffDa
             ))}
 
             {pendingBookings.length === 0 && !loading && (
-              <div className="py-12 text-center text-xs text-ink-muted">
-                <div className="w-12 h-12 rounded-2xl bg-sand/60 border border-stone/20 flex items-center justify-center mx-auto mb-3 text-emerald-700">
-                  <CheckCircle2 className="w-6 h-6" strokeWidth={1.5} />
+              <div className="py-8 text-center text-xs text-neutral-500 dark:text-neutral-400">
+                <div className="w-10 h-10 rounded-xl bg-neutral-100 dark:bg-neutral-800 border border-black/[0.06] dark:border-neutral-700 flex items-center justify-center mx-auto mb-2 text-emerald-600 dark:text-emerald-400">
+                  <CheckCircle2 className="w-5 h-5" strokeWidth={1.5} />
                 </div>
-                <p className="font-display font-bold text-ink text-sm">All booking requests processed!</p>
-                <p className="mt-0.5">No pending reservations awaiting staff confirmation.</p>
+                <p className="font-display font-bold text-neutral-900 dark:text-white text-xs sm:text-sm">All booking requests processed!</p>
+                <p className="mt-0.5 text-[11px]">No pending reservations awaiting staff confirmation.</p>
               </div>
             )}
           </div>
         </div>
 
         {/* Right Column: Live Room Inventory Status */}
-        <div className="bg-white rounded-2xl border border-stone/20 shadow-sm p-6 flex flex-col justify-between space-y-4">
-          <div className="pb-3 border-b border-stone/15 flex items-center justify-between">
+        <div className="bg-white dark:bg-[#181B20] rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-3.5 sm:p-4 flex flex-col justify-between space-y-3">
+          <div className="pb-2.5 border-b border-black/[0.06] dark:border-neutral-800 flex items-center justify-between">
             <div>
-              <h3 className="font-display text-xl font-bold text-ink">Room Inventory Grid</h3>
-              <p className="text-xs text-ink-muted mt-0.5">Real-time room occupancy and housekeeping state</p>
+              <h3 className="font-display text-base font-bold text-neutral-900 dark:text-white">Room Inventory Grid</h3>
+              <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">Real-time room occupancy and housekeeping state</p>
             </div>
             <button
               onClick={() => onNavigate('staff-checkinout')}
-              className="text-xs font-semibold text-[#B48454] hover:underline"
+              className="text-xs font-semibold text-[#B48454] hover:underline cursor-pointer"
             >
-              Front Desk Desk →
+              Check-In/Out →
             </button>
           </div>
 

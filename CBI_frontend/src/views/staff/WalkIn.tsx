@@ -149,7 +149,7 @@ export default function StaffWalkIn() {
   }
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 max-w-4xl mx-auto space-y-6 font-sans">
+    <div className="p-4 sm:p-5 max-w-4xl mx-auto space-y-4 sm:space-y-5 font-sans">
       
       {/* Toast Alert */}
       {toast && (
@@ -160,23 +160,23 @@ export default function StaffWalkIn() {
       )}
 
       {/* ─── 1. PAGE HEADER ─── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-stone/20">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-black/[0.06] dark:border-neutral-800">
         <div>
-          <h1 className="font-display text-3xl sm:text-4xl font-bold text-ink tracking-tight">Walk-In Registration</h1>
-          <p className="text-xs sm:text-sm text-ink-muted mt-0.5">Create guest credentials & onboard walk-in customers instantly</p>
+          <h1 className="font-display text-lg sm:text-xl font-bold text-neutral-900 dark:text-white tracking-tight">Walk-In Registration</h1>
+          <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">Create guest credentials & onboard walk-in customers instantly</p>
         </div>
       </div>
 
       {/* ─── 2. REGISTRATION FORM CARD ─── */}
-      <div className="bg-white rounded-2xl border border-stone/20 shadow-sm p-6 sm:p-8 space-y-6">
+      <div className="bg-white dark:bg-[#181B20] rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-4 sm:p-5 space-y-4">
         
-        <div className="pb-3 border-b border-stone/15">
-          <h3 className="font-display font-bold text-xl text-ink">Guest Personal Details</h3>
-          <p className="text-xs text-ink-muted mt-0.5">Fill in the required information to generate an official customer ID and portal access</p>
+        <div className="pb-2.5 border-b border-black/[0.06] dark:border-neutral-800">
+          <h3 className="font-display font-bold text-base text-neutral-900 dark:text-white">Guest Personal Details</h3>
+          <p className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5">Fill in the required information to generate an official customer ID and portal access</p>
         </div>
 
         {apiError && (
-          <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs font-semibold flex items-center gap-2">
+          <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/50 rounded-lg text-rose-800 dark:text-rose-300 text-xs font-semibold flex items-center gap-2">
             <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
             <span>{apiError}</span>
           </div>

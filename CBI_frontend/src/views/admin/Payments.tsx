@@ -7,6 +7,10 @@ import {
   Check,
   RotateCcw,
   FileText,
+  Bike,
+  BedDouble,
+  Activity,
+  X,
 } from 'lucide-react'
 import { billingApi, type InvoiceItem, type PaymentTransaction } from '../../api/billing'
 import { bookingsApi, type BookingItem } from '../../api/bookings'
@@ -33,6 +37,7 @@ export default function AdminPayments() {
 
   // Record Payment Modal
   const [recordModalOpen, setRecordModalOpen] = useState(false)
+  const [selectedBillId, setSelectedBillId] = useState<number | ''>('')
   const [selectedBookingId, setSelectedBookingId] = useState<number | ''>('')
   const [payAmount, setPayAmount] = useState('')
   const [payMethod, setPayMethod] = useState('Cash')
@@ -98,8 +103,8 @@ export default function AdminPayments() {
     for (const inv of invoices) {
       collected += Number(inv.paid_amount || 0)
       const rem = Number(inv.remaining_balance || 0)
-      if (rem > 0) {
-        outstanding += rem
+      if (rem > 0 || String(inv.status).toUpperCase() !== 'PAID') {
+        outstanding += (rem > 0 ? rem : Number(inv.total_amount || 0))
         outCount += 1
       }
     }
@@ -118,28 +123,27 @@ export default function AdminPayments() {
 
     // Status Filter
     if (activeFilter !== 'All') {
-      if (activeFilter === 'Paid') {
-        list = list.filter((i) => String(i.status).toUpperCase() === 'PAID')
-      } else if (activeFilter === 'Partially Paid') {
-        list = list.filter((i) => String(i.status).toUpperCase() === 'PARTIALLY PAID')
-      } else if (activeFilter === 'Pending') {
-        list = list.filter((i) => String(i.status).toUpperCase() === 'PENDING' || String(i.status).toUpperCase() === 'UNPAID')
-      } else if (activeFilter === 'Refunded') {
-        list = list.filter((i) => String(i.status).toUpperCase() === 'REFUNDED' || i.payments.some((p) => p.is_refunded))
-      }
+      list = list.filter((inv) => {
+        const s = String(inv.status || '').toUpperCase().replace('-', '_').replace(' ', '_')
+        if (activeFilter === 'Paid') return s === 'PAID'
+        if (activeFilter === 'Partially Paid') return s === 'PARTIALLY_PAID' || s === 'PARTIALLY PAID'
+        if (activeFilter === 'Pending') return s === 'PENDING' || s === 'UNPAID'
+        if (activeFilter === 'Refunded') return s === 'REFUNDED'
+        return true
+      })
     }
 
     // Search Query
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim()
-      list = list.filter((i) =>
-        String(i.invoice_number || '').toLowerCase().includes(q) ||
-        String(i.booking_ref || '').toLowerCase().includes(q) ||
-        String(i.customer_name || '').toLowerCase().includes(q) ||
-        String(i.customer_code || '').toLowerCase().includes(q) ||
-        String(i.room_number || '').toLowerCase().includes(q) ||
-        String(i.method || '').toLowerCase().includes(q) ||
-        i.payments.some((p) => String(p.txn_number || '').toLowerCase().includes(q) || String(p.notes || '').toLowerCase().includes(q))
+      list = list.filter((inv) =>
+        String(inv.invoice_number || '').toLowerCase().includes(q) ||
+        String(inv.customer_name || '').toLowerCase().includes(q) ||
+        String(inv.customer_code || '').toLowerCase().includes(q) ||
+        String(inv.customer_email || '').toLowerCase().includes(q) ||
+        String(inv.customer_phone || '').toLowerCase().includes(q) ||
+        String(inv.booking_ref || '').toLowerCase().includes(q) ||
+        String(inv.room_number || '').toLowerCase().includes(q)
       )
     }
 
@@ -171,11 +175,33 @@ export default function AdminPayments() {
     return filteredInvoices.slice(start, start + ITEMS_PER_PAGE)
   }, [filteredInvoices, currentPage])
 
+  // Selected Invoice for Payment
+  const selectedInvoice = useMemo(() => {
+    if (!selectedBillId) return null
+    return invoices.find((inv) => inv.id === Number(selectedBillId)) || null
+  }, [invoices, selectedBillId])
+
   // Selected Booking for Payment Modal
   const selectedBooking = useMemo(() => {
     if (!selectedBookingId) return null
     return bookings.find((b) => b.id === Number(selectedBookingId)) || null
   }, [bookings, selectedBookingId])
+
+  // Auto set pay amount to remaining balance when invoice selected
+  const handleInvoiceSelect = (billId: number | '') => {
+    setSelectedBillId(billId)
+    if (billId) {
+      const inv = invoices.find((i) => i.id === Number(billId))
+      if (inv) {
+        setSelectedBookingId(inv.booking_id || '')
+        const rem = Number(inv.remaining_balance) > 0 ? Number(inv.remaining_balance) : Number(inv.total_amount || 0)
+        setPayAmount(String(rem))
+      }
+    } else {
+      setSelectedBookingId('')
+      setPayAmount('')
+    }
+  }
 
   // Auto set pay amount to remaining balance when booking selected
   const handleBookingSelect = (bkId: number | '') => {
@@ -193,22 +219,21 @@ export default function AdminPayments() {
   // ─── 3. RECORD PAYMENT HANDLER ───
   const handleConfirmRecordPayment = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!selectedBookingId || !payAmount) return
+    if ((!selectedBillId && !selectedBookingId) || !payAmount) {
+      alert('Please select an invoice or booking to settle.')
+      return
+    }
     const amountNum = parseFloat(payAmount)
     if (isNaN(amountNum) || amountNum <= 0) {
       alert('Please enter a valid positive payment amount.')
       return
     }
 
-    if (selectedBooking && amountNum > Number(selectedBooking.remaining_balance || selectedBooking.total_price || 0) + 0.01) {
-      alert(`Payment amount (₱${amountNum.toLocaleString()}) cannot exceed the remaining balance of ₱${Number(selectedBooking.remaining_balance || selectedBooking.total_price || 0).toLocaleString()}.`)
-      return
-    }
-
     setProcessingPayment(true)
     try {
       const res = await billingApi.recordPayment({
-        booking_id: Number(selectedBookingId),
+        bill_id: selectedBillId ? Number(selectedBillId) : undefined,
+        booking_id: selectedBookingId ? Number(selectedBookingId) : undefined,
         amount: amountNum,
         method: payMethod,
         ref_number: payRefNumber.trim() || undefined,
@@ -217,10 +242,12 @@ export default function AdminPayments() {
 
       fireToast(`✓ Payment of ₱${amountNum.toLocaleString()} recorded successfully! Reference: ${res.txn_number}`)
       setRecordModalOpen(false)
+      setSelectedBillId('')
       setSelectedBookingId('')
       setPayAmount('')
       setPayRefNumber('')
       setPayRemarks('')
+      setViewInvoice(null)
       loadData()
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to record payment')
@@ -252,7 +279,7 @@ export default function AdminPayments() {
   }
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto space-y-6 font-sans">
+    <div className="p-4 sm:p-5 max-w-7xl mx-auto space-y-4 font-sans">
       
       {/* Toast Alert */}
       {toast && (
@@ -262,81 +289,61 @@ export default function AdminPayments() {
         </div>
       )}
 
-      {/* ─── 1. PAGE HEADER ─── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-stone/20">
-        <div>
-          <h1 className="font-display text-3xl sm:text-4xl font-bold text-ink tracking-tight">Payments</h1>
-          <p className="text-xs sm:text-sm text-ink-muted mt-0.5">Invoices & transactions</p>
-        </div>
-
-        {/* Global Search Bar */}
-        <div className="relative w-full sm:w-72 text-xs">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-muted w-3.5 h-3.5" strokeWidth={1.5} />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-            placeholder="Search invoice, guest, BK-ref..."
-            className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] text-ink focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
-          />
-        </div>
-      </div>
-
-      {/* ─── 2. SUMMARY STATISTIC CARDS (3 CARDS) ─── */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {/* ─── 1. SUMMARY STATISTIC CARDS (3 CARDS) ─── */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
         
         {/* Card 1: Collected */}
-        <div className="bg-white p-5 sm:p-6 rounded-2xl border border-stone/20 shadow-sm flex flex-col justify-between">
+        <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.04)] transition-all flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase font-bold tracking-widest text-[#B48454]">COLLECTED</span>
-            <div className="w-7 h-7 rounded-lg bg-[#B48454]/10 text-[#B48454] flex items-center justify-center">
-              <Receipt className="w-4 h-4" strokeWidth={1.5} />
+            <span className="text-[10px] uppercase font-bold tracking-wider text-[#B48454]">COLLECTED</span>
+            <div className="w-6 h-6 rounded-lg bg-[#B48454]/10 text-[#B48454] flex items-center justify-center">
+              <Receipt className="w-3.5 h-3.5" strokeWidth={1.5} />
             </div>
           </div>
-          <div>
-            <p className="font-display text-2xl sm:text-3xl font-bold text-ink mt-2">
+          <div className="mt-1.5">
+            <p className="font-display text-xl sm:text-2xl font-bold text-neutral-900 dark:text-white leading-tight">
               ₱{totalCollected.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
             </p>
-            <span className="text-xs text-ink-muted mt-1 block">Total revenue collected from settled payments</span>
+            <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5 block">Total settled revenue</span>
           </div>
         </div>
 
         {/* Card 2: Outstanding */}
-        <div className="bg-white p-5 sm:p-6 rounded-2xl border border-stone/20 shadow-sm flex flex-col justify-between">
+        <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.04)] transition-all flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase font-bold tracking-widest text-amber-700">OUTSTANDING</span>
-            <span className="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-0.5 rounded-full font-semibold">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-amber-700 dark:text-amber-400">OUTSTANDING</span>
+            <span className="text-[10px] bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/40 px-2 py-0.5 rounded-md font-semibold">
               {outstandingCount} invoices
             </span>
           </div>
-          <div>
-            <p className="font-display text-2xl sm:text-3xl font-bold text-amber-800 mt-2">
+          <div className="mt-1.5">
+            <p className="font-display text-xl sm:text-2xl font-bold text-amber-800 dark:text-amber-300 leading-tight">
               ₱{totalOutstanding.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
             </p>
-            <span className="text-xs text-ink-muted mt-1 block">Pending balance across active reservations</span>
+            <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5 block">Pending balance</span>
           </div>
         </div>
 
         {/* Card 3: Invoices Issued */}
-        <div className="bg-white p-5 sm:p-6 rounded-2xl border border-stone/20 shadow-sm flex flex-col justify-between">
+        <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.04)] transition-all flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase font-bold tracking-widest text-ink-muted">INVOICES ISSUED</span>
-            <div className="w-7 h-7 rounded-lg bg-sand text-ink-muted flex items-center justify-center">
-              <CreditCard className="w-4 h-4" strokeWidth={1.5} />
+            <span className="text-[10px] uppercase font-bold tracking-wider text-neutral-500 dark:text-neutral-400">INVOICES ISSUED</span>
+            <div className="w-6 h-6 rounded-lg bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 flex items-center justify-center">
+              <CreditCard className="w-3.5 h-3.5" strokeWidth={1.5} />
             </div>
           </div>
-          <div>
-            <p className="font-display text-2xl sm:text-3xl font-bold text-ink mt-2">
+          <div className="mt-1.5">
+            <p className="font-display text-xl sm:text-2xl font-bold text-neutral-900 dark:text-white leading-tight">
               {invoicesIssuedCount}
             </p>
-            <span className="text-xs text-ink-muted mt-1 block">Total billing invoices registered in database</span>
+            <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5 block">Total billing invoices</span>
           </div>
         </div>
 
       </div>
 
-      {/* ─── 3. INVOICES & TRANSACTIONS SECTION ─── */}
-      <div className="bg-white rounded-2xl border border-stone/20 shadow-sm overflow-hidden space-y-4 p-5 sm:p-6">
+      {/* ─── 2. INVOICES & TRANSACTIONS SECTION ─── */}
+      <div className="bg-white dark:bg-[#181B20] rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden space-y-3.5 p-4 sm:p-5">
         
         {/* Controls Row: Title, Filters & Action Button */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-stone/15">
@@ -377,22 +384,6 @@ export default function AdminPayments() {
               <option value="guest_asc">Guest Name (A–Z)</option>
               <option value="invoice_asc">Invoice # (Asc)</option>
             </select>
-
-            {/* Record Payment Action Button */}
-            <button
-              onClick={() => {
-                setRecordModalOpen(true)
-                setSelectedBookingId('')
-                setPayAmount('')
-                setPayRefNumber('')
-                setPayRemarks('')
-              }}
-              className="px-4 py-2 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl text-xs font-semibold shadow-sm hover:shadow-md transition-all flex items-center gap-1.5"
-            >
-              <Plus className="w-3.5 h-3.5" strokeWidth={2} />
-              <span>Record Payment</span>
-            </button>
-
           </div>
         </div>
 
@@ -403,7 +394,7 @@ export default function AdminPayments() {
               <tr className="border-b border-stone/20 bg-sand/30 text-[10px] uppercase font-bold text-ink-muted tracking-wider">
                 <th className="px-4 py-3.5">INVOICE</th>
                 <th className="px-4 py-3.5">GUEST</th>
-                <th className="px-4 py-3.5">BOOKING</th>
+                <th className="px-4 py-3.5">AVAILED SERVICE / BOOKING</th>
                 <th className="px-4 py-3.5">METHOD</th>
                 <th className="px-4 py-3.5">DATE PAID</th>
                 <th className="px-4 py-3.5">AMOUNT</th>
@@ -416,6 +407,12 @@ export default function AdminPayments() {
                 const latestPayment = inv.payments[0]
                 const datePaid = latestPayment ? formatDate(latestPayment.paid_at) : formatDate(inv.issued_at)
                 const isPartiallyPaid = String(inv.status).toUpperCase() === 'PARTIALLY PAID'
+
+                const sType = String(inv.service_type || '')
+                const sName = String(inv.service_name || '')
+                const isMotor = sType.includes('Motor') || sName.includes('Yamaha') || sName.includes('Honda') || String(inv.bill_number).startsWith('BILL-MTR') || String(inv.line_items_summary).includes('Motor')
+                const isCourt = sType.includes('Pickleball') || sName.toLowerCase().includes('pickleball') || inv.activity_rental_id
+                const isRoom = sType.includes('Room') || inv.booking_id || inv.room_type || inv.booking_ref
 
                 return (
                   <tr key={inv.id} className="hover:bg-sand/20 transition-colors">
@@ -438,14 +435,48 @@ export default function AdminPayments() {
                       </div>
                     </td>
 
-                    {/* BOOKING */}
-                    <td className="px-4 py-4 font-mono text-xs">
-                      {inv.booking_ref ? (
-                        <span className="text-ink font-semibold bg-sand/50 px-2 py-0.5 rounded-md border border-stone/20">
-                          {inv.booking_ref}
-                        </span>
+                    {/* AVAILED SERVICE / BOOKING */}
+                    <td className="px-4 py-4">
+                      {isMotor ? (
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center shrink-0">
+                            <Bike className="w-3.5 h-3.5" strokeWidth={1.5} />
+                          </div>
+                          <div>
+                            <p className="font-bold text-ink text-xs">{inv.service_name || 'Motorcycle Rental'}</p>
+                            <p className="text-[10px] text-ink-muted">{inv.service_details || 'Motor Rent'}</p>
+                          </div>
+                        </div>
+                      ) : isCourt ? (
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0">
+                            <Activity className="w-3.5 h-3.5" strokeWidth={1.5} />
+                          </div>
+                          <div>
+                            <p className="font-bold text-ink text-xs">{inv.service_name || 'Pickleball Court Reservation'}</p>
+                            <p className="text-[10px] text-ink-muted">{inv.service_details || 'Court Match Play'}</p>
+                          </div>
+                        </div>
+                      ) : isRoom ? (
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-lg bg-blue-100 text-blue-800 flex items-center justify-center shrink-0">
+                            <BedDouble className="w-3.5 h-3.5" strokeWidth={1.5} />
+                          </div>
+                          <div>
+                            <p className="font-bold text-ink text-xs font-mono">{inv.booking_ref || 'Room Accommodation'}</p>
+                            <p className="text-[10px] text-ink-muted">{inv.room_type ? `${inv.room_type} · Room ${inv.room_number || ''}` : (inv.service_name || 'Hotel Stay')}</p>
+                          </div>
+                        </div>
                       ) : (
-                        <span className="text-ink-muted italic">Walk-In Service</span>
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-lg bg-sand text-ink flex items-center justify-center shrink-0">
+                            <Receipt className="w-3.5 h-3.5" strokeWidth={1.5} />
+                          </div>
+                          <div>
+                            <p className="font-semibold text-ink text-xs">{inv.service_name || 'Hotel Service'}</p>
+                            <p className="text-[10px] text-ink-muted">{inv.service_details || 'Direct Settlement'}</p>
+                          </div>
+                        </div>
                       )}
                     </td>
 
@@ -482,23 +513,46 @@ export default function AdminPayments() {
 
                     {/* ACTIONS */}
                     <td className="px-4 py-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          onClick={() => setViewInvoice(inv)}
-                          className="px-2.5 py-1 text-xs text-ink font-semibold bg-white border border-stone/20 rounded-lg hover:bg-sand transition-all shadow-xs"
-                        >
-                          View
-                        </button>
-                        {inv.remaining_balance > 0 && inv.booking_id && (
+                      <div className="flex flex-col items-end gap-1.5">
+                        <div className="flex items-center justify-end gap-1.5">
                           <button
-                            onClick={() => {
-                              setSelectedBookingId(inv.booking_id || '')
-                              setPayAmount(String(inv.remaining_balance))
-                              setRecordModalOpen(true)
-                            }}
-                            className="px-2.5 py-1 text-xs bg-[#B48454] hover:bg-[#9E6E3E] text-white font-semibold rounded-lg shadow-xs transition-all"
+                            onClick={() => setViewInvoice(inv)}
+                            className="px-2.5 py-1 text-xs text-ink font-semibold bg-white border border-stone/20 rounded-lg hover:bg-sand transition-all shadow-xs"
                           >
-                            + Pay
+                            View
+                          </button>
+                          {String(inv.status).toUpperCase() !== 'PAID' && String(inv.status).toUpperCase() !== 'CANCELLED' && (
+                            <button
+                              onClick={() => {
+                                setSelectedBillId(inv.id)
+                                setSelectedBookingId(inv.booking_id || '')
+                                const rem = Number(inv.remaining_balance) > 0 ? Number(inv.remaining_balance) : Number(inv.total_amount || 0)
+                                setPayAmount(String(rem))
+                                setRecordModalOpen(true)
+                              }}
+                              className="px-3 py-1 text-xs bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded-lg shadow-xs transition-all flex items-center gap-1 cursor-pointer"
+                            >
+                              <CreditCard className="w-3 h-3" />
+                              <span>Pay</span>
+                            </button>
+                          )}
+                        </div>
+                        {String(inv.status).toUpperCase() !== 'PAID' && String(inv.status).toUpperCase() !== 'CANCELLED' && (
+                          <button
+                            onClick={async () => {
+                              if (!confirm(`Cancel invoice ${inv.invoice_number}? This will void the bill and release any reserved equipment or room.`)) return
+                              try {
+                                await billingApi.cancelBill(inv.id)
+                                fireToast(`Invoice ${inv.invoice_number} cancelled.`)
+                                loadData()
+                              } catch (err) {
+                                alert(err instanceof Error ? err.message : 'Failed to cancel invoice')
+                              }
+                            }}
+                            className="px-2.5 py-0.5 text-[11px] text-rose-600 hover:text-rose-700 hover:bg-rose-50 border border-rose-200 rounded-lg font-semibold transition-all flex items-center gap-1 cursor-pointer"
+                          >
+                            <X className="w-3 h-3" />
+                            <span>Cancel</span>
                           </button>
                         )}
                       </div>
@@ -521,27 +575,23 @@ export default function AdminPayments() {
 
         {/* Empty States */}
         {!loading && paginatedInvoices.length === 0 && (
-          <div className="text-center py-16 text-ink-muted text-xs">
+          <div className="py-20 text-center text-xs text-ink-muted">
             <div className="w-12 h-12 rounded-2xl bg-sand/60 border border-stone/20 flex items-center justify-center mx-auto mb-3 text-ink-muted">
-              <CreditCard className="w-6 h-6" strokeWidth={1.5} />
+              <Receipt className="w-6 h-6" strokeWidth={1.5} />
             </div>
-            <p className="font-display font-bold text-ink text-sm">
-              {activeFilter === 'Pending' ? 'No pending invoices found.' :
-               activeFilter === 'Refunded' ? 'No refunded transactions found.' :
-               'No payment transactions found.'}
-            </p>
-            <p className="text-ink-muted mt-0.5">Recorded payments and issued invoices will appear here automatically.</p>
+            <p className="font-display font-bold text-ink text-base">No invoices found.</p>
+            <p className="mt-0.5">Try searching with another keyword or changing the filter.</p>
           </div>
         )}
 
         {/* ─── 5. PAGINATION CONTROLS ─── */}
         {!loading && filteredInvoices.length > 0 && (
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-stone/15 text-xs text-ink-muted">
-            <p>
-              Showing <strong className="text-ink font-mono">{((currentPage - 1) * ITEMS_PER_PAGE) + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, filteredInvoices.length)}</strong> of <strong className="text-ink font-mono">{filteredInvoices.length}</strong> transactions
-            </p>
+          <div className="px-6 py-4 border-t border-stone/15 bg-[#FCFAF7] flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs">
+            <span className="text-ink-muted font-medium">
+              Showing <strong className="text-ink">{(currentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, filteredInvoices.length)}</strong> of <strong className="text-ink">{filteredInvoices.length}</strong> transactions
+            </span>
 
-            <div className="flex items-center gap-1.5 self-end sm:self-auto">
+            <div className="flex items-center gap-1.5 self-center">
               <button
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
@@ -588,48 +638,53 @@ export default function AdminPayments() {
       >
         <form onSubmit={handleConfirmRecordPayment} className="space-y-4 text-xs font-sans">
           
-          {/* Booking Selector */}
+          {/* Invoice or Booking Selector */}
           <div>
-            <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Select Active Booking *</label>
+            <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Select Invoice / Folio to Pay *</label>
             <select
-              required
-              value={selectedBookingId}
-              onChange={(e) => handleBookingSelect(e.target.value ? Number(e.target.value) : '')}
-              className="w-full px-3 py-2.5 rounded-xl border border-stone bg-[#FAF8F5] font-semibold text-xs text-ink"
+              value={selectedBillId}
+              onChange={(e) => handleInvoiceSelect(e.target.value ? Number(e.target.value) : '')}
+              className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] font-semibold text-xs text-ink focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
             >
-              <option value="">-- Choose Reservation --</option>
-              {bookings.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.booking_ref || `#BK-${b.id}`} · {b.customer_name} (Room {b.room_number}) — Bal: ₱{Number(b.remaining_balance || b.total_price || 0).toLocaleString()}
-                </option>
-              ))}
+              <option value="">-- Choose from Invoices ({invoices.filter(i => String(i.status).toUpperCase() !== 'PAID').length} Pending) --</option>
+              {invoices.map((i) => {
+                const isPaid = String(i.status).toUpperCase() === 'PAID'
+                const bal = Number(i.remaining_balance) > 0 ? Number(i.remaining_balance) : Number(i.total_amount || 0)
+                return (
+                  <option key={i.id} value={i.id}>
+                    {i.invoice_number} · {i.customer_name} ({i.booking_ref || 'Service'}) — Due: ₱{bal.toLocaleString()} {isPaid ? '[PAID]' : '[PENDING]'}
+                  </option>
+                )
+              })}
             </select>
           </div>
 
-          {/* Selected Booking Info Card */}
-          {selectedBooking && (
+          {/* Selected Invoice / Booking Info Card */}
+          {selectedInvoice && (
             <div className="p-4 bg-sand/40 border border-stone/20 rounded-2xl space-y-2">
               <div className="flex justify-between items-start">
                 <div>
-                  <h4 className="font-display font-bold text-ink text-base">{selectedBooking.customer_name}</h4>
+                  <h4 className="font-display font-bold text-ink text-base">{selectedInvoice.customer_name}</h4>
                   <p className="text-[11px] text-ink-muted">
-                    Room {selectedBooking.room_number} ({selectedBooking.room_type}) · {selectedBooking.nights} nights
+                    {selectedInvoice.invoice_number} · {selectedInvoice.booking_ref || 'Walk-In Service'}
                   </p>
                 </div>
-                <StatusBadge status={selectedBooking.payment_status || 'PENDING'} />
+                <StatusBadge status={selectedInvoice.status} />
               </div>
               <div className="pt-2 border-t border-stone/20 grid grid-cols-3 gap-2 font-mono text-[11px]">
                 <div>
                   <span className="text-ink-muted block text-[10px]">TOTAL:</span>
-                  <strong className="text-ink">₱{Number(selectedBooking.total_price || 0).toLocaleString()}</strong>
+                  <strong className="text-ink">₱{Number(selectedInvoice.total_amount || 0).toLocaleString()}</strong>
                 </div>
                 <div>
                   <span className="text-ink-muted block text-[10px]">PAID:</span>
-                  <strong className="text-emerald-700">₱{Number(selectedBooking.amount_paid || 0).toLocaleString()}</strong>
+                  <strong className="text-emerald-700">₱{Number(selectedInvoice.paid_amount || 0).toLocaleString()}</strong>
                 </div>
                 <div>
                   <span className="text-ink-muted block text-[10px]">REMAINING:</span>
-                  <strong className="text-amber-800 font-bold">₱{Number(selectedBooking.remaining_balance || selectedBooking.total_price || 0).toLocaleString()}</strong>
+                  <strong className="text-amber-800 font-bold">
+                    ₱{Number(selectedInvoice.remaining_balance > 0 ? selectedInvoice.remaining_balance : (String(selectedInvoice.status).toUpperCase() === 'PAID' ? 0 : selectedInvoice.total_amount)).toLocaleString()}
+                  </strong>
                 </div>
               </div>
             </div>
@@ -705,11 +760,17 @@ export default function AdminPayments() {
           </div>
 
           {/* Live Remaining Balance Calculation Preview */}
-          {selectedBooking && payAmount && (
+          {(selectedInvoice || selectedBooking) && payAmount && (
             <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between text-xs">
               <span className="font-semibold text-emerald-900">Remaining Balance After Payment:</span>
               <strong className="font-mono text-sm text-emerald-800">
-                ₱{Math.max(0, Number(selectedBooking.remaining_balance || selectedBooking.total_price || 0) - (parseFloat(payAmount) || 0)).toLocaleString()}
+                ₱{Math.max(
+                  0,
+                  (selectedInvoice
+                    ? (Number(selectedInvoice.remaining_balance) > 0 ? Number(selectedInvoice.remaining_balance) : Number(selectedInvoice.total_amount || 0))
+                    : Number(selectedBooking?.remaining_balance || selectedBooking?.total_price || 0)) -
+                  (parseFloat(payAmount) || 0)
+                ).toLocaleString()}
               </strong>
             </div>
           )}
@@ -719,14 +780,14 @@ export default function AdminPayments() {
             <button
               type="button"
               onClick={() => setRecordModalOpen(false)}
-              className="flex-1 py-2.5 border border-stone rounded-xl font-semibold text-ink-muted hover:bg-sand"
+              className="flex-1 py-2.5 border border-stone/30 rounded-xl font-semibold text-ink-muted hover:bg-sand transition-all"
             >
               Cancel
             </button>
             <button
               type="submit"
-              disabled={processingPayment || !selectedBookingId || !payAmount}
-              className="flex-1 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl font-semibold shadow-sm disabled:opacity-50 transition-all"
+              disabled={processingPayment || (!selectedBillId && !selectedBookingId) || !payAmount}
+              className="flex-1 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl font-semibold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer"
             >
               {processingPayment ? 'Recording...' : 'Record Payment'}
             </button>
@@ -750,11 +811,21 @@ export default function AdminPayments() {
             {/* Top Banner Card */}
             <div className="bg-[#FAF8F5] border border-stone/20 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <span className="text-[10px] uppercase font-bold tracking-widest text-[#B48454]">INVOICE RECEIPT</span>
+                <div className="flex items-center gap-2 mb-0.5">
+                  <span className="text-[10px] uppercase font-bold tracking-widest text-[#B48454]">INVOICE RECEIPT</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-sand text-ink border border-stone/20">
+                    {viewInvoice.service_type || 'Service Invoice'}
+                  </span>
+                </div>
                 <h3 className="font-display font-bold text-xl text-ink leading-tight">{viewInvoice.customer_name}</h3>
-                <p className="text-ink-muted text-xs">
-                  {viewInvoice.booking_ref ? `${viewInvoice.booking_ref} · Room ${viewInvoice.room_number} (${viewInvoice.room_type})` : 'Walk-In Customer'}
+                <p className="text-ink text-xs font-semibold mt-0.5">
+                  {viewInvoice.service_name || (viewInvoice.booking_ref ? `${viewInvoice.booking_ref} · Room ${viewInvoice.room_number || ''}` : 'Direct Service')}
                 </p>
+                {viewInvoice.service_details && (
+                  <p className="text-ink-muted text-[11px] font-mono mt-0.5">
+                    {viewInvoice.service_details}
+                  </p>
+                )}
               </div>
               <div className="text-right">
                 <StatusBadge status={viewInvoice.status} size="md" />
@@ -834,12 +905,30 @@ export default function AdminPayments() {
               )}
             </div>
 
-            <button
-              onClick={() => setViewInvoice(null)}
-              className="w-full py-2.5 border border-stone text-ink font-semibold text-xs rounded-xl hover:bg-sand transition-all"
-            >
-              Close
-            </button>
+            <div className="flex gap-2.5 pt-2">
+              <button
+                onClick={() => setViewInvoice(null)}
+                className="flex-1 py-2.5 border border-stone/30 text-ink font-semibold text-xs rounded-xl hover:bg-sand transition-all"
+              >
+                Close
+              </button>
+              {String(viewInvoice.status).toUpperCase() !== 'PAID' && (
+                <button
+                  onClick={() => {
+                    setSelectedBillId(viewInvoice.id)
+                    setSelectedBookingId(viewInvoice.booking_id || '')
+                    const rem = Number(viewInvoice.remaining_balance) > 0 ? Number(viewInvoice.remaining_balance) : Number(viewInvoice.total_amount || 0)
+                    setPayAmount(String(rem))
+                    setViewInvoice(null)
+                    setRecordModalOpen(true)
+                  }}
+                  className="flex-1 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-xs rounded-xl shadow-sm transition-all flex items-center justify-center gap-1.5"
+                >
+                  <CreditCard className="w-3.5 h-3.5" />
+                  <span>+ Record Payment</span>
+                </button>
+              )}
+            </div>
 
           </div>
         )}

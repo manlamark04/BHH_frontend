@@ -3,11 +3,16 @@ export type Role = 'admin' | 'staff' | 'customer'
 export type AccountStatus = 'PENDING' | 'ACTIVE' | 'DISABLED' | 'REJECTED'
 
 export type BookingStatus =
+  | 'PENDING_PAYMENT'
+  | 'PENDING_APPROVAL'
   | 'PENDING'
   | 'CONFIRMED'
+  | 'CHECKED_IN'
+  | 'CHECKED_OUT'
   | 'CHECKED-IN'
   | 'CHECKED-OUT'
   | 'CANCELLED'
+  | 'REJECTED'
   | 'COMPLETED'
 
 export type RoomStatus =
@@ -20,7 +25,17 @@ export type RoomStatus =
 
 export type PaymentStatus = 'UNPAID' | 'PARTIALLY PAID' | 'PAID' | 'REFUNDED' | 'CANCELLED'
 
-export type RentalStatus = 'PENDING' | 'APPROVED' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED'
+export type RentalStatus =
+  | 'PENDING_PAYMENT'
+  | 'PENDING_APPROVAL'
+  | 'PENDING'
+  | 'APPROVED'
+  | 'CONFIRMED'
+  | 'ACTIVE'
+  | 'COMPLETED'
+  | 'CANCELLED'
+  | 'REJECTED'
+  | 'OVERDUE'
 
 export interface User {
   id: string
@@ -192,6 +207,7 @@ export type View =
   | 'customer-profile'
   | 'staff-dashboard'
   | 'staff-bookings'
+  | 'staff-rooms'
   | 'staff-walkin'
   | 'staff-motorcycles'
   | 'staff-pickleball'
