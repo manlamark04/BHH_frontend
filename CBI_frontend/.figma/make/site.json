@@ -1,0 +1,10 @@
+{
+  "description": "Effortlessly read and analyze various file formats, enabling users to extract insights and build comprehensive reports for informed decision-making.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
