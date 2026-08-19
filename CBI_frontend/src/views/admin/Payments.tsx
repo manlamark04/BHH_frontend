@@ -3,6 +3,7 @@ import {
   Search,
   Plus,
   CreditCard,
+  Banknote,
   Receipt,
   Check,
   RotateCcw,
@@ -103,8 +104,15 @@ export default function AdminPayments() {
     for (const inv of invoices) {
       collected += Number(inv.paid_amount || 0)
       const rem = Number(inv.remaining_balance || 0)
-      if (rem > 0 || String(inv.status).toUpperCase() !== 'PAID') {
-        outstanding += (rem > 0 ? rem : Number(inv.total_amount || 0))
+      const s = String(inv.status || '').toUpperCase().replace('-', '_').replace(' ', '_')
+      if (
+        s !== 'PAID' &&
+        s !== 'CANCELLED' &&
+        s !== 'VOID' &&
+        s !== 'REFUNDED' &&
+        (s === 'PENDING' || s === 'UNPAID' || s === 'PARTIALLY_PAID' || rem > 0)
+      ) {
+        outstanding += rem > 0 ? rem : Number(inv.total_amount || 0)
         outCount += 1
       }
     }
@@ -138,12 +146,17 @@ export default function AdminPayments() {
       const q = searchQuery.toLowerCase().trim()
       list = list.filter((inv) =>
         String(inv.invoice_number || '').toLowerCase().includes(q) ||
+        String(inv.bill_number || '').toLowerCase().includes(q) ||
         String(inv.customer_name || '').toLowerCase().includes(q) ||
         String(inv.customer_code || '').toLowerCase().includes(q) ||
         String(inv.customer_email || '').toLowerCase().includes(q) ||
         String(inv.customer_phone || '').toLowerCase().includes(q) ||
         String(inv.booking_ref || '').toLowerCase().includes(q) ||
-        String(inv.room_number || '').toLowerCase().includes(q)
+        String(inv.room_number || '').toLowerCase().includes(q) ||
+        String(inv.service_name || '').toLowerCase().includes(q) ||
+        String(inv.service_type || '').toLowerCase().includes(q) ||
+        String(inv.method || '').toLowerCase().includes(q) ||
+        String(inv.line_items_summary || '').toLowerCase().includes(q)
       )
     }
 
@@ -371,19 +384,33 @@ export default function AdminPayments() {
               ))}
             </div>
 
-            {/* Sort Dropdown */}
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as SortOption)}
-              className="px-3 py-1.5 rounded-xl border border-stone/30 bg-[#FAF8F5] text-xs font-semibold text-ink focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
-            >
-              <option value="newest">Newest First</option>
-              <option value="oldest">Oldest First</option>
-              <option value="amount_desc">Amount: High to Low</option>
-              <option value="amount_asc">Amount: Low to High</option>
-              <option value="guest_asc">Guest Name (A–Z)</option>
-              <option value="invoice_asc">Invoice # (Asc)</option>
-            </select>
+            {/* Search Input Bar */}
+            <div className="relative flex items-center">
+              <Search className="w-3.5 h-3.5 absolute left-3 text-neutral-400 pointer-events-none" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value)
+                  setCurrentPage(1)
+                }}
+                placeholder="Search invoice #, guest, room..."
+                className="pl-8.5 pr-8 py-1.5 rounded-xl border border-black/[0.08] dark:border-neutral-700/80 bg-[#FAF8F5] dark:bg-[#20252E] text-xs font-medium text-neutral-900 dark:text-white placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-[#B48454]/40 w-52 sm:w-64 transition-all"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery('')
+                    setCurrentPage(1)
+                  }}
+                  className="absolute right-2.5 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 p-0.5"
+                  title="Clear search"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -512,15 +539,21 @@ export default function AdminPayments() {
                     </td>
 
                     {/* ACTIONS */}
-                    <td className="px-4 py-4 text-right">
-                      <div className="flex flex-col items-end gap-1.5">
-                        <div className="flex items-center justify-end gap-1.5">
+                    <td className="px-4 py-3.5 text-right">
+                      <div className="inline-flex flex-col items-end gap-1 bg-[#FAF8F5]/80 dark:bg-neutral-900/50 border border-stone/20 dark:border-neutral-800/80 rounded-xl p-1.5 shadow-2xs">
+                        <span className="text-[9px] uppercase tracking-wider font-bold text-ink-muted/70 px-1 select-none">
+                          Actions
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          {/* 1. VIEW (Neutral / Left) */}
                           <button
                             onClick={() => setViewInvoice(inv)}
-                            className="px-2.5 py-1 text-xs text-ink font-semibold bg-white border border-stone/20 rounded-lg hover:bg-sand transition-all shadow-xs"
+                            className="px-2.5 py-1 text-xs text-ink font-semibold bg-white dark:bg-neutral-800 border border-stone/20 dark:border-neutral-700 rounded-lg hover:bg-sand dark:hover:bg-neutral-700 transition-all shadow-xs shrink-0 cursor-pointer"
                           >
                             View
                           </button>
+
+                          {/* 2. PAY (Primary / Middle) */}
                           {String(inv.status).toUpperCase() !== 'PAID' && String(inv.status).toUpperCase() !== 'CANCELLED' && (
                             <button
                               onClick={() => {
@@ -530,31 +563,33 @@ export default function AdminPayments() {
                                 setPayAmount(String(rem))
                                 setRecordModalOpen(true)
                               }}
-                              className="px-3 py-1 text-xs bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded-lg shadow-xs transition-all flex items-center gap-1 cursor-pointer"
+                              className="px-3 py-1 text-xs bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded-lg shadow-xs transition-all flex items-center gap-1 cursor-pointer shrink-0"
                             >
                               <CreditCard className="w-3 h-3" />
                               <span>Pay</span>
                             </button>
                           )}
+
+                          {/* 3. CANCEL (Destructive / Right) */}
+                          {String(inv.status).toUpperCase() !== 'PAID' && String(inv.status).toUpperCase() !== 'CANCELLED' && (
+                            <button
+                              onClick={async () => {
+                                if (!confirm(`Cancel invoice ${inv.invoice_number}? This will void the bill and release any reserved equipment or room.`)) return
+                                try {
+                                  await billingApi.cancelBill(inv.id)
+                                  fireToast(`Invoice ${inv.invoice_number} cancelled.`)
+                                  loadData()
+                                } catch (err) {
+                                  alert(err instanceof Error ? err.message : 'Failed to cancel invoice')
+                                }
+                              }}
+                              className="px-2.5 py-1 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 border border-rose-200 dark:border-rose-800/60 rounded-lg font-semibold transition-all flex items-center gap-1 cursor-pointer shrink-0"
+                            >
+                              <X className="w-3 h-3" />
+                              <span>Cancel</span>
+                            </button>
+                          )}
                         </div>
-                        {String(inv.status).toUpperCase() !== 'PAID' && String(inv.status).toUpperCase() !== 'CANCELLED' && (
-                          <button
-                            onClick={async () => {
-                              if (!confirm(`Cancel invoice ${inv.invoice_number}? This will void the bill and release any reserved equipment or room.`)) return
-                              try {
-                                await billingApi.cancelBill(inv.id)
-                                fireToast(`Invoice ${inv.invoice_number} cancelled.`)
-                                loadData()
-                              } catch (err) {
-                                alert(err instanceof Error ? err.message : 'Failed to cancel invoice')
-                              }
-                            }}
-                            className="px-2.5 py-0.5 text-[11px] text-rose-600 hover:text-rose-700 hover:bg-rose-50 border border-rose-200 rounded-lg font-semibold transition-all flex items-center gap-1 cursor-pointer"
-                          >
-                            <X className="w-3 h-3" />
-                            <span>Cancel</span>
-                          </button>
-                        )}
                       </div>
                     </td>
 
@@ -690,7 +725,18 @@ export default function AdminPayments() {
             </div>
           )}
 
-          {/* Payment Amount & Method */}
+          {/* Cash Payment Indicator Banner */}
+          <div className="flex items-center justify-between px-3.5 py-2.5 bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/50 rounded-xl text-xs">
+            <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-300 font-semibold">
+              <Banknote className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <span>Settlement Mode</span>
+            </div>
+            <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider bg-emerald-600 text-white px-2.5 py-0.5 rounded-lg shadow-2xs">
+              Cash Payment Only
+            </span>
+          </div>
+
+          {/* Payment Amount & Payment Date */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Payment Amount (₱) *</label>
@@ -706,43 +752,12 @@ export default function AdminPayments() {
               />
             </div>
             <div>
-              <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Payment Method *</label>
-              <select
-                value={payMethod}
-                onChange={(e) => setPayMethod(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-xl border border-stone font-semibold text-xs"
-              >
-                <option value="Cash">Cash</option>
-                <option value="GCash">GCash (eWallet)</option>
-                <option value="Maya">Maya (eWallet)</option>
-                <option value="Credit Card">Credit Card</option>
-                <option value="Debit Card">Debit Card</option>
-                <option value="Bank Transfer">Bank Transfer</option>
-                <option value="Corporate Account">Corporate Account</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Payment Date & Reference Number */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
               <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Payment Date</label>
               <input
                 type="date"
                 value={payDate}
                 onChange={(e) => setPayDate(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-stone font-mono text-xs"
-              />
-            </div>
-            <div>
-              <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Reference Number</label>
-              <input
-                type="text"
-                value={payRefNumber}
-                onChange={(e) => setPayRefNumber(e.target.value)}
-                placeholder="e.g. GCash Ref #10928374"
-                className="w-full px-3 py-2 rounded-xl border border-stone text-xs font-mono"
+                className="w-full px-3 py-2.5 rounded-xl border border-stone font-mono text-xs"
               />
             </div>
           </div>
@@ -905,29 +920,13 @@ export default function AdminPayments() {
               )}
             </div>
 
-            <div className="flex gap-2.5 pt-2">
+            <div className="pt-2">
               <button
                 onClick={() => setViewInvoice(null)}
-                className="flex-1 py-2.5 border border-stone/30 text-ink font-semibold text-xs rounded-xl hover:bg-sand transition-all"
+                className="w-full py-2.5 border border-stone/30 text-ink font-semibold text-xs rounded-xl hover:bg-sand transition-all cursor-pointer"
               >
                 Close
               </button>
-              {String(viewInvoice.status).toUpperCase() !== 'PAID' && (
-                <button
-                  onClick={() => {
-                    setSelectedBillId(viewInvoice.id)
-                    setSelectedBookingId(viewInvoice.booking_id || '')
-                    const rem = Number(viewInvoice.remaining_balance) > 0 ? Number(viewInvoice.remaining_balance) : Number(viewInvoice.total_amount || 0)
-                    setPayAmount(String(rem))
-                    setViewInvoice(null)
-                    setRecordModalOpen(true)
-                  }}
-                  className="flex-1 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-xs rounded-xl shadow-sm transition-all flex items-center justify-center gap-1.5"
-                >
-                  <CreditCard className="w-3.5 h-3.5" />
-                  <span>+ Record Payment</span>
-                </button>
-              )}
             </div>
 
           </div>

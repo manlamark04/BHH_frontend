@@ -316,8 +316,6 @@ export default function StaffBilling() {
                 className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
               >
                 <option value="cash">Cash</option>
-                <option value="card">Card</option>
-                <option value="ewallet">E-Wallet (GCash/Maya)</option>
               </select>
             </div>
             <div className="flex gap-3 pt-2">

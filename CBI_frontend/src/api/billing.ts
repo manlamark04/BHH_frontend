@@ -72,7 +72,7 @@ export const billingApi = {
     api.get<PaymentTransaction[]>(`/api/bills/${id}/payments`),
 
   /** POST /api/bills — Staff/Admin: generate bill */
-  generateBill: (data: {
+  generateBill: async (data: {
     customer_id: number
     booking_id?: number
     line_items: Array<{
@@ -80,35 +80,49 @@ export const billingApi = {
       quantity: number
       unit_price: number
     }>
-  }) => api.post<{ id: number; bill_number: string; total_amount: number }>('/api/bills', data),
+  }) => {
+    const res = await api.post<{ id: number; bill_number: string; total_amount: number }>('/api/bills', data)
+    if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('billing-updated'))
+    return res
+  },
 
   /** POST /api/bills/payments — Staff/Admin: record payment */
-  recordPayment: (data: {
+  recordPayment: async (data: {
     bill_id?: number
     booking_id?: number
     amount: number
     method: string
     notes?: string
     ref_number?: string
-  }) => api.post<{
-    message: string
-    payment_id: number
-    txn_number: string
-    total_paid: number
-    remaining_balance: number
-    status: string
-  }>('/api/bills/payments', data),
+  }) => {
+    const res = await api.post<{
+      message: string
+      payment_id: number
+      txn_number: string
+      total_paid: number
+      remaining_balance: number
+      status: string
+    }>('/api/bills/payments', data)
+    if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('billing-updated'))
+    return res
+  },
 
   /** POST /api/bills/payments/:id/refund — Admin: refund payment */
-  refundPayment: (payment_id: number, reason: string) =>
-    api.post<{
+  refundPayment: async (payment_id: number, reason: string) => {
+    const res = await api.post<{
       message: string
       refunded_amount: number
       new_total_paid: number
       bill_status: string
-    }>(`/api/bills/payments/${payment_id}/refund`, { reason }),
+    }>(`/api/bills/payments/${payment_id}/refund`, { reason })
+    if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('billing-updated'))
+    return res
+  },
 
   /** POST /api/bills/:id/cancel — Staff/Admin: cancel unpaid bill */
-  cancelBill: (bill_id: number, reason?: string) =>
-    api.post<{ message: string }>(`/api/bills/${bill_id}/cancel`, { reason }),
+  cancelBill: async (bill_id: number, reason?: string) => {
+    const res = await api.post<{ message: string }>(`/api/bills/${bill_id}/cancel`, { reason })
+    if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('billing-updated'))
+    return res
+  },
 }

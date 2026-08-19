@@ -634,9 +634,7 @@ export default function AdminCheckInOut() {
                       onChange={(e) => setPayMethod(e.target.value as 'cash' | 'card' | 'ewallet')}
                       className="w-full px-3 py-2 rounded-xl border border-stone font-semibold text-xs bg-cream"
                     >
-                      <option value="cash">Cash Settlement</option>
-                      <option value="ewallet">GCash / Maya (eWallet)</option>
-                      <option value="card">Credit / Debit Card</option>
+                      <option value="cash">Cash</option>
                     </select>
                   </div>
                 )

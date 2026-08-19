@@ -3,6 +3,7 @@ import { Menu } from 'lucide-react'
 import type { View, Role } from './types'
 import { authApi } from './api/auth'
 import { getToken, clearToken } from './api/client'
+import { ThemeProvider } from './context/ThemeContext'
 
 // Views
 import Landing from './views/Landing'
@@ -136,6 +137,14 @@ export default function App() {
     window.scrollTo(0, 0)
   }, [])
 
+  // Ensure public marketing & auth routes are always strictly rendered in light mode
+  useEffect(() => {
+    if (view === 'landing' || view === 'login' || view === 'register' || !auth) {
+      document.documentElement.classList.remove('dark')
+      document.documentElement.style.colorScheme = 'light'
+    }
+  }, [view, auth])
+
   // Show a loading spinner while checking existing session
   if (authLoading) {
     return (
@@ -148,7 +157,7 @@ export default function App() {
     )
   }
 
-  // Public pages
+  // Public pages (Rendered outside ThemeProvider in fixed light mode)
   if (view === 'landing') return <Landing onNavigate={navigate} />
   if (view === 'login') return <Login onLogin={handleLogin} onNavigate={navigate} />
   if (view === 'register') return <Register onNavigate={navigate} />
@@ -231,46 +240,48 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-screen bg-[#FAFAFA] dark:bg-[#121418] text-[#18181B] dark:text-slate-100 overflow-hidden transition-colors duration-300">
-      <Sidebar
-        currentView={view}
-        onNavigate={navigate}
-        role={role}
-        userName={name}
-        userId={userId}
-        notifCount={0}
-        onLogout={handleLogout}
-        isMobileOpen={mobileMenuOpen}
-        onMobileClose={() => setMobileMenuOpen(false)}
-      />
+    <ThemeProvider>
+      <div className="flex h-screen bg-[#FAFAFA] dark:bg-[#121418] text-[#18181B] dark:text-slate-100 overflow-hidden transition-colors duration-300">
+        <Sidebar
+          currentView={view}
+          onNavigate={navigate}
+          role={role}
+          userName={name}
+          userId={userId}
+          notifCount={0}
+          onLogout={handleLogout}
+          isMobileOpen={mobileMenuOpen}
+          onMobileClose={() => setMobileMenuOpen(false)}
+        />
 
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[#FAFAFA] dark:bg-[#121418] transition-colors duration-300">
-        {role !== 'admin' && role !== 'staff' && (
-          <TopBar
-            title={titleInfo?.title ?? 'Cambacay Breeze Inn'}
-            subtitle={titleInfo?.subtitle}
-            onMobileMenuOpen={() => setMobileMenuOpen(true)}
-          />
-        )}
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[#FAFAFA] dark:bg-[#121418] transition-colors duration-300">
+          {role !== 'admin' && role !== 'staff' && (
+            <TopBar
+              title={titleInfo?.title ?? 'Cambacay Breeze Inn'}
+              subtitle={titleInfo?.subtitle}
+              onMobileMenuOpen={() => setMobileMenuOpen(true)}
+            />
+          )}
 
-        {/* Mobile top-bar only for responsive sidebar trigger in admin/staff */}
-        {(role === 'admin' || role === 'staff') && (
-          <div className="lg:hidden p-3 bg-white dark:bg-[#181B20] border-b border-black/[0.06] dark:border-neutral-800 flex items-center justify-between transition-colors">
-            <button
-              onClick={() => setMobileMenuOpen(true)}
-              className="w-9 h-9 rounded-lg border border-black/[0.08] dark:border-neutral-700 flex items-center justify-center text-ink dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shadow-xs"
-              aria-label="Open Navigation Menu"
-            >
-              <Menu className="w-4 h-4 text-ink dark:text-neutral-200" strokeWidth={1.5} />
-            </button>
-            <span className="font-display font-semibold text-ink dark:text-white text-sm">Cambacay Breeze Inn</span>
-          </div>
-        )}
+          {/* Mobile top-bar only for responsive sidebar trigger in admin/staff */}
+          {(role === 'admin' || role === 'staff') && (
+            <div className="lg:hidden p-3 bg-white dark:bg-[#181B20] border-b border-black/[0.06] dark:border-neutral-800 flex items-center justify-between transition-colors">
+              <button
+                onClick={() => setMobileMenuOpen(true)}
+                className="w-9 h-9 rounded-lg border border-black/[0.08] dark:border-neutral-700 flex items-center justify-center text-ink dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shadow-xs"
+                aria-label="Open Navigation Menu"
+              >
+                <Menu className="w-4 h-4 text-ink dark:text-neutral-200" strokeWidth={1.5} />
+              </button>
+              <span className="font-display font-semibold text-ink dark:text-white text-sm">Cambacay Breeze Inn</span>
+            </div>
+          )}
 
-        <main className="flex-1 overflow-y-auto">
-          {renderView()}
-        </main>
+          <main className="flex-1 overflow-y-auto">
+            {renderView()}
+          </main>
+        </div>
       </div>
-    </div>
+    </ThemeProvider>
   )
 }

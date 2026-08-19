@@ -608,22 +608,6 @@ export default function StaffBookings() {
                               </button>
                             </>
                           )}
-                          {status === 'CONFIRMED' && (
-                            <button
-                              onClick={() => setConfirmStatusAction({ id, status: 'checked_in', label: 'Check-In' })}
-                              className="text-[11px] bg-emerald-700 hover:bg-emerald-800 text-white px-2.5 py-1 rounded-md font-semibold cursor-pointer"
-                            >
-                              Check-In
-                            </button>
-                          )}
-                          {status === 'CHECKED_IN' && (
-                            <button
-                              onClick={() => setConfirmStatusAction({ id, status: 'checked_out', label: 'Check-Out' })}
-                              className="text-[11px] bg-amber-600 hover:bg-amber-700 text-white px-2.5 py-1 rounded-md font-semibold cursor-pointer"
-                            >
-                              Check-Out
-                            </button>
-                          )}
                         </div>
                       </td>
                     </tr>
@@ -771,11 +755,7 @@ export default function StaffBookings() {
                 onChange={(e) => setPayMethod(e.target.value)}
                 className="w-full px-3.5 py-2 rounded-xl border border-stone/30 bg-[#FAF8F5] text-xs font-semibold"
               >
-                <option value="cash">Cash at Front Desk</option>
-                <option value="gcash">GCash</option>
-                <option value="maya">Maya</option>
-                <option value="card">Credit/Debit Card</option>
-                <option value="bank_transfer">Bank Transfer</option>
+                <option value="cash">Cash</option>
               </select>
             </div>
 

@@ -305,7 +305,13 @@ export default function CustomerRooms({ customerName }: Props) {
                         : 'bg-stone-200 text-stone-400 cursor-not-allowed'
                     }`}
                   >
-                    {isAvail ? 'Book Room' : 'Unavailable'}
+                    {isAvail
+                      ? 'Book Room'
+                      : String(r.status).toUpperCase() === 'RESERVED'
+                      ? 'Reserved'
+                      : String(r.status).toUpperCase() === 'OCCUPIED'
+                      ? 'Occupied'
+                      : 'Unavailable'}
                   </button>
                 </div>
 

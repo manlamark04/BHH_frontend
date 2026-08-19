@@ -4,7 +4,6 @@ import {
   Plus,
   Eye,
   Edit2,
-  CreditCard,
   X,
   ConciergeBell,
   Check,
@@ -397,11 +396,7 @@ export default function AdminBookings() {
               {paginatedBookings.map((b) => {
                 const statusStr = String(b.status || 'CONFIRMED').toUpperCase()
                 const payStatusStr = String(b.payment_status || 'PENDING').toUpperCase()
-                const canCheckIn = ['CONFIRMED', 'PENDING'].includes(statusStr)
-                const canCheckOut = statusStr === 'CHECKED_IN'
                 const canEdit = !['COMPLETED', 'CANCELLED', 'CHECKED_OUT'].includes(statusStr)
-                const canCancel = !['COMPLETED', 'CANCELLED', 'CHECKED_OUT'].includes(statusStr)
-                const canPay = Number(b.remaining_balance || 0) > 0 && statusStr !== 'CANCELLED'
 
                 return (
                   <tr key={String(b.id)} className="hover:bg-neutral-50/70 dark:hover:bg-slate-800/40 transition-colors">
@@ -488,50 +483,6 @@ export default function AdminBookings() {
                             aria-label="Edit Reservation"
                           >
                             <Edit2 className="w-3.5 h-3.5" strokeWidth={1.5} />
-                          </button>
-                        )}
-
-                        {/* Record Payment */}
-                        {canPay && (
-                          <button
-                            onClick={() => { setPaymentBooking(b); setPayAmount(String(b.remaining_balance || '')) }}
-                            title="Record Payment"
-                            className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50 text-xs font-semibold transition-colors cursor-pointer"
-                            aria-label="Record Payment"
-                          >
-                            <CreditCard className="w-3.5 h-3.5" strokeWidth={1.5} />
-                          </button>
-                        )}
-
-                        {/* Check-In */}
-                        {canCheckIn && (
-                          <button
-                            onClick={() => handleCheckIn(b)}
-                            className="px-2.5 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-semibold transition-all shadow-2xs cursor-pointer"
-                          >
-                            Check In
-                          </button>
-                        )}
-
-                        {/* Check-Out */}
-                        {canCheckOut && (
-                          <button
-                            onClick={() => handleCheckOut(b)}
-                            className="px-2.5 py-1 rounded-lg bg-[#B48454] hover:bg-[#9E6E3E] text-white text-[11px] font-semibold transition-all shadow-2xs cursor-pointer"
-                          >
-                            Check Out
-                          </button>
-                        )}
-
-                        {/* Cancel */}
-                        {canCancel && (
-                          <button
-                            onClick={() => setCancelBooking(b)}
-                            title="Cancel Booking"
-                            className="p-1.5 rounded-lg border border-red-200 dark:border-red-800/50 hover:bg-red-50 dark:hover:bg-red-950/40 text-red-600 dark:text-red-400 text-xs transition-colors cursor-pointer"
-                            aria-label="Cancel Booking"
-                          >
-                            <X className="w-3.5 h-3.5" strokeWidth={1.5} />
                           </button>
                         )}
                       </div>
@@ -832,9 +783,6 @@ export default function AdminBookings() {
                 className="w-full px-3 py-2 rounded-xl border border-stone text-xs bg-cream"
               >
                 <option value="CASH">Cash</option>
-                <option value="GCASH">GCash</option>
-                <option value="CARD">Credit / Debit Card</option>
-                <option value="BANK_TRANSFER">Bank Transfer</option>
               </select>
             </div>
           </div>
@@ -1000,9 +948,6 @@ export default function AdminBookings() {
               className="w-full px-3 py-2 rounded-xl border border-stone text-xs bg-cream"
             >
               <option value="CASH">Cash</option>
-              <option value="GCASH">GCash</option>
-              <option value="CARD">Credit / Debit Card</option>
-              <option value="BANK_TRANSFER">Bank Transfer</option>
             </select>
           </div>
 

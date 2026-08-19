@@ -1,8 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import type { View, Role } from '../types'
 import logo from '../imports/logo.png'
 import ConfirmDialog from './ConfirmDialog'
+import SidebarBadge from './SidebarBadge'
 import { useTheme } from '../context/ThemeContext'
+import { billingApi } from '../api/billing'
 import {
   LayoutDashboard,
   CalendarDays,
@@ -30,6 +32,8 @@ interface NavItem {
   label: string
   view: View
   icon: LucideIcon
+  badgeKey?: string
+  badgeVariant?: 'amber' | 'rose' | 'emerald' | 'gold'
 }
 
 const ADMIN_NAV: NavItem[] = [
@@ -41,7 +45,7 @@ const ADMIN_NAV: NavItem[] = [
   { label: 'Pickleball Court', view: 'staff-pickleball', icon: Trophy },
   { label: 'Check-In / Out', view: 'admin-checkinout', icon: ArrowLeftRight },
   { label: 'User Management', view: 'admin-users', icon: UserCog },
-  { label: 'Payments', view: 'admin-payments', icon: CreditCard },
+  { label: 'Payments', view: 'admin-payments', icon: CreditCard, badgeKey: 'outstanding-bills', badgeVariant: 'amber' },
   { label: 'Reports & Analytics', view: 'admin-reports', icon: BarChart3 },
   { label: 'Audit Log', view: 'admin-audit', icon: History },
 ]
@@ -55,7 +59,7 @@ const STAFF_NAV: NavItem[] = [
   { label: 'Motor Rent', view: 'staff-motorcycles', icon: Bike },
   { label: 'Pickleball Court', view: 'staff-pickleball', icon: Trophy },
   { label: 'Customer Records', view: 'staff-customers', icon: Users },
-  { label: 'Billing & Payments', view: 'staff-billing', icon: CreditCard },
+  { label: 'Billing & Payments', view: 'staff-billing', icon: CreditCard, badgeKey: 'outstanding-bills', badgeVariant: 'amber' },
 ]
 
 const CUSTOMER_NAV: NavItem[] = [
@@ -119,9 +123,68 @@ export default function Sidebar({
 }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false)
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false)
+  const [badgeCounts, setBadgeCounts] = useState<Record<string, number>>({})
   const { isDarkMode, toggleDarkMode } = useTheme()
 
   const navItems = ROLE_NAV[role] || []
+
+  // ─── Real-time Live Badge Counts ───
+  const fetchBadgeCounts = useCallback(async () => {
+    if (role !== 'admin' && role !== 'staff') {
+      return
+    }
+
+    try {
+      const bills = await billingApi.getAllBills().catch(() => [])
+      let outCount = 0
+      for (const inv of bills) {
+        const s = String(inv.status || '').toUpperCase().replace('-', '_').replace(' ', '_')
+        const rem = Number(inv.remaining_balance ?? inv.balance ?? 0)
+        // Count non-Paid, actionable state: Pending and/or Partially Paid (outstanding balance > 0)
+        // Do not count Paid, Cancelled, Void, or Refunded invoices
+        if (
+          s !== 'PAID' &&
+          s !== 'CANCELLED' &&
+          s !== 'VOID' &&
+          s !== 'REFUNDED' &&
+          (s === 'PENDING' || s === 'UNPAID' || s === 'PARTIALLY_PAID' || rem > 0)
+        ) {
+          outCount += 1
+        }
+      }
+
+      setBadgeCounts((prev) => {
+        if (prev['outstanding-bills'] === outCount) return prev
+        return { ...prev, 'outstanding-bills': outCount }
+      })
+    } catch {
+      // Fail silently on error: hide badge or maintain safe state
+    }
+  }, [role])
+
+  useEffect(() => {
+    fetchBadgeCounts()
+
+    // 15-second polling interval for real-time synchronization
+    const interval = setInterval(fetchBadgeCounts, 15000)
+
+    const handleBillingUpdated = () => fetchBadgeCounts()
+    const handleFocus = () => fetchBadgeCounts()
+
+    window.addEventListener('billing-updated', handleBillingUpdated)
+    window.addEventListener('focus', handleFocus)
+
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener('billing-updated', handleBillingUpdated)
+      window.removeEventListener('focus', handleFocus)
+    }
+  }, [fetchBadgeCounts])
+
+  // Refetch when navigating views (e.g. after editing payments)
+  useEffect(() => {
+    fetchBadgeCounts()
+  }, [currentView, fetchBadgeCounts])
 
   const SidebarContent = () => (
     <aside
@@ -204,6 +267,7 @@ export default function Sidebar({
         {navItems.map((item) => {
           const active = currentView === item.view
           const Icon = item.icon
+          const badgeCount = item.badgeKey ? (badgeCounts[item.badgeKey] || 0) : 0
 
           return (
             <button
@@ -212,19 +276,25 @@ export default function Sidebar({
                 onNavigate(item.view)
                 onMobileClose()
               }}
-              title={collapsed ? item.label : undefined}
+              title={
+                collapsed
+                  ? badgeCount > 0
+                    ? `${item.label} (${badgeCount > 99 ? '99+' : badgeCount} outstanding)`
+                    : item.label
+                  : undefined
+              }
               style={
                 active
                   ? {
                       backgroundColor: 'rgba(184,128,79,0.15)',
                       color: '#B8804F',
                       borderLeft: '3px solid #B8804F',
-                      paddingLeft: collapsed ? '10px' : '10px',
+                      paddingLeft: '10px',
                     }
                   : {
                       color: '#A8A29E',
                       borderLeft: '3px solid transparent',
-                      paddingLeft: collapsed ? '10px' : '10px',
+                      paddingLeft: '10px',
                     }
               }
               onMouseEnter={(e) => {
@@ -243,20 +313,34 @@ export default function Sidebar({
               }}
               className={`w-full flex items-center gap-3 pr-3 py-2 rounded-xl text-xs transition-all text-left cursor-pointer ${
                 active ? 'font-semibold' : 'font-medium'
-              } ${collapsed ? 'justify-center' : ''}`}
+              } ${collapsed ? 'justify-center pr-0 px-2' : ''}`}
             >
-              <span className="flex items-center justify-center shrink-0">
+              <span className="relative flex items-center justify-center shrink-0">
                 <Icon className="w-4 h-4" strokeWidth={1.5} />
+                {collapsed && badgeCount > 0 && (
+                  <span className="absolute -top-1.5 -right-2 min-w-[14px] h-[14px] px-0.5 bg-amber-600 dark:bg-amber-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center leading-none shadow-xs border border-[#2B2420]">
+                    {badgeCount > 99 ? '99+' : badgeCount}
+                  </span>
+                )}
               </span>
 
               {!collapsed && (
-                <span className="truncate leading-normal">{item.label}</span>
+                <span className="truncate leading-normal flex-1">{item.label}</span>
+              )}
+
+              {!collapsed && badgeCount > 0 && (
+                <SidebarBadge
+                  count={badgeCount}
+                  variant={item.badgeVariant || 'amber'}
+                  title={`${badgeCount} outstanding invoice${badgeCount > 1 ? 's' : ''}`}
+                  className="shrink-0"
+                />
               )}
 
               {active && !collapsed && (
                 <span
                   style={{ backgroundColor: '#B8804F' }}
-                  className="ml-auto w-1.5 h-1.5 rounded-full shrink-0"
+                  className={`w-1.5 h-1.5 rounded-full shrink-0 ${badgeCount > 0 ? 'ml-1.5' : 'ml-auto'}`}
                 />
               )}
             </button>

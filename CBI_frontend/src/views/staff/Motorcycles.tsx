@@ -28,6 +28,7 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
   const [tab, setTab] = useState<'rentals' | 'fleet'>('rentals')
   const [successMsg, setSuccessMsg] = useState('')
   const [editingMotor, setEditingMotor] = useState<Motorcycle | null>(null)
+  const [showAddMotorDrawer, setShowAddMotorDrawer] = useState(false)
 
   // Rent Motor for Customer Modal
   const [showRentModal, setShowAddRentModal] = useState(false)
@@ -155,13 +156,15 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
             Dispatch, track, and process returns for all hostel rental motorcycles.
           </p>
         </div>
-        <button
-          onClick={() => { setShowAddRentModal(true); setRentError('') }}
-          className="px-3.5 py-1.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-lg font-semibold text-xs shadow-xs hover:shadow-sm transition-all flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
-        >
-          <Plus className="w-3.5 h-3.5" strokeWidth={2} />
-          <span>New Motorcycle Rental</span>
-        </button>
+        {userRole === 'admin' && (
+          <button
+            onClick={() => setShowAddMotorDrawer(true)}
+            className="px-3.5 py-1.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-lg font-semibold text-xs shadow-xs hover:shadow-sm transition-all flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5" strokeWidth={2} />
+            <span>Add Motorcycle</span>
+          </button>
+        )}
       </div>
 
       {/* ─── STATS ROW ─── */}
@@ -558,18 +561,26 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
         )}
       </Modal>
 
-      {/* ─── SLIDE-OVER DRAWER: EDIT MOTORCYCLE (Admin Only) ─── */}
-      {userRole === 'admin' && (
-        <EditMotorDrawer
-          isOpen={!!editingMotor}
-          motor={editingMotor}
-          onClose={() => setEditingMotor(null)}
-          onSuccess={(updated) => {
-            setMotorcycles((prev) => prev.map((m) => (m.id === updated.id ? updated : m)))
-            setSuccessMsg(`✓ Updated ${updated.brand} ${updated.model} specifications and photo!`)
-          }}
-        />
-      )}
+      {/* ─── SLIDE-OVER DRAWER: EDIT / ADD MOTORCYCLE ─── */}
+      <EditMotorDrawer
+        isOpen={!!editingMotor || showAddMotorDrawer}
+        motor={editingMotor}
+        onClose={() => {
+          setEditingMotor(null)
+          setShowAddMotorDrawer(false)
+        }}
+        onSuccess={(updatedOrNew) => {
+          if (editingMotor) {
+            setMotorcycles((prev) => prev.map((m) => (m.id === updatedOrNew.id ? updatedOrNew : m)))
+            setSuccessMsg(`✓ Updated ${updatedOrNew.brand} ${updatedOrNew.model} specifications and photo!`)
+          } else {
+            setMotorcycles((prev) => [updatedOrNew, ...prev])
+            setSuccessMsg(`✓ Added ${updatedOrNew.brand} ${updatedOrNew.model} to the motorcycle fleet!`)
+          }
+          setTimeout(() => setSuccessMsg(''), 4500)
+          loadData()
+        }}
+      />
     </div>
   )
 }

@@ -21,6 +21,8 @@ import {
   Clock,
   ArrowRight,
   Star,
+  Menu,
+  X,
 } from 'lucide-react'
 
 /* ─────────────────────────────────────────────
@@ -117,6 +119,15 @@ const btnPrimary   = `${btnBase} bg-[${ACCENT}] hover:bg-[${ACCENT_HOVER}] text-
 const btnOutline   = `${btnBase} border border-white/30 text-white rounded-[10px] hover:bg-white/8`
 const btnOutlineInk = `${btnBase} border border-stone/30 text-ink hover:border-[${ACCENT}] hover:text-[${ACCENT}] rounded-[10px]`
 
+const NAV_LINKS = [
+  { label: 'About', href: '#about', id: 'about' },
+  { label: 'Rooms', href: '#rooms', id: 'rooms' },
+  { label: 'Services', href: '#services', id: 'services' },
+  { label: 'Activities', href: '#activities', id: 'activities' },
+  { label: 'Why Us', href: '#why', id: 'why' },
+  { label: 'Contact', href: '#contact', id: 'contact' },
+]
+
 /* ─────────────────────────────────────────────
    Landing component
    ─────────────────────────────────────────── */
@@ -126,18 +137,33 @@ export default function Landing({ onNavigate }: LandingProps) {
   const [rooms, setRooms]           = useState<Record<string, unknown>[]>([])
   const [activities, setActivities] = useState<Record<string, unknown>[]>([])
   const [navScrolled, setNavScrolled] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [activeSection, setActiveSection] = useState('')
 
   useEffect(() => {
     roomsApi.getRooms().then(setRooms).catch(() => {})
     catalogApi.getActivities().then(setActivities).catch(() => {})
   }, [])
 
-  /* Navbar shadow on scroll */
+  /* Navbar shadow and scrollspy on scroll */
   const handleScroll = useCallback(() => {
-    setNavScrolled(window.scrollY > 48)
+    setNavScrolled(window.scrollY > 30)
+
+    const sectionIds = ['about', 'rooms', 'services', 'activities', 'why', 'contact']
+    const scrollPos = window.scrollY + 160
+    let current = ''
+    for (const id of sectionIds) {
+      const el = document.getElementById(id)
+      if (el && el.offsetTop <= scrollPos) {
+        current = id
+      }
+    }
+    setActiveSection(current)
   }, [])
+
   useEffect(() => {
     window.addEventListener('scroll', handleScroll, { passive: true })
+    handleScroll()
     return () => window.removeEventListener('scroll', handleScroll)
   }, [handleScroll])
 
@@ -227,51 +253,135 @@ interface ActivityItem {
     <div className="min-h-screen bg-[#FBF9F5] font-sans text-ink antialiased">
 
       {/* ═══════════════════════════════════════
-          1 · NAVIGATION
+          1 · NAVIGATION HEADER
           ═══════════════════════════════════════ */}
-      <nav
-        className={`fixed inset-x-0 top-0 z-50 bg-[#FBF9F5]/92 backdrop-blur-lg border-b border-stone/15 transition-shadow duration-300 ${navScrolled ? 'nav-scrolled' : ''}`}
+      <header
+        className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${
+          navScrolled
+            ? 'bg-[#FBF9F5]/95 backdrop-blur-xl shadow-[0_4px_24px_rgba(0,0,0,0.06)] border-b border-stone/20 py-2.5'
+            : 'bg-[#FBF9F5]/85 backdrop-blur-md border-b border-stone/15 py-3.5'
+        }`}
       >
-        <div className="max-w-[1280px] mx-auto px-8 h-16 flex items-center justify-between">
-          {/* Logo */}
-          <a href="#" className="flex items-center gap-3 group">
-            <img src={logo} alt="Cambacay Breeze Inn" className="w-9 h-9 object-contain rounded-lg" />
-            <div className="leading-none">
-              <span className="font-display text-[15px] font-semibold text-ink tracking-[-0.01em] block">Cambacay</span>
-              <span className="text-[10px] text-ink-muted font-medium uppercase tracking-[0.14em] block mt-px">Breeze Inn</span>
+        <div className="max-w-[1320px] mx-auto px-6 sm:px-8 flex items-center justify-between">
+          {/* Logo & Brand Identity */}
+          <a
+            href="#"
+            className="flex items-center gap-3.5 group"
+            onClick={(e) => {
+              e.preventDefault()
+              window.scrollTo({ top: 0, behavior: 'smooth' })
+            }}
+          >
+            <div className="relative w-10 h-10 rounded-xl bg-white p-1 shadow-[0_2px_8px_rgba(0,0,0,0.05)] border border-stone/20 group-hover:border-[#B48454]/40 group-hover:shadow-[0_4px_14px_rgba(180,132,84,0.18)] transition-all duration-300 flex items-center justify-center overflow-hidden">
+              <img src={logo} alt="Cambacay Breeze Inn" className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300" />
+            </div>
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2">
+                <span className="font-serif-brand text-[17px] font-bold text-ink tracking-[-0.01em] group-hover:text-[#B48454] transition-colors duration-200">
+                  Cambacay
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-[#B48454]/10 text-[#9E6E3E] uppercase tracking-wider hidden sm:inline-flex">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Nature Retreat
+                </span>
+              </div>
+              <span className="text-[10px] text-ink-muted font-medium uppercase tracking-[0.16em] -mt-0.5">
+                Breeze Inn · Batuan, Bohol
+              </span>
             </div>
           </a>
 
-          {/* Desktop links */}
-          <div className="hidden md:flex items-center gap-10">
-            {['About', 'Rooms', 'Services', 'Activities', 'Contact'].map((item) => (
-              <a
-                key={item}
-                href={`#${item.toLowerCase()}`}
-                className="text-[13px] font-medium text-ink-muted hover:text-ink transition-colors duration-200"
-              >
-                {item}
-              </a>
-            ))}
+          {/* Desktop Navigation Center Pill */}
+          <div className="hidden md:flex items-center bg-stone/20 p-1 rounded-full border border-stone/25 backdrop-blur-sm shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)]">
+            {NAV_LINKS.map((link) => {
+              const isActive = activeSection === link.id
+              return (
+                <a
+                  key={link.id}
+                  href={link.href}
+                  className={`px-4 py-1.5 rounded-full text-[13px] font-medium transition-all duration-200 ${
+                    isActive
+                      ? 'bg-white text-[#9E6E3E] shadow-[0_1px_4px_rgba(0,0,0,0.06)] font-semibold'
+                      : 'text-ink-muted hover:text-ink hover:bg-white/60'
+                  }`}
+                >
+                  {link.label}
+                </a>
+              )
+            })}
           </div>
 
-          {/* CTA cluster */}
-          <div className="flex items-center gap-3">
+          {/* Action Cluster & Mobile Trigger */}
+          <div className="flex items-center gap-2.5">
             <button
               onClick={() => onNavigate('login')}
-              className={`${btnOutlineInk} h-9 px-4 text-[13px]`}
+              className="hidden sm:inline-flex items-center justify-center font-sans font-medium text-[13px] text-ink hover:text-[#9E6E3E] px-4 py-2 rounded-xl hover:bg-stone/20 transition-all duration-200"
             >
               Sign In
             </button>
+
             <button
               onClick={() => onNavigate('register')}
-              className={`${btnPrimary} h-9 px-5 text-[13px] hidden sm:inline-flex`}
+              className="inline-flex items-center justify-center font-sans font-medium text-[13px] text-white bg-gradient-to-r from-[#B48454] to-[#C99A6B] hover:from-[#A47444] hover:to-[#B48454] px-5 py-2 rounded-xl shadow-[0_2px_10px_rgba(180,132,84,0.25)] hover:shadow-[0_4px_16px_rgba(180,132,84,0.35)] hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
             >
-              Register
+              Book a Stay
+            </button>
+
+            {/* Mobile Menu Toggle */}
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="md:hidden p-2 rounded-xl text-ink hover:bg-stone/20 transition-colors focus:outline-none"
+              aria-label="Toggle navigation menu"
+            >
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
         </div>
-      </nav>
+
+        {/* Mobile Dropdown Drawer */}
+        {mobileMenuOpen && (
+          <div className="md:hidden border-t border-stone/15 bg-[#FBF9F5]/98 backdrop-blur-xl px-6 py-5 shadow-xl transition-all">
+            <div className="flex flex-col space-y-1">
+              {NAV_LINKS.map((link) => (
+                <a
+                  key={link.id}
+                  href={link.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`px-4 py-2.5 rounded-xl text-[14px] font-medium transition-colors ${
+                    activeSection === link.id
+                      ? 'bg-[#B48454]/10 text-[#9E6E3E] font-semibold'
+                      : 'text-ink-muted hover:text-ink hover:bg-stone/15'
+                  }`}
+                >
+                  {link.label}
+                </a>
+              ))}
+            </div>
+
+            <div className="pt-4 mt-3 border-t border-stone/15 flex flex-col gap-2.5">
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false)
+                  onNavigate('login')
+                }}
+                className="w-full h-10 rounded-xl border border-stone/30 font-medium text-[13px] text-ink hover:bg-stone/15 flex items-center justify-center transition-colors"
+              >
+                Sign In to Account
+              </button>
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false)
+                  onNavigate('register')
+                }}
+                className="w-full h-10 rounded-xl bg-[#B48454] text-white font-medium text-[13px] shadow-[0_2px_8px_rgba(180,132,84,0.25)] flex items-center justify-center"
+              >
+                Register / Book a Stay
+              </button>
+            </div>
+          </div>
+        )}
+      </header>
 
       {/* ═══════════════════════════════════════
           2 · HERO
@@ -382,8 +492,8 @@ interface ActivityItem {
             <Reveal delay={1}>
               <div className="relative">
                 <img
-                  src="https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=800&h=600&fit=crop&auto=format&q=85"
-                  alt="Resort garden grounds"
+                  src="/kubokubo.jpg"
+                  alt="Cambacay Breeze Inn Cottages and Grounds"
                   className="w-full rounded-2xl object-cover aspect-[4/3] shadow-[0_8px_32px_rgba(0,0,0,0.08)]"
                   style={{ filter: 'saturate(0.92) brightness(0.98)' }}
                 />
