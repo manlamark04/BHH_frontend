@@ -342,7 +342,7 @@ export default function EditMotorDrawer({
         </header>
 
         {/* ─── Scrollable Form Body ─── */}
-        <form id="edit-motor-form" onSubmit={handleSave} className="flex-1 overflow-y-auto p-6 space-y-6">
+        <form id="edit-motor-form" onSubmit={handleSave} noValidate className="flex-1 overflow-y-auto p-6 space-y-6">
           
           {/* General Error Banner */}
           {error && (
@@ -528,11 +528,11 @@ export default function EditMotorDrawer({
                   <span className="absolute left-3.5 text-xs font-bold text-[#B48454]">₱</span>
                   <input
                     type="number"
-                    min="1"
-                    step="10"
+                    min="0"
+                    step="any"
                     value={rentalRate}
                     onChange={(e) => setRentalRate(e.target.value)}
-                    className="w-full pl-8 pr-3.5 py-2.5 rounded-xl border border-stone/30 bg-white text-xs text-ink font-mono font-bold focus:outline-none focus:ring-2 focus:ring-[#B48454]/40 focus:border-[#B48454] transition-all"
+                    className="w-full pl-8 pr-3.5 py-2.5 rounded-xl border border-stone/30 bg-white text-xs text-ink font-mono font-bold focus:outline-none focus:ring-2 focus:ring-[#B48454]/40 focus:border-[#B48454] transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
                 </div>
                 {fieldErrors.rentalRate && (

@@ -8,6 +8,8 @@ export interface LoginResponse {
     role: 'admin' | 'staff' | 'customer'
     full_name: string
     email: string
+    gender?: string | null
+    civil_status?: string | null
     must_change_password: boolean
   }
 }

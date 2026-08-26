@@ -11,6 +11,7 @@ import type { View } from '../types'
 import { authApi } from '../api/auth'
 import { ApiError } from '../api/client'
 import logo from '../imports/logo.png'
+import signinImg from '../imports/signin.jpg'
 
 interface RegisterProps {
   onNavigate: (view: View) => void
@@ -96,7 +97,7 @@ export default function Register({ onNavigate }: RegisterProps) {
       <div
         className="fixed inset-0 bg-cover bg-center bg-no-repeat z-0 scale-105 transform transition-transform duration-1000"
         style={{
-          backgroundImage: `url('https://images.unsplash.com/photo-1540541338537-1220059169af?w=1920&q=85&auto=format&fit=crop')`,
+          backgroundImage: `url(${signinImg})`,
         }}
       />
       <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-0" />
@@ -357,7 +358,7 @@ export default function Register({ onNavigate }: RegisterProps) {
           <div
             className="absolute inset-0 bg-cover bg-center transition-transform duration-700 hover:scale-105"
             style={{
-              backgroundImage: `url('https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1200&q=85&auto=format&fit=crop')`,
+              backgroundImage: `url(${signinImg})`,
             }}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/30" />

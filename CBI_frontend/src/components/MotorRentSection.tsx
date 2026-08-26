@@ -513,7 +513,7 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
               </div>
 
               <div>
-                <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Return Time (AM / PM) *</label>
+                <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Expected Return Time (AM / PM) *</label>
                 <select
                   value={returnTime}
                   onChange={(e) => setReturnTime(e.target.value)}

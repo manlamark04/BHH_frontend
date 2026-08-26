@@ -444,7 +444,7 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
               />
             </div>
             <div>
-              <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Return Time</label>
+              <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Expected Return Time</label>
               <input
                 type="time"
                 value={returnTime}

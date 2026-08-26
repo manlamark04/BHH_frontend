@@ -77,7 +77,7 @@ const ROLE_NAV: Record<Role, NavItem[]> = {
   customer: CUSTOMER_NAV,
 }
 
-const ROLE_LABELS: Record<Role, string> = {
+export const ROLE_LABELS: Record<Role, string> = {
   admin: 'Administrator',
   staff: 'Front Desk Staff',
   customer: 'Resort Guest',

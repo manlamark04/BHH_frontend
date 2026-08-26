@@ -324,7 +324,7 @@ interface ActivityItem {
               onClick={() => onNavigate('register')}
               className="inline-flex items-center justify-center font-sans font-medium text-[13px] text-white bg-gradient-to-r from-[#B48454] to-[#C99A6B] hover:from-[#A47444] hover:to-[#B48454] px-5 py-2 rounded-xl shadow-[0_2px_10px_rgba(180,132,84,0.25)] hover:shadow-[0_4px_16px_rgba(180,132,84,0.35)] hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
             >
-              Book a Stay
+              Register
             </button>
 
             {/* Mobile Menu Toggle */}
@@ -376,7 +376,7 @@ interface ActivityItem {
                 }}
                 className="w-full h-10 rounded-xl bg-[#B48454] text-white font-medium text-[13px] shadow-[0_2px_8px_rgba(180,132,84,0.25)] flex items-center justify-center"
               >
-                Register / Book a Stay
+                Register
               </button>
             </div>
           </div>
