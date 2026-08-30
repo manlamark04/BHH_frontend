@@ -10,6 +10,7 @@ export interface PaymentTransaction {
   staff_name?: string
   notes?: string
   paid_at: string
+  receipt_number?: string
   txn_number?: string
   is_refunded?: boolean
 }
@@ -47,9 +48,33 @@ export interface InvoiceItem {
   payment_status?: string
   status: 'PAID' | 'PARTIALLY PAID' | 'PENDING' | 'REFUNDED' | 'FAILED' | 'VOID' | string
   method: string
+  receipt_number?: string
   issued_by_name?: string
   issued_at: string
   payments: PaymentTransaction[]
+}
+
+export interface OfficialReceiptData {
+  receipt_number: string
+  invoice_number: string
+  bill_id: number
+  payment_id: number
+  customer_name: string
+  customer_email?: string
+  customer_phone?: string
+  service_name?: string
+  service_details?: string
+  service_type?: string
+  total_amount: number
+  previous_paid: number
+  amount_paid: number
+  remaining_balance: number
+  status: string
+  method: string
+  ref_number?: string
+  notes?: string
+  staff_name: string
+  paid_at: string
 }
 
 export const billingApi = {
@@ -101,10 +126,12 @@ export const billingApi = {
     const res = await api.post<{
       message: string
       payment_id: number
-      txn_number: string
+      receipt_number: string
+      txn_number?: string
       total_paid: number
       remaining_balance: number
       status: string
+      receipt_data?: OfficialReceiptData
     }>('/api/bills/payments', data)
     if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('billing-updated'))
     return res

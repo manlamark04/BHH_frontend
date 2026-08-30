@@ -13,10 +13,12 @@ import {
   X,
   AlertCircle,
   Banknote,
+  Printer,
 } from 'lucide-react'
-import { billingApi, type InvoiceItem } from '../../api/billing'
+import { billingApi, type InvoiceItem, type OfficialReceiptData } from '../../api/billing'
 import StatusBadge from '../../components/StatusBadge'
 import Modal from '../../components/Modal'
+import { OfficialReceiptModal } from '../../components/OfficialReceiptModal'
 
 export default function StaffBilling() {
   const [bills, setBills] = useState<InvoiceItem[]>([])
@@ -24,6 +26,7 @@ export default function StaffBilling() {
   const [statusFilter, setStatusFilter] = useState('All')
   const [loading, setLoading] = useState(true)
   const [paymentBill, setPaymentBill] = useState<InvoiceItem | null>(null)
+  const [activeReceipt, setActiveReceipt] = useState<OfficialReceiptData | null>(null)
   const [payAmount, setPayAmount] = useState('')
   const [payMethod, setPayMethod] = useState<'cash' | 'card' | 'ewallet'>('cash')
   const [submitting, setSubmitting] = useState(false)
@@ -125,6 +128,10 @@ export default function StaffBilling() {
     const amountNum = parseFloat(payAmount)
     const dueAmount = Number(paymentBill.remaining_balance || paymentBill.balance || paymentBill.total_amount || 0)
     if (isNaN(amountNum) || amountNum <= 0) return
+    if (amountNum > 1000000) {
+      alert('Payment amount cannot exceed ₱1,000,000.00 per transaction.')
+      return
+    }
     if (dueAmount > 0 && amountNum < dueAmount) {
       alert(`Amount received (₱${amountNum.toLocaleString()}) must be at least ₱${dueAmount.toLocaleString()} to settle this invoice.`)
       return
@@ -132,30 +139,58 @@ export default function StaffBilling() {
 
     const amountToRecord = dueAmount > 0 ? Math.min(amountNum, dueAmount) : amountNum
     const change = dueAmount > 0 && amountNum > dueAmount ? amountNum - dueAmount : 0
-    const notes = change > 0 ? `[Cash Received: ₱${amountNum.toLocaleString()}, Change Given: ₱${change.toLocaleString()}]` : undefined
+    const notes = change > 0
+      ? `[Cash Received: ₱${amountNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}, Change Given: ₱${change.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}]`
+      : undefined
 
     setSubmitting(true)
     try {
-      await billingApi.recordPayment({
-        bill_id: Number(paymentBill.id),
+      const currentBill = paymentBill
+      const res = await billingApi.recordPayment({
+        bill_id: Number(currentBill.id),
         amount: amountToRecord,
         method: payMethod,
         notes: notes,
       })
       const isCourt =
-        (paymentBill.service_name || '').toLowerCase().includes('pickleball') ||
-        (paymentBill.service_type || '').toLowerCase().includes('pickleball') ||
-        (paymentBill.bill_number || '').includes('BILL-ACT')
+        (currentBill.service_name || '').toLowerCase().includes('pickleball') ||
+        (currentBill.service_type || '').toLowerCase().includes('pickleball') ||
+        (currentBill.bill_number || '').includes('BILL-ACT')
       
+      const receiptSnapshot: OfficialReceiptData = res.receipt_data || {
+        receipt_number: res.receipt_number || '—',
+        invoice_number: currentBill.invoice_number || currentBill.bill_number || `INV-2026-${String(currentBill.id).padStart(4, '0')}`,
+        bill_id: Number(currentBill.id),
+        payment_id: res.payment_id,
+        customer_name: currentBill.customer_name || 'Guest',
+        customer_email: currentBill.customer_email,
+        customer_phone: currentBill.customer_phone,
+        service_name: currentBill.service_name,
+        service_details: currentBill.service_details,
+        service_type: currentBill.service_type,
+        total_amount: Number(currentBill.total_amount || amountToRecord),
+        previous_paid: Number(currentBill.paid_amount || 0),
+        amount_paid: amountToRecord,
+        remaining_balance: Number(res.remaining_balance ?? Math.max(0, Number(currentBill.total_amount || 0) - (Number(currentBill.paid_amount || 0) + amountToRecord))),
+        status: res.status || 'PAID',
+        method: payMethod,
+        notes: notes,
+        staff_name: 'Front Desk Staff',
+        paid_at: new Date().toISOString(),
+      }
+
       setPaymentBill(null)
       setPayAmount('')
       setToast(
         isCourt
-          ? `Payment recorded! Pickleball court session is now ACTIVE (Match in Progress).${change > 0 ? ` (Change: ₱${change.toLocaleString()})` : ''}`
-          : `Payment recorded successfully!${change > 0 ? ` (Change: ₱${change.toLocaleString()})` : ''}`
+          ? `Payment recorded! Receipt No.: ${res.receipt_number || '—'}. Pickleball court session is now ACTIVE (Match in Progress).${change > 0 ? ` (Change: ₱${change.toLocaleString()})` : ''}`
+          : `Payment recorded successfully! Receipt No.: ${res.receipt_number || '—'}.${change > 0 ? ` (Change: ₱${change.toLocaleString()})` : ''}`
       )
       setTimeout(() => setToast(''), 4500)
       load()
+
+      // Immediately show Official Receipt
+      setActiveReceipt(receiptSnapshot)
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed')
     } finally {
@@ -297,7 +332,12 @@ export default function StaffBilling() {
 
                 return (
                   <tr key={String(b.id)} className="hover:bg-sand/20 transition-colors">
-                    <td className="px-5 py-4 font-mono font-bold text-xs text-[#B48454]">{String(b.unique_id || b.invoice_number || b.bill_number || b.id)}</td>
+                    <td className="px-5 py-4 font-mono">
+                      <div className="font-bold text-xs text-[#B48454]">{String(b.unique_id || b.invoice_number || b.bill_number || b.id)}</div>
+                      <div className="text-[10px] text-neutral-500 font-sans mt-0.5">
+                        Receipt: <strong className="font-mono text-neutral-700 dark:text-neutral-300 font-semibold">{b.receipt_number && b.receipt_number !== '—' ? b.receipt_number : '—'}</strong>
+                      </div>
+                    </td>
                     <td className="px-5 py-4">
                       <p className="font-semibold text-ink text-xs">{String(b.customer_name || 'Guest')}</p>
                       <p className="text-[10px] text-ink-muted font-mono">{String(b.customer_phone || b.customer_email || '—')}</p>
@@ -341,6 +381,42 @@ export default function StaffBilling() {
                     <td className="px-5 py-4 text-ink-muted text-xs font-mono">{String(b.issued_at || b.created_at || '').substring(0, 10)}</td>
                     <td className="px-5 py-4 text-right">
                       <div className="flex flex-col items-end gap-1.5">
+                        {/* Receipt Button */}
+                        {(b.payments?.length > 0 || (b.receipt_number && b.receipt_number !== '—')) && (
+                          <button
+                            onClick={() => {
+                              const p = b.payments?.[0]
+                              const receiptObj: OfficialReceiptData = {
+                                receipt_number: p?.receipt_number && p?.receipt_number !== '—' ? p.receipt_number : (b.receipt_number || '—'),
+                                invoice_number: b.invoice_number || b.bill_number || `INV-${b.id}`,
+                                bill_id: Number(b.id),
+                                payment_id: p?.id || 0,
+                                customer_name: b.customer_name || 'Guest',
+                                customer_email: b.customer_email,
+                                customer_phone: b.customer_phone,
+                                service_name: b.service_name,
+                                service_details: b.service_details,
+                                service_type: b.service_type,
+                                total_amount: Number(b.total_amount),
+                                previous_paid: 0,
+                                amount_paid: Number(p?.amount || b.paid_amount || b.total_amount),
+                                remaining_balance: Number(b.remaining_balance || b.balance || 0),
+                                status: b.status,
+                                method: p?.method || b.method || 'cash',
+                                notes: p?.notes,
+                                staff_name: p?.staff_name || 'Front Desk Staff',
+                                paid_at: p?.paid_at || b.issued_at || new Date().toISOString(),
+                              }
+                              setActiveReceipt(receiptObj)
+                            }}
+                            className="px-2.5 py-0.5 text-[11px] text-[#B48454] bg-[#B48454]/10 hover:bg-[#B48454]/20 border border-[#B48454]/30 rounded-lg font-semibold transition-all flex items-center gap-1 cursor-pointer"
+                            title="View and print official payment receipt"
+                          >
+                            <Printer className="w-3 h-3" />
+                            <span>Receipt</span>
+                          </button>
+                        )}
+
                         {Number(b.remaining_balance || b.balance || 0) > 0 && String(b.status).toUpperCase() !== 'CANCELLED' && (
                           <button
                             onClick={async () => {
@@ -373,75 +449,63 @@ export default function StaffBilling() {
         {loading && (
           <div className="text-center py-16 text-ink-muted text-xs">
             <div className="w-6 h-6 border-2 border-[#B48454] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-            <p>Loading invoices...</p>
+            <p>Loading folios...</p>
           </div>
         )}
         {!loading && filtered.length === 0 && (
           <div className="text-center py-16 text-ink-muted text-xs">
-            <div className="w-12 h-12 rounded-2xl bg-sand/60 border border-stone/20 flex items-center justify-center mx-auto mb-3 text-ink-muted">
-              <Receipt className="w-6 h-6" strokeWidth={1.5} />
-            </div>
-            <p className="font-display font-bold text-ink text-sm">No bills found.</p>
+            <Receipt className="w-8 h-8 text-stone/40 mx-auto mb-2" />
+            <p className="font-semibold">No billing records found</p>
           </div>
         )}
       </div>
 
-      {/* ─── MODAL: PAYMENT ─── */}
-      <Modal isOpen={!!paymentBill} onClose={() => setPaymentBill(null)} title="Record Payment" size="sm">
+      {/* ─── RECORD PAYMENT MODAL ─── */}
+      <Modal
+        isOpen={!!paymentBill}
+        onClose={() => setPaymentBill(null)}
+        title="Record Payment Transaction"
+      >
         {paymentBill && (() => {
-          const avail = getAvailmentType(paymentBill)
           const dueAmount = Number(paymentBill.remaining_balance || paymentBill.balance || paymentBill.total_amount || 0)
           const paymentReceivedNum = parseFloat(payAmount) || 0
-          const isOverpaid = dueAmount > 0 && paymentReceivedNum > dueAmount
-          const isUnderpaid = dueAmount > 0 && paymentReceivedNum > 0 && paymentReceivedNum < dueAmount
-          const isInsufficient = dueAmount > 0 && paymentReceivedNum < dueAmount
-          const changeDue = Math.max(0, paymentReceivedNum - dueAmount)
+          const MAX_PAYMENT_AMOUNT = 1000000
+          const isExceeded = payAmount !== '' && (paymentReceivedNum > MAX_PAYMENT_AMOUNT || payAmount.split('.')[0].length > 7)
+          const isUnderpaid = payAmount !== '' && !isExceeded && paymentReceivedNum < dueAmount && dueAmount > 0
+          const isDisproportionate = payAmount !== '' && !isExceeded && !isUnderpaid && dueAmount > 0 && paymentReceivedNum > dueAmount * 20
+          const isOverpaid = !isExceeded && paymentReceivedNum > dueAmount && dueAmount > 0
+          const changeDue = isOverpaid ? paymentReceivedNum - dueAmount : 0
           const remainingBalanceAfter = Math.max(0, dueAmount - paymentReceivedNum)
+          const isInsufficient = dueAmount > 0 && paymentReceivedNum < dueAmount
 
           return (
             <div className="space-y-4 text-xs font-sans">
-              <div className="bg-[#FAF8F5] border border-stone/20 rounded-2xl p-4 space-y-2.5">
+              
+              {/* Billing Context Header */}
+              <div className="p-3.5 bg-sand/30 border border-stone/20 rounded-xl space-y-1">
                 <div className="flex items-center justify-between">
-                  <span className="font-mono text-xs font-bold text-[#B48454]">{String(paymentBill.unique_id || paymentBill.invoice_number || paymentBill.bill_number || paymentBill.id)}</span>
-                  {avail && (
-                    <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${avail.tagColor}`}>
-                      {avail.badgeLabel}
-                    </span>
-                  )}
-                </div>
-                <div>
-                  <p className="font-display font-bold text-ink text-base">{String(paymentBill.customer_name || 'Guest')}</p>
-                  <p className="text-[11px] text-ink-muted font-medium mt-0.5">
-                    {String(paymentBill.service_name || 'Service Availment')} · {String(paymentBill.service_details || avail?.details || '')}
-                  </p>
-                </div>
-                {avail && (
-                  <div className="p-2 bg-white rounded-lg border border-stone/20 text-[11px] flex justify-between">
-                    <span className="text-ink-muted">Availed Rate:</span>
-                    <strong className="text-ink font-semibold">{avail.rateType}</strong>
-                  </div>
-                )}
-                <div className="flex justify-between pt-2 border-t border-stone/15 text-xs">
-                  <span className="text-ink-muted">Outstanding Balance:</span>
-                  <span className="font-display font-bold text-amber-700 text-sm">₱{dueAmount.toLocaleString()}</span>
-                </div>
-              </div>
-
-              {/* Prominent Total Bill Amount Row */}
-              <div className="p-3.5 bg-[#FAF8F5] dark:bg-[#181B20] border border-stone/20 dark:border-neutral-700/80 rounded-2xl flex items-center justify-between shadow-2xs">
-                <div>
-                  <span className="text-[10px] uppercase font-bold text-ink-muted tracking-wider block">TOTAL BILL AMOUNT</span>
-                  <span className="text-[11px] text-ink-muted font-medium">Remaining balance owed</span>
-                </div>
-                <div className="text-right">
-                  <span className="font-display font-bold text-2xl text-[#B48454]">
-                    ₱{dueAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                  <span className="font-mono font-bold text-[#B48454]">{paymentBill.invoice_number || paymentBill.bill_number}</span>
+                  <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-sand border border-stone/20">
+                    {paymentBill.service_type || 'Hotel Service'}
                   </span>
                 </div>
+                <p className="font-bold text-ink text-sm">{paymentBill.customer_name}</p>
+                <p className="text-ink-muted text-[11px]">{paymentBill.service_name || 'Room Stay'}</p>
               </div>
 
-              {/* Settlement Mode Banner */}
-              <div className="flex items-center justify-between px-3.5 py-2.5 bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/50 rounded-xl text-xs">
+              {/* Total Due Callout */}
+              <div className="p-3.5 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-amber-900 block">Total Remaining Due</span>
+                  <p className="text-[10px] text-amber-800">Must be settled in full at the counter</p>
+                </div>
+                <strong className="font-mono text-xl font-black text-amber-900">
+                  ₱{dueAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                </strong>
+              </div>
+
+              {/* Fixed Settlement Method Notice */}
+              <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 rounded-xl flex items-center justify-between text-xs">
                 <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-300 font-semibold">
                   <Banknote className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                   <span>Settlement Mode</span>
@@ -457,21 +521,45 @@ export default function StaffBilling() {
                   type="number"
                   step="0.01"
                   min="0.01"
+                  max="1000000"
                   value={payAmount}
-                  onChange={(e) => setPayAmount(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value
+                    // Restrict integer part to max 7 digits before decimal point
+                    const parts = val.split('.')
+                    if (parts[0] && parts[0].length > 7) return
+                    setPayAmount(val)
+                  }}
                   onWheel={(e) => (e.target as HTMLInputElement).blur()}
                   placeholder={dueAmount > 0 ? `Enter at least ${dueAmount.toLocaleString()}` : "0.00"}
                   className={`w-full px-3 py-2.5 rounded-xl border bg-[#FAF8F5] text-xs font-bold transition-all ${
-                    isUnderpaid
+                    isExceeded || isUnderpaid
                       ? 'border-rose-500 bg-rose-50/40 text-rose-900 focus:ring-2 focus:ring-rose-400/40'
                       : 'border-stone/30 focus:outline-none focus:ring-2 focus:ring-[#B48454]/40'
                   }`}
                 />
+
+                {isExceeded && (
+                  <p className="text-rose-600 dark:text-rose-400 text-[11px] font-semibold mt-1.5 flex items-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span>Maximum accepted payment is ₱1,000,000.00. Please check for extra zeros or copy-paste error.</span>
+                  </p>
+                )}
+
                 {isUnderpaid && (
                   <p className="text-rose-600 dark:text-rose-400 text-[11px] font-semibold mt-1.5 flex items-center gap-1">
                     <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                     <span>Amount received must be at least ₱{dueAmount.toLocaleString()} to settle this invoice.</span>
                   </p>
+                )}
+
+                {isDisproportionate && (
+                  <div className="p-2.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/60 rounded-xl text-amber-900 dark:text-amber-200 text-[11px] flex items-start gap-2 mt-2">
+                    <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                    <span>
+                      <strong>Unusually Large Cash Tender:</strong> ₱{paymentReceivedNum.toLocaleString()} is <strong>{Math.round(paymentReceivedNum / dueAmount)}x</strong> the total bill (₱{dueAmount.toLocaleString()}). Please double-check cash count before proceeding.
+                    </span>
+                  </div>
                 )}
               </div>
 
@@ -480,17 +568,17 @@ export default function StaffBilling() {
                 <div className="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-xl flex items-center justify-between text-xs animate-fadeIn shadow-2xs">
                   <span className="font-semibold text-amber-900 dark:text-amber-200">Change Due to Guest:</span>
                   <strong className="font-mono text-base font-bold text-amber-800 dark:text-amber-300">
-                    ₱{changeDue.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                    ₱{changeDue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </strong>
                 </div>
               )}
 
               {/* Remaining Balance After Payment */}
-              {payAmount && (
+              {payAmount && !isExceeded && (
                 <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 rounded-xl flex items-center justify-between text-xs">
                   <span className="font-semibold text-emerald-900 dark:text-emerald-200">Remaining Balance After Payment:</span>
                   <strong className="font-mono text-sm text-emerald-800 dark:text-emerald-300">
-                    ₱{remainingBalanceAfter.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                    ₱{remainingBalanceAfter.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </strong>
                 </div>
               )}
@@ -499,7 +587,7 @@ export default function StaffBilling() {
                 <button onClick={() => setPaymentBill(null)} className="flex-1 py-2.5 border border-stone/30 rounded-xl text-xs font-semibold text-ink-muted hover:bg-sand transition-all cursor-pointer">Cancel</button>
                 <button
                   onClick={handlePayment}
-                  disabled={submitting || !payAmount || isInsufficient || paymentReceivedNum <= 0}
+                  disabled={submitting || !payAmount || isInsufficient || isExceeded || paymentReceivedNum <= 0}
                   className="flex-1 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl text-xs font-semibold shadow-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                 >
                   {submitting ? 'Processing...' : 'Record Payment'}
@@ -509,6 +597,14 @@ export default function StaffBilling() {
           )
         })()}
       </Modal>
+
+      {/* ─── OFFICIAL PAYMENT RECEIPT MODAL (PRINTABLE) ─── */}
+      <OfficialReceiptModal
+        isOpen={Boolean(activeReceipt)}
+        onClose={() => setActiveReceipt(null)}
+        receipt={activeReceipt}
+      />
+
     </div>
   )
 }

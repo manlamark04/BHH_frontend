@@ -469,11 +469,35 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
                     <td className="px-5 py-4 text-xs font-mono text-ink-muted">
                       {formatDateTimeWithAmPm(r.actual_return_datetime || r.expected_return_datetime)}
                     </td>
-                    <td className="px-5 py-4 font-display font-bold text-ink text-sm">
-                      ₱{Number(r.final_amount || r.total_amount).toLocaleString()}
-                      {Number(r.late_fee) > 0 && (
-                        <span className="block text-[10px] text-red-600 font-medium font-sans">+₱{Number(r.late_fee)} late fee</span>
-                      )}
+                    <td className="px-5 py-4 font-display text-sm">
+                      {(() => {
+                        const baseAmt = Number(r.total_amount || 0)
+                        const lateAmt = Boolean(r.late_fee_waived) ? 0 : Number(r.late_fee || 0)
+                        const grandTotal = Number(r.final_amount) > 0 ? Number(r.final_amount) : baseAmt + lateAmt
+                        const hasLateFee = lateAmt > 0 && !r.late_fee_waived
+
+                        return (
+                          <div>
+                            <span className="block font-bold text-ink">
+                              ₱{grandTotal.toLocaleString()}
+                            </span>
+                            {hasLateFee ? (
+                              <span className="block text-[10px] text-red-600 font-medium font-sans mt-0.5">
+                                Includes ₱{lateAmt.toLocaleString()} late fee
+                                {Number(r.hours_late) > 0 && Number(r.hourly_late_rate) > 0 ? (
+                                  <span className="text-ink-muted text-[9px] font-normal block font-mono">
+                                    ({r.hours_late} hr{Number(r.hours_late) > 1 ? 's' : ''} late × ₱{Number(r.hourly_late_rate).toLocaleString()}/hr)
+                                  </span>
+                                ) : null}
+                              </span>
+                            ) : Boolean(r.late_fee_waived) ? (
+                              <span className="block text-[10px] text-emerald-600 font-medium font-sans mt-0.5" title={r.late_fee_waiver_reason || 'Waived by staff'}>
+                                Late fee waived
+                              </span>
+                            ) : null}
+                          </div>
+                        )
+                      })()}
                     </td>
                     <td className="px-5 py-4 text-right">
                       <StatusBadge status={r.status} />

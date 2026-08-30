@@ -45,6 +45,8 @@ export default function AdminServices() {
   // Return Motor form
   const [returnRemarks, setReturnRemarks] = useState('')
   const [maintenanceNeeded, setMaintenanceNeeded] = useState(false)
+  const [waiveLateFee, setWaiveLateFee] = useState(false)
+  const [waiverReason, setWaiverReason] = useState('')
   const [processingReturn, setProcessingReturn] = useState(false)
 
   // Add Activity form
@@ -151,11 +153,21 @@ export default function AdminServices() {
       const res = await motorcyclesApi.processReturn(returnRentalModal.id, {
         remarks: returnRemarks.trim() || undefined,
         maintenance_needed: maintenanceNeeded,
+        waive_late_fee: waiveLateFee,
+        waiver_reason: waiveLateFee ? waiverReason.trim() : undefined,
       })
       setReturnRentalModal(null)
       setReturnRemarks('')
       setMaintenanceNeeded(false)
-      fireToast(`✓ Return processed for ${res.rental.rental_id}! Late fee: ₱${res.late_fee}, Total: ₱${res.final_amount}`)
+      setWaiveLateFee(false)
+      setWaiverReason('')
+      fireToast(
+        res.late_fee_waived
+          ? `✓ Return processed for ${res.rental.rental_id}! Late fee waived. Total: ₱${Number(res.final_amount).toLocaleString()}`
+          : Number(res.late_fee) > 0
+          ? `✓ Return processed for ${res.rental.rental_id}! Late fee: ₱${Number(res.late_fee).toLocaleString()} (${res.hours_late} hr(s) × ₱${res.hourly_late_rate}/hr), Total: ₱${Number(res.final_amount).toLocaleString()}`
+          : `✓ Return processed for ${res.rental.rental_id}! Total: ₱${Number(res.final_amount).toLocaleString()}`
+      )
       loadData()
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to process return')
@@ -530,11 +542,35 @@ export default function AdminServices() {
                       <td className="px-5 py-4 font-mono text-ink-muted">
                         {String(r.expected_return_datetime).replace('T', ' ').substring(0, 16)}
                       </td>
-                      <td className="px-5 py-4 font-display font-bold text-[#B48454] text-sm">
-                        ₱{Number(r.final_amount || r.total_amount).toLocaleString()}
-                        {Number(r.late_fee) > 0 && (
-                          <span className="block text-[10px] font-sans font-semibold text-red-600">+₱{Number(r.late_fee)} late</span>
-                        )}
+                      <td className="px-5 py-4 font-display text-sm">
+                        {(() => {
+                          const baseAmt = Number(r.total_amount || 0)
+                          const lateAmt = Boolean(r.late_fee_waived) ? 0 : Number(r.late_fee || 0)
+                          const grandTotal = Number(r.final_amount) > 0 ? Number(r.final_amount) : baseAmt + lateAmt
+                          const hasLateFee = lateAmt > 0 && !r.late_fee_waived
+
+                          return (
+                            <div>
+                              <span className="block font-bold text-[#B48454]">
+                                ₱{grandTotal.toLocaleString()}
+                              </span>
+                              {hasLateFee ? (
+                                <span className="block text-[10px] font-sans font-semibold text-rose-600 mt-0.5">
+                                  Includes ₱{lateAmt.toLocaleString()} late fee
+                                  {Number(r.hours_late) > 0 && Number(r.hourly_late_rate) > 0 ? (
+                                    <span className="text-ink-muted text-[9px] font-normal block font-mono">
+                                      ({r.hours_late} hr{Number(r.hours_late) > 1 ? 's' : ''} late × ₱{Number(r.hourly_late_rate).toLocaleString()}/hr)
+                                    </span>
+                                  ) : null}
+                                </span>
+                              ) : Boolean(r.late_fee_waived) ? (
+                                <span className="block text-[10px] font-sans font-semibold text-emerald-600 mt-0.5" title={r.late_fee_waiver_reason || 'Waived by staff'}>
+                                  Late fee waived
+                                </span>
+                              ) : null}
+                            </div>
+                          )
+                        })()}
                       </td>
                       <td className="px-5 py-4">
                         <StatusBadge status={r.status} />
@@ -815,52 +851,137 @@ export default function AdminServices() {
         isOpen={Boolean(returnRentalModal)}
         onClose={() => setReturnRentalModal(null)}
         title="Process Motorcycle Return"
-        size="sm"
+        size="md"
       >
-        <div className="space-y-4 text-xs font-sans">
-          <div className="p-3.5 bg-sand/30 border border-stone/20 rounded-2xl space-y-1">
-            <span className="text-ink-muted text-[10px] block">Rental Transaction: <strong className="text-ink">{returnRentalModal?.rental_id}</strong></span>
-            <p className="font-semibold text-ink">{returnRentalModal?.brand} {returnRentalModal?.model} ({returnRentalModal?.plate_number})</p>
-            <p className="text-ink-muted">Rented by: <strong>{returnRentalModal?.customer_name}</strong></p>
-          </div>
+        {returnRentalModal && (() => {
+          const now = new Date()
+          const expected = new Date(returnRentalModal.expected_return_datetime)
+          const isOverdue = now > expected
+          const diffMs = isOverdue ? now.getTime() - expected.getTime() : 0
+          const hoursLate = isOverdue ? Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60))) : 0
 
-          <div>
-            <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Return Remarks / Condition</label>
-            <input
-              value={returnRemarks}
-              onChange={(e) => setReturnRemarks(e.target.value)}
-              placeholder="Gas level full, helmet returned, etc."
-              className="w-full px-3 py-2 rounded-xl border border-stone text-xs"
-            />
-          </div>
+          const motor = motorcycles.find((m) => m.id === returnRentalModal.motor_id)
+          const hourlyRate = motor?.late_fee_hourly_rate !== null && motor?.late_fee_hourly_rate !== undefined && Number(motor.late_fee_hourly_rate) > 0
+            ? Number(motor.late_fee_hourly_rate)
+            : motor?.rate_type === 'hourly' && Number(motor.rental_rate) > 0
+            ? Math.round(Number(motor.rental_rate) * 1.5)
+            : Math.max(100, Math.round((Number(motor?.rental_rate || 500) / 24) * 1.5))
 
-          <label className="flex items-center gap-2 cursor-pointer select-none text-ink">
-            <input
-              type="checkbox"
-              checked={maintenanceNeeded}
-              onChange={(e) => setMaintenanceNeeded(e.target.checked)}
-              className="w-4 h-4 rounded border-stone text-[#B48454]"
-            />
-            <span className="text-xs">Unit requires maintenance / checkup</span>
-          </label>
+          const calculatedFee = isOverdue ? hoursLate * hourlyRate : 0
+          const baseAmount = Number(returnRentalModal.total_amount || 0)
+          const finalAmount = waiveLateFee ? baseAmount : baseAmount + calculatedFee
 
-          <div className="flex gap-3 pt-2">
-            <button
-              type="button"
-              onClick={() => setReturnRentalModal(null)}
-              className="flex-1 py-2.5 border border-stone rounded-xl font-semibold text-ink-muted hover:bg-sand"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleProcessReturn}
-              disabled={processingReturn}
-              className="flex-1 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl font-semibold shadow-sm disabled:opacity-50"
-            >
-              {processingReturn ? 'Processing...' : '✓ Complete Return'}
-            </button>
-          </div>
-        </div>
+          return (
+            <div className="space-y-4 text-xs font-sans">
+              <div className="p-3.5 bg-sand/30 border border-stone/20 rounded-2xl space-y-1">
+                <span className="text-ink-muted text-[10px] block">Rental Transaction: <strong className="text-ink">{returnRentalModal.rental_id}</strong></span>
+                <p className="font-semibold text-ink">{returnRentalModal.brand} {returnRentalModal.model} ({returnRentalModal.plate_number})</p>
+                <p className="text-ink-muted">Rented by: <strong>{returnRentalModal.customer_name}</strong></p>
+              </div>
+
+              {/* Overdue Calculation or On-Time Banner */}
+              {isOverdue ? (
+                <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 text-rose-800 font-bold text-xs">
+                      <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                      <span>Overdue Return Detected</span>
+                    </div>
+                    <span className="font-mono text-xs font-bold text-rose-700 bg-rose-100 px-2 py-0.5 rounded">
+                      {hoursLate} hr{hoursLate > 1 ? 's' : ''} late
+                    </span>
+                  </div>
+
+                  <div className="bg-white/80 rounded-xl p-2.5 border border-rose-200/60 space-y-1 text-[11px]">
+                    <div className="flex justify-between text-ink-muted">
+                      <span>Hourly Penalty Rate:</span>
+                      <strong className="font-mono text-ink">₱{hourlyRate.toLocaleString()}/hr</strong>
+                    </div>
+                    <div className="flex justify-between text-ink-muted">
+                      <span>Calculated Penalty:</span>
+                      <strong className={`font-mono ${waiveLateFee ? 'line-through text-ink-muted' : 'text-rose-700'}`}>
+                        +₱{calculatedFee.toLocaleString()} ({hoursLate} hr{hoursLate > 1 ? 's' : ''} × ₱{hourlyRate}/hr)
+                      </strong>
+                    </div>
+                    <div className="flex justify-between pt-1 border-t border-rose-100 font-bold text-xs">
+                      <span className="text-ink">Final Billable Total:</span>
+                      <span className="font-mono text-[#B48454]">₱{finalAmount.toLocaleString()}</span>
+                    </div>
+                  </div>
+
+                  {/* Waive Toggle */}
+                  <div className="pt-1">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={waiveLateFee}
+                        onChange={(e) => setWaiveLateFee(e.target.checked)}
+                        className="w-4 h-4 text-emerald-600 rounded border-stone focus:ring-emerald-500"
+                      />
+                      <span className="text-[11px] font-semibold text-emerald-900">
+                        Waive / Forgive Late Penalty for this Return
+                      </span>
+                    </label>
+                    {waiveLateFee && (
+                      <input
+                        type="text"
+                        required
+                        value={waiverReason}
+                        onChange={(e) => setWaiverReason(e.target.value)}
+                        placeholder="Reason for waiver (e.g. Guest notified reception, mechanical issue) *"
+                        className="mt-2 w-full px-3 py-1.5 rounded-xl border border-emerald-300 bg-white text-xs text-ink placeholder:text-ink-muted/50"
+                      />
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between text-xs text-emerald-900">
+                  <div className="flex items-center gap-1.5 font-semibold">
+                    <span>On-Time Return (No late penalty applies)</span>
+                  </div>
+                  <span className="font-mono font-bold text-emerald-700">₱0.00 late fee</span>
+                </div>
+              )}
+
+              <div>
+                <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Return Remarks / Condition</label>
+                <input
+                  value={returnRemarks}
+                  onChange={(e) => setReturnRemarks(e.target.value)}
+                  placeholder="Gas level full, helmet returned, etc."
+                  className="w-full px-3 py-2 rounded-xl border border-stone text-xs"
+                />
+              </div>
+
+              <label className="flex items-center gap-2 cursor-pointer select-none text-ink">
+                <input
+                  type="checkbox"
+                  checked={maintenanceNeeded}
+                  onChange={(e) => setMaintenanceNeeded(e.target.checked)}
+                  className="w-4 h-4 rounded border-stone text-[#B48454]"
+                />
+                <span className="text-xs">Unit requires maintenance / checkup</span>
+              </label>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setReturnRentalModal(null)}
+                  className="flex-1 py-2.5 border border-stone rounded-xl font-semibold text-ink-muted hover:bg-sand"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleProcessReturn}
+                  disabled={processingReturn || (waiveLateFee && !waiverReason.trim())}
+                  className="flex-1 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl font-semibold shadow-sm disabled:opacity-50"
+                >
+                  {processingReturn ? 'Processing...' : '✓ Complete Return'}
+                </button>
+              </div>
+            </div>
+          )
+        })()}
       </Modal>
 
       {/* ─── SLIDE-OVER DRAWER: EDIT MOTORCYCLE (Admin Only) ─── */}

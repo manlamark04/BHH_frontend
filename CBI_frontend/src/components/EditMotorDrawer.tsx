@@ -43,6 +43,7 @@ export default function EditMotorDrawer({
   const [type, setType] = useState('Scooter')
   const [plateNumber, setPlateNumber] = useState('')
   const [rentalRate, setRentalRate] = useState('500')
+  const [lateFeeHourlyRate, setLateFeeHourlyRate] = useState('')
   const [rateType, setRateType] = useState<'daily' | 'hourly'>('daily')
   const [status, setStatus] = useState<Motorcycle['status']>('AVAILABLE')
   const [description, setDescription] = useState('')
@@ -68,6 +69,7 @@ export default function EditMotorDrawer({
       setType(motor.type || 'Scooter')
       setPlateNumber(motor.plate_number || '')
       setRentalRate(String(motor.rental_rate || '500'))
+      setLateFeeHourlyRate(motor.late_fee_hourly_rate !== null && motor.late_fee_hourly_rate !== undefined ? String(motor.late_fee_hourly_rate) : '')
       setRateType(motor.rate_type || 'daily')
       setStatus(motor.status || 'AVAILABLE')
       setDescription(motor.description || '')
@@ -82,6 +84,7 @@ export default function EditMotorDrawer({
       setType('Scooter')
       setPlateNumber('')
       setRentalRate('500')
+      setLateFeeHourlyRate('')
       setRateType('daily')
       setStatus('AVAILABLE')
       setDescription('')
@@ -273,6 +276,7 @@ export default function EditMotorDrawer({
         type: type.trim(),
         plate_number: plateNumber.trim().toUpperCase(),
         rental_rate: parsedRate,
+        late_fee_hourly_rate: lateFeeHourlyRate ? parseFloat(lateFeeHourlyRate) : null,
         rate_type: rateType,
         status: status,
         description: description.trim() || undefined,
@@ -570,6 +574,33 @@ export default function EditMotorDrawer({
                   </button>
                 </div>
               </div>
+            </div>
+
+            {/* Overdue Hourly Late Penalty Rate */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block">
+                  Overdue Hourly Penalty Rate (₱/hr)
+                </label>
+                <span className="text-[10px] text-ink-muted font-medium bg-sand/60 px-2 py-0.5 rounded-md border border-stone/20">
+                  Optional Override
+                </span>
+              </div>
+              <div className="relative flex items-center">
+                <span className="absolute left-3.5 text-xs font-bold text-[#B48454]">₱</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="any"
+                  placeholder="System Fallback Default (₱100.00/hr)"
+                  value={lateFeeHourlyRate}
+                  onChange={(e) => setLateFeeHourlyRate(e.target.value)}
+                  className="w-full pl-8 pr-3.5 py-2.5 rounded-xl border border-stone/30 bg-white text-xs text-ink font-mono font-bold focus:outline-none focus:ring-2 focus:ring-[#B48454]/40 focus:border-[#B48454] transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none placeholder:text-ink-muted/50"
+                />
+              </div>
+              <p className="text-[10px] text-ink-muted mt-1 leading-relaxed">
+                Charged per hour late (rounded up) upon check-in return. Leave blank to use system standard rate.
+              </p>
             </div>
 
             {/* ─── 4. AVAILABILITY STATUS ─── */}

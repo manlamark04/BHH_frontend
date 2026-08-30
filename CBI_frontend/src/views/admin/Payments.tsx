@@ -13,11 +13,13 @@ import {
   Activity,
   X,
   AlertCircle,
+  Printer,
 } from 'lucide-react'
-import { billingApi, type InvoiceItem, type PaymentTransaction } from '../../api/billing'
+import { billingApi, type InvoiceItem, type PaymentTransaction, type OfficialReceiptData } from '../../api/billing'
 import { bookingsApi, type BookingItem } from '../../api/bookings'
 import StatusBadge from '../../components/StatusBadge'
 import Modal from '../../components/Modal'
+import { OfficialReceiptModal } from '../../components/OfficialReceiptModal'
 
 type FilterOption = 'All' | 'Paid' | 'Partially Paid' | 'Pending' | 'Refunded'
 type SortOption = 'newest' | 'oldest' | 'amount_desc' | 'amount_asc' | 'guest_asc' | 'invoice_asc'
@@ -36,6 +38,7 @@ export default function AdminPayments() {
 
   // View Invoice / Transaction History Modal
   const [viewInvoice, setViewInvoice] = useState<InvoiceItem | null>(null)
+  const [activeReceipt, setActiveReceipt] = useState<OfficialReceiptData | null>(null)
 
   // Record Payment Modal
   const [recordModalOpen, setRecordModalOpen] = useState(false)
@@ -339,11 +342,14 @@ export default function AdminPayments() {
     return 0
   }, [selectedInvoice, selectedBooking])
 
+  const MAX_PAYMENT_AMOUNT = 1000000
   const paymentReceivedNum = parseFloat(payAmount) || 0
-  const isOverpaid = activeDueAmount > 0 && paymentReceivedNum > activeDueAmount
-  const isUnderpaid = (selectedInvoice || selectedBooking) && activeDueAmount > 0 && paymentReceivedNum > 0 && paymentReceivedNum < activeDueAmount
+  const isExceeded = payAmount !== '' && (paymentReceivedNum > MAX_PAYMENT_AMOUNT || payAmount.split('.')[0].length > 7)
+  const isOverpaid = !isExceeded && activeDueAmount > 0 && paymentReceivedNum > activeDueAmount
+  const isUnderpaid = (selectedInvoice || selectedBooking) && !isExceeded && activeDueAmount > 0 && paymentReceivedNum > 0 && paymentReceivedNum < activeDueAmount
   const isInsufficient = (selectedInvoice || selectedBooking) && activeDueAmount > 0 && paymentReceivedNum < activeDueAmount
-  const changeDue = Math.max(0, paymentReceivedNum - activeDueAmount)
+  const isDisproportionate = (selectedInvoice || selectedBooking) && payAmount !== '' && !isExceeded && !isUnderpaid && activeDueAmount > 0 && paymentReceivedNum > activeDueAmount * 20
+  const changeDue = isOverpaid ? paymentReceivedNum - activeDueAmount : 0
   const remainingBalanceAfter = Math.max(0, activeDueAmount - paymentReceivedNum)
 
   // ─── 3. RECORD PAYMENT HANDLER ───
@@ -359,6 +365,11 @@ export default function AdminPayments() {
       return
     }
 
+    if (amountNum > MAX_PAYMENT_AMOUNT) {
+      alert('Payment amount cannot exceed ₱1,000,000.00 per transaction.')
+      return
+    }
+
     if (activeDueAmount > 0 && amountNum < activeDueAmount) {
       alert(`Amount received (₱${amountNum.toLocaleString()}) must be at least ₱${activeDueAmount.toLocaleString()} to settle this invoice.`)
       return
@@ -367,11 +378,12 @@ export default function AdminPayments() {
     const amountToRecord = activeDueAmount > 0 ? Math.min(amountNum, activeDueAmount) : amountNum
     const change = activeDueAmount > 0 && amountNum > activeDueAmount ? amountNum - activeDueAmount : 0
     const finalNotes = change > 0
-      ? `${payRemarks.trim() ? payRemarks.trim() + ' · ' : ''}[Cash Received: ₱${amountNum.toLocaleString()}, Change Given: ₱${change.toLocaleString()}]`
+      ? `${payRemarks.trim() ? payRemarks.trim() + ' · ' : ''}[Cash Received: ₱${amountNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}, Change Given: ₱${change.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}]`
       : payRemarks.trim() || undefined
 
     setProcessingPayment(true)
     try {
+      const found = invoices.find((inv) => String(inv.id) === String(selectedBillId))
       const res = await billingApi.recordPayment({
         bill_id: selectedBillId ? Number(selectedBillId) : undefined,
         booking_id: selectedBookingId ? Number(selectedBookingId) : undefined,
@@ -381,7 +393,31 @@ export default function AdminPayments() {
         notes: finalNotes,
       })
 
-      fireToast(`✓ Payment of ₱${amountToRecord.toLocaleString()} recorded successfully!${change > 0 ? ` (Change: ₱${change.toLocaleString()})` : ''} Reference: ${res.txn_number}`)
+      fireToast(`✓ Payment of ₱${amountToRecord.toLocaleString()} recorded successfully!${change > 0 ? ` (Change: ₱${change.toLocaleString()})` : ''} Receipt No.: ${res.receipt_number || '—'}`)
+      
+      const receiptSnapshot: OfficialReceiptData = res.receipt_data || {
+        receipt_number: res.receipt_number || '—',
+        invoice_number: found?.invoice_number || `INV-2026-${String(selectedBillId).padStart(4, '0')}`,
+        bill_id: Number(selectedBillId || 0),
+        payment_id: res.payment_id,
+        customer_name: found?.customer_name || 'Guest',
+        customer_email: found?.customer_email,
+        customer_phone: found?.customer_phone,
+        service_name: found?.service_name,
+        service_details: found?.service_details,
+        service_type: found?.service_type,
+        total_amount: Number(found?.total_amount || amountToRecord),
+        previous_paid: Number(found?.paid_amount || 0),
+        amount_paid: amountToRecord,
+        remaining_balance: Number(res.remaining_balance ?? Math.max(0, Number(found?.total_amount || 0) - (Number(found?.paid_amount || 0) + amountToRecord))),
+        status: res.status || 'PAID',
+        method: payMethod,
+        ref_number: payRefNumber.trim() || undefined,
+        notes: finalNotes,
+        staff_name: 'Front Desk Staff',
+        paid_at: new Date().toISOString(),
+      }
+
       setRecordModalOpen(false)
       setSelectedBillId('')
       setSelectedBookingId('')
@@ -390,6 +426,9 @@ export default function AdminPayments() {
       setPayRemarks('')
       setViewInvoice(null)
       loadData()
+
+      // Immediately display the generated Official Receipt
+      setActiveReceipt(receiptSnapshot)
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to record payment')
     } finally {
@@ -547,7 +586,7 @@ export default function AdminPayments() {
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="border-b border-stone/20 bg-sand/30 text-[10px] uppercase font-bold text-ink-muted tracking-wider">
-                <th className="px-4 py-3.5">INVOICE</th>
+                <th className="px-4 py-3.5">INVOICE / RECEIPT</th>
                 <th className="px-4 py-3.5">GUEST</th>
                 <th className="px-4 py-3.5">AVAILED SERVICE / BOOKING</th>
                 <th className="px-4 py-3.5">METHOD</th>
@@ -572,9 +611,12 @@ export default function AdminPayments() {
                 return (
                   <tr key={inv.id} className="hover:bg-sand/20 transition-colors">
                     
-                    {/* INVOICE */}
-                    <td className="px-4 py-4 font-mono font-bold text-[#B48454]">
-                      {inv.invoice_number}
+                    {/* INVOICE & RECEIPT */}
+                    <td className="px-4 py-4 font-mono">
+                      <div className="font-bold text-[#B48454] text-xs">{inv.invoice_number}</div>
+                      <div className="text-[10px] text-neutral-500 font-sans mt-0.5">
+                        Receipt: <strong className="font-mono text-neutral-700 dark:text-neutral-300 font-semibold">{inv.receipt_number || '—'}</strong>
+                      </div>
                     </td>
 
                     {/* GUEST */}
@@ -687,7 +729,43 @@ export default function AdminPayments() {
                           View
                         </button>
 
-                        {/* 2. PAY */}
+                        {/* 2. RECEIPT */}
+                        {inv.payments.length > 0 && (
+                          <button
+                            onClick={() => {
+                              const p = inv.payments[0]
+                              const receiptObj: OfficialReceiptData = {
+                                receipt_number: p?.receipt_number && p?.receipt_number !== '—' ? p.receipt_number : (inv.receipt_number || '—'),
+                                invoice_number: inv.invoice_number,
+                                bill_id: inv.id,
+                                payment_id: p?.id || 0,
+                                customer_name: inv.customer_name,
+                                customer_email: inv.customer_email,
+                                customer_phone: inv.customer_phone,
+                                service_name: inv.service_name,
+                                service_details: inv.service_details,
+                                service_type: inv.service_type,
+                                total_amount: Number(inv.total_amount),
+                                previous_paid: 0,
+                                amount_paid: Number(p?.amount || inv.paid_amount),
+                                remaining_balance: Number(inv.remaining_balance),
+                                status: inv.status,
+                                method: p?.method || inv.method || 'cash',
+                                notes: p?.notes,
+                                staff_name: p?.staff_name || inv.issued_by_name || 'Front Desk Staff',
+                                paid_at: p?.paid_at || inv.issued_at,
+                              }
+                              setActiveReceipt(receiptObj)
+                            }}
+                            className="px-2.5 py-1 text-xs text-[#B48454] bg-[#B48454]/10 hover:bg-[#B48454]/20 border border-[#B48454]/30 rounded-lg font-semibold transition-all shadow-xs shrink-0 cursor-pointer flex items-center gap-1"
+                            title="View and print official payment receipt"
+                          >
+                            <Printer className="w-3 h-3" />
+                            <span>Receipt</span>
+                          </button>
+                        )}
+
+                        {/* 3. PAY */}
                         {String(inv.status).toUpperCase() !== 'PAID' && String(inv.status).toUpperCase() !== 'CANCELLED' && (
                           <button
                             onClick={() => {
@@ -921,21 +999,44 @@ export default function AdminPayments() {
                 type="number"
                 step="0.01"
                 min="0.01"
+                max="1000000"
                 value={payAmount}
-                onChange={(e) => setPayAmount(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value
+                  const parts = val.split('.')
+                  if (parts[0] && parts[0].length > 7) return
+                  setPayAmount(val)
+                }}
                 onWheel={(e) => (e.target as HTMLInputElement).blur()}
                 placeholder={activeDueAmount > 0 ? `Enter at least ${activeDueAmount.toLocaleString()}` : "0.00"}
                 className={`w-full px-3 py-2.5 rounded-xl border font-display font-bold text-sm transition-all ${
-                  isUnderpaid
+                  isExceeded || isUnderpaid
                     ? 'border-rose-500 bg-rose-50/40 text-rose-900 focus:ring-2 focus:ring-rose-400/40'
                     : 'border-stone focus:ring-2 focus:ring-[#B48454]/40'
                 }`}
               />
+
+              {isExceeded && (
+                <p className="text-rose-600 dark:text-rose-400 text-[11px] font-semibold mt-1.5 flex items-center gap-1">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>Maximum accepted payment is ₱1,000,000.00. Please check for extra zeros or copy-paste error.</span>
+                </p>
+              )}
+
               {isUnderpaid && (
                 <p className="text-rose-600 dark:text-rose-400 text-[11px] font-semibold mt-1.5 flex items-center gap-1">
                   <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                   <span>Amount received must be at least ₱{activeDueAmount.toLocaleString()} to settle this invoice.</span>
                 </p>
+              )}
+
+              {isDisproportionate && (
+                <div className="p-2.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/60 rounded-xl text-amber-900 dark:text-amber-200 text-[11px] flex items-start gap-2 mt-2">
+                  <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                  <span>
+                    <strong>Unusually Large Cash Tender:</strong> ₱{paymentReceivedNum.toLocaleString()} is <strong>{Math.round(paymentReceivedNum / activeDueAmount)}x</strong> the total bill (₱{activeDueAmount.toLocaleString()}). Please double-check cash count before proceeding.
+                  </span>
+                </div>
               )}
             </div>
             <div>
@@ -966,22 +1067,22 @@ export default function AdminPayments() {
             <div className="p-3.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-xl flex items-center justify-between text-xs animate-fadeIn shadow-2xs">
               <span className="font-semibold text-amber-900 dark:text-amber-200">Change Due to Guest:</span>
               <strong className="font-mono text-base font-bold text-amber-800 dark:text-amber-300">
-                ₱{changeDue.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                ₱{changeDue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </strong>
             </div>
           )}
 
           {/* ─── 4. REMAINING BALANCE AFTER PAYMENT (Floored at ₱0) ─── */}
-          {(selectedInvoice || selectedBooking) && payAmount && (
+          {(selectedInvoice || selectedBooking) && payAmount && !isExceeded && (
             <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 rounded-xl flex items-center justify-between text-xs">
               <span className="font-semibold text-emerald-900 dark:text-emerald-200">Remaining Balance After Payment:</span>
               <strong className="font-mono text-sm text-emerald-800 dark:text-emerald-300">
-                ₱{remainingBalanceAfter.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                ₱{remainingBalanceAfter.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </strong>
             </div>
           )}
 
-          {/* ─── 5. ACTION BUTTONS (Disabled on insufficient payment) ─── */}
+          {/* ─── 5. ACTION BUTTONS (Disabled on insufficient payment or exceeded cap) ─── */}
           <div className="flex gap-3 pt-2">
             <button
               type="button"
@@ -992,7 +1093,7 @@ export default function AdminPayments() {
             </button>
             <button
               type="submit"
-              disabled={processingPayment || (!selectedBillId && !selectedBookingId) || !payAmount || isInsufficient || paymentReceivedNum <= 0}
+              disabled={processingPayment || (!selectedBillId && !selectedBookingId) || !payAmount || isInsufficient || isExceeded || paymentReceivedNum <= 0}
               className="flex-1 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl font-semibold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer"
             >
               {processingPayment ? 'Recording...' : 'Record Payment'}
@@ -1018,13 +1119,21 @@ export default function AdminPayments() {
             <div className="bg-[#FAF8F5] border border-stone/20 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2 mb-0.5">
-                  <span className="text-[10px] uppercase font-bold tracking-widest text-[#B48454]">INVOICE RECEIPT</span>
+                  <span className="text-[10px] uppercase font-bold tracking-widest text-[#B48454]">INVOICE STATEMENT</span>
                   <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-sand text-ink border border-stone/20">
                     {viewInvoice.service_type || 'Service Invoice'}
                   </span>
                 </div>
                 <h3 className="font-display font-bold text-xl text-ink leading-tight">{viewInvoice.customer_name}</h3>
-                <p className="text-ink text-xs font-semibold mt-0.5">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-xs">
+                  <p className="font-mono text-neutral-600">
+                    Invoice No.: <strong className="font-bold text-[#B48454]">{viewInvoice.invoice_number}</strong>
+                  </p>
+                  <p className="font-mono text-neutral-600">
+                    Receipt No.: <strong className="font-bold text-neutral-900 dark:text-white">{viewInvoice.receipt_number && viewInvoice.receipt_number !== '—' ? viewInvoice.receipt_number : '—'}</strong>
+                  </p>
+                </div>
+                <p className="text-ink text-xs font-semibold mt-1">
                   {viewInvoice.service_name || (viewInvoice.booking_ref ? `${viewInvoice.booking_ref} · Room ${viewInvoice.room_number || ''}` : 'Direct Service')}
                 </p>
                 {viewInvoice.service_details && (
@@ -1063,15 +1172,18 @@ export default function AdminPayments() {
 
             {/* Payment Transactions History */}
             <div>
-              <h4 className="font-display font-bold text-sm text-ink mb-2.5">Recorded Payment Transactions</h4>
+              <h4 className="font-display font-bold text-sm text-ink mb-2.5">Official Payment Receipts</h4>
               
               {viewInvoice.payments.length > 0 ? (
                 <div className="divide-y divide-stone/15 border border-stone/20 rounded-2xl overflow-hidden bg-white text-xs">
                   {viewInvoice.payments.map((p) => (
                     <div key={p.id} className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-sand/10 transition-colors">
-                      <div className="space-y-0.5">
+                      <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          <strong className="font-mono font-bold text-[#B48454]">{p.txn_number || `TXN-2026-${String(p.id).padStart(6, '0')}`}</strong>
+                          <span className="text-[10px] text-neutral-500 uppercase font-bold">Receipt No.:</span>
+                          <strong className="font-mono font-bold text-[#B48454] text-xs">
+                            {p.receipt_number && p.receipt_number !== '—' ? p.receipt_number : '—'}
+                          </strong>
                           <span className="capitalize font-semibold text-ink bg-sand/40 px-2 py-0.5 rounded text-[10px] border border-stone/20">
                             {p.method}
                           </span>
@@ -1081,21 +1193,56 @@ export default function AdminPayments() {
                             </span>
                           )}
                         </div>
-                        <p className="text-ink-muted text-[11px]">{p.notes || 'Direct payment settlement'}</p>
-                        <p className="text-ink-faint text-[10px] font-mono">
-                          Recorded: {formatDate(p.paid_at)} by {p.staff_name || 'Staff'}
-                        </p>
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-[11px] text-neutral-600 font-mono">
+                          <div>Payment Method: <span className="font-semibold capitalize text-neutral-900">{p.method}</span></div>
+                          <div>Amount Paid: <span className="font-semibold text-emerald-700">₱{Number(p.amount).toLocaleString()}</span></div>
+                          <div>Date Paid: <span className="text-neutral-800">{formatDate(p.paid_at)}</span></div>
+                          <div>Received By: <span className="text-neutral-800">{p.staff_name || 'Front Desk Staff'}</span></div>
+                        </div>
+                        {p.notes && <p className="text-ink-muted text-[10px]">{p.notes}</p>}
                       </div>
 
-                      <div className="flex items-center gap-3 self-end sm:self-auto">
+                      <div className="flex items-center gap-2 self-end sm:self-auto">
                         <span className={`font-display font-bold text-base ${p.is_refunded ? 'line-through text-ink-muted' : 'text-emerald-700'}`}>
                           ₱{Number(p.amount).toLocaleString()}
                         </span>
 
+                        <button
+                          onClick={() => {
+                            const pastReceipt: OfficialReceiptData = {
+                              receipt_number: p.receipt_number && p.receipt_number !== '—' ? p.receipt_number : `OR-${String(p.id).padStart(6, '0')}`,
+                              invoice_number: viewInvoice.invoice_number,
+                              bill_id: viewInvoice.id,
+                              payment_id: p.id,
+                              customer_name: viewInvoice.customer_name,
+                              customer_email: viewInvoice.customer_email,
+                              customer_phone: viewInvoice.customer_phone,
+                              service_name: viewInvoice.service_name,
+                              service_details: viewInvoice.service_details,
+                              service_type: viewInvoice.service_type,
+                              total_amount: Number(viewInvoice.total_amount),
+                              previous_paid: 0,
+                              amount_paid: Number(p.amount),
+                              remaining_balance: Number(viewInvoice.remaining_balance),
+                              status: viewInvoice.status,
+                              method: p.method,
+                              notes: p.notes,
+                              staff_name: p.staff_name || 'Front Desk Staff',
+                              paid_at: p.paid_at,
+                            }
+                            setActiveReceipt(pastReceipt)
+                          }}
+                          className="px-2.5 py-1 text-[11px] text-[#B48454] border border-[#B48454]/40 bg-[#B48454]/5 rounded-lg hover:bg-sand/40 font-semibold transition-all cursor-pointer flex items-center gap-1"
+                          title="View and print official payment receipt"
+                        >
+                          <Printer className="w-3 h-3" />
+                          <span>Receipt</span>
+                        </button>
+
                         {!p.is_refunded && (
                           <button
                             onClick={() => setRefundTarget({ invoice: viewInvoice, payment: p })}
-                            className="px-2.5 py-1 text-[11px] text-red-600 border border-red-200 rounded-lg hover:bg-red-50 font-semibold transition-all"
+                            className="px-2.5 py-1 text-[11px] text-red-600 border border-red-200 rounded-lg hover:bg-red-50 font-semibold transition-all cursor-pointer"
                           >
                             Refund
                           </button>
@@ -1106,7 +1253,7 @@ export default function AdminPayments() {
                 </div>
               ) : (
                 <div className="p-6 text-center text-ink-muted bg-sand/20 rounded-2xl border border-stone/20">
-                  <p className="italic">No payment transactions recorded for this invoice yet.</p>
+                  <p className="italic">No payment receipts recorded for this invoice yet.</p>
                 </div>
               )}
             </div>
@@ -1139,7 +1286,7 @@ export default function AdminPayments() {
             <div className="p-3.5 bg-red-50 border border-red-200 rounded-2xl space-y-1.5 text-red-950">
               <p className="font-bold text-sm">Refund Payment?</p>
               <p className="text-[11px] text-red-800">
-                You are issuing a refund for transaction <strong className="font-mono">{refundTarget.payment.txn_number}</strong> of <strong>₱{Number(refundTarget.payment.amount).toLocaleString()}</strong> ({refundTarget.payment.method}) associated with {refundTarget.invoice.customer_name}.
+                You are issuing a refund for receipt <strong className="font-mono">{refundTarget.payment.receipt_number && refundTarget.payment.receipt_number !== '—' ? refundTarget.payment.receipt_number : `TXN-${refundTarget.payment.id}`}</strong> of <strong>₱{Number(refundTarget.payment.amount).toLocaleString()}</strong> ({refundTarget.payment.method}) associated with {refundTarget.invoice.customer_name}.
               </p>
             </div>
 
@@ -1159,7 +1306,7 @@ export default function AdminPayments() {
               <button
                 type="button"
                 onClick={() => setRefundTarget(null)}
-                className="flex-1 py-2.5 border border-stone rounded-xl text-ink-muted hover:bg-sand font-semibold"
+                className="flex-1 py-2.5 border border-stone rounded-xl text-ink-muted hover:bg-sand font-semibold cursor-pointer"
               >
                 Cancel
               </button>
@@ -1167,7 +1314,7 @@ export default function AdminPayments() {
                 type="button"
                 onClick={handleConfirmRefund}
                 disabled={processingRefund || !refundReason.trim()}
-                className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-semibold shadow-sm disabled:opacity-50"
+                className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-semibold shadow-sm disabled:opacity-50 cursor-pointer"
               >
                 {processingRefund ? 'Processing...' : 'Confirm Refund'}
               </button>
@@ -1176,6 +1323,15 @@ export default function AdminPayments() {
           </div>
         )}
       </Modal>
+
+      {/* ══════════════════════════════════════════════════════════════
+          MODAL 4: OFFICIAL PAYMENT RECEIPT (PRINTABLE)
+         ══════════════════════════════════════════════════════════════ */}
+      <OfficialReceiptModal
+        isOpen={Boolean(activeReceipt)}
+        onClose={() => setActiveReceipt(null)}
+        receipt={activeReceipt}
+      />
 
     </div>
   )

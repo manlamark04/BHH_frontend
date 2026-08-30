@@ -13,6 +13,7 @@ import { ApiError } from '../api/client'
 import logo from '../imports/logo.png'
 import signinImg from '../imports/signin.jpg'
 import InteractiveLogoMark from '../components/InteractiveLogoMark'
+import Modal from '../components/Modal'
 
 interface RegisterProps {
   onNavigate: (view: View) => void
@@ -30,11 +31,12 @@ export default function Register({ onNavigate }: RegisterProps) {
   const [email, setEmail] = useState('')
   const [username, setUsername] = useState('')
 
+  const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState<{ message: string; unique_id: string; username?: string } | null>(null)
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleOpenConfirmation = (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
 
@@ -66,6 +68,13 @@ export default function Register({ onNavigate }: RegisterProps) {
       return
     }
 
+    setShowConfirmModal(true)
+  }
+
+  const executeRegistration = async () => {
+    setError('')
+    const digitsPhone = phone.replace(/\D/g, '')
+
     setSubmitting(true)
     try {
       const res = await authApi.register({
@@ -80,8 +89,10 @@ export default function Register({ onNavigate }: RegisterProps) {
         civil_status: civilStatus,
         username: username.trim().toLowerCase() || undefined,
       })
+      setShowConfirmModal(false)
       setSuccess(res)
     } catch (err: unknown) {
+      setShowConfirmModal(false)
       const msg =
         err instanceof ApiError
           ? err.message
@@ -189,7 +200,7 @@ export default function Register({ onNavigate }: RegisterProps) {
               </div>
             ) : (
               /* Registration Form */
-              <form onSubmit={handleSubmit} className="space-y-4 text-xs font-sans">
+              <form onSubmit={handleOpenConfirmation} className="space-y-4 text-xs font-sans">
                 {/* 1. Name Fields (3 Columns) */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
@@ -327,11 +338,10 @@ export default function Register({ onNavigate }: RegisterProps) {
                 <div className="pt-2 space-y-3">
                   <button
                     type="submit"
-                    disabled={submitting}
-                    className="w-full bg-[#B48454] hover:bg-[#9E6E3E] text-white py-3.5 rounded-xl font-semibold text-sm tracking-wide shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 group"
+                    className="w-full bg-[#B48454] hover:bg-[#9E6E3E] text-white py-3.5 rounded-xl font-semibold text-sm tracking-wide shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 group cursor-pointer"
                   >
                     <UserPlus className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                    <span>{submitting ? 'Submitting Registration...' : 'Complete Guest Registration'}</span>
+                    <span>Complete Guest Registration</span>
                   </button>
 
                   <div className="text-center text-xs text-ink-muted">
@@ -404,6 +414,77 @@ export default function Register({ onNavigate }: RegisterProps) {
         </div>
 
       </div>
+
+      {/* Confirmation Modal */}
+      <Modal
+        isOpen={showConfirmModal}
+        onClose={() => !submitting && setShowConfirmModal(false)}
+        title="Confirm Your Registration"
+        size="md"
+      >
+        <div className="space-y-4 text-xs font-sans">
+          <p className="text-neutral-600 dark:text-neutral-300 leading-relaxed">
+            Please review your details before submitting. Your registration will be sent to our front desk for approval, and account access will be provided once approved.
+          </p>
+
+          {/* Details Recap Card */}
+          <div className="bg-[#FAF8F5] dark:bg-[#14171C] rounded-2xl p-4 border border-black/[0.06] dark:border-neutral-800 space-y-2.5">
+            <div>
+              <span className="text-[10px] uppercase font-bold tracking-wider text-[#B48454] block">Full Legal Name</span>
+              <p className="font-display text-base font-bold text-neutral-900 dark:text-white mt-0.5">
+                {firstName.trim()} {middleName.trim() ? `${middleName.trim()} ` : ''}{lastName.trim()}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2.5 border-t border-black/[0.06] dark:border-neutral-800">
+              <div>
+                <span className="text-[10px] uppercase font-bold tracking-wider text-neutral-500 dark:text-neutral-400 block">Email Address</span>
+                <p className="font-mono text-neutral-800 dark:text-neutral-200 font-semibold mt-0.5 break-all">{email.trim()}</p>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase font-bold tracking-wider text-neutral-500 dark:text-neutral-400 block">Mobile Phone</span>
+                <p className="font-mono text-neutral-800 dark:text-neutral-200 font-semibold mt-0.5">{phone}</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2.5 border-t border-black/[0.06] dark:border-neutral-800">
+              <div>
+                <span className="text-[10px] uppercase font-bold tracking-wider text-neutral-500 dark:text-neutral-400 block">Date of Birth</span>
+                <p className="font-medium text-neutral-800 dark:text-neutral-200 mt-0.5">{dob}</p>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase font-bold tracking-wider text-neutral-500 dark:text-neutral-400 block">Civil Status &amp; Gender</span>
+                <p className="font-medium text-neutral-800 dark:text-neutral-200 mt-0.5">{civilStatus} · {gender}</p>
+              </div>
+            </div>
+
+            <div className="pt-2.5 border-t border-black/[0.06] dark:border-neutral-800">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-neutral-500 dark:text-neutral-400 block">Complete Address</span>
+              <p className="text-neutral-800 dark:text-neutral-200 mt-0.5 leading-relaxed">{address.trim()}</p>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-2.5 pt-2">
+            <button
+              type="button"
+              disabled={submitting}
+              onClick={() => setShowConfirmModal(false)}
+              className="flex-1 py-2.5 border border-black/[0.1] dark:border-neutral-700 rounded-xl text-xs font-semibold text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors disabled:opacity-50 cursor-pointer"
+            >
+              No, Go Back
+            </button>
+            <button
+              type="button"
+              disabled={submitting}
+              onClick={executeRegistration}
+              className="flex-1 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl text-xs font-semibold shadow-xs disabled:opacity-50 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+            >
+              {submitting ? 'Submitting Registration...' : 'Yes, Submit Registration'}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }

@@ -360,6 +360,7 @@ export default function CustomerTransactions() {
               <thead>
                 <tr className="border-b border-black/[0.06] dark:border-neutral-800 bg-neutral-50/70 dark:bg-neutral-900/60 text-[10px] uppercase font-bold text-neutral-500 dark:text-neutral-400 tracking-wider">
                   <th className="px-5 py-3.5">INVOICE NUMBER</th>
+                  <th className="px-5 py-3.5">RECEIPT NO.</th>
                   <th className="px-5 py-3.5">ITEM DESCRIPTION</th>
                   <th className="px-5 py-3.5">BILLED TOTAL</th>
                   <th className="px-5 py-3.5">AMOUNT PAID</th>
@@ -371,6 +372,7 @@ export default function CustomerTransactions() {
               <tbody className="divide-y divide-black/[0.06] dark:divide-neutral-800">
                 {filteredBills.map((b) => {
                   const invoiceNum = String(b.bill_number || b.invoice_number || `INV-${b.id}`)
+                  const receiptNum = String(b.receipt_number && b.receipt_number !== '—' ? b.receipt_number : '—')
                   const total = Number(b.total_amount || 0)
                   const paid = Number(b.amount_paid || b.paid_amount || 0)
                   const isCancelled = String(b.status || '').toUpperCase() === 'CANCELLED' || String(b.status || '').toUpperCase() === 'VOID' || Boolean(b.is_cancelled)
@@ -382,6 +384,15 @@ export default function CustomerTransactions() {
                   return (
                     <tr key={String(b.id)} className="hover:bg-neutral-50/50 dark:hover:bg-neutral-900/40 transition-colors">
                       <td className="px-5 py-4 font-mono font-bold text-[#B48454]">{invoiceNum}</td>
+                      <td className="px-5 py-4 font-mono font-bold text-neutral-800 dark:text-neutral-200">
+                        {receiptNum !== '—' ? (
+                          <span className="px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50 text-[11px]">
+                            {receiptNum}
+                          </span>
+                        ) : (
+                          <span className="text-neutral-400 font-normal">—</span>
+                        )}
+                      </td>
                       <td className="px-5 py-4">
                         <p className="font-semibold text-neutral-900 dark:text-white">{String(b.room_type || 'Resort Stay')}</p>
                         <p className="text-[10px] text-neutral-500 dark:text-neutral-400">{b.room_number ? `Room ${b.room_number}` : 'Direct Service'}</p>

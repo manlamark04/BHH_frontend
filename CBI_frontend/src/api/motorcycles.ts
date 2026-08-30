@@ -8,6 +8,7 @@ export interface Motorcycle {
   type: string
   plate_number: string
   rental_rate: number
+  late_fee_hourly_rate?: number | null
   rate_type: 'hourly' | 'daily'
   description?: string
   image_url?: string
@@ -29,6 +30,10 @@ export interface MotorRental {
   rate_type: 'hourly' | 'daily'
   total_amount: number
   late_fee: number
+  hours_late?: number
+  hourly_late_rate?: number
+  late_fee_waived?: boolean
+  late_fee_waiver_reason?: string
   final_amount: number
   status: 'PENDING' | 'RESERVED' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED' | 'OVERDUE'
   notes?: string
@@ -58,6 +63,9 @@ export interface ReturnMotorPayload {
   condition?: string
   remarks?: string
   maintenance_needed?: boolean
+  waive_late_fee?: boolean
+  late_fee_override?: number
+  waiver_reason?: string
 }
 
 export const motorcyclesApi = {

@@ -651,59 +651,29 @@ export default function CustomerPickleball({ customerId, customerName }: Props) 
             </div>
           )}
 
-          {/* Court Selector: Court A, Court B, or Auto-Assign */}
-          <div>
-            <label className="block font-semibold text-neutral-900 dark:text-white uppercase tracking-wider mb-1.5">
-              Select Court *
-            </label>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                type="button"
-                onClick={() => setSelectedCourtId('any')}
-                className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
-                  selectedCourtId === 'any'
-                    ? 'border-[#B48454] bg-[#B48454]/10 dark:bg-[#B48454]/20 text-[#B48454] ring-1 ring-[#B48454]'
-                    : 'border-black/[0.08] dark:border-neutral-800 bg-neutral-50/50 dark:bg-[#15181D] text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-0.5">
-                  <span className="font-bold text-xs">Any Court</span>
-                  {selectedCourtId === 'any' && <Check className="w-3.5 h-3.5" />}
-                </div>
-                <span className="text-[10px] text-neutral-500 block">Auto-assign free</span>
-              </button>
+          {/* Non-editable Designated Court Confirmation */}
+          <div className="p-3 bg-neutral-50 dark:bg-[#14171C] border border-black/[0.06] dark:border-neutral-800 rounded-xl flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-[#B48454]/10 text-[#B48454] flex items-center justify-center font-bold text-xs font-mono">
+                {selectedCourtId === 'any' ? 'ANY' : (selectedCourtObj?.court_code || 'CT')}
+              </div>
+              <div>
+                <span className="text-[9px] uppercase font-bold tracking-wider text-[#B48454] block">
+                  {selectedCourtId === 'any' ? 'AUTO-ASSIGNMENT' : 'RESERVING COURT'}
+                </span>
+                <p className="font-display font-bold text-sm text-neutral-900 dark:text-white leading-tight">
+                  {selectedCourtId === 'any' ? 'First Available Court' : (selectedCourtObj?.name || 'Court A')}
+                </p>
+              </div>
+            </div>
 
-              {renderedCourts.map((c) => {
-                const isSelected = selectedCourtId === c.id
-                const isMaint = c.status === 'MAINTENANCE' || c.status === 'INACTIVE'
-                const isInMatch = c.live_status === 'IN_MATCH' || c.live_status === 'RENTED' || (c.status === 'AVAILABLE' && !!c.current_active_match)
-                const isReserved = !isInMatch && !isMaint && (c.live_status === 'RESERVED' || c.live_status === 'PENDING_PAYMENT' || !!c.pending_match || !!c.upcoming_match)
-                const isBlocked = isMaint || isInMatch || isReserved
-
-                return (
-                  <button
-                    key={String(c.id)}
-                    type="button"
-                    disabled={isBlocked}
-                    onClick={() => setSelectedCourtId(c.id)}
-                    className={`p-2.5 rounded-xl border text-left transition-all ${
-                      isBlocked
-                        ? 'border-neutral-200 dark:border-neutral-800 bg-neutral-100/70 dark:bg-[#121418] opacity-50 cursor-not-allowed text-neutral-400'
-                        : isSelected
-                        ? 'border-[#B48454] bg-[#B48454]/10 dark:bg-[#B48454]/20 text-[#B48454] ring-1 ring-[#B48454] cursor-pointer'
-                        : 'border-black/[0.08] dark:border-neutral-800 bg-neutral-50/50 dark:bg-[#15181D] text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 cursor-pointer'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-0.5">
-                      <span className="font-bold text-xs">{c.name}</span>
-                      {isSelected && !isBlocked && <Check className="w-3.5 h-3.5" />}
-                    </div>
-                    <span className="text-[10px] text-neutral-500 block">
-                      {isMaint ? 'Maintenance' : isInMatch ? 'In Match' : isReserved ? 'Reserved' : `₱${Number(c.hourly_rate || 150)}/hr`}
-                    </span>
-                  </button>
-                )
-              })}
+            <div className="text-right">
+              <span className="font-display font-bold text-sm text-[#B48454] font-mono">
+                ₱{courtRate} <span className="text-[10px] font-sans font-normal text-neutral-500 dark:text-neutral-400">/ hr</span>
+              </span>
+              <span className="text-[10px] text-neutral-500 dark:text-neutral-400 block">
+                {selectedCourtId === 'any' ? 'Auto-assigned upon booking' : 'Paddles & balls included'}
+              </span>
             </div>
           </div>
 
