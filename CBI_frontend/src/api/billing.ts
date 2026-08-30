@@ -27,6 +27,9 @@ export interface InvoiceItem {
   booking_id?: number
   booking_ref?: string
   booking_status?: string
+  booking_type?: 'per_night' | 'short_time' | string
+  check_in_time?: string
+  duration_hours?: number
   room_number?: string
   room_type?: string
   check_in?: string

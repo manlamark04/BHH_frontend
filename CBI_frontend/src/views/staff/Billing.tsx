@@ -11,17 +11,19 @@ import {
   BedDouble,
   Activity,
   X,
+  AlertCircle,
+  Banknote,
 } from 'lucide-react'
-import { billingApi } from '../../api/billing'
+import { billingApi, type InvoiceItem } from '../../api/billing'
 import StatusBadge from '../../components/StatusBadge'
 import Modal from '../../components/Modal'
 
 export default function StaffBilling() {
-  const [bills, setBills] = useState<Record<string, unknown>[]>([])
+  const [bills, setBills] = useState<InvoiceItem[]>([])
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('All')
   const [loading, setLoading] = useState(true)
-  const [paymentBill, setPaymentBill] = useState<Record<string, unknown> | null>(null)
+  const [paymentBill, setPaymentBill] = useState<InvoiceItem | null>(null)
   const [payAmount, setPayAmount] = useState('')
   const [payMethod, setPayMethod] = useState<'cash' | 'card' | 'ewallet'>('cash')
   const [submitting, setSubmitting] = useState(false)
@@ -34,27 +36,125 @@ export default function StaffBilling() {
 
   useEffect(() => { load() }, [])
 
+  const getAvailmentType = (b: InvoiceItem) => {
+    const isShortTime =
+      b.booking_type === 'short_time' ||
+      String(b.service_details || '').toLowerCase().includes('short time') ||
+      String(b.service_details || '').toLowerCase().includes('per hour')
+
+    const isPerNight =
+      !isShortTime && (b.booking_id || b.room_number || b.service_type === 'Room Booking')
+
+    const isMotor =
+      String(b.service_type || '').includes('Motor') ||
+      String(b.service_name || '').includes('Yamaha') ||
+      String(b.service_name || '').includes('Honda') ||
+      String(b.bill_number || '').startsWith('BILL-MTR') ||
+      String(b.line_items_summary || '').includes('Motor')
+
+    const isCourt =
+      String(b.service_type || '').includes('Pickleball') ||
+      String(b.service_name || '').toLowerCase().includes('pickleball') ||
+      Boolean(b.activity_rental_id)
+
+    if (isShortTime) {
+      const hours = b.duration_hours || 3
+      return {
+        type: 'short_time',
+        label: `Per Hour (${hours}h)`,
+        rateType: 'Per Hour (Short Time)',
+        badgeLabel: `⏱ Per Hour (${hours}h)`,
+        details: `${hours} Hour(s) Short Stay`,
+        tagColor: 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-700',
+      }
+    }
+
+    if (isPerNight) {
+      return {
+        type: 'per_night',
+        label: 'Per Night',
+        rateType: 'Per Night Stay',
+        badgeLabel: '🌙 Per Night',
+        details: 'Per Night Stay',
+        tagColor: 'bg-indigo-100 dark:bg-indigo-950/60 text-indigo-800 dark:text-indigo-300 border-indigo-300 dark:border-indigo-700',
+      }
+    }
+
+    if (isMotor) {
+      return {
+        type: 'motor',
+        label: 'Motor Rental',
+        rateType: 'Hourly Motor Rental',
+        badgeLabel: '🏍 Motor Rental',
+        details: 'Motorcycle Availment',
+        tagColor: 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-700',
+      }
+    }
+
+    if (isCourt) {
+      return {
+        type: 'court',
+        label: 'Pickleball',
+        rateType: 'Hourly Match Play',
+        badgeLabel: '🏓 Court Match',
+        details: 'Court Match Play',
+        tagColor: 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700',
+      }
+    }
+
+    return {
+      type: 'general',
+      label: 'Service',
+      rateType: 'General Service',
+      badgeLabel: 'Service Invoice',
+      details: 'Direct Settlement',
+      tagColor: 'bg-stone-100 dark:bg-stone-800 text-stone-800 dark:text-stone-300 border-stone-300 dark:border-stone-700',
+    }
+  }
+
   const filtered = bills.filter((b) => {
     const matchSearch =
-      String(b.unique_id || b.id || '').toLowerCase().includes(search.toLowerCase()) ||
+      String(b.unique_id || b.invoice_number || b.bill_number || b.id || '').toLowerCase().includes(search.toLowerCase()) ||
       String(b.customer_name || '').toLowerCase().includes(search.toLowerCase())
-    const matchStatus = statusFilter === 'All' || String(b.payment_status || '').toUpperCase().replace('_', ' ') === statusFilter
+    const matchStatus = statusFilter === 'All' || String(b.payment_status || b.status || '').toUpperCase().replace('_', ' ') === statusFilter
     return matchSearch && matchStatus
   })
 
   const handlePayment = async () => {
     if (!paymentBill || !payAmount) return
+    const amountNum = parseFloat(payAmount)
+    const dueAmount = Number(paymentBill.remaining_balance || paymentBill.balance || paymentBill.total_amount || 0)
+    if (isNaN(amountNum) || amountNum <= 0) return
+    if (dueAmount > 0 && amountNum < dueAmount) {
+      alert(`Amount received (₱${amountNum.toLocaleString()}) must be at least ₱${dueAmount.toLocaleString()} to settle this invoice.`)
+      return
+    }
+
+    const amountToRecord = dueAmount > 0 ? Math.min(amountNum, dueAmount) : amountNum
+    const change = dueAmount > 0 && amountNum > dueAmount ? amountNum - dueAmount : 0
+    const notes = change > 0 ? `[Cash Received: ₱${amountNum.toLocaleString()}, Change Given: ₱${change.toLocaleString()}]` : undefined
+
     setSubmitting(true)
     try {
       await billingApi.recordPayment({
         bill_id: Number(paymentBill.id),
-        amount: Number(payAmount),
+        amount: amountToRecord,
         method: payMethod,
+        notes: notes,
       })
+      const isCourt =
+        (paymentBill.service_name || '').toLowerCase().includes('pickleball') ||
+        (paymentBill.service_type || '').toLowerCase().includes('pickleball') ||
+        (paymentBill.bill_number || '').includes('BILL-ACT')
+      
       setPaymentBill(null)
       setPayAmount('')
-      setToast('Payment recorded successfully!')
-      setTimeout(() => setToast(''), 4000)
+      setToast(
+        isCourt
+          ? `Payment recorded! Pickleball court session is now ACTIVE (Match in Progress).${change > 0 ? ` (Change: ₱${change.toLocaleString()})` : ''}`
+          : `Payment recorded successfully!${change > 0 ? ` (Change: ₱${change.toLocaleString()})` : ''}`
+      )
+      setTimeout(() => setToast(''), 4500)
       load()
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed')
@@ -215,9 +315,19 @@ export default function StaffBilling() {
                            <Receipt className="w-4 h-4" strokeWidth={1.5} />}
                         </div>
                         <div>
-                          <p className="font-bold text-ink text-xs">
-                            {b.service_name || (isMotor ? 'Motorcycle Rental' : isCourt ? 'Pickleball Court Reservation' : isRoom ? `${b.room_type || 'Room Booking'}` : 'Hotel Service')}
-                          </p>
+                          <div className="flex items-center gap-1.5">
+                            <p className="font-bold text-ink text-xs">
+                              {b.service_name || (isMotor ? 'Motorcycle Rental' : isCourt ? 'Pickleball Court Reservation' : isRoom ? `${b.room_type || 'Room Booking'}` : 'Hotel Service')}
+                            </p>
+                            {(() => {
+                              const avail = getAvailmentType(b)
+                              return avail ? (
+                                <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold border ${avail.tagColor}`}>
+                                  {avail.badgeLabel}
+                                </span>
+                              ) : null
+                            })()}
+                          </div>
                           <p className="text-[10px] text-ink-muted">
                             {b.service_details || b.line_items_summary || (isRoom && b.room_number ? `Room ${b.room_number}` : 'Standard Bill Item')}
                           </p>
@@ -278,58 +388,126 @@ export default function StaffBilling() {
 
       {/* ─── MODAL: PAYMENT ─── */}
       <Modal isOpen={!!paymentBill} onClose={() => setPaymentBill(null)} title="Record Payment" size="sm">
-        {paymentBill && (
-          <div className="space-y-4 text-xs font-sans">
-            <div className="bg-[#FAF8F5] border border-stone/20 rounded-2xl p-4 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="font-mono text-xs font-bold text-[#B48454]">{String(paymentBill.unique_id || paymentBill.invoice_number || paymentBill.bill_number || paymentBill.id)}</span>
-                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-sand text-ink">
-                  {String(paymentBill.service_type || 'Service Bill')}
+        {paymentBill && (() => {
+          const avail = getAvailmentType(paymentBill)
+          const dueAmount = Number(paymentBill.remaining_balance || paymentBill.balance || paymentBill.total_amount || 0)
+          const paymentReceivedNum = parseFloat(payAmount) || 0
+          const isOverpaid = dueAmount > 0 && paymentReceivedNum > dueAmount
+          const isUnderpaid = dueAmount > 0 && paymentReceivedNum > 0 && paymentReceivedNum < dueAmount
+          const isInsufficient = dueAmount > 0 && paymentReceivedNum < dueAmount
+          const changeDue = Math.max(0, paymentReceivedNum - dueAmount)
+          const remainingBalanceAfter = Math.max(0, dueAmount - paymentReceivedNum)
+
+          return (
+            <div className="space-y-4 text-xs font-sans">
+              <div className="bg-[#FAF8F5] border border-stone/20 rounded-2xl p-4 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-xs font-bold text-[#B48454]">{String(paymentBill.unique_id || paymentBill.invoice_number || paymentBill.bill_number || paymentBill.id)}</span>
+                  {avail && (
+                    <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${avail.tagColor}`}>
+                      {avail.badgeLabel}
+                    </span>
+                  )}
+                </div>
+                <div>
+                  <p className="font-display font-bold text-ink text-base">{String(paymentBill.customer_name || 'Guest')}</p>
+                  <p className="text-[11px] text-ink-muted font-medium mt-0.5">
+                    {String(paymentBill.service_name || 'Service Availment')} · {String(paymentBill.service_details || avail?.details || '')}
+                  </p>
+                </div>
+                {avail && (
+                  <div className="p-2 bg-white rounded-lg border border-stone/20 text-[11px] flex justify-between">
+                    <span className="text-ink-muted">Availed Rate:</span>
+                    <strong className="text-ink font-semibold">{avail.rateType}</strong>
+                  </div>
+                )}
+                <div className="flex justify-between pt-2 border-t border-stone/15 text-xs">
+                  <span className="text-ink-muted">Outstanding Balance:</span>
+                  <span className="font-display font-bold text-amber-700 text-sm">₱{dueAmount.toLocaleString()}</span>
+                </div>
+              </div>
+
+              {/* Prominent Total Bill Amount Row */}
+              <div className="p-3.5 bg-[#FAF8F5] dark:bg-[#181B20] border border-stone/20 dark:border-neutral-700/80 rounded-2xl flex items-center justify-between shadow-2xs">
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-ink-muted tracking-wider block">TOTAL BILL AMOUNT</span>
+                  <span className="text-[11px] text-ink-muted font-medium">Remaining balance owed</span>
+                </div>
+                <div className="text-right">
+                  <span className="font-display font-bold text-2xl text-[#B48454]">
+                    ₱{dueAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+              </div>
+
+              {/* Settlement Mode Banner */}
+              <div className="flex items-center justify-between px-3.5 py-2.5 bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/50 rounded-xl text-xs">
+                <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-300 font-semibold">
+                  <Banknote className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <span>Settlement Mode</span>
+                </div>
+                <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider bg-emerald-600 text-white px-2.5 py-0.5 rounded-lg shadow-2xs">
+                  Cash Payment Only
                 </span>
               </div>
+
               <div>
-                <p className="font-display font-bold text-ink text-base">{String(paymentBill.customer_name || 'Guest')}</p>
-                <p className="text-[11px] text-ink-muted font-medium mt-0.5">
-                  {String(paymentBill.service_name || 'Service Availment')} · {String(paymentBill.service_details || '')}
-                </p>
+                <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Payment Received (₱) *</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  value={payAmount}
+                  onChange={(e) => setPayAmount(e.target.value)}
+                  onWheel={(e) => (e.target as HTMLInputElement).blur()}
+                  placeholder={dueAmount > 0 ? `Enter at least ${dueAmount.toLocaleString()}` : "0.00"}
+                  className={`w-full px-3 py-2.5 rounded-xl border bg-[#FAF8F5] text-xs font-bold transition-all ${
+                    isUnderpaid
+                      ? 'border-rose-500 bg-rose-50/40 text-rose-900 focus:ring-2 focus:ring-rose-400/40'
+                      : 'border-stone/30 focus:outline-none focus:ring-2 focus:ring-[#B48454]/40'
+                  }`}
+                />
+                {isUnderpaid && (
+                  <p className="text-rose-600 dark:text-rose-400 text-[11px] font-semibold mt-1.5 flex items-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span>Amount received must be at least ₱{dueAmount.toLocaleString()} to settle this invoice.</span>
+                  </p>
+                )}
               </div>
-              <div className="flex justify-between pt-2 border-t border-stone/15 text-xs">
-                <span className="text-ink-muted">Outstanding Balance:</span>
-                <span className="font-display font-bold text-amber-700 text-sm">₱{Number(paymentBill.remaining_balance || paymentBill.balance || 0).toLocaleString()}</span>
+
+              {/* Change Due (Conditional) */}
+              {isOverpaid && (
+                <div className="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-xl flex items-center justify-between text-xs animate-fadeIn shadow-2xs">
+                  <span className="font-semibold text-amber-900 dark:text-amber-200">Change Due to Guest:</span>
+                  <strong className="font-mono text-base font-bold text-amber-800 dark:text-amber-300">
+                    ₱{changeDue.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                  </strong>
+                </div>
+              )}
+
+              {/* Remaining Balance After Payment */}
+              {payAmount && (
+                <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 rounded-xl flex items-center justify-between text-xs">
+                  <span className="font-semibold text-emerald-900 dark:text-emerald-200">Remaining Balance After Payment:</span>
+                  <strong className="font-mono text-sm text-emerald-800 dark:text-emerald-300">
+                    ₱{remainingBalanceAfter.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                  </strong>
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-2">
+                <button onClick={() => setPaymentBill(null)} className="flex-1 py-2.5 border border-stone/30 rounded-xl text-xs font-semibold text-ink-muted hover:bg-sand transition-all cursor-pointer">Cancel</button>
+                <button
+                  onClick={handlePayment}
+                  disabled={submitting || !payAmount || isInsufficient || paymentReceivedNum <= 0}
+                  className="flex-1 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl text-xs font-semibold shadow-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  {submitting ? 'Processing...' : 'Record Payment'}
+                </button>
               </div>
             </div>
-            <div>
-              <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Payment Amount (₱)</label>
-              <input
-                type="number"
-                value={payAmount}
-                onChange={(e) => setPayAmount(e.target.value)}
-                max={Number(paymentBill.balance || 0)}
-                className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] text-xs font-bold focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
-              />
-            </div>
-            <div>
-              <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Payment Method</label>
-              <select
-                value={payMethod}
-                onChange={(e) => setPayMethod(e.target.value as 'cash' | 'card' | 'ewallet')}
-                className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
-              >
-                <option value="cash">Cash</option>
-              </select>
-            </div>
-            <div className="flex gap-3 pt-2">
-              <button onClick={() => setPaymentBill(null)} className="flex-1 py-2.5 border border-stone/30 rounded-xl text-xs font-semibold text-ink-muted hover:bg-sand transition-all">Cancel</button>
-              <button
-                onClick={handlePayment}
-                disabled={submitting || !payAmount || Number(payAmount) <= 0}
-                className="flex-1 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl text-xs font-semibold shadow-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                {submitting ? 'Processing...' : 'Record Payment'}
-              </button>
-            </div>
-          </div>
-        )}
+          )
+        })()}
       </Modal>
     </div>
   )

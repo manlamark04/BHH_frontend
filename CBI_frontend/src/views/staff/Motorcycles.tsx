@@ -8,6 +8,7 @@ import {
   KeyRound,
   ShieldCheck,
   Pencil,
+  SlidersHorizontal,
 } from 'lucide-react'
 import { motorcyclesApi, type Motorcycle, type MotorRental } from '../../api/motorcycles'
 import { usersApi } from '../../api/users'
@@ -29,6 +30,10 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
   const [successMsg, setSuccessMsg] = useState('')
   const [editingMotor, setEditingMotor] = useState<Motorcycle | null>(null)
   const [showAddMotorDrawer, setShowAddMotorDrawer] = useState(false)
+  // Edit Motorcycle Status Only (Staff & Admin)
+  const [statusModalMotor, setStatusModalMotor] = useState<Motorcycle | null>(null)
+  const [selectedNewStatus, setSelectedNewStatus] = useState<Motorcycle['status']>('AVAILABLE')
+  const [updatingStatus, setUpdatingStatus] = useState(false)
 
   // Rent Motor for Customer Modal
   const [showRentModal, setShowAddRentModal] = useState(false)
@@ -91,9 +96,23 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
 
   const { duration, total, unit } = calculateCost()
 
+  const selectedCustomerActiveRental = selectedCustomerId
+    ? rentals.find(
+        (r) =>
+          Number(r.customer_id) === Number(selectedCustomerId) &&
+          ['PENDING_PAYMENT', 'PENDING_APPROVAL', 'ACTIVE', 'RESERVED', 'OVERDUE'].includes(
+            String(r.status || '').toUpperCase()
+          )
+      )
+    : null
+
   const handleCreateRental = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedMotorId || !selectedCustomerId || !startDate || !returnDate) return
+    if (selectedCustomerActiveRental) {
+      setRentError(`Customer already has an active or pending motorcycle rental (${selectedCustomerActiveRental.brand} ${selectedCustomerActiveRental.model} · Plate: ${selectedCustomerActiveRental.plate_number}). Only one motorcycle rental is allowed per guest at a time.`)
+      return
+    }
     setCreatingRental(true)
     setRentError('')
     try {
@@ -115,6 +134,22 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
       setRentError(err instanceof Error ? err.message : 'Failed to create rental')
     } finally {
       setCreatingRental(false)
+    }
+  }
+
+  const handleSaveMotorStatus = async () => {
+    if (!statusModalMotor) return
+    setUpdatingStatus(true)
+    try {
+      await motorcyclesApi.updateMotorcycleStatus(statusModalMotor.id, selectedNewStatus)
+      setSuccessMsg(`Status of ${statusModalMotor.brand} ${statusModalMotor.model} updated to ${selectedNewStatus}!`)
+      setTimeout(() => setSuccessMsg(''), 4000)
+      setStatusModalMotor(null)
+      loadData()
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to update motorcycle status')
+    } finally {
+      setUpdatingStatus(false)
     }
   }
 
@@ -261,7 +296,7 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
                       )}
                     </td>
                     <td className="px-5 py-4 text-right">
-                      {r.status === 'PENDING_PAYMENT' && (
+                      {String(r.status) === 'PENDING_PAYMENT' && (
                         <span className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-md font-medium">
                           Awaiting Payment
                         </span>
@@ -345,16 +380,32 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
                   <span>Plate: {m.plate_number}</span>
                 </div>
 
-                {userRole === 'admin' && (
-                  <button
-                    type="button"
-                    onClick={() => setEditingMotor(m)}
-                    className="w-full py-2.5 bg-[#FAF8F5] hover:bg-[#B48454] text-ink hover:text-white rounded-xl text-xs font-semibold transition-all border border-stone/25 flex items-center justify-center gap-2 shadow-xs group-hover:border-[#B48454]"
-                  >
-                    <Pencil className="w-3.5 h-3.5" strokeWidth={1.5} />
-                    <span>Edit Motor Details</span>
-                  </button>
-                )}
+                <div className="grid grid-cols-1 gap-2 pt-1">
+                  {userRole !== 'admin' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setStatusModalMotor(m)
+                        setSelectedNewStatus(m.status)
+                      }}
+                      className="w-full py-2 bg-sand/60 hover:bg-[#B48454] text-ink hover:text-white rounded-xl text-xs font-semibold transition-all border border-stone/30 flex items-center justify-center gap-1.5 shadow-2xs group-hover:border-[#B48454] cursor-pointer"
+                    >
+                      <SlidersHorizontal className="w-3.5 h-3.5" strokeWidth={1.5} />
+                      <span>Edit Status</span>
+                    </button>
+                  )}
+
+                  {userRole === 'admin' && (
+                    <button
+                      type="button"
+                      onClick={() => setEditingMotor(m)}
+                      className="w-full py-2 bg-[#FAF8F5] hover:bg-[#B48454] text-ink hover:text-white rounded-xl text-xs font-semibold transition-all border border-stone/25 flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
+                    >
+                      <Pencil className="w-3.5 h-3.5" strokeWidth={1.5} />
+                      <span>Edit Motor Details</span>
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           ))}
@@ -388,6 +439,33 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
               ))}
             </select>
           </div>
+
+          {/* Active Rental Warning for Selected Customer */}
+          {(() => {
+            const customerActiveRental = selectedCustomerId
+              ? rentals.find(
+                  (r) =>
+                    Number(r.customer_id) === Number(selectedCustomerId) &&
+                    ['PENDING_PAYMENT', 'PENDING_APPROVAL', 'ACTIVE', 'RESERVED', 'OVERDUE'].includes(
+                      String(r.status || '').toUpperCase()
+                    )
+                )
+              : null
+
+            if (!customerActiveRental) return null
+
+            return (
+              <div className="p-3 bg-amber-50 border border-amber-300 rounded-xl text-amber-900 text-xs flex items-start gap-2.5 shadow-2xs">
+                <AlertCircle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-bold">Customer Already Has an Active Motorcycle Rental</p>
+                  <p className="text-[11px] text-amber-800 mt-0.5 leading-relaxed">
+                    This guest currently has <strong>{customerActiveRental.brand} {customerActiveRental.model}</strong> (Plate: {customerActiveRental.plate_number}) with status <strong>{String(customerActiveRental.status).replace('_', ' ')}</strong>. Under business policy, guests may only hold one active motorcycle rental at a time.
+                  </p>
+                </div>
+              </div>
+            )
+          })()}
 
           {/* Select Motorcycle */}
           <div>
@@ -488,8 +566,8 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
             </button>
             <button
               type="submit"
-              disabled={creatingRental || !selectedMotorId || !selectedCustomerId}
-              className="flex-1 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl text-xs font-semibold shadow-sm disabled:opacity-50 transition-all"
+              disabled={creatingRental || !selectedMotorId || !selectedCustomerId || !!selectedCustomerActiveRental}
+              className="flex-1 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl text-xs font-semibold shadow-sm disabled:opacity-50 transition-all cursor-pointer"
             >
               {creatingRental ? 'Creating Rental...' : 'Confirm & Dispatch'}
             </button>
@@ -555,6 +633,133 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
                 className="flex-1 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl text-xs font-semibold shadow-sm disabled:opacity-50 transition-all"
               >
                 {processingReturn ? 'Processing...' : 'Complete Return'}
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* ─── MODAL: UPDATE MOTORCYCLE STATUS (STAFF & ADMIN) ─── */}
+      <Modal
+        isOpen={Boolean(statusModalMotor)}
+        onClose={() => setStatusModalMotor(null)}
+        title="Update Motorcycle Status"
+        size="sm"
+      >
+        {statusModalMotor && (
+          <div className="space-y-4 text-xs font-sans">
+            {/* Motor info summary */}
+            <div className="p-3.5 bg-[#FAF8F5] dark:bg-[#1f242d] border border-stone/20 dark:border-neutral-700 rounded-2xl flex items-center gap-3">
+              {statusModalMotor.image_url ? (
+                <img
+                  src={statusModalMotor.image_url}
+                  alt={statusModalMotor.model}
+                  className="w-12 h-12 rounded-xl object-cover border border-stone/20 shrink-0"
+                />
+              ) : (
+                <div className="w-12 h-12 rounded-xl bg-sand flex items-center justify-center text-ink-muted shrink-0">
+                  <Bike className="w-6 h-6" />
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-display font-bold text-ink dark:text-white text-sm truncate">
+                    {statusModalMotor.brand} {statusModalMotor.model}
+                  </h4>
+                  <span className="font-mono text-[10px] font-bold text-[#B48454] bg-sand dark:bg-neutral-800 px-2 py-0.5 rounded">
+                    {statusModalMotor.plate_number}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-[11px] text-ink-muted">Current:</span>
+                  <StatusBadge status={statusModalMotor.status} size="sm" />
+                </div>
+              </div>
+            </div>
+
+            {/* Select Status Options */}
+            <div>
+              <label className="block font-semibold text-ink dark:text-white uppercase tracking-wider mb-2">Select New Status</label>
+              <div className="space-y-2">
+                {[
+                  {
+                    value: 'AVAILABLE' as const,
+                    label: 'Available',
+                    desc: 'Ready and available for guest rental booking',
+                    dot: 'bg-emerald-500',
+                  },
+                  {
+                    value: 'RESERVED' as const,
+                    label: 'Reserved',
+                    desc: 'Locked for confirmed customer reservation',
+                    dot: 'bg-blue-500',
+                  },
+                  {
+                    value: 'RENTED' as const,
+                    label: 'Rented',
+                    desc: 'Currently dispatched and active with a guest',
+                    dot: 'bg-amber-500',
+                  },
+                  {
+                    value: 'MAINTENANCE' as const,
+                    label: 'Maintenance',
+                    desc: 'Under mechanical servicing or inspection',
+                    dot: 'bg-purple-500',
+                  },
+                  {
+                    value: 'INACTIVE' as const,
+                    label: 'Inactive',
+                    desc: 'Temporarily decommissioned / unavailable',
+                    dot: 'bg-neutral-500',
+                  },
+                ].map((opt) => {
+                  const isSelected = selectedNewStatus === opt.value
+                  return (
+                    <div
+                      key={opt.value}
+                      onClick={() => setSelectedNewStatus(opt.value)}
+                      className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                        isSelected
+                          ? `border-[#B48454] bg-[#FAF8F5] dark:bg-[#1f242d] ring-2 ring-[#B48454]/30 shadow-2xs`
+                          : 'border-stone/20 dark:border-neutral-700/80 hover:border-stone/40 bg-white dark:bg-[#181B20]'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${opt.dot}`} />
+                        <div>
+                          <p className="font-semibold text-ink dark:text-white text-xs">{opt.label}</p>
+                          <p className="text-[10px] text-ink-muted leading-tight mt-0.5">{opt.desc}</p>
+                        </div>
+                      </div>
+                      <input
+                        type="radio"
+                        name="motor_status"
+                        checked={isSelected}
+                        onChange={() => setSelectedNewStatus(opt.value)}
+                        className="text-[#B48454] focus:ring-[#B48454]"
+                      />
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-2.5 pt-2 border-t border-stone/15">
+              <button
+                type="button"
+                onClick={() => setStatusModalMotor(null)}
+                className="flex-1 py-2.5 border border-stone/30 rounded-xl font-semibold text-ink-muted hover:bg-sand transition-all cursor-pointer text-xs"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveMotorStatus}
+                disabled={updatingStatus || selectedNewStatus === statusModalMotor.status}
+                className="flex-1 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl font-semibold shadow-xs disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer text-xs flex items-center justify-center gap-1.5"
+              >
+                {updatingStatus ? 'Updating...' : 'Save Status'}
               </button>
             </div>
           </div>

@@ -5,6 +5,7 @@ import ConfirmDialog from './ConfirmDialog'
 import SidebarBadge from './SidebarBadge'
 import { useTheme } from '../context/ThemeContext'
 import { billingApi } from '../api/billing'
+import { usersApi } from '../api/users'
 import {
   LayoutDashboard,
   CalendarDays,
@@ -44,7 +45,7 @@ const ADMIN_NAV: NavItem[] = [
   { label: 'Motor Rent', view: 'staff-motorcycles', icon: Bike },
   { label: 'Pickleball Court', view: 'staff-pickleball', icon: Trophy },
   { label: 'Check-In / Out', view: 'admin-checkinout', icon: ArrowLeftRight },
-  { label: 'User Management', view: 'admin-users', icon: UserCog },
+  { label: 'User Management', view: 'admin-users', icon: UserCog, badgeKey: 'pending-users', badgeVariant: 'amber' },
   { label: 'Payments', view: 'admin-payments', icon: CreditCard, badgeKey: 'outstanding-bills', badgeVariant: 'amber' },
   { label: 'Reports & Analytics', view: 'admin-reports', icon: BarChart3 },
   { label: 'Audit Log', view: 'admin-audit', icon: History },
@@ -135,7 +136,11 @@ export default function Sidebar({
     }
 
     try {
-      const bills = await billingApi.getAllBills().catch(() => [])
+      const billsPromise = billingApi.getAllBills().catch(() => [])
+      const pendingUsersPromise = role === 'admin' ? usersApi.getPendingUsers().catch(() => []) : Promise.resolve([])
+
+      const [bills, pendingUsers] = await Promise.all([billsPromise, pendingUsersPromise])
+
       let outCount = 0
       for (const inv of bills) {
         const s = String(inv.status || '').toUpperCase().replace('-', '_').replace(' ', '_')
@@ -153,9 +158,11 @@ export default function Sidebar({
         }
       }
 
+      const pendingUsersCount = Array.isArray(pendingUsers) ? pendingUsers.length : 0
+
       setBadgeCounts((prev) => {
-        if (prev['outstanding-bills'] === outCount) return prev
-        return { ...prev, 'outstanding-bills': outCount }
+        if (prev['outstanding-bills'] === outCount && prev['pending-users'] === pendingUsersCount) return prev
+        return { ...prev, 'outstanding-bills': outCount, 'pending-users': pendingUsersCount }
       })
     } catch {
       // Fail silently on error: hide badge or maintain safe state
@@ -169,14 +176,17 @@ export default function Sidebar({
     const interval = setInterval(fetchBadgeCounts, 15000)
 
     const handleBillingUpdated = () => fetchBadgeCounts()
+    const handleUsersUpdated = () => fetchBadgeCounts()
     const handleFocus = () => fetchBadgeCounts()
 
     window.addEventListener('billing-updated', handleBillingUpdated)
+    window.addEventListener('users-updated', handleUsersUpdated)
     window.addEventListener('focus', handleFocus)
 
     return () => {
       clearInterval(interval)
       window.removeEventListener('billing-updated', handleBillingUpdated)
+      window.removeEventListener('users-updated', handleUsersUpdated)
       window.removeEventListener('focus', handleFocus)
     }
   }, [fetchBadgeCounts])
@@ -197,10 +207,7 @@ export default function Sidebar({
         className="px-4 py-4 flex items-center justify-between min-h-[64px]"
       >
         <div className="flex items-center gap-3 min-w-0">
-          <div
-            style={{ backgroundColor: 'rgba(184,128,79,0.15)', borderColor: 'rgba(184,128,79,0.28)' }}
-            className="w-9 h-9 rounded-xl border flex items-center justify-center p-1 shrink-0"
-          >
+          <div className="w-9 h-9 flex items-center justify-center shrink-0">
             <img src={logo} alt="Cambacay Breeze Inn" className="w-full h-full object-contain" />
           </div>
 
@@ -318,7 +325,11 @@ export default function Sidebar({
               <span className="relative flex items-center justify-center shrink-0">
                 <Icon className="w-4 h-4" strokeWidth={1.5} />
                 {collapsed && badgeCount > 0 && (
-                  <span className="absolute -top-1.5 -right-2 min-w-[14px] h-[14px] px-0.5 bg-amber-600 dark:bg-amber-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center leading-none shadow-xs border border-[#2B2420]">
+                  <span
+                    className={`absolute -top-1.5 -right-2 min-w-[14px] h-[14px] px-0.5 ${
+                      item.badgeVariant === 'rose' ? 'bg-rose-600' : 'bg-amber-600 dark:bg-amber-500'
+                    } text-white text-[9px] font-bold rounded-full flex items-center justify-center leading-none shadow-xs border border-[#2B2420]`}
+                  >
                     {badgeCount > 99 ? '99+' : badgeCount}
                   </span>
                 )}
@@ -332,7 +343,11 @@ export default function Sidebar({
                 <SidebarBadge
                   count={badgeCount}
                   variant={item.badgeVariant || 'amber'}
-                  title={`${badgeCount} outstanding invoice${badgeCount > 1 ? 's' : ''}`}
+                  title={
+                    item.badgeKey === 'pending-users'
+                      ? `${badgeCount} pending registration approval${badgeCount > 1 ? 's' : ''}`
+                      : `${badgeCount} outstanding invoice${badgeCount > 1 ? 's' : ''}`
+                  }
                   className="shrink-0"
                 />
               )}

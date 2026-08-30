@@ -83,6 +83,10 @@ export const motorcyclesApi = {
   updateMotorcycle: (id: number, data: Partial<Motorcycle>) =>
     api.put<{ message: string; motorcycle: Motorcycle }>(`/api/motorcycles/${id}`, data),
 
+  /** PATCH /api/motorcycles/:id/status — Staff/Admin: Update motorcycle status only */
+  updateMotorcycleStatus: (id: number, status: string) =>
+    api.patch<{ message: string; motorcycle: Motorcycle }>(`/api/motorcycles/${id}/status`, { status }),
+
   /** POST /api/motorcycles/rentals — Create & Confirm Rental */
   createRental: (data: CreateMotorRentalPayload) =>
     api.post<{ message: string; rental: MotorRental }>('/api/motorcycles/rentals', data),

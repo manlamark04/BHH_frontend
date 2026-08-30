@@ -19,8 +19,15 @@ export interface MeResponse {
   unique_id: string
   role: 'admin' | 'staff' | 'customer'
   full_name: string
+  first_name?: string | null
+  middle_name?: string | null
+  last_name?: string | null
   email: string
   phone: string | null
+  gender?: string | null
+  address?: string | null
+  civil_status?: string | null
+  dob?: string | null
   status: string
   must_change_password: boolean
   created_at: string
@@ -49,8 +56,17 @@ export const authApi = {
 
   getMe: () => api.get<MeResponse>('/api/auth/me'),
 
-  updateProfile: (data: { full_name: string; phone?: string }) =>
-    api.put<MeResponse>('/api/auth/profile', data),
+  updateProfile: (data: {
+    first_name?: string
+    middle_name?: string
+    last_name?: string
+    full_name?: string
+    phone?: string
+    gender?: string
+    address?: string
+    civil_status?: string
+    dob?: string
+  }) => api.put<MeResponse>('/api/auth/profile', data),
 
   changePassword: (data: { current_password: string; new_password: string }) =>
     api.post<{ message: string; must_change_password: boolean }>('/api/auth/change-password', data),

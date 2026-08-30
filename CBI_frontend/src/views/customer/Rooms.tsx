@@ -9,6 +9,9 @@ import {
   Building2,
   Sparkles,
   AlertCircle,
+  Clock,
+  Minus,
+  Plus,
 } from 'lucide-react'
 import { roomsApi, type RoomRecord } from '../../api/rooms'
 import { bookingsApi } from '../../api/bookings'
@@ -32,8 +35,11 @@ export default function CustomerRooms({ customerName }: Props) {
 
   // Booking Flow State
   const [bookingRoom, setBookingRoom] = useState<RoomRecord | null>(null)
+  const [bookingType, setBookingType] = useState<'per_night' | 'short_time'>('per_night')
   const [checkIn, setCheckIn] = useState('')
   const [checkOut, setCheckOut] = useState('')
+  const [checkInTime, setCheckInTime] = useState('14:00')
+  const [durationHours, setDurationHours] = useState(3)
   const [numGuests, setNumGuests] = useState(1)
   const [specialNotes, setSpecialNotes] = useState('')
   const [confirmModal, setConfirmModal] = useState(false)
@@ -48,17 +54,30 @@ export default function CustomerRooms({ customerName }: Props) {
     setTimeout(() => setToast(''), 4500)
   }
 
+  const [myBookings, setMyBookings] = useState<Record<string, unknown>[]>([])
+
   const loadRooms = () => {
     setLoading(true)
-    roomsApi.getRooms()
-      .then((data) => setRooms(data as RoomRecord[]))
-      .catch(() => {})
-      .finally(() => setLoading(false))
+    Promise.all([
+      roomsApi.getRooms().catch(() => []),
+      bookingsApi.getMyBookings().catch(() => []),
+    ]).then(([roomsData, bookingsData]) => {
+      setRooms(roomsData as RoomRecord[])
+      setMyBookings(Array.isArray(bookingsData) ? bookingsData : [])
+    }).finally(() => setLoading(false))
   }
 
   useEffect(() => {
     loadRooms()
   }, [])
+
+  // Active stay in progress (Option B)
+  const activeStayReservation = useMemo(() => {
+    return myBookings.find((b) => {
+      const s = String(b.status_raw || b.status || '').toLowerCase()
+      return !['cancelled', 'checked_out', 'rejected', 'completed'].includes(s)
+    })
+  }, [myBookings])
 
   // Filtered rooms
   const filteredRooms = useMemo(() => {
@@ -85,34 +104,103 @@ export default function CustomerRooms({ customerName }: Props) {
     return Math.max(0, Math.round(diff / (1000 * 60 * 60 * 24)))
   }, [checkIn, checkOut])
 
+  // Short-time pricing
+  const SHORT_TIME_MULTIPLIER = 2.0
+
+  const hourlyRate = useMemo(() => {
+    if (!bookingRoom) return 0
+    return (Number(bookingRoom.rate_per_night || 0) / 24) * SHORT_TIME_MULTIPLIER
+  }, [bookingRoom])
+
+  const shortTimeTotal = useMemo(() => {
+    return Math.round(hourlyRate * durationHours * 100) / 100
+  }, [hourlyRate, durationHours])
+
   const totalAmount = useMemo(() => {
-    if (!bookingRoom || nights <= 0) return 0
+    if (!bookingRoom) return 0
+    if (bookingType === 'short_time') return shortTimeTotal
+    if (nights <= 0) return 0
     return Number(bookingRoom.rate_per_night || 0) * nights
-  }, [bookingRoom, nights])
+  }, [bookingRoom, bookingType, nights, shortTimeTotal])
+
+  // Auto-calculated checkout time for short-time bookings
+  const computedCheckout = useMemo(() => {
+    if (bookingType !== 'short_time' || !checkIn || !checkInTime) return null
+    const ciDate = new Date(`${checkIn}T${checkInTime}:00`)
+    if (isNaN(ciDate.getTime())) return null
+    const coDate = new Date(ciDate.getTime() + durationHours * 60 * 60 * 1000)
+    const crossesMidnight = coDate.getDate() !== ciDate.getDate()
+    const timeStr = coDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+    const dateStr = crossesMidnight
+      ? coDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      : null
+    return {
+      time: timeStr,
+      date: dateStr,
+      crossesMidnight,
+      isoCheckout: `${coDate.getFullYear()}-${String(coDate.getMonth() + 1).padStart(2, '0')}-${String(coDate.getDate()).padStart(2, '0')}`,
+    }
+  }, [bookingType, checkIn, checkInTime, durationHours])
 
   const handleStartBooking = (room: RoomRecord) => {
     setBookingRoom(room)
-    setCheckIn(todayStr)
-    const nextDay = new Date()
-    nextDay.setDate(nextDay.getDate() + 1)
-    setCheckOut(nextDay.toISOString().split('T')[0])
+    setBookingType('per_night')
+    if (activeStayReservation && activeStayReservation.check_in && activeStayReservation.check_out) {
+      setCheckIn(String(activeStayReservation.check_in).substring(0, 10))
+      setCheckOut(String(activeStayReservation.check_out).substring(0, 10))
+    } else {
+      setCheckIn(todayStr)
+      const nextDay = new Date()
+      nextDay.setDate(nextDay.getDate() + 1)
+      setCheckOut(nextDay.toISOString().split('T')[0])
+    }
+    setCheckInTime('14:00')
+    setDurationHours(3)
     setNumGuests(Number(room.capacity || 2))
     setSpecialNotes('')
     setError('')
   }
 
+  // Check if chosen booking dates conflict with 1-stay rule (Option B)
+  const hasDateConflictWithExistingStay = useMemo(() => {
+    if (!activeStayReservation) return false
+    if (!checkIn) return false
+    const stayIn = new Date(String(activeStayReservation.check_in).substring(0, 10)).getTime()
+    const stayOut = new Date(String(activeStayReservation.check_out).substring(0, 10)).getTime()
+    const reqIn = new Date(checkIn).getTime()
+    const reqOut = new Date(bookingType === 'short_time' ? checkIn : checkOut).getTime()
+    if (isNaN(stayIn) || isNaN(stayOut) || isNaN(reqIn) || isNaN(reqOut)) return false
+    // Date overlap exists if reqIn < stayOut && reqOut >= stayIn
+    const hasOverlap = reqIn < stayOut && reqOut >= stayIn
+    return !hasOverlap
+  }, [activeStayReservation, checkIn, checkOut, bookingType])
+
   const handleConfirmBooking = async () => {
-    if (!bookingRoom || !checkIn || !checkOut || nights <= 0) return
+    if (!bookingRoom) return
+    if (bookingType === 'per_night' && (!checkIn || !checkOut || nights <= 0)) return
+    if (bookingType === 'short_time' && (!checkIn || !checkInTime)) return
     setSubmitting(true)
     setError('')
     try {
-      await bookingsApi.createBooking({
+      const payload: Parameters<typeof bookingsApi.createBooking>[0] = {
         room_id: Number(bookingRoom.id),
         check_in: checkIn,
-        check_out: checkOut,
         num_guests: numGuests,
         notes: specialNotes.trim() || undefined,
-      })
+        booking_type: bookingType,
+      }
+      if (bookingType === 'short_time') {
+        payload.check_in_time = checkInTime
+        payload.duration_hours = durationHours
+        // Let backend compute check_out, but also send it for overlap checking
+        const ciDt = new Date(`${checkIn}T${checkInTime}:00`)
+        const coDt = new Date(ciDt.getTime() + durationHours * 60 * 60 * 1000)
+        payload.check_out = `${coDt.getFullYear()}-${String(coDt.getMonth() + 1).padStart(2, '0')}-${String(coDt.getDate()).padStart(2, '0')} ${String(coDt.getHours()).padStart(2, '0')}:${String(coDt.getMinutes()).padStart(2, '0')}:00`
+      } else {
+        payload.check_out = checkOut
+      }
+
+      await bookingsApi.createBooking(payload)
 
       fireToast(`Reservation submitted for Room ${bookingRoom.room_number}! Front desk will confirm shortly.`)
       setConfirmModal(false)
@@ -120,7 +208,7 @@ export default function CustomerRooms({ customerName }: Props) {
       loadRooms()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create reservation')
-      setConfirmModal(false)
+      // Keep confirmModal open so user sees the error and can retry or fix
     } finally {
       setSubmitting(false)
     }
@@ -203,6 +291,32 @@ export default function CustomerRooms({ customerName }: Props) {
         </div>
 
       </div>
+
+      {/* ─── ACTIVE STAY NOTICE BANNER (OPTION B) ─── */}
+      {activeStayReservation && (
+        <div className="p-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800/60 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs animate-fadeIn">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-xl bg-amber-500/15 text-amber-800 dark:text-amber-300 flex items-center justify-center shrink-0 mt-0.5">
+              <AlertCircle className="w-5 h-5" strokeWidth={2} />
+            </div>
+            <div>
+              <h4 className="font-display font-bold text-sm text-amber-950 dark:text-amber-100">
+                Active Room Stay in Progress
+              </h4>
+              <p className="text-xs text-amber-900/90 dark:text-amber-200/90 mt-0.5 leading-relaxed">
+                You have an active stay for <strong>Room {String(activeStayReservation.room_number || '')} · {String(activeStayReservation.room_type || 'Room')}</strong> ({String(activeStayReservation.check_in || '').substring(0, 10)} to {String(activeStayReservation.check_out || '').substring(0, 10)} · <span className="font-semibold uppercase text-amber-950 dark:text-white">{String(activeStayReservation.status_raw || activeStayReservation.status || '').replace('_', ' ')}</span>). Under our 1-stay policy, you may book additional rooms for this same trip dates, but cannot book a separate stay date until completed.
+              </p>
+            </div>
+          </div>
+          <a
+            href="#/customer/transactions"
+            className="px-3.5 py-2 bg-amber-700 hover:bg-amber-800 text-white rounded-xl text-xs font-semibold whitespace-nowrap shadow-xs transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
+          >
+            <Building2 className="w-3.5 h-3.5" />
+            <span>View My Transactions</span>
+          </a>
+        </div>
+      )}
 
       {/* ─── 2. CONTROLS & FILTER TABS BAR ─── */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
@@ -427,31 +541,127 @@ export default function CustomerRooms({ customerName }: Props) {
               </div>
             </div>
 
-            {/* Dates Selection */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Check-In Date *</label>
-                <input
-                  required
-                  type="date"
-                  min={todayStr}
-                  value={checkIn}
-                  onChange={(e) => setCheckIn(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] font-mono text-xs"
-                />
-              </div>
-              <div>
-                <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Check-Out Date *</label>
-                <input
-                  required
-                  type="date"
-                  min={checkIn || todayStr}
-                  value={checkOut}
-                  onChange={(e) => setCheckOut(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] font-mono text-xs"
-                />
-              </div>
+            {/* Booking Type Toggle */}
+            <div className="flex gap-1 p-1 bg-neutral-100/70 rounded-lg border border-black/[0.06] text-xs w-full">
+              {(['per_night', 'short_time'] as const).map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => {
+                    setBookingType(type)
+                    if (type === 'short_time') {
+                      setCheckInTime('14:00')
+                      setDurationHours(3)
+                    }
+                  }}
+                  className={`flex-1 px-3 py-2 rounded-md font-semibold transition-all cursor-pointer ${
+                    bookingType === type
+                      ? 'bg-[#B48454] text-white shadow-xs'
+                      : 'text-neutral-600 hover:text-neutral-900 hover:bg-white'
+                  }`}
+                >
+                  {type === 'per_night' ? '🌙 Per Night' : '⏱ Short Time'}
+                </button>
+              ))}
             </div>
+
+            {/* Dates Selection — Conditional by Booking Type */}
+            {bookingType === 'per_night' ? (
+              /* Per Night: Check-in + Check-out dates */
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Check-In Date *</label>
+                  <input
+                    required
+                    type="date"
+                    min={todayStr}
+                    value={checkIn}
+                    onChange={(e) => setCheckIn(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] font-mono text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Check-Out Date *</label>
+                  <input
+                    required
+                    type="date"
+                    min={checkIn || todayStr}
+                    value={checkOut}
+                    onChange={(e) => setCheckOut(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] font-mono text-xs"
+                  />
+                </div>
+              </div>
+            ) : (
+              /* Short Time: Date, Time, Duration stepper, Auto-calculated checkout */
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Check-In Date *</label>
+                    <input
+                      required
+                      type="date"
+                      min={todayStr}
+                      value={checkIn}
+                      onChange={(e) => setCheckIn(e.target.value)}
+                      className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] font-mono text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Check-In Time *</label>
+                    <input
+                      required
+                      type="time"
+                      value={checkInTime}
+                      onChange={(e) => setCheckInTime(e.target.value)}
+                      className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] font-mono text-xs"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Duration (Hours) *</label>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setDurationHours((h) => Math.max(1, h - 1))}
+                        disabled={durationHours <= 1}
+                        className="w-9 h-9 flex items-center justify-center rounded-lg border border-stone/30 bg-[#FAF8F5] text-ink hover:bg-[#B48454]/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                      >
+                        <Minus className="w-3.5 h-3.5" />
+                      </button>
+                      <span className="flex-1 text-center font-mono font-bold text-lg text-ink">{durationHours}</span>
+                      <button
+                        type="button"
+                        onClick={() => setDurationHours((h) => Math.min(3, h + 1))}
+                        disabled={durationHours >= 3}
+                        className="w-9 h-9 flex items-center justify-center rounded-lg border border-stone/30 bg-[#FAF8F5] text-ink hover:bg-[#B48454]/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    <span className="text-[10px] text-ink-muted mt-0.5 block">Max 3 hours</span>
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Check-Out Time</label>
+                    <div className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-neutral-100 font-mono text-xs text-ink flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-[#B48454]" />
+                      {computedCheckout ? (
+                        <span>
+                          {computedCheckout.time}
+                          {computedCheckout.crossesMidnight && computedCheckout.date && (
+                            <span className="text-[#B48454] font-semibold ml-1">({computedCheckout.date})</span>
+                          )}
+                        </span>
+                      ) : (
+                        <span className="text-ink-muted">—</span>
+                      )}
+                    </div>
+                    <span className="text-[10px] text-ink-muted mt-0.5 block">Auto-calculated</span>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Number of Guests */}
             <div>
@@ -482,33 +692,61 @@ export default function CustomerRooms({ customerName }: Props) {
             <div className="p-4 bg-white border border-stone/20 rounded-2xl space-y-2">
               <div className="flex justify-between text-ink-muted">
                 <span>Stay Duration:</span>
-                <strong className="font-mono text-ink">{nights} {nights === 1 ? 'night' : 'nights'}</strong>
+                <strong className="font-mono text-ink">
+                  {bookingType === 'short_time'
+                    ? `${durationHours} ${durationHours === 1 ? 'hour' : 'hours'}`
+                    : `${nights} ${nights === 1 ? 'night' : 'nights'}`
+                  }
+                </strong>
               </div>
               <div className="flex justify-between text-ink-muted">
-                <span>Rate per Night:</span>
-                <strong className="font-mono text-ink">₱{Number(bookingRoom.rate_per_night || 0).toLocaleString()}</strong>
+                <span>{bookingType === 'short_time' ? 'Rate per Hour:' : 'Rate per Night:'}</span>
+                <strong className="font-mono text-ink">
+                  {bookingType === 'short_time'
+                    ? `₱${hourlyRate.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                    : `₱${Number(bookingRoom.rate_per_night || 0).toLocaleString()}`
+                  }
+                </strong>
               </div>
+              {bookingType === 'short_time' && (
+                <div className="flex justify-between text-ink-muted text-[10px]">
+                  <span className="italic">Includes {SHORT_TIME_MULTIPLIER}x short-stay rate</span>
+                </div>
+              )}
               <div className="pt-2 border-t border-stone/15 flex justify-between items-center text-sm">
                 <span className="font-bold text-ink">Total Estimated Bill:</span>
                 <span className="font-display font-bold text-xl text-[#B48454]">
-                  ₱{totalAmount.toLocaleString()}
+                  ₱{totalAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
                 </span>
               </div>
             </div>
+
+            {/* 1-Stay Conflict Alert (Option B) */}
+            {hasDateConflictWithExistingStay && activeStayReservation && (
+              <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs flex items-start gap-2.5">
+                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-bold">Different Stay Period Not Allowed</p>
+                  <p className="text-[11px] text-rose-700 mt-0.5 leading-relaxed">
+                    You already hold an active reservation for <strong>Room {String(activeStayReservation.room_number)}</strong> ({String(activeStayReservation.check_in).substring(0, 10)} – {String(activeStayReservation.check_out).substring(0, 10)}). To book an additional room for your group/family, please select matching stay dates.
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* Actions */}
             <div className="flex gap-3 pt-2">
               <button
                 type="button"
                 onClick={() => setBookingRoom(null)}
-                className="flex-1 py-2.5 border border-stone/30 rounded-xl font-semibold text-ink-muted hover:bg-sand"
+                className="flex-1 py-2.5 border border-stone/30 rounded-xl font-semibold text-ink-muted hover:bg-sand transition-all"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                disabled={nights <= 0}
-                className="flex-1 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl font-semibold shadow-sm disabled:opacity-50 transition-all"
+                disabled={hasDateConflictWithExistingStay || (bookingType === 'per_night' ? nights <= 0 : !checkInTime)}
+                className="flex-1 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl font-semibold shadow-sm disabled:opacity-50 transition-all cursor-pointer"
               >
                 Proceed to Confirmation
               </button>
@@ -520,12 +758,18 @@ export default function CustomerRooms({ customerName }: Props) {
       {/* ─── CONFIRMATION DIALOG ─── */}
       <ConfirmDialog
         isOpen={confirmModal}
-        onCancel={() => setConfirmModal(false)}
+        onCancel={() => { setConfirmModal(false); setError('') }}
         onConfirm={handleConfirmBooking}
         title="Confirm Room Reservation"
-        message={`Submit reservation for Room ${bookingRoom?.room_number} (${bookingRoom?.room_type}) for ${nights} nights (${checkIn} → ${checkOut}) under ${customerName}? Estimated total: ₱${totalAmount.toLocaleString()}.`}
+        message={
+          bookingType === 'short_time'
+            ? `Submit short-time reservation for Room ${bookingRoom?.room_number} (${bookingRoom?.room_type}) for ${durationHours} hour(s) on ${checkIn} (${checkInTime}${computedCheckout ? ` → ${computedCheckout.time}${computedCheckout.crossesMidnight && computedCheckout.date ? `, ${computedCheckout.date}` : ''}` : ''}) under ${customerName}? Estimated total: ₱${totalAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}.`
+            : `Submit reservation for Room ${bookingRoom?.room_number} (${bookingRoom?.room_type}) for ${nights} nights (${checkIn} → ${checkOut}) under ${customerName}? Estimated total: ₱${totalAmount.toLocaleString()}.`
+        }
         confirmLabel={submitting ? 'Submitting...' : 'Confirm & Reserve'}
         variant="success"
+        errorMessage={error}
+        loading={submitting}
       />
 
     </div>

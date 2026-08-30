@@ -5,6 +5,7 @@ import { authApi } from '../api/auth'
 import { ApiError } from '../api/client'
 import logo from '../imports/logo.png'
 import signinImg from '../imports/signin.jpg'
+import InteractiveLogoMark from '../components/InteractiveLogoMark'
 import AuthLoadingScreen from '../components/AuthLoadingScreen'
 import Modal from '../components/Modal'
 
@@ -205,12 +206,10 @@ export default function Login({ onLogin, onNavigate }: LoginProps) {
 
           <div className="lg:col-span-6 p-6 sm:p-10 md:p-12 flex flex-col justify-between bg-[#FCFAF7]/95">
             <div>
-              <div className="flex items-center gap-3 mb-6 sm:mb-8 cursor-pointer" onClick={() => onNavigate('landing')}>
-                <div className="w-10 h-10 rounded-xl bg-forest/10 p-1 border border-forest/20 flex items-center justify-center shadow-sm">
-                  <img src={logo} alt="Logo" className="w-full h-full object-contain" />
-                </div>
+              <div className="flex items-center gap-3 mb-6 sm:mb-8 cursor-pointer group" onClick={() => onNavigate('landing')}>
+                <InteractiveLogoMark />
                 <div>
-                  <h2 className="font-display text-base font-bold text-ink tracking-tight leading-none">
+                  <h2 className="font-display text-base font-bold text-ink tracking-tight leading-none group-hover:text-[#B48454] transition-colors">
                     Cambacay Breeze Inn
                   </h2>
                   <span className="text-[10px] uppercase font-bold tracking-widest text-[#B48454] mt-0.5 block">

@@ -49,7 +49,16 @@ export default function CustomerDashboard({ onNavigate, userName, userId }: Cust
   const activeBooking = bookings.find((b) => String(b.status).toLowerCase() === 'checked_in')
   const upcomingBookings = bookings.filter((b) => ['confirmed', 'requested', 'pending', 'pending_approval', 'pending_payment'].includes(String(b.status).toLowerCase()))
   const totalPaid = bills.reduce((s, b) => s + Number(b.amount_paid || b.paid_amount || 0), 0)
-  const totalOutstanding = bills.reduce((s, b) => s + Math.max(0, Number(b.total_amount || 0) - Number(b.amount_paid || b.paid_amount || 0)), 0)
+  const totalOutstanding = bills.reduce((s, b) => {
+    const isCancelled = String(b.status || '').toUpperCase() === 'CANCELLED' || String(b.status || '').toUpperCase() === 'VOID' || Boolean(b.is_cancelled)
+    if (isCancelled) {
+      const fee = Number(b.cancellation_fee || 0)
+      const paid = Number(b.amount_paid || b.paid_amount || 0)
+      return s + (fee > 0 ? Math.max(0, fee - paid) : 0)
+    }
+    const rem = Number(b.remaining_balance ?? Math.max(0, Number(b.total_amount || 0) - Number(b.amount_paid || b.paid_amount || 0)))
+    return s + rem
+  }, 0)
 
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return '—'

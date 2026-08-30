@@ -16,6 +16,7 @@ import MotorRentSection from '../../components/MotorRentSection'
 import StatusBadge from '../../components/StatusBadge'
 import Modal from '../../components/Modal'
 import pickleballCourtImg from '../../imports/pickleball_court.jpg'
+import { formatCourtDateTime, formatTime12h, calculateExpectedEndTime } from './Pickleball'
 
 interface Props {
   customerId: string
@@ -309,14 +310,21 @@ export default function CustomerActivities({ customerId, customerName }: Props) 
                 </p>
 
                 {myActiveReservation && (
-                  <div className="mt-3 p-3 bg-amber-50/80 border border-amber-200 rounded-xl text-xs space-y-1">
+                  <div className="mt-3 p-3 bg-amber-50/80 border border-amber-200 rounded-xl text-xs space-y-1.5">
                     <div className="flex items-center justify-between">
                       <span className="font-bold text-amber-900">Your Reserved Slot:</span>
                       <StatusBadge status={String(myActiveReservation.status || 'RESERVED')} />
                     </div>
-                    <p className="font-mono text-ink text-[11px]">
-                      {String(myActiveReservation.start_time).replace('T', ' ').substring(0, 16)} → {String(myActiveReservation.end_time).replace('T', ' ').substring(0, 16)}
-                    </p>
+                    <div className="space-y-0.5 font-mono text-[11px]">
+                      <p className="text-ink">
+                        <span className="text-ink-muted font-sans font-medium">Start: </span>
+                        {formatCourtDateTime(myActiveReservation.start_time as string)}
+                      </p>
+                      <p className="text-amber-900 font-bold">
+                        <span className="text-ink-muted font-sans font-medium">Expected End: </span>
+                        {formatCourtDateTime(myActiveReservation.end_time as string)}
+                      </p>
+                    </div>
                     <p className="text-[10px] text-amber-800">
                       {String(myActiveReservation.status_raw || myActiveReservation.status).toLowerCase() === 'pending_payment'
                         ? 'Please proceed to My Transactions or the Front Desk to settle your payment.'
@@ -363,7 +371,7 @@ export default function CustomerActivities({ customerId, customerName }: Props) 
                   <tr className="border-b border-stone/20 bg-sand/30 text-[10px] uppercase font-bold text-ink-muted tracking-wider">
                     <th className="px-5 py-3.5">DATE</th>
                     <th className="px-5 py-3.5">START TIME</th>
-                    <th className="px-5 py-3.5">END TIME</th>
+                    <th className="px-5 py-3.5">EXPECTED END TIME</th>
                     <th className="px-5 py-3.5">DURATION</th>
                     <th className="px-5 py-3.5">TOTAL COST</th>
                     <th className="px-5 py-3.5 text-right">STATUS</th>
@@ -376,10 +384,10 @@ export default function CustomerActivities({ customerId, customerName }: Props) 
                         {String(b.start_time || '').split('T')[0]}
                       </td>
                       <td className="px-5 py-4 font-mono text-ink-muted">
-                        {String(b.start_time || '').replace('T', ' ').substring(0, 16)}
+                        {formatCourtDateTime(b.start_time as string)}
                       </td>
-                      <td className="px-5 py-4 font-mono text-ink-muted">
-                        {String(b.end_time || '').replace('T', ' ').substring(0, 16)}
+                      <td className="px-5 py-4 font-mono font-semibold text-amber-900">
+                        {formatCourtDateTime(b.end_time as string)}
                       </td>
                       <td className="px-5 py-4 text-ink">
                         {Math.max(1, Math.round(((new Date(String(b.end_time)).getTime() - new Date(String(b.start_time)).getTime()) / (1000 * 60 * 60))))} hour(s)
@@ -462,7 +470,7 @@ export default function CustomerActivities({ customerId, customerName }: Props) 
               <select
                 value={duration}
                 onChange={(e) => setDuration(Number(e.target.value))}
-                className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] font-semibold text-xs"
+                className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] font-semibold text-xs focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
               >
                 <option value={1}>1 Hour</option>
                 <option value={2}>2 Hours</option>
@@ -470,24 +478,46 @@ export default function CustomerActivities({ customerId, customerName }: Props) 
               </select>
             </div>
             <div>
-              <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Number of Players</label>
-              <select
-                value={players}
-                onChange={(e) => setPlayers(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] font-semibold text-xs"
-              >
-                <option value="2">2 Players (Singles)</option>
-                <option value="4">4 Players (Doubles)</option>
-              </select>
+              <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Expected End of Playing Time</label>
+              <div className="w-full px-3 py-2.5 rounded-xl border border-amber-300/80 bg-amber-50/70 font-mono text-xs font-bold text-amber-900 flex items-center gap-2">
+                <Clock className="w-3.5 h-3.5 text-[#B48454] shrink-0" />
+                <span>{calculateExpectedEndTime(startTime, duration, date)}</span>
+              </div>
             </div>
           </div>
 
-          <div className="p-4 bg-[#FAF8F5] border border-stone/20 rounded-2xl flex items-center justify-between">
-            <div>
-              <span className="text-[10px] uppercase font-bold text-ink-muted">TOTAL RESERVATION RATE</span>
-              <p className="text-xs text-ink-muted">₱{courtRate} × {duration} hr(s)</p>
+          <div>
+            <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Number of Players</label>
+            <select
+              value={players}
+              onChange={(e) => setPlayers(e.target.value)}
+              className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] font-semibold text-xs focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+            >
+              <option value="2">2 Players (Singles)</option>
+              <option value="4">4 Players (Doubles)</option>
+            </select>
+          </div>
+
+          <div className="p-4 bg-[#FAF8F5] border border-stone/20 rounded-2xl space-y-2">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-ink-muted">Playing Schedule:</span>
+              <span className="font-mono font-semibold text-ink">
+                {formatTime12h(startTime)} → <span className="text-amber-800 font-bold">{calculateExpectedEndTime(startTime, duration, date)}</span>
+              </span>
             </div>
-            <strong className="font-display font-bold text-2xl text-[#B48454]">₱{totalCost.toLocaleString()}</strong>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-ink-muted">Expected End of Playing Time:</span>
+              <span className="font-mono font-bold text-amber-800">
+                {calculateExpectedEndTime(startTime, duration, date)}
+              </span>
+            </div>
+            <div className="pt-2 border-t border-stone/15 flex items-center justify-between">
+              <div>
+                <span className="text-[10px] uppercase font-bold text-ink-muted">TOTAL RESERVATION RATE</span>
+                <p className="text-xs text-ink-muted">₱{courtRate} × {duration} hr(s)</p>
+              </div>
+              <strong className="font-display font-bold text-2xl text-[#B48454]">₱{totalCost.toLocaleString()}</strong>
+            </div>
           </div>
 
           <div className="flex gap-3 pt-2">

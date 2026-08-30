@@ -8,13 +8,28 @@ import {
   PlaneTakeoff,
   Calendar,
   CalendarDays,
+  Eye,
+  Banknote,
+  AlertCircle,
 } from 'lucide-react'
 import { bookingsApi } from '../../api/bookings'
 import { roomsApi } from '../../api/rooms'
 import StatusBadge from '../../components/StatusBadge'
+import Modal from '../../components/Modal'
 import ConfirmDialog from '../../components/ConfirmDialog'
 
-const TODAY = new Date().toISOString().split('T')[0]
+const PRE_CHECKIN_STATUSES = ['confirmed', 'reserved', 'pending', 'pending_approval', 'pending_payment', 'requested']
+
+const toLocalDateStr = (val?: string | Date | null | unknown) => {
+  if (!val) return ''
+  try {
+    const d = new Date(String(val))
+    if (isNaN(d.getTime())) return String(val).split('T')[0]
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  } catch (_) {
+    return String(val).split('T')[0]
+  }
+}
 
 export default function StaffCheckInOut() {
   const [bookings, setBookings] = useState<Record<string, unknown>[]>([])
@@ -23,6 +38,11 @@ export default function StaffCheckInOut() {
   const [search, setSearch] = useState('')
   const [confirmAction, setConfirmAction] = useState<{ id: number; status: string; label: string; name: string } | null>(null)
   const [toast, setToast] = useState('')
+
+  // View Arrival Details Modal
+  const [viewArrivalTarget, setViewArrivalTarget] = useState<Record<string, unknown> | null>(null)
+
+  const todayStr = useMemo(() => toLocalDateStr(new Date()), [])
 
   const load = () => {
     bookingsApi.getAllBookings().then(setBookings).catch(() => {})
@@ -35,16 +55,29 @@ export default function StaffCheckInOut() {
 
   // Derived lists
   const todaysArrivals = useMemo(() =>
-    bookings.filter((b) => String(b.check_in || '').startsWith(TODAY) && String(b.status) === 'confirmed'),
-    [bookings]
+    bookings.filter((b) => {
+      const cIn = toLocalDateStr(b.check_in)
+      const st = String(b.status || '').toLowerCase().replace('-', '_').replace(' ', '_')
+      return cIn === todayStr && PRE_CHECKIN_STATUSES.includes(st)
+    }),
+    [bookings, todayStr]
   )
   const inHouseGuests = useMemo(() =>
-    bookings.filter((b) => String(b.status) === 'checked_in'),
+    bookings.filter((b) => {
+      const st = String(b.status || '').toLowerCase().replace('-', '_').replace(' ', '_')
+      return st === 'checked_in'
+    }),
     [bookings]
   )
   const upcomingArrivals = useMemo(() =>
-    bookings.filter((b) => String(b.check_in || '') > TODAY && ['confirmed', 'pending'].includes(String(b.status))),
-    [bookings]
+    bookings
+      .filter((b) => {
+        const cIn = toLocalDateStr(b.check_in)
+        const st = String(b.status || '').toLowerCase().replace('-', '_').replace(' ', '_')
+        return cIn > todayStr && PRE_CHECKIN_STATUSES.includes(st)
+      })
+      .sort((a, b) => new Date(String(a.check_in || 0)).getTime() - new Date(String(b.check_in || 0)).getTime()),
+    [bookings, todayStr]
   )
 
   const q = search.trim().toLowerCase()
@@ -229,38 +262,60 @@ export default function StaffCheckInOut() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-5 py-4 font-mono font-bold text-xs text-[#B48454]">{String(b.unique_id || b.id)}</td>
+                      <td className="px-5 py-4 font-mono font-bold text-xs text-[#B48454]">{String(b.booking_ref || b.unique_id || `#BK-${b.id}`)}</td>
                       <td className="px-5 py-4">
                         <p className="font-semibold text-ink text-xs">{String(b.room_type || '')}</p>
-                        <p className="font-mono text-[10px] text-ink-muted">Room {String(b.room_number || '')}</p>
+                        <p className="font-mono text-[10px] text-ink-muted">
+                          Room {String(b.room_number || '')}
+                          {b.booking_type === 'short_time' && (
+                            <span className="ml-1 px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 text-[9px] font-bold border border-amber-200">
+                              ⏱ Short Time ({String(b.duration_hours || 3)}h)
+                            </span>
+                          )}
+                        </p>
                       </td>
                       <td className="px-5 py-4 font-mono text-xs text-ink-muted">{String(b.check_in || '')}</td>
                       <td className="px-5 py-4 font-mono text-xs text-ink-muted">{String(b.check_out || '')}</td>
                       <td className="px-5 py-4"><StatusBadge status={status.toUpperCase().replace('_', '-')} /></td>
                       <td className="px-5 py-4 text-right">
-                        <div className="flex gap-2 justify-end">
-                          {tab === 'arrivals' && status === 'confirmed' && (
-                            <button
-                              onClick={() => setConfirmAction({ id, status: 'checked_in', label: 'Check-In', name })}
-                              className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-[#B48454] hover:bg-[#9E6E3E] text-white shadow-xs transition-all"
-                            >
-                              Check In
-                            </button>
-                          )}
-                          {tab === 'inhouse' && status === 'checked_in' && (
+                        <div className="flex gap-2 justify-end items-center">
+                          {tab === 'arrivals' && (() => {
+                            const isPaid = String(b.payment_status || '').toUpperCase() === 'PAID' || Number(b.remaining_balance || 0) === 0
+                            return (
+                              <>
+                                <button
+                                  onClick={() => setViewArrivalTarget(b)}
+                                  className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-sand hover:bg-stone/30 text-ink border border-stone/30 shadow-2xs transition-all flex items-center gap-1 cursor-pointer"
+                                >
+                                  <Eye className="w-3.5 h-3.5 text-ink-muted" />
+                                  <span>View</span>
+                                </button>
+                                {isPaid && (
+                                  <button
+                                    onClick={() => setConfirmAction({ id, status: 'checked_in', label: 'Check-In', name })}
+                                    className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-[#B48454] hover:bg-[#9E6E3E] text-white shadow-xs transition-all cursor-pointer"
+                                  >
+                                    Check In
+                                  </button>
+                                )}
+                              </>
+                            )
+                          })()}
+                          {tab === 'inhouse' && status.toLowerCase() === 'checked_in' && (
                             <button
                               onClick={() => setConfirmAction({ id, status: 'checked_out', label: 'Check-Out', name })}
-                              className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-amber-600 hover:bg-amber-700 text-white shadow-xs transition-all"
+                              className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-stone-800 hover:bg-black text-white shadow-xs transition-all cursor-pointer"
                             >
                               Check Out
                             </button>
                           )}
-                          {tab === 'upcoming' && status === 'confirmed' && (
+                          {tab === 'upcoming' && (
                             <button
-                              onClick={() => setConfirmAction({ id, status: 'checked_in', label: 'Early Check-In', name })}
-                              className="px-3.5 py-1.5 rounded-lg text-xs font-medium text-ink-muted border border-stone/30 hover:bg-sand transition-all"
+                              onClick={() => setViewArrivalTarget(b)}
+                              className="px-3.5 py-1.5 rounded-lg text-xs font-medium text-ink-muted border border-stone/30 hover:bg-sand transition-all cursor-pointer flex items-center gap-1"
                             >
-                              Early C/I
+                              <Eye className="w-3.5 h-3.5 text-ink-muted" />
+                              <span>View</span>
                             </button>
                           )}
                         </div>
@@ -300,6 +355,118 @@ export default function StaffCheckInOut() {
           })}
         </div>
       </div>
+
+      {/* ─── MODAL: VIEW ARRIVAL DETAILS ─── */}
+      <Modal
+        isOpen={Boolean(viewArrivalTarget)}
+        onClose={() => setViewArrivalTarget(null)}
+        title={viewArrivalTarget ? `Arrival Details — ${String(viewArrivalTarget.booking_ref || `#BK-${viewArrivalTarget.id}`)}` : 'Arrival Details'}
+        size="md"
+      >
+        {viewArrivalTarget && (() => {
+          const dueAmount = Number(viewArrivalTarget.remaining_balance || 0)
+          const isPaid = String(viewArrivalTarget.payment_status || '').toUpperCase() === 'PAID' || dueAmount === 0
+
+          return (
+            <div className="space-y-4 text-xs font-sans">
+              
+              {/* Guest & Room Summary Banner */}
+              <div className="p-4 bg-sand/40 dark:bg-[#1f242d] border border-stone/20 dark:border-neutral-700/80 rounded-2xl space-y-2.5">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-ink-muted dark:text-neutral-400 block">Arrival Summary</span>
+                    <h4 className="font-display font-bold text-ink dark:text-white text-lg">{String(viewArrivalTarget.customer_name)}</h4>
+                    <p className="text-xs text-ink-muted dark:text-neutral-300">
+                      Room {String(viewArrivalTarget.room_number)} · {String(viewArrivalTarget.room_type)}
+                    </p>
+                  </div>
+                  <div className="text-right space-y-1">
+                    <span className="font-mono text-xs font-bold text-[#B48454] block">{String(viewArrivalTarget.booking_ref || `#BK-${viewArrivalTarget.id}`)}</span>
+                    <StatusBadge status={String(viewArrivalTarget.status || '').toUpperCase()} />
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-stone/20 dark:border-neutral-700 grid grid-cols-2 gap-2 text-ink-muted text-[11px]">
+                  <div>
+                    <span className="block text-[10px] uppercase font-bold text-ink-muted">STAY TYPE:</span>
+                    <strong className="text-ink dark:text-white font-medium">
+                      {viewArrivalTarget.booking_type === 'short_time'
+                        ? `⏱ Short Time (${String(viewArrivalTarget.duration_hours || 3)} Hours)`
+                        : `🌙 Per Night (${String(viewArrivalTarget.nights || 1)} Nights)`}
+                    </strong>
+                  </div>
+                  <div>
+                    <span className="block text-[10px] uppercase font-bold text-ink-muted">SCHEDULE:</span>
+                    <strong className="text-ink dark:text-white font-medium font-mono">
+                      {String(viewArrivalTarget.check_in || '').substring(0, 10)} → {String(viewArrivalTarget.check_out || '').substring(0, 10)}
+                    </strong>
+                  </div>
+                </div>
+              </div>
+
+              {/* Financial Breakdown Card */}
+              <div className="p-3.5 bg-white dark:bg-[#181B20] border border-stone/20 dark:border-neutral-800 rounded-2xl grid grid-cols-3 gap-2 text-center font-mono text-[11px]">
+                <div className="p-2 bg-sand/30 dark:bg-neutral-800/50 rounded-xl">
+                  <span className="text-[10px] uppercase font-bold text-ink-muted block">TOTAL BILL</span>
+                  <strong className="text-ink dark:text-white text-sm">₱{Number(viewArrivalTarget.total_price || 0).toLocaleString()}</strong>
+                </div>
+                <div className="p-2 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl">
+                  <span className="text-[10px] uppercase font-bold text-emerald-800 dark:text-emerald-300 block">PAID</span>
+                  <strong className="text-emerald-700 dark:text-emerald-400 text-sm">₱{Number(viewArrivalTarget.amount_paid || 0).toLocaleString()}</strong>
+                </div>
+                <div className="p-2 bg-amber-50 dark:bg-amber-950/40 rounded-xl">
+                  <span className="text-[10px] uppercase font-bold text-amber-800 dark:text-amber-300 block">DUE</span>
+                  <strong className="text-amber-800 dark:text-amber-300 text-sm">₱{dueAmount.toLocaleString()}</strong>
+                </div>
+              </div>
+
+              {/* Notice Banner */}
+              {isPaid ? (
+                <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 rounded-xl flex items-center gap-2 text-xs text-emerald-900 dark:text-emerald-200">
+                  <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <span>Reservation is fully settled. Guest is verified and ready for room check-in.</span>
+                </div>
+              ) : (
+                <div className="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-xl flex items-center gap-2 text-xs text-amber-900 dark:text-amber-200">
+                  <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                  <span><strong>Payment Required:</strong> Outstanding balance of ₱{dueAmount.toLocaleString()} must be settled in the <strong>Billing & Payments</strong> module before check-in.</span>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setViewArrivalTarget(null)}
+                  className="flex-1 py-2.5 border border-stone/30 rounded-xl font-semibold text-ink-muted hover:bg-sand transition-all cursor-pointer text-xs"
+                >
+                  Close
+                </button>
+
+                {isPaid && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const tgt = viewArrivalTarget
+                      setViewArrivalTarget(null)
+                      setConfirmAction({
+                        id: Number(tgt.id),
+                        status: 'checked_in',
+                        label: 'Check-In',
+                        name: String(tgt.customer_name || 'Guest'),
+                      })
+                    }}
+                    className="flex-1 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl font-semibold shadow-sm transition-all cursor-pointer text-xs"
+                  >
+                    Check In Guest
+                  </button>
+                )}
+              </div>
+
+            </div>
+          )
+        })()}
+      </Modal>
 
       <ConfirmDialog
         isOpen={!!confirmAction}

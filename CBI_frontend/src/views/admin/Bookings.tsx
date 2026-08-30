@@ -428,11 +428,21 @@ export default function AdminBookings() {
 
                     {/* STAY */}
                     <td className="px-5 py-4">
-                      <p className="font-medium text-neutral-900 dark:text-white leading-tight">
-                        {String(b.check_in).substring(0, 10)} → {String(b.check_out).substring(0, 10)}
-                      </p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="font-medium text-neutral-900 dark:text-white leading-tight">
+                          {String(b.check_in).substring(0, 10)} → {String(b.check_out).substring(0, 10)}
+                        </p>
+                        {b.booking_type === 'short_time' && (
+                          <span className="px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 text-[9px] font-bold border border-amber-200">
+                            ⏱ Short Time
+                          </span>
+                        )}
+                      </div>
                       <p className="text-[10px] text-neutral-500 dark:text-neutral-400 font-mono mt-0.5">
-                        {String(b.nights || 1)} night{Number(b.nights) > 1 ? 's' : ''}
+                        {b.booking_type === 'short_time'
+                          ? `${String(b.duration_hours || b.nights || 3)} hour(s)`
+                          : `${String(b.nights || 1)} night${Number(b.nights) > 1 ? 's' : ''}`
+                        }
                       </p>
                     </td>
 
@@ -620,8 +630,13 @@ export default function AdminBookings() {
                   <span className="font-mono text-ink">{String(viewBooking.check_out)}</span>
                 </div>
                 <div>
-                  <span className="text-ink-faint block text-[10px]">Total Nights</span>
-                  <span className="font-bold text-ink">{String(viewBooking.nights)} nights</span>
+                  <span className="text-ink-faint block text-[10px]">Booking Type & Duration</span>
+                  <span className="font-bold text-ink">
+                    {viewBooking.booking_type === 'short_time'
+                      ? `Short Time (${String(viewBooking.duration_hours || viewBooking.nights || 3)} hours)`
+                      : `Per Night (${String(viewBooking.nights)} nights)`
+                    }
+                  </span>
                 </div>
                 <div>
                   <span className="text-ink-faint block text-[10px]">Number of Guests</span>

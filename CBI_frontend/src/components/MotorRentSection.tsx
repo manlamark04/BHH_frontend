@@ -100,11 +100,11 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
 
   // Calculate live duration & estimated cost
   const calculateCost = () => {
-    if (!selectedMotor || !startDate || !returnDate) return { duration: 0, total: 0 }
+    if (!selectedMotor || !startDate || !returnDate) return { duration: 0, total: 0, unit: 'days' }
     const start = new Date(`${startDate}T${startTime}:00`)
     const end = new Date(`${returnDate}T${returnTime}:00`)
     if (isNaN(start.getTime()) || isNaN(end.getTime()) || end <= start) {
-      return { duration: 0, total: 0 }
+      return { duration: 0, total: 0, unit: selectedMotor.rate_type === 'hourly' ? 'hours' : 'days' }
     }
 
     const diffMs = end.getTime() - start.getTime()
@@ -122,7 +122,21 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
 
   const { duration, total, unit } = calculateCost()
 
+  // Active rental in progress for the customer
+  // Rule: PENDING_PAYMENT, PENDING_APPROVAL, ACTIVE, RESERVED, OVERDUE
+  const activeStatuses = ['PENDING_PAYMENT', 'PENDING_APPROVAL', 'ACTIVE', 'RESERVED', 'OVERDUE']
+  const activeRentalInProgress = userRole === 'customer'
+    ? rentals.find((r) => {
+        const s = String(r.status || '').toUpperCase()
+        return activeStatuses.includes(s)
+      })
+    : null
+
   const handleOpenRentalModal = (motor: Motorcycle) => {
+    if (activeRentalInProgress) {
+      setError(`You already have an active motorcycle rental in progress (${activeRentalInProgress.brand} ${activeRentalInProgress.model} · Plate ${activeRentalInProgress.plate_number}). Please complete or return your current rental before renting another motorcycle.`)
+      return
+    }
     if (motor.status !== 'AVAILABLE') return
     setSelectedMotor(motor)
     setError('')
@@ -218,6 +232,33 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
 
       {activeTab === 'fleet' && (
         <>
+          {/* Active Rental In Progress Alert Banner (Customer Portal) */}
+          {activeRentalInProgress && (
+            <div className="p-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800/60 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs animate-fadeIn">
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-xl bg-amber-500/15 text-amber-800 dark:text-amber-300 flex items-center justify-center shrink-0 mt-0.5">
+                  <AlertCircle className="w-5 h-5" strokeWidth={2} />
+                </div>
+                <div>
+                  <h4 className="font-display font-bold text-sm text-amber-950 dark:text-amber-100">
+                    Active Motorcycle Rental in Progress
+                  </h4>
+                  <p className="text-xs text-amber-900/90 dark:text-amber-200/90 mt-0.5 leading-relaxed">
+                    You already have a motorcycle rental in progress (<strong>{activeRentalInProgress.brand} {activeRentalInProgress.model}</strong> · Plate <strong>{activeRentalInProgress.plate_number}</strong> · Status: <span className="font-semibold uppercase text-amber-950 dark:text-white">{String(activeRentalInProgress.status).replace('_', ' ')}</span>). Please complete or return your current rental before renting another.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveTab('my-rentals')}
+                className="px-3.5 py-2 bg-amber-700 hover:bg-amber-800 text-white rounded-xl text-xs font-semibold whitespace-nowrap shadow-xs transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
+              >
+                <Receipt className="w-3.5 h-3.5" />
+                <span>View My Rental Details</span>
+              </button>
+            </div>
+          )}
+
           {/* Filters Bar */}
           <div className="flex flex-wrap gap-3 items-center justify-between bg-white dark:bg-[#181B20] p-3.5 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
             <div className="flex flex-wrap gap-2.5 items-center">
@@ -346,17 +387,29 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
 
                   {/* Rent Button */}
                   <div className="p-3.5 sm:p-4 pt-0">
-                    <button
-                      onClick={() => handleOpenRentalModal(motor)}
-                      disabled={!isAvailable}
-                      className={`w-full py-2 rounded-lg font-semibold text-xs transition-all shadow-xs flex items-center justify-center gap-2 ${
-                        isAvailable
-                          ? 'bg-[#B48454] hover:bg-[#9E6E3E] text-white cursor-pointer hover:shadow-sm'
-                          : 'bg-neutral-200 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-500 cursor-not-allowed'
-                      }`}
-                    >
-                      {isAvailable ? 'Rent This Motorcycle' : `Unavailable (${motor.status})`}
-                    </button>
+                    {activeRentalInProgress ? (
+                      <button
+                        disabled
+                        type="button"
+                        className="w-full py-2 rounded-lg font-semibold text-xs transition-all shadow-xs flex items-center justify-center gap-1.5 bg-amber-100/90 dark:bg-amber-950/50 border border-amber-300 dark:border-amber-800/60 text-amber-900 dark:text-amber-200 cursor-not-allowed"
+                        title="You currently have a motorcycle rental in progress. Please complete or return your active rental to book another."
+                      >
+                        <AlertCircle className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400" />
+                        <span>You Have an Active Rental</span>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleOpenRentalModal(motor)}
+                        disabled={!isAvailable}
+                        className={`w-full py-2 rounded-lg font-semibold text-xs transition-all shadow-xs flex items-center justify-center gap-2 ${
+                          isAvailable
+                            ? 'bg-[#B48454] hover:bg-[#9E6E3E] text-white cursor-pointer hover:shadow-sm'
+                            : 'bg-neutral-200 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-500 cursor-not-allowed'
+                        }`}
+                      >
+                        {isAvailable ? 'Rent This Motorcycle' : `Unavailable (${motor.status})`}
+                      </button>
+                    )}
                   </div>
                 </div>
               )
@@ -451,46 +504,46 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
         {selectedMotor && (
           <form onSubmit={handleConfirmRental} className="space-y-4 text-xs font-sans">
             {error && (
-              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 font-semibold flex items-center gap-2">
+              <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-xl text-rose-800 dark:text-rose-200 font-semibold flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
                 <span>{error}</span>
               </div>
             )}
 
             {/* Selected Motor Overview Card */}
-            <div className="bg-[#FAF8F5] rounded-2xl p-4 flex items-center justify-between border border-stone/20">
+            <div className="bg-neutral-50 dark:bg-[#14171C] rounded-2xl p-4 flex items-center justify-between border border-black/[0.06] dark:border-neutral-800">
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-[#B48454]">{selectedMotor.brand} · {selectedMotor.type}</span>
-                <h4 className="font-display text-base font-bold text-ink">{selectedMotor.model}</h4>
-                <p className="text-[10px] font-mono text-ink-muted mt-0.5">Plate: {selectedMotor.plate_number} · ID: {selectedMotor.motor_id}</p>
+                <h4 className="font-display text-base font-bold text-neutral-900 dark:text-white">{selectedMotor.model}</h4>
+                <p className="text-[10px] font-mono text-neutral-500 dark:text-neutral-400 mt-0.5">Plate: {selectedMotor.plate_number} · ID: {selectedMotor.motor_id}</p>
               </div>
               <div className="text-right">
-                <p className="font-display text-lg font-bold text-ink">₱{Number(selectedMotor.rental_rate).toLocaleString()}</p>
-                <p className="text-[10px] text-ink-muted font-mono">per {selectedMotor.rate_type || 'day'}</p>
+                <p className="font-display text-lg font-bold text-neutral-900 dark:text-white">₱{Number(selectedMotor.rental_rate).toLocaleString()}</p>
+                <p className="text-[10px] text-neutral-500 dark:text-neutral-400 font-mono">per {selectedMotor.rate_type || 'day'}</p>
               </div>
             </div>
 
             {/* Rental Duration / Date & Time Pickers with AM/PM */}
             <div className="grid sm:grid-cols-2 gap-3">
               <div>
-                <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Rental Start Date *</label>
+                <label className="block font-semibold text-neutral-900 dark:text-white uppercase tracking-wider mb-1">Rental Start Date *</label>
                 <input
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
                   min={new Date().toISOString().split('T')[0]}
                   required
-                  className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] font-mono text-xs focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                  className="w-full px-3 py-2.5 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-white dark:bg-[#15181D] text-neutral-900 dark:text-white font-mono text-xs focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
                 />
               </div>
 
               <div>
-                <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Start Time (AM / PM) *</label>
+                <label className="block font-semibold text-neutral-900 dark:text-white uppercase tracking-wider mb-1">Start Time (AM / PM) *</label>
                 <select
                   value={startTime}
                   onChange={(e) => setStartTime(e.target.value)}
                   required
-                  className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] font-mono text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                  className="w-full px-3 py-2.5 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-white dark:bg-[#15181D] text-neutral-900 dark:text-white font-mono text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
                 >
                   {TIME_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>
@@ -501,24 +554,24 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
               </div>
 
               <div>
-                <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Expected Return Date *</label>
+                <label className="block font-semibold text-neutral-900 dark:text-white uppercase tracking-wider mb-1">Expected Return Date *</label>
                 <input
                   type="date"
                   value={returnDate}
                   onChange={(e) => setReturnDate(e.target.value)}
                   min={startDate || new Date().toISOString().split('T')[0]}
                   required
-                  className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] font-mono text-xs focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                  className="w-full px-3 py-2.5 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-white dark:bg-[#15181D] text-neutral-900 dark:text-white font-mono text-xs focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
                 />
               </div>
 
               <div>
-                <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Expected Return Time (AM / PM) *</label>
+                <label className="block font-semibold text-neutral-900 dark:text-white uppercase tracking-wider mb-1">Expected Return Time (AM / PM) *</label>
                 <select
                   value={returnTime}
                   onChange={(e) => setReturnTime(e.target.value)}
                   required
-                  className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] font-mono text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                  className="w-full px-3 py-2.5 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-white dark:bg-[#15181D] text-neutral-900 dark:text-white font-mono text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
                 >
                   {TIME_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>
@@ -531,41 +584,41 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
 
             {/* Special Instructions / Notes */}
             <div>
-              <label className="block font-semibold text-ink uppercase tracking-wider mb-1">
-                Special Remarks / Destination <span className="text-ink-muted font-normal">(Optional)</span>
+              <label className="block font-semibold text-neutral-900 dark:text-white uppercase tracking-wider mb-1">
+                Special Remarks / Destination <span className="text-neutral-500 font-normal">(Optional)</span>
               </label>
               <input
                 type="text"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Visiting Chocolate Hills, Panglao, etc."
-                className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] text-xs focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                className="w-full px-3 py-2.5 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-white dark:bg-[#15181D] text-neutral-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
               />
             </div>
 
             {/* Live Cost Calculation & Schedule Summary with AM/PM */}
-            <div className="bg-[#FAF8F5] border border-stone/20 rounded-2xl p-4 space-y-1.5 text-xs">
-              <div className="flex justify-between text-ink-muted">
+            <div className="bg-neutral-50 dark:bg-[#14171C] border border-black/[0.06] dark:border-neutral-800 rounded-2xl p-4 space-y-1.5 text-xs">
+              <div className="flex justify-between text-neutral-500 dark:text-neutral-400">
                 <span>Pickup Schedule:</span>
-                <span className="font-semibold text-ink font-mono">
+                <span className="font-semibold text-neutral-900 dark:text-white font-mono">
                   {startDate ? formatDateTimeWithAmPm(`${startDate}T${startTime}:00`) : '—'}
                 </span>
               </div>
-              <div className="flex justify-between text-ink-muted">
+              <div className="flex justify-between text-neutral-500 dark:text-neutral-400">
                 <span>Expected Return:</span>
-                <span className="font-semibold text-amber-800 font-mono">
+                <span className="font-semibold text-amber-800 dark:text-amber-300 font-mono">
                   {returnDate ? formatDateTimeWithAmPm(`${returnDate}T${returnTime}:00`) : '—'}
                 </span>
               </div>
-              <div className="flex justify-between text-ink-muted pt-1 border-t border-stone/15">
+              <div className="flex justify-between text-neutral-500 dark:text-neutral-400 pt-1 border-t border-black/[0.06] dark:border-neutral-800">
                 <span>Calculated Duration:</span>
-                <span className="font-bold text-ink font-mono">{duration} {unit}</span>
+                <span className="font-bold text-neutral-900 dark:text-white font-mono">{duration} {unit}</span>
               </div>
-              <div className="flex justify-between text-ink-muted">
+              <div className="flex justify-between text-neutral-500 dark:text-neutral-400">
                 <span>Rental Rate:</span>
                 <span className="font-mono">₱{Number(selectedMotor.rental_rate).toLocaleString()} / {selectedMotor.rate_type}</span>
               </div>
-              <div className="flex justify-between pt-1.5 border-t border-stone/15 text-sm font-bold text-ink">
+              <div className="flex justify-between pt-1.5 border-t border-black/[0.06] dark:border-neutral-800 text-sm font-bold text-neutral-900 dark:text-white">
                 <span>Total Expected Rental Cost:</span>
                 <span className="font-display text-[#B48454] text-lg font-bold">₱{total.toLocaleString()}</span>
               </div>
@@ -575,7 +628,7 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
               <button
                 type="button"
                 onClick={() => setSelectedMotor(null)}
-                className="flex-1 py-2.5 border border-stone/30 rounded-xl text-xs font-semibold text-ink-muted hover:bg-sand"
+                className="flex-1 py-2.5 border border-black/[0.1] dark:border-neutral-700 rounded-xl text-xs font-semibold text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 cursor-pointer transition-colors"
               >
                 Cancel
               </button>
@@ -602,39 +655,39 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
           <div className="space-y-4 text-center text-xs font-sans">
             <div>
               <span className="text-[10px] font-bold uppercase tracking-widest text-[#B48454]">Rental Transaction ID</span>
-              <p className="font-mono text-2xl font-bold text-ink mt-0.5">{successRental.rental_id}</p>
+              <p className="font-mono text-2xl font-bold text-neutral-900 dark:text-white mt-0.5">{successRental.rental_id}</p>
             </div>
 
-            <div className="bg-[#FAF8F5] rounded-2xl p-4 text-left text-xs space-y-1.5 border border-stone/20">
+            <div className="bg-neutral-50 dark:bg-[#14171C] rounded-2xl p-4 text-left text-xs space-y-1.5 border border-black/[0.06] dark:border-neutral-800">
               <div className="flex justify-between">
-                <span className="text-ink-muted">Motorcycle:</span>
-                <span className="font-bold text-ink">{successRental.brand} {successRental.model}</span>
+                <span className="text-neutral-500 dark:text-neutral-400">Motorcycle:</span>
+                <span className="font-bold text-neutral-900 dark:text-white">{successRental.brand} {successRental.model}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-ink-muted">Plate Number:</span>
+                <span className="text-neutral-500 dark:text-neutral-400">Plate Number:</span>
                 <span className="font-mono font-semibold text-[#B48454]">{successRental.plate_number}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-ink-muted">Start Time:</span>
-                <span className="font-mono font-medium text-ink">{formatDateTimeWithAmPm(successRental.start_datetime)}</span>
+                <span className="text-neutral-500 dark:text-neutral-400">Start Time:</span>
+                <span className="font-mono font-medium text-neutral-900 dark:text-white">{formatDateTimeWithAmPm(successRental.start_datetime)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-ink-muted">Expected Return:</span>
-                <span className="font-mono font-medium text-amber-800">{formatDateTimeWithAmPm(successRental.expected_return_datetime)}</span>
+                <span className="text-neutral-500 dark:text-neutral-400">Expected Return:</span>
+                <span className="font-mono font-medium text-amber-800 dark:text-amber-300">{formatDateTimeWithAmPm(successRental.expected_return_datetime)}</span>
               </div>
-              <div className="flex justify-between pt-1 border-t border-stone/20">
-                <span className="text-ink-muted">Total Amount:</span>
-                <span className="font-display font-bold text-ink text-sm">₱{Number(successRental.total_amount).toLocaleString()}</span>
+              <div className="flex justify-between pt-1 border-t border-black/[0.06] dark:border-neutral-800">
+                <span className="text-neutral-500 dark:text-neutral-400">Total Amount:</span>
+                <span className="font-display font-bold text-neutral-900 dark:text-white text-sm">₱{Number(successRental.total_amount).toLocaleString()}</span>
               </div>
             </div>
 
-            <p className="text-[11px] text-ink-muted">
+            <p className="text-[11px] text-neutral-500 dark:text-neutral-400">
               Helmets and safety briefing provided at the front desk upon key handover. Please return the unit on or before the expected return time.
             </p>
 
             <button
               onClick={() => setSuccessRental(null)}
-              className="w-full py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl text-xs font-semibold shadow-sm"
+              className="w-full py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl text-xs font-semibold shadow-sm cursor-pointer"
             >
               Done / View My Rentals
             </button>

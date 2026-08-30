@@ -42,8 +42,16 @@ export default function CustomerTransactions() {
   }, [])
 
   const totalPaid = bills.reduce((s, b) => s + Number(b.amount_paid || b.paid_amount || 0), 0)
-  const totalBilled = bills.reduce((s, b) => s + Number(b.total_amount || 0), 0)
-  const totalOutstanding = Math.max(0, totalBilled - totalPaid)
+  const totalOutstanding = bills.reduce((s, b) => {
+    const isCancelled = String(b.status || '').toUpperCase() === 'CANCELLED' || String(b.status || '').toUpperCase() === 'VOID' || Boolean(b.is_cancelled)
+    if (isCancelled) {
+      const fee = Number(b.cancellation_fee || 0)
+      const paid = Number(b.amount_paid || b.paid_amount || 0)
+      return s + (fee > 0 ? Math.max(0, fee - paid) : 0)
+    }
+    const rem = Number(b.remaining_balance ?? Math.max(0, Number(b.total_amount || 0) - Number(b.amount_paid || b.paid_amount || 0)))
+    return s + rem
+  }, 0)
 
   const filteredBills = useMemo(() => {
     return bills.filter((b) => {
@@ -179,34 +187,40 @@ export default function CustomerTransactions() {
               const isConfirmed = status === 'CONFIRMED' || status === 'CHECKED_IN' || status === 'CHECKED_OUT'
               const isRejected = status === 'REJECTED'
               const isCancelled = status === 'CANCELLED'
+              const cancellationFee = Number(b.cancellation_fee || 0)
+              const amountPaid = Number(b.amount_paid || 0)
 
               return (
                 <div
                   key={b.id}
-                  className="bg-white rounded-2xl border border-stone/20 p-5 shadow-xs hover:shadow-md transition-all space-y-4"
+                  className="bg-white dark:bg-[#181B20] rounded-2xl border border-black/[0.07] dark:border-neutral-800 p-5 shadow-xs hover:shadow-md transition-all space-y-4"
                 >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-stone/15">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-black/[0.06] dark:border-neutral-800">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-sand/60 border border-stone/20 flex items-center justify-center font-bold text-[#B48454] font-mono text-xs">
+                      <div className="w-10 h-10 rounded-xl bg-[#B48454]/10 border border-[#B48454]/20 flex items-center justify-center font-bold text-[#B48454] font-mono text-xs">
                         BK
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="font-mono font-bold text-ink text-sm">{b.booking_ref || `BK-${b.id}`}</span>
+                          <span className="font-mono font-bold text-neutral-900 dark:text-white text-sm">{b.booking_ref || `BK-${b.id}`}</span>
                           <StatusBadge status={status} />
                         </div>
-                        <p className="text-xs text-ink-muted mt-0.5">
+                        <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
                           {b.room_type} · Room {b.room_number} · {b.nights} night(s)
                         </p>
                       </div>
                     </div>
 
                     <div className="text-left sm:text-right">
-                      <span className="text-[10px] uppercase font-bold text-ink-muted block">TOTAL AMOUNT</span>
-                      <span className="font-display font-bold text-lg text-ink">₱{Number(b.total_price || 0).toLocaleString()}</span>
-                      {Number(b.amount_paid) > 0 && (
-                        <span className="text-xs text-emerald-700 font-mono block font-semibold">
-                          Paid: ₱{Number(b.amount_paid).toLocaleString()}
+                      <span className="text-[10px] uppercase font-bold text-neutral-500 dark:text-neutral-400 block">
+                        {isCancelled ? 'ORIGINAL BOOKING TOTAL' : 'TOTAL AMOUNT'}
+                      </span>
+                      <span className={`font-display font-bold text-lg ${isCancelled ? 'line-through text-neutral-400 dark:text-neutral-500' : 'text-neutral-900 dark:text-white'}`}>
+                        ₱{Number(b.total_price || 0).toLocaleString()}
+                      </span>
+                      {amountPaid > 0 && (
+                        <span className="text-xs text-emerald-700 dark:text-emerald-400 font-mono block font-semibold">
+                          Paid: ₱{amountPaid.toLocaleString()}
                         </span>
                       )}
                     </div>
@@ -214,15 +228,15 @@ export default function CustomerTransactions() {
 
                   {/* Dynamic Status Callout Banner */}
                   {isPendingPay && (
-                    <div className="p-3.5 bg-amber-50/80 border border-amber-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-                      <div className="flex items-start gap-2.5 text-amber-950">
+                    <div className="p-3.5 bg-amber-50/80 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                      <div className="flex items-start gap-2.5 text-amber-950 dark:text-amber-200">
                         <Clock className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                         <div>
-                          <p className="font-bold text-amber-900">Complete payment to confirm your request</p>
-                          <p className="text-amber-800 mt-0.5">
+                          <p className="font-bold text-amber-900 dark:text-amber-300">Complete payment to confirm your request</p>
+                          <p className="text-amber-800 dark:text-amber-400 mt-0.5">
                             Your reservation is pending payment confirmation. Please settle the deposit or full payment to queue for staff review.
                             {b.payment_deadline && (
-                              <span className="block mt-0.5 font-mono text-[11px] text-amber-900">
+                              <span className="block mt-0.5 font-mono text-[11px] text-amber-900 dark:text-amber-300">
                                 Auto-expires on: {new Date(b.payment_deadline).toLocaleString()}
                               </span>
                             )}
@@ -239,23 +253,23 @@ export default function CustomerTransactions() {
                   )}
 
                   {isPendingApprove && (
-                    <div className="p-3.5 bg-indigo-50/80 border border-indigo-200 rounded-xl flex items-start gap-2.5 text-xs text-indigo-950">
+                    <div className="p-3.5 bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 rounded-xl flex items-start gap-2.5 text-xs text-indigo-950 dark:text-indigo-200">
                       <Info className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
                       <div>
-                        <p className="font-bold text-indigo-900">Payment received — awaiting confirmation from our team</p>
-                        <p className="text-indigo-800 mt-0.5">
-                          We've verified your payment proof (₱{Number(b.amount_paid).toLocaleString()}). The front desk staff is reviewing room preparation and will confirm your reservation shortly.
+                        <p className="font-bold text-indigo-900 dark:text-indigo-300">Payment received — awaiting confirmation from our team</p>
+                        <p className="text-indigo-800 dark:text-indigo-400 mt-0.5">
+                          We've verified your payment proof (₱{amountPaid.toLocaleString()}). The front desk staff is reviewing room preparation and will confirm your reservation shortly.
                         </p>
                       </div>
                     </div>
                   )}
 
                   {isConfirmed && (
-                    <div className="p-3.5 bg-emerald-50/80 border border-emerald-200 rounded-xl flex items-start gap-2.5 text-xs text-emerald-950">
+                    <div className="p-3.5 bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 rounded-xl flex items-start gap-2.5 text-xs text-emerald-950 dark:text-emerald-200">
                       <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                       <div>
-                        <p className="font-bold text-emerald-900">Reservation Confirmed & Locked</p>
-                        <p className="text-emerald-800 mt-0.5">
+                        <p className="font-bold text-emerald-900 dark:text-emerald-300">Reservation Confirmed & Locked</p>
+                        <p className="text-emerald-800 dark:text-emerald-400 mt-0.5">
                           Your suite is reserved for {formatDate(b.check_in)} to {formatDate(b.check_out)}. Please present your valid ID upon check-in at the front desk.
                         </p>
                       </div>
@@ -263,17 +277,17 @@ export default function CustomerTransactions() {
                   )}
 
                   {isRejected && (
-                    <div className="p-3.5 bg-rose-50/80 border border-rose-200 rounded-xl flex items-start gap-2.5 text-xs text-rose-950">
+                    <div className="p-3.5 bg-rose-50/80 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 rounded-xl flex items-start gap-2.5 text-xs text-rose-950 dark:text-rose-200">
                       <XCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
                       <div>
-                        <p className="font-bold text-rose-900">Request Declined by Staff</p>
-                        <p className="text-rose-800 mt-0.5">
+                        <p className="font-bold text-rose-900 dark:text-rose-300">Request Declined by Staff</p>
+                        <p className="text-rose-800 dark:text-rose-400 mt-0.5">
                           Reason: <strong>{b.rejection_reason || 'Room unavailable or double booking conflict'}</strong>
                         </p>
-                        {Number(b.amount_paid) > 0 && (
-                          <div className="mt-2 p-2 bg-white/80 rounded-lg border border-rose-200 font-medium text-[11px] text-rose-900">
+                        {amountPaid > 0 && (
+                          <div className="mt-2 p-2 bg-white/80 dark:bg-black/30 rounded-lg border border-rose-200 dark:border-rose-800 font-medium text-[11px] text-rose-900 dark:text-rose-200">
                             <strong>Refund Status:</strong> {b.refund_status ? String(b.refund_status).toUpperCase() : 'PENDING'} · 
-                            Refund of ₱{Number(b.amount_paid).toLocaleString()} is being processed back to your original payment account.
+                            Refund of ₱{amountPaid.toLocaleString()} is being processed back to your original payment account.
                           </div>
                         )}
                       </div>
@@ -281,28 +295,46 @@ export default function CustomerTransactions() {
                   )}
 
                   {isCancelled && (
-                    <div className="p-3 bg-stone-100 border border-stone-200 rounded-xl text-xs text-stone-600">
-                      <span>This reservation request was cancelled {b.auto_cancelled ? 'due to payment timeout expiration' : 'by user'}.</span>
+                    <div className="p-3.5 bg-neutral-50 dark:bg-neutral-900/60 border border-neutral-200 dark:border-neutral-800 rounded-xl text-xs space-y-1.5">
+                      <div className="flex items-center gap-2 text-neutral-800 dark:text-neutral-200 font-semibold">
+                        <XCircle className="w-4 h-4 text-neutral-500 shrink-0" />
+                        <span>Reservation Cancelled {b.auto_cancelled ? '(Auto-expired due to unpaid deadline)' : '(by guest/staff)'}</span>
+                      </div>
+                      <div className="pl-6 text-[11px] text-neutral-600 dark:text-neutral-400">
+                        {cancellationFee > 0 ? (
+                          <p>
+                            Cancellation fee applied: <strong className="text-amber-800 dark:text-amber-300 font-mono">₱{cancellationFee.toLocaleString()}</strong>. Remaining obligation: <strong className="text-neutral-900 dark:text-white font-mono">₱{Math.max(0, cancellationFee - amountPaid).toLocaleString()}</strong>.
+                          </p>
+                        ) : amountPaid > 0 ? (
+                          <p>
+                            No remaining balance owed. Any prior payment of <strong className="font-mono">₱{amountPaid.toLocaleString()}</strong> is handled per hotel refund policy.
+                          </p>
+                        ) : (
+                          <p className="text-emerald-700 dark:text-emerald-400 font-medium">
+                            ✓ No payment due — reservation cancelled before payment. Full balance zeroed out.
+                          </p>
+                        )}
+                      </div>
                     </div>
                   )}
 
                   {/* Dates & Schedule */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs pt-1">
                     <div>
-                      <span className="text-[10px] text-ink-muted uppercase font-bold block">CHECK-IN</span>
-                      <span className="font-mono font-semibold text-ink">{formatDate(b.check_in)}</span>
+                      <span className="text-[10px] text-neutral-500 dark:text-neutral-400 uppercase font-bold block">CHECK-IN</span>
+                      <span className="font-mono font-semibold text-neutral-900 dark:text-white">{formatDate(b.check_in)}</span>
                     </div>
                     <div>
-                      <span className="text-[10px] text-ink-muted uppercase font-bold block">CHECK-OUT</span>
-                      <span className="font-mono font-semibold text-ink">{formatDate(b.check_out)}</span>
+                      <span className="text-[10px] text-neutral-500 dark:text-neutral-400 uppercase font-bold block">CHECK-OUT</span>
+                      <span className="font-mono font-semibold text-neutral-900 dark:text-white">{formatDate(b.check_out)}</span>
                     </div>
                     <div>
-                      <span className="text-[10px] text-ink-muted uppercase font-bold block">GUESTS</span>
-                      <span className="font-semibold text-ink">{b.num_guests || b.capacity || 2} Persons</span>
+                      <span className="text-[10px] text-neutral-500 dark:text-neutral-400 uppercase font-bold block">GUESTS</span>
+                      <span className="font-semibold text-neutral-900 dark:text-white">{b.num_guests || b.capacity || 2} Persons</span>
                     </div>
                     <div>
-                      <span className="text-[10px] text-ink-muted uppercase font-bold block">BOOKED ON</span>
-                      <span className="font-mono text-ink-muted text-[11px]">{formatDate(b.created_at)}</span>
+                      <span className="text-[10px] text-neutral-500 dark:text-neutral-400 uppercase font-bold block">BOOKED ON</span>
+                      <span className="font-mono text-neutral-500 dark:text-neutral-400 text-[11px]">{formatDate(b.created_at)}</span>
                     </div>
                   </div>
                 </div>
@@ -310,9 +342,9 @@ export default function CustomerTransactions() {
             })}
 
             {filteredBookings.length === 0 && !loading && (
-              <div className="py-20 text-center text-xs text-ink-muted bg-white rounded-2xl border border-stone/20">
-                <CalendarDays className="w-10 h-10 text-ink-muted mx-auto mb-2 opacity-50" />
-                <p className="font-display font-bold text-ink text-sm">No reservations found.</p>
+              <div className="py-20 text-center text-xs text-neutral-500 dark:text-neutral-400 bg-white dark:bg-[#181B20] rounded-2xl border border-black/[0.07] dark:border-neutral-800">
+                <CalendarDays className="w-10 h-10 text-neutral-400 mx-auto mb-2 opacity-50" />
+                <p className="font-display font-bold text-neutral-900 dark:text-white text-sm">No reservations found.</p>
                 <p className="mt-0.5">Explore our suites to make your first booking.</p>
               </div>
             )}
@@ -322,11 +354,11 @@ export default function CustomerTransactions() {
 
       {/* ─── TAB 2: BILLS TABLE ─── */}
       {activeTab === 'bills' && (
-        <div className="bg-white rounded-2xl border border-stone/20 shadow-xs overflow-hidden">
+        <div className="bg-white dark:bg-[#181B20] rounded-2xl border border-black/[0.07] dark:border-neutral-800 shadow-xs overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead>
-                <tr className="border-b border-stone/20 bg-sand/30 text-[10px] uppercase font-bold text-ink-muted tracking-wider">
+                <tr className="border-b border-black/[0.06] dark:border-neutral-800 bg-neutral-50/70 dark:bg-neutral-900/60 text-[10px] uppercase font-bold text-neutral-500 dark:text-neutral-400 tracking-wider">
                   <th className="px-5 py-3.5">INVOICE NUMBER</th>
                   <th className="px-5 py-3.5">ITEM DESCRIPTION</th>
                   <th className="px-5 py-3.5">BILLED TOTAL</th>
@@ -336,37 +368,50 @@ export default function CustomerTransactions() {
                   <th className="px-5 py-3.5 text-right">DATE</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-stone/15">
+              <tbody className="divide-y divide-black/[0.06] dark:divide-neutral-800">
                 {filteredBills.map((b) => {
                   const invoiceNum = String(b.bill_number || b.invoice_number || `INV-${b.id}`)
                   const total = Number(b.total_amount || 0)
                   const paid = Number(b.amount_paid || b.paid_amount || 0)
-                  const remaining = Math.max(0, total - paid)
+                  const isCancelled = String(b.status || '').toUpperCase() === 'CANCELLED' || String(b.status || '').toUpperCase() === 'VOID' || Boolean(b.is_cancelled)
+                  const cancellationFee = Number(b.cancellation_fee || 0)
+                  const remaining = isCancelled
+                    ? (cancellationFee > 0 ? Math.max(0, cancellationFee - paid) : 0)
+                    : Number(b.remaining_balance ?? Math.max(0, total - paid))
 
                   return (
-                    <tr key={String(b.id)} className="hover:bg-sand/20 transition-colors">
+                    <tr key={String(b.id)} className="hover:bg-neutral-50/50 dark:hover:bg-neutral-900/40 transition-colors">
                       <td className="px-5 py-4 font-mono font-bold text-[#B48454]">{invoiceNum}</td>
                       <td className="px-5 py-4">
-                        <p className="font-semibold text-ink">{String(b.room_type || 'Resort Stay')}</p>
-                        <p className="text-[10px] text-ink-muted">{b.room_number ? `Room ${b.room_number}` : 'Direct Service'}</p>
+                        <p className="font-semibold text-neutral-900 dark:text-white">{String(b.room_type || 'Resort Stay')}</p>
+                        <p className="text-[10px] text-neutral-500 dark:text-neutral-400">{b.room_number ? `Room ${b.room_number}` : 'Direct Service'}</p>
                       </td>
-                      <td className="px-5 py-4 font-display font-bold text-ink text-sm">
-                        ₱{total.toLocaleString()}
+                      <td className="px-5 py-4 font-display font-bold text-neutral-900 dark:text-white text-sm">
+                        <span className={isCancelled ? 'line-through text-neutral-400' : ''}>₱{total.toLocaleString()}</span>
                       </td>
-                      <td className="px-5 py-4 text-emerald-700 font-semibold font-mono">
+                      <td className="px-5 py-4 text-emerald-700 dark:text-emerald-400 font-semibold font-mono">
                         ₱{paid.toLocaleString()}
                       </td>
                       <td className="px-5 py-4 font-mono">
-                        {remaining > 0 ? (
-                          <span className="text-amber-800 font-bold">₱{remaining.toLocaleString()}</span>
+                        {isCancelled ? (
+                          cancellationFee > 0 ? (
+                            <div>
+                              <span className="text-amber-800 dark:text-amber-400 font-bold">₱{remaining.toLocaleString()}</span>
+                              <span className="text-[10px] text-neutral-500 dark:text-neutral-400 block font-sans">(₱{cancellationFee} fee)</span>
+                            </div>
+                          ) : (
+                            <span className="text-emerald-700 dark:text-emerald-400 font-medium">₱0 (Voided)</span>
+                          )
+                        ) : remaining > 0 ? (
+                          <span className="text-amber-800 dark:text-amber-400 font-bold">₱{remaining.toLocaleString()}</span>
                         ) : (
-                          <span className="text-emerald-700 font-medium">₱0</span>
+                          <span className="text-emerald-700 dark:text-emerald-400 font-medium">₱0</span>
                         )}
                       </td>
                       <td className="px-5 py-4">
                         <StatusBadge status={String(b.status || (paid >= total ? 'PAID' : 'PENDING')).toUpperCase()} />
                       </td>
-                      <td className="px-5 py-4 font-mono text-ink-muted text-xs text-right">
+                      <td className="px-5 py-4 font-mono text-neutral-500 dark:text-neutral-400 text-xs text-right">
                         {formatDate(String(b.issued_at || b.created_at))}
                       </td>
                     </tr>
@@ -377,9 +422,9 @@ export default function CustomerTransactions() {
           </div>
 
           {filteredBills.length === 0 && !loading && (
-            <div className="py-16 text-center text-xs text-ink-muted">
-              <Receipt className="w-10 h-10 text-ink-muted mx-auto mb-2 opacity-50" />
-              <p className="font-display font-bold text-ink text-sm">No billing invoices found.</p>
+            <div className="py-16 text-center text-xs text-neutral-500 dark:text-neutral-400">
+              <Receipt className="w-10 h-10 text-neutral-400 mx-auto mb-2 opacity-50" />
+              <p className="font-display font-bold text-neutral-900 dark:text-white text-sm">No billing invoices found.</p>
             </div>
           )}
         </div>

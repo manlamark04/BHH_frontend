@@ -222,13 +222,13 @@ export default function AuthLoadingScreen({
             } ${isSuccessPop || isExiting ? 'first-light-ripple-accelerate' : ''}`}
           />
 
-          {/* Logo Card with SVG Line Draw-In + Blooming Color Fill */}
-          <div className="relative z-10 w-20 h-20 sm:w-22 sm:h-22 rounded-2xl bg-white/95 backdrop-blur-md p-2 border border-[#B48454]/25 shadow-[0_8px_32px_rgba(180,132,84,0.18)] flex items-center justify-center overflow-hidden">
+          {/* Logo with SVG Line Draw-In + Blooming Color Fill */}
+          <div className="relative z-10 w-20 h-20 sm:w-22 sm:h-22 flex items-center justify-center">
             
             {/* SVG Hand-Drawn Stroke Animation */}
             <svg
               viewBox="0 0 100 100"
-              className="absolute inset-0 w-full h-full p-2 pointer-events-none"
+              className="absolute inset-0 w-full h-full pointer-events-none"
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
             >

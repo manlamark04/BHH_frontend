@@ -12,6 +12,7 @@ import { authApi } from '../api/auth'
 import { ApiError } from '../api/client'
 import logo from '../imports/logo.png'
 import signinImg from '../imports/signin.jpg'
+import InteractiveLogoMark from '../components/InteractiveLogoMark'
 
 interface RegisterProps {
   onNavigate: (view: View) => void
@@ -119,11 +120,11 @@ export default function Register({ onNavigate }: RegisterProps) {
                 <span>Back to Home</span>
               </button>
 
-              <div className="flex items-center gap-2 cursor-pointer" onClick={() => onNavigate('landing')}>
-                <div className="w-8 h-8 rounded-lg bg-forest/10 p-1 border border-forest/20 flex items-center justify-center shadow-xs">
-                  <img src={logo} alt="Logo" className="w-full h-full object-contain" />
-                </div>
-                <span className="font-display text-sm font-bold text-ink tracking-tight">Cambacay Breeze Inn</span>
+              <div className="flex items-center gap-2.5 cursor-pointer group" onClick={() => onNavigate('landing')}>
+                <InteractiveLogoMark size="sm" />
+                <span className="font-display text-sm font-bold text-ink tracking-tight group-hover:text-[#B48454] transition-colors">
+                  Cambacay Breeze Inn
+                </span>
               </div>
             </div>
 

@@ -12,6 +12,7 @@ import {
   BedDouble,
   Activity,
   X,
+  AlertCircle,
 } from 'lucide-react'
 import { billingApi, type InvoiceItem, type PaymentTransaction } from '../../api/billing'
 import { bookingsApi, type BookingItem } from '../../api/bookings'
@@ -93,6 +94,94 @@ export default function AdminPayments() {
     const parts = name.trim().split(' ')
     if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase()
     return name.substring(0, 2).toUpperCase()
+  }
+
+  // Determine what the guest availed: Per Hour (Short Time), Per Night, Motor, Court, etc.
+  const getAvailmentType = (inv?: InvoiceItem | null, bk?: BookingItem | null) => {
+    if (!inv && !bk) return null
+
+    const matchingBk = bk || (inv?.booking_id ? bookings.find((b) => b.id === inv.booking_id) : null)
+
+    const isShortTime =
+      inv?.booking_type === 'short_time' ||
+      matchingBk?.booking_type === 'short_time' ||
+      String(inv?.service_details || '').toLowerCase().includes('short time') ||
+      String(inv?.service_details || '').toLowerCase().includes('per hour')
+
+    const isPerNight =
+      !isShortTime && (inv?.booking_id || matchingBk?.id || inv?.room_number || inv?.service_type === 'Room Booking')
+
+    const isMotor =
+      String(inv?.service_type || '').includes('Motor') ||
+      String(inv?.service_name || '').includes('Yamaha') ||
+      String(inv?.service_name || '').includes('Honda') ||
+      String(inv?.bill_number || '').startsWith('BILL-MTR') ||
+      String(inv?.line_items_summary || '').includes('Motor')
+
+    const isCourt =
+      String(inv?.service_type || '').includes('Pickleball') ||
+      String(inv?.service_name || '').toLowerCase().includes('pickleball') ||
+      Boolean(inv?.activity_rental_id)
+
+    if (isShortTime) {
+      const hours = inv?.duration_hours || matchingBk?.duration_hours || matchingBk?.nights || 3
+      return {
+        type: 'short_time',
+        label: `Per Hour (${hours} hrs)`,
+        rateType: 'Per Hour (Short Time)',
+        badgeLabel: `⏱ Per Hour (${hours}h)`,
+        details: `${hours} Hour(s) Short Stay`,
+        isHourly: true,
+        tagColor: 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-700',
+      }
+    }
+
+    if (isPerNight) {
+      const nights = matchingBk?.nights || 1
+      return {
+        type: 'per_night',
+        label: `Per Night (${nights} ${nights === 1 ? 'night' : 'nights'})`,
+        rateType: 'Per Night Stay',
+        badgeLabel: `🌙 Per Night (${nights}n)`,
+        details: `${nights} Night(s) Stay`,
+        isHourly: false,
+        tagColor: 'bg-indigo-100 dark:bg-indigo-950/60 text-indigo-800 dark:text-indigo-300 border-indigo-300 dark:border-indigo-700',
+      }
+    }
+
+    if (isMotor) {
+      return {
+        type: 'motor',
+        label: 'Motorcycle Rental',
+        rateType: 'Per Hour / Daily Motor Rental',
+        badgeLabel: '🏍 Motor Rental',
+        details: 'Motor Rental Availment',
+        isHourly: true,
+        tagColor: 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-700',
+      }
+    }
+
+    if (isCourt) {
+      return {
+        type: 'court',
+        label: 'Pickleball Court',
+        rateType: 'Per Hour Match Play',
+        badgeLabel: '🏓 Pickleball Court',
+        details: 'Hourly Court Reservation',
+        isHourly: true,
+        tagColor: 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700',
+      }
+    }
+
+    return {
+      type: 'general',
+      label: 'Hotel Service',
+      rateType: 'General Service',
+      badgeLabel: 'Service Invoice',
+      details: 'Direct Settlement',
+      isHourly: false,
+      tagColor: 'bg-stone-100 dark:bg-stone-800 text-stone-800 dark:text-stone-300 border-stone-300 dark:border-stone-700',
+    }
   }
 
   // ─── 1. DYNAMIC SUMMARY CALCULATIONS ───
@@ -209,6 +298,11 @@ export default function AdminPayments() {
         setSelectedBookingId(inv.booking_id || '')
         const rem = Number(inv.remaining_balance) > 0 ? Number(inv.remaining_balance) : Number(inv.total_amount || 0)
         setPayAmount(String(rem))
+        const matchingBk = inv.booking_id ? bookings.find((b) => b.id === inv.booking_id) : null
+        const avail = getAvailmentType(inv, matchingBk)
+        if (!payRemarks) {
+          setPayRemarks(`Payment for ${inv.customer_name} (${avail?.rateType || 'Settlement'})`)
+        }
       }
     } else {
       setSelectedBookingId('')
@@ -229,6 +323,29 @@ export default function AdminPayments() {
     }
   }
 
+  // Active Invoice / Folio Due Amount (remaining balance owed to settle)
+  const activeDueAmount = useMemo(() => {
+    if (selectedInvoice) {
+      const isPaid = String(selectedInvoice.status).toUpperCase() === 'PAID'
+      if (isPaid) return 0
+      const rem = Number(selectedInvoice.remaining_balance)
+      return rem > 0 ? rem : Number(selectedInvoice.total_amount || 0)
+    }
+    if (selectedBooking) {
+      const isPaid = String(selectedBooking.payment_status || selectedBooking.status).toUpperCase() === 'CONFIRMED' && Number(selectedBooking.remaining_balance || 0) === 0
+      if (isPaid) return 0
+      return Number(selectedBooking.remaining_balance || selectedBooking.total_price || 0)
+    }
+    return 0
+  }, [selectedInvoice, selectedBooking])
+
+  const paymentReceivedNum = parseFloat(payAmount) || 0
+  const isOverpaid = activeDueAmount > 0 && paymentReceivedNum > activeDueAmount
+  const isUnderpaid = (selectedInvoice || selectedBooking) && activeDueAmount > 0 && paymentReceivedNum > 0 && paymentReceivedNum < activeDueAmount
+  const isInsufficient = (selectedInvoice || selectedBooking) && activeDueAmount > 0 && paymentReceivedNum < activeDueAmount
+  const changeDue = Math.max(0, paymentReceivedNum - activeDueAmount)
+  const remainingBalanceAfter = Math.max(0, activeDueAmount - paymentReceivedNum)
+
   // ─── 3. RECORD PAYMENT HANDLER ───
   const handleConfirmRecordPayment = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -242,18 +359,29 @@ export default function AdminPayments() {
       return
     }
 
+    if (activeDueAmount > 0 && amountNum < activeDueAmount) {
+      alert(`Amount received (₱${amountNum.toLocaleString()}) must be at least ₱${activeDueAmount.toLocaleString()} to settle this invoice.`)
+      return
+    }
+
+    const amountToRecord = activeDueAmount > 0 ? Math.min(amountNum, activeDueAmount) : amountNum
+    const change = activeDueAmount > 0 && amountNum > activeDueAmount ? amountNum - activeDueAmount : 0
+    const finalNotes = change > 0
+      ? `${payRemarks.trim() ? payRemarks.trim() + ' · ' : ''}[Cash Received: ₱${amountNum.toLocaleString()}, Change Given: ₱${change.toLocaleString()}]`
+      : payRemarks.trim() || undefined
+
     setProcessingPayment(true)
     try {
       const res = await billingApi.recordPayment({
         bill_id: selectedBillId ? Number(selectedBillId) : undefined,
         booking_id: selectedBookingId ? Number(selectedBookingId) : undefined,
-        amount: amountNum,
+        amount: amountToRecord,
         method: payMethod,
         ref_number: payRefNumber.trim() || undefined,
-        notes: payRemarks.trim() || undefined,
+        notes: finalNotes,
       })
 
-      fireToast(`✓ Payment of ₱${amountNum.toLocaleString()} recorded successfully! Reference: ${res.txn_number}`)
+      fireToast(`✓ Payment of ₱${amountToRecord.toLocaleString()} recorded successfully!${change > 0 ? ` (Change: ₱${change.toLocaleString()})` : ''} Reference: ${res.txn_number}`)
       setRecordModalOpen(false)
       setSelectedBillId('')
       setSelectedBookingId('')
@@ -490,7 +618,17 @@ export default function AdminPayments() {
                             <BedDouble className="w-3.5 h-3.5" strokeWidth={1.5} />
                           </div>
                           <div>
-                            <p className="font-bold text-ink text-xs font-mono">{inv.booking_ref || 'Room Accommodation'}</p>
+                            <div className="flex items-center gap-1.5">
+                              <p className="font-bold text-ink text-xs font-mono">{inv.booking_ref || 'Room Accommodation'}</p>
+                              {(() => {
+                                const avail = getAvailmentType(inv)
+                                return avail ? (
+                                  <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold border ${avail.tagColor}`}>
+                                    {avail.badgeLabel}
+                                  </span>
+                                ) : null
+                              })()}
+                            </div>
                             <p className="text-[10px] text-ink-muted">{inv.room_type ? `${inv.room_type} · Room ${inv.room_number || ''}` : (inv.service_name || 'Hotel Stay')}</p>
                           </div>
                         </div>
@@ -540,56 +678,51 @@ export default function AdminPayments() {
 
                     {/* ACTIONS */}
                     <td className="px-4 py-3.5 text-right">
-                      <div className="inline-flex flex-col items-end gap-1 bg-[#FAF8F5]/80 dark:bg-neutral-900/50 border border-stone/20 dark:border-neutral-800/80 rounded-xl p-1.5 shadow-2xs">
-                        <span className="text-[9px] uppercase tracking-wider font-bold text-ink-muted/70 px-1 select-none">
-                          Actions
-                        </span>
-                        <div className="flex items-center gap-1.5">
-                          {/* 1. VIEW (Neutral / Left) */}
+                      <div className="flex items-center justify-end gap-1.5">
+                        {/* 1. VIEW */}
+                        <button
+                          onClick={() => setViewInvoice(inv)}
+                          className="px-2.5 py-1 text-xs text-ink dark:text-white font-semibold bg-sand/60 dark:bg-neutral-800 border border-stone/30 dark:border-neutral-700 rounded-lg hover:bg-stone/20 dark:hover:bg-neutral-700 transition-all shadow-xs shrink-0 cursor-pointer"
+                        >
+                          View
+                        </button>
+
+                        {/* 2. PAY */}
+                        {String(inv.status).toUpperCase() !== 'PAID' && String(inv.status).toUpperCase() !== 'CANCELLED' && (
                           <button
-                            onClick={() => setViewInvoice(inv)}
-                            className="px-2.5 py-1 text-xs text-ink font-semibold bg-white dark:bg-neutral-800 border border-stone/20 dark:border-neutral-700 rounded-lg hover:bg-sand dark:hover:bg-neutral-700 transition-all shadow-xs shrink-0 cursor-pointer"
+                            onClick={() => {
+                              setSelectedBillId(inv.id)
+                              setSelectedBookingId(inv.booking_id || '')
+                              const rem = Number(inv.remaining_balance) > 0 ? Number(inv.remaining_balance) : Number(inv.total_amount || 0)
+                              setPayAmount(String(rem))
+                              setRecordModalOpen(true)
+                            }}
+                            className="px-3 py-1 text-xs bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded-lg shadow-xs transition-all flex items-center gap-1 cursor-pointer shrink-0"
                           >
-                            View
+                            <CreditCard className="w-3 h-3" />
+                            <span>Pay</span>
                           </button>
+                        )}
 
-                          {/* 2. PAY (Primary / Middle) */}
-                          {String(inv.status).toUpperCase() !== 'PAID' && String(inv.status).toUpperCase() !== 'CANCELLED' && (
-                            <button
-                              onClick={() => {
-                                setSelectedBillId(inv.id)
-                                setSelectedBookingId(inv.booking_id || '')
-                                const rem = Number(inv.remaining_balance) > 0 ? Number(inv.remaining_balance) : Number(inv.total_amount || 0)
-                                setPayAmount(String(rem))
-                                setRecordModalOpen(true)
-                              }}
-                              className="px-3 py-1 text-xs bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded-lg shadow-xs transition-all flex items-center gap-1 cursor-pointer shrink-0"
-                            >
-                              <CreditCard className="w-3 h-3" />
-                              <span>Pay</span>
-                            </button>
-                          )}
-
-                          {/* 3. CANCEL (Destructive / Right) */}
-                          {String(inv.status).toUpperCase() !== 'PAID' && String(inv.status).toUpperCase() !== 'CANCELLED' && (
-                            <button
-                              onClick={async () => {
-                                if (!confirm(`Cancel invoice ${inv.invoice_number}? This will void the bill and release any reserved equipment or room.`)) return
-                                try {
-                                  await billingApi.cancelBill(inv.id)
-                                  fireToast(`Invoice ${inv.invoice_number} cancelled.`)
-                                  loadData()
-                                } catch (err) {
-                                  alert(err instanceof Error ? err.message : 'Failed to cancel invoice')
-                                }
-                              }}
-                              className="px-2.5 py-1 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 border border-rose-200 dark:border-rose-800/60 rounded-lg font-semibold transition-all flex items-center gap-1 cursor-pointer shrink-0"
-                            >
-                              <X className="w-3 h-3" />
-                              <span>Cancel</span>
-                            </button>
-                          )}
-                        </div>
+                        {/* 3. CANCEL */}
+                        {String(inv.status).toUpperCase() !== 'PAID' && String(inv.status).toUpperCase() !== 'CANCELLED' && (
+                          <button
+                            onClick={async () => {
+                              if (!confirm(`Cancel invoice ${inv.invoice_number}? This will void the bill and release any reserved equipment or room.`)) return
+                              try {
+                                await billingApi.cancelBill(inv.id)
+                                fireToast(`Invoice ${inv.invoice_number} cancelled.`)
+                                loadData()
+                              } catch (err) {
+                                alert(err instanceof Error ? err.message : 'Failed to cancel invoice')
+                              }
+                            }}
+                            className="px-2.5 py-1 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 border border-rose-200 dark:border-rose-800/60 rounded-lg font-semibold transition-all flex items-center gap-1 cursor-pointer shrink-0"
+                          >
+                            <X className="w-3 h-3" />
+                            <span>Cancel</span>
+                          </button>
+                        )}
                       </div>
                     </td>
 
@@ -685,42 +818,85 @@ export default function AdminPayments() {
               {invoices.map((i) => {
                 const isPaid = String(i.status).toUpperCase() === 'PAID'
                 const bal = Number(i.remaining_balance) > 0 ? Number(i.remaining_balance) : Number(i.total_amount || 0)
+                const matchingBk = i.booking_id ? bookings.find((b) => b.id === i.booking_id) : null
+                const avail = getAvailmentType(i, matchingBk)
+                const rateLabel = avail ? ` [${avail.label}]` : ''
                 return (
                   <option key={i.id} value={i.id}>
-                    {i.invoice_number} · {i.customer_name} ({i.booking_ref || 'Service'}) — Due: ₱{bal.toLocaleString()} {isPaid ? '[PAID]' : '[PENDING]'}
+                    {i.invoice_number} · {i.customer_name} ({i.booking_ref || 'Service'}){rateLabel} — Due: ₱{bal.toLocaleString()} {isPaid ? '[PAID]' : '[PENDING]'}
                   </option>
                 )
               })}
             </select>
           </div>
 
-          {/* Selected Invoice / Booking Info Card */}
-          {selectedInvoice && (
-            <div className="p-4 bg-sand/40 border border-stone/20 rounded-2xl space-y-2">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h4 className="font-display font-bold text-ink text-base">{selectedInvoice.customer_name}</h4>
-                  <p className="text-[11px] text-ink-muted">
-                    {selectedInvoice.invoice_number} · {selectedInvoice.booking_ref || 'Walk-In Service'}
-                  </p>
+          {/* Selected Invoice / Booking Info Card with Rate Type */}
+          {selectedInvoice && (() => {
+            const matchingBk = selectedInvoice.booking_id ? bookings.find((b) => b.id === selectedInvoice.booking_id) : null
+            const avail = getAvailmentType(selectedInvoice, matchingBk)
+            return (
+              <div className="p-4 bg-sand/40 border border-stone/20 rounded-2xl space-y-2.5">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-display font-bold text-ink text-base">{selectedInvoice.customer_name}</h4>
+                      {avail && (
+                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border shadow-2xs ${avail.tagColor}`}>
+                          {avail.badgeLabel}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-ink-muted mt-0.5">
+                      {selectedInvoice.invoice_number} · {selectedInvoice.booking_ref || 'Walk-In Service'}
+                      {selectedInvoice.room_number && ` · Room ${selectedInvoice.room_number}`}
+                    </p>
+                  </div>
+                  <StatusBadge status={selectedInvoice.status} />
                 </div>
-                <StatusBadge status={selectedInvoice.status} />
+
+                {/* Availment Type Highlight Banner */}
+                {avail && (
+                  <div className="p-2.5 bg-white/80 dark:bg-[#1f242d] border border-stone/20 rounded-xl flex items-center justify-between text-[11px]">
+                    <span className="text-ink-muted">
+                      Availed Rate: <strong className="text-ink font-semibold">{avail.rateType}</strong>
+                    </span>
+                    <span className="font-mono text-ink-muted">
+                      {selectedInvoice.service_details || avail.details}
+                    </span>
+                  </div>
+                )}
+
+                <div className="pt-2 border-t border-stone/20 grid grid-cols-3 gap-2 font-mono text-[11px]">
+                  <div>
+                    <span className="text-ink-muted block text-[10px]">TOTAL:</span>
+                    <strong className="text-ink">₱{Number(selectedInvoice.total_amount || 0).toLocaleString()}</strong>
+                  </div>
+                  <div>
+                    <span className="text-ink-muted block text-[10px]">PAID:</span>
+                    <strong className="text-emerald-700">₱{Number(selectedInvoice.paid_amount || 0).toLocaleString()}</strong>
+                  </div>
+                  <div>
+                    <span className="text-ink-muted block text-[10px]">REMAINING:</span>
+                    <strong className="text-amber-800 font-bold">
+                      ₱{Number(selectedInvoice.remaining_balance > 0 ? selectedInvoice.remaining_balance : (String(selectedInvoice.status).toUpperCase() === 'PAID' ? 0 : selectedInvoice.total_amount)).toLocaleString()}
+                    </strong>
+                  </div>
+                </div>
               </div>
-              <div className="pt-2 border-t border-stone/20 grid grid-cols-3 gap-2 font-mono text-[11px]">
-                <div>
-                  <span className="text-ink-muted block text-[10px]">TOTAL:</span>
-                  <strong className="text-ink">₱{Number(selectedInvoice.total_amount || 0).toLocaleString()}</strong>
-                </div>
-                <div>
-                  <span className="text-ink-muted block text-[10px]">PAID:</span>
-                  <strong className="text-emerald-700">₱{Number(selectedInvoice.paid_amount || 0).toLocaleString()}</strong>
-                </div>
-                <div>
-                  <span className="text-ink-muted block text-[10px]">REMAINING:</span>
-                  <strong className="text-amber-800 font-bold">
-                    ₱{Number(selectedInvoice.remaining_balance > 0 ? selectedInvoice.remaining_balance : (String(selectedInvoice.status).toUpperCase() === 'PAID' ? 0 : selectedInvoice.total_amount)).toLocaleString()}
-                  </strong>
-                </div>
+            )
+          })()}
+
+          {/* ─── 1. PROMINENT TOTAL BILL AMOUNT ROW (Above Payment Fields) ─── */}
+          {(selectedInvoice || selectedBooking) && (
+            <div className="p-3.5 bg-[#FAF8F5] dark:bg-[#181B20] border border-stone/20 dark:border-neutral-700/80 rounded-2xl flex items-center justify-between shadow-2xs">
+              <div>
+                <span className="text-[10px] uppercase font-bold text-ink-muted tracking-wider block">TOTAL BILL AMOUNT</span>
+                <span className="text-[11px] text-ink-muted font-medium">Remaining balance owed</span>
+              </div>
+              <div className="text-right">
+                <span className="font-display font-bold text-2xl text-[#B48454]">
+                  ₱{activeDueAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                </span>
               </div>
             </div>
           )}
@@ -736,20 +912,31 @@ export default function AdminPayments() {
             </span>
           </div>
 
-          {/* Payment Amount & Payment Date */}
+          {/* ─── 2. PAYMENT RECEIVED & PAYMENT DATE ─── */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Payment Amount (₱) *</label>
+              <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Payment Received (₱) *</label>
               <input
                 required
                 type="number"
                 step="0.01"
-                min="1"
+                min="0.01"
                 value={payAmount}
                 onChange={(e) => setPayAmount(e.target.value)}
-                placeholder="0.00"
-                className="w-full px-3 py-2.5 rounded-xl border border-stone font-display font-bold text-sm"
+                onWheel={(e) => (e.target as HTMLInputElement).blur()}
+                placeholder={activeDueAmount > 0 ? `Enter at least ${activeDueAmount.toLocaleString()}` : "0.00"}
+                className={`w-full px-3 py-2.5 rounded-xl border font-display font-bold text-sm transition-all ${
+                  isUnderpaid
+                    ? 'border-rose-500 bg-rose-50/40 text-rose-900 focus:ring-2 focus:ring-rose-400/40'
+                    : 'border-stone focus:ring-2 focus:ring-[#B48454]/40'
+                }`}
               />
+              {isUnderpaid && (
+                <p className="text-rose-600 dark:text-rose-400 text-[11px] font-semibold mt-1.5 flex items-center gap-1">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>Amount received must be at least ₱{activeDueAmount.toLocaleString()} to settle this invoice.</span>
+                </p>
+              )}
             </div>
             <div>
               <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Payment Date</label>
@@ -774,23 +961,27 @@ export default function AdminPayments() {
             />
           </div>
 
-          {/* Live Remaining Balance Calculation Preview */}
-          {(selectedInvoice || selectedBooking) && payAmount && (
-            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between text-xs">
-              <span className="font-semibold text-emerald-900">Remaining Balance After Payment:</span>
-              <strong className="font-mono text-sm text-emerald-800">
-                ₱{Math.max(
-                  0,
-                  (selectedInvoice
-                    ? (Number(selectedInvoice.remaining_balance) > 0 ? Number(selectedInvoice.remaining_balance) : Number(selectedInvoice.total_amount || 0))
-                    : Number(selectedBooking?.remaining_balance || selectedBooking?.total_price || 0)) -
-                  (parseFloat(payAmount) || 0)
-                ).toLocaleString()}
+          {/* ─── 3. CHANGE DUE (Conditional: only when overpaid) ─── */}
+          {isOverpaid && (
+            <div className="p-3.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-xl flex items-center justify-between text-xs animate-fadeIn shadow-2xs">
+              <span className="font-semibold text-amber-900 dark:text-amber-200">Change Due to Guest:</span>
+              <strong className="font-mono text-base font-bold text-amber-800 dark:text-amber-300">
+                ₱{changeDue.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
               </strong>
             </div>
           )}
 
-          {/* Action Buttons */}
+          {/* ─── 4. REMAINING BALANCE AFTER PAYMENT (Floored at ₱0) ─── */}
+          {(selectedInvoice || selectedBooking) && payAmount && (
+            <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 rounded-xl flex items-center justify-between text-xs">
+              <span className="font-semibold text-emerald-900 dark:text-emerald-200">Remaining Balance After Payment:</span>
+              <strong className="font-mono text-sm text-emerald-800 dark:text-emerald-300">
+                ₱{remainingBalanceAfter.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+              </strong>
+            </div>
+          )}
+
+          {/* ─── 5. ACTION BUTTONS (Disabled on insufficient payment) ─── */}
           <div className="flex gap-3 pt-2">
             <button
               type="button"
@@ -801,7 +992,7 @@ export default function AdminPayments() {
             </button>
             <button
               type="submit"
-              disabled={processingPayment || (!selectedBillId && !selectedBookingId) || !payAmount}
+              disabled={processingPayment || (!selectedBillId && !selectedBookingId) || !payAmount || isInsufficient || paymentReceivedNum <= 0}
               className="flex-1 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl font-semibold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer"
             >
               {processingPayment ? 'Recording...' : 'Record Payment'}

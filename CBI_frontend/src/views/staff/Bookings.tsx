@@ -372,11 +372,19 @@ export default function StaffBookings() {
 
                       {/* Room & Dates */}
                       <td className="px-5 py-4">
-                        <div className="font-semibold text-ink">
-                          {b.room_type} <span className="font-mono text-xs text-ink-muted">({b.room_number})</span>
+                        <div className="font-semibold text-ink flex items-center gap-1.5">
+                          <span>{b.room_type} <span className="font-mono text-xs text-ink-muted">({b.room_number})</span></span>
+                          {b.booking_type === 'short_time' && (
+                            <span className="px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 text-[9px] font-bold border border-amber-200">
+                              ⏱ Short Time
+                            </span>
+                          )}
                         </div>
                         <div className="text-[11px] text-ink-muted font-mono mt-0.5">
-                          {b.check_in} <ArrowRight className="inline w-3 h-3 mx-0.5 text-ink-muted" /> {b.check_out} ({b.nights}n)
+                          {b.booking_type === 'short_time'
+                            ? `${b.check_in} · ${b.duration_hours || b.nights || 3} hr(s)`
+                            : `${b.check_in} → ${b.check_out} (${b.nights}n)`
+                          }
                         </div>
                       </td>
 
@@ -490,11 +498,19 @@ export default function StaffBookings() {
                         <div className="text-[11px] text-ink-muted">{b.customer_phone || b.customer_email || '—'}</div>
                       </td>
                       <td className="px-5 py-4">
-                        <div className="font-semibold text-ink">
-                          {b.room_type} <span className="font-mono text-xs text-ink-muted">({b.room_number})</span>
+                        <div className="font-semibold text-ink flex items-center gap-1.5">
+                          <span>{b.room_type} <span className="font-mono text-xs text-ink-muted">({b.room_number})</span></span>
+                          {b.booking_type === 'short_time' && (
+                            <span className="px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 text-[9px] font-bold border border-amber-200">
+                              ⏱ Short Time
+                            </span>
+                          )}
                         </div>
                         <div className="text-[11px] text-ink-muted font-mono mt-0.5">
-                          {b.check_in} → {b.check_out} ({b.nights}n)
+                          {b.booking_type === 'short_time'
+                            ? `${b.check_in} · ${b.duration_hours || b.nights || 3} hr(s)`
+                            : `${b.check_in} → ${b.check_out} (${b.nights}n)`
+                          }
                         </div>
                       </td>
                       <td className="px-5 py-4 font-mono font-bold text-xs text-ink">
@@ -576,9 +592,17 @@ export default function StaffBookings() {
                       <td className="px-5 py-4 font-semibold text-ink text-xs">{b.customer_name}</td>
                       <td className="px-5 py-4 text-ink-muted text-xs">
                         {b.room_type} ({b.room_number})
+                        {b.booking_type === 'short_time' && (
+                          <span className="ml-1 px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 text-[9px] font-bold border border-amber-200">
+                            ⏱ Short Time
+                          </span>
+                        )}
                       </td>
                       <td className="px-5 py-4 text-ink-muted text-xs font-mono">
-                        {b.check_in} → {b.check_out}
+                        {b.booking_type === 'short_time'
+                          ? `${b.check_in} · ${b.duration_hours || b.nights || 3}h`
+                          : `${b.check_in} → ${b.check_out} (${b.nights}n)`
+                        }
                       </td>
                       <td className="px-5 py-4 font-mono text-xs">₱{Number(b.total_price).toLocaleString()}</td>
                       <td className="px-5 py-4 font-mono text-xs text-emerald-700">₱{Number(b.amount_paid).toLocaleString()}</td>

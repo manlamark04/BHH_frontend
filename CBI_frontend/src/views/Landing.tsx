@@ -3,8 +3,10 @@ import type { View } from '../types'
 import { roomsApi } from '../api/rooms'
 import { catalogApi } from '../api/services'
 import logo from '../imports/logo.png'
+import InteractiveLogoMark from '../components/InteractiveLogoMark'
 import pickleballCourtImg from '../imports/pickleball_court.jpg'
 import hondaClickImg from '../imports/Honda Vario_Click 125 Blue.jpg'
+import landingImg from '../imports/landing.jpg'
 import {
   ConciergeBell,
   SprayCan,
@@ -28,9 +30,9 @@ import {
 /* ─────────────────────────────────────────────
    Design tokens — single source of truth
    ─────────────────────────────────────────── */
-const ACCENT        = '#B48454'
-const ACCENT_HOVER  = '#9E6E3E'
-const CHARCOAL      = '#1C231F'
+const ACCENT = '#B48454'
+const ACCENT_HOVER = '#9E6E3E'
+const CHARCOAL = '#1C231F'
 const CHARCOAL_DEEP = '#141A17'
 
 /* ─────────────────────────────────────────────
@@ -89,34 +91,34 @@ function Reveal({ children, className = '', delay = 0 }: { children: ReactNode; 
    ─────────────────────────────────────────── */
 const SERVICES = [
   { Icon: ConciergeBell, name: 'Room Service', description: 'In-room dining and refreshments delivered to your door with utmost care.' },
-  { Icon: SprayCan,      name: 'Housekeeping', description: 'Daily cleaning and fresh linen service to keep your stay pristine and restful.' },
+  { Icon: SprayCan, name: 'Housekeeping', description: 'Daily cleaning and fresh linen service to keep your stay pristine and restful.' },
   { Icon: UtensilsCrossed, name: 'Food & Dining', description: 'Authentic Boholano and Filipino cuisine prepared with fresh local harvest.' },
-  { Icon: Shirt,         name: 'Laundry Service', description: 'Same-day laundry and press services with gentle fabric care.' },
+  { Icon: Shirt, name: 'Laundry Service', description: 'Same-day laundry and press services with gentle fabric care.' },
 ]
 
 const WHY_CHOOSE = [
-  { Icon: Leaf,        title: 'Nature-Immersed Retreat', desc: 'Every corner of Cambacay Breeze Inn is crafted to connect you with the lush green beauty of Bohol.' },
-  { Icon: Home,        title: 'Visayan Warmth', desc: 'Experience genuine Filipino hospitality — warm, intuitive, and always welcoming from the heart.' },
-  { Icon: MapPin,      title: 'Prime Batuan Location', desc: 'Nestled in Cambacay, Batuan — minutes away from the Chocolate Hills and Bohol eco-tourism destinations.' },
-  { Icon: Target,      title: 'Curated Activities', desc: 'Enjoy outdoor pickleball courts and motorcycle rentals ready for your scenic road trips.' },
+  { Icon: Leaf, title: 'Nature-Immersed Retreat', desc: 'Every corner of Cambacay Breeze Inn is crafted to connect you with the lush green beauty of Bohol.' },
+  { Icon: Home, title: 'Visayan Warmth', desc: 'Experience genuine Filipino hospitality — warm, intuitive, and always welcoming from the heart.' },
+  { Icon: MapPin, title: 'Prime Batuan Location', desc: 'Nestled in Cambacay, Batuan — minutes away from the Chocolate Hills and Bohol eco-tourism destinations.' },
+  { Icon: Target, title: 'Curated Activities', desc: 'Enjoy outdoor pickleball courts and motorcycle rentals ready for your scenic road trips.' },
   { Icon: ShieldCheck, title: 'Safe & Peaceful', desc: '24/7 front desk security and a dedicated hospitality team ensuring complete peace of mind.' },
-  { Icon: Sparkles,    title: 'Modern Comforts', desc: 'Contemporary suite conveniences and high-speed Wi-Fi woven effortlessly into a tranquil setting.' },
+  { Icon: Sparkles, title: 'Modern Comforts', desc: 'Contemporary suite conveniences and high-speed Wi-Fi woven effortlessly into a tranquil setting.' },
 ]
 
 const CONTACT_ROWS: { Icon: typeof Phone; label: string; value: string }[] = [
-  { Icon: MapPin, label: 'Address',   value: 'Cambacay, Batuan, Bohol, Philippines' },
-  { Icon: Phone,  label: 'Phone',     value: '+63 917 123 4567 / (038) 500 1234' },
-  { Icon: Mail,   label: 'Email',     value: 'reservations@cambacaybreezeinn.com' },
-  { Icon: Clock,  label: 'Check-In',  value: '2:00 PM onwards' },
-  { Icon: Clock,  label: 'Check-Out', value: '12:00 PM NN' },
+  { Icon: MapPin, label: 'Address', value: 'Cambacay, Batuan, Bohol, Philippines' },
+  { Icon: Phone, label: 'Phone', value: '+63 917 123 4567 / (038) 500 1234' },
+  { Icon: Mail, label: 'Email', value: 'reservations@cambacaybreezeinn.com' },
+  { Icon: Clock, label: 'Check-In', value: '2:00 PM onwards' },
+  { Icon: Clock, label: 'Check-Out', value: '12:00 PM NN' },
 ]
 
 /* ─────────────────────────────────────────────
    Buttons — consistent heights & radii
    ─────────────────────────────────────────── */
-const btnBase      = 'inline-flex items-center justify-center font-sans font-medium transition-all duration-250'
-const btnPrimary   = `${btnBase} bg-[${ACCENT}] hover:bg-[${ACCENT_HOVER}] text-white rounded-[10px] shadow-[0_2px_8px_rgba(180,132,84,0.25)] hover:shadow-[0_4px_16px_rgba(180,132,84,0.30)] hover:-translate-y-px`
-const btnOutline   = `${btnBase} border border-white/30 text-white rounded-[10px] hover:bg-white/8`
+const btnBase = 'inline-flex items-center justify-center font-sans font-medium transition-all duration-250'
+const btnPrimary = `${btnBase} bg-[${ACCENT}] hover:bg-[${ACCENT_HOVER}] text-white rounded-[10px] shadow-[0_2px_8px_rgba(180,132,84,0.25)] hover:shadow-[0_4px_16px_rgba(180,132,84,0.30)] hover:-translate-y-px`
+const btnOutline = `${btnBase} border border-white/30 text-white rounded-[10px] hover:bg-white/8`
 const btnOutlineInk = `${btnBase} border border-stone/30 text-ink hover:border-[${ACCENT}] hover:text-[${ACCENT}] rounded-[10px]`
 
 const NAV_LINKS = [
@@ -134,15 +136,15 @@ const NAV_LINKS = [
 interface LandingProps { onNavigate: (view: View) => void }
 
 export default function Landing({ onNavigate }: LandingProps) {
-  const [rooms, setRooms]           = useState<Record<string, unknown>[]>([])
+  const [rooms, setRooms] = useState<Record<string, unknown>[]>([])
   const [activities, setActivities] = useState<Record<string, unknown>[]>([])
   const [navScrolled, setNavScrolled] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [activeSection, setActiveSection] = useState('')
 
   useEffect(() => {
-    roomsApi.getRooms().then(setRooms).catch(() => {})
-    catalogApi.getActivities().then(setActivities).catch(() => {})
+    roomsApi.getRooms().then(setRooms).catch(() => { })
+    catalogApi.getActivities().then(setActivities).catch(() => { })
   }, [])
 
   /* Navbar shadow and scrollspy on scroll */
@@ -167,16 +169,16 @@ export default function Landing({ onNavigate }: LandingProps) {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [handleScroll])
 
-interface ActivityItem {
-  id: string | number
-  name: string
-  description?: string
-  price_per_unit?: number
-  price?: number
-  unit?: string
-  image_url?: string
-  image?: string
-}
+  interface ActivityItem {
+    id: string | number
+    name: string
+    description?: string
+    price_per_unit?: number
+    price?: number
+    unit?: string
+    image_url?: string
+    image?: string
+  }
 
   const displayRooms = rooms.slice(0, 3)
 
@@ -256,11 +258,10 @@ interface ActivityItem {
           1 · NAVIGATION HEADER
           ═══════════════════════════════════════ */}
       <header
-        className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${
-          navScrolled
+        className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${navScrolled
             ? 'bg-[#FBF9F5]/95 backdrop-blur-xl shadow-[0_4px_24px_rgba(0,0,0,0.06)] border-b border-stone/20 py-2.5'
             : 'bg-[#FBF9F5]/85 backdrop-blur-md border-b border-stone/15 py-3.5'
-        }`}
+          }`}
       >
         <div className="max-w-[1320px] mx-auto px-6 sm:px-8 flex items-center justify-between">
           {/* Logo & Brand Identity */}
@@ -272,9 +273,7 @@ interface ActivityItem {
               window.scrollTo({ top: 0, behavior: 'smooth' })
             }}
           >
-            <div className="relative w-10 h-10 rounded-xl bg-white p-1 shadow-[0_2px_8px_rgba(0,0,0,0.05)] border border-stone/20 group-hover:border-[#B48454]/40 group-hover:shadow-[0_4px_14px_rgba(180,132,84,0.18)] transition-all duration-300 flex items-center justify-center overflow-hidden">
-              <img src={logo} alt="Cambacay Breeze Inn" className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300" />
-            </div>
+            <InteractiveLogoMark />
             <div className="flex flex-col">
               <div className="flex items-center gap-2">
                 <span className="font-serif-brand text-[17px] font-bold text-ink tracking-[-0.01em] group-hover:text-[#B48454] transition-colors duration-200">
@@ -299,11 +298,10 @@ interface ActivityItem {
                 <a
                   key={link.id}
                   href={link.href}
-                  className={`px-4 py-1.5 rounded-full text-[13px] font-medium transition-all duration-200 ${
-                    isActive
+                  className={`px-4 py-1.5 rounded-full text-[13px] font-medium transition-all duration-200 ${isActive
                       ? 'bg-white text-[#9E6E3E] shadow-[0_1px_4px_rgba(0,0,0,0.06)] font-semibold'
                       : 'text-ink-muted hover:text-ink hover:bg-white/60'
-                  }`}
+                    }`}
                 >
                   {link.label}
                 </a>
@@ -315,7 +313,7 @@ interface ActivityItem {
           <div className="flex items-center gap-2.5">
             <button
               onClick={() => onNavigate('login')}
-              className="hidden sm:inline-flex items-center justify-center font-sans font-medium text-[13px] text-ink hover:text-[#9E6E3E] px-4 py-2 rounded-xl hover:bg-stone/20 transition-all duration-200"
+              className="hidden sm:inline-flex items-center justify-center font-sans font-medium text-[13px] text-ink hover:text-[#9E6E3E] px-5 py-2 rounded-xl bg-stone/20 hover:bg-stone/30 border border-stone/25 backdrop-blur-sm shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)] hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
             >
               Sign In
             </button>
@@ -348,11 +346,10 @@ interface ActivityItem {
                   key={link.id}
                   href={link.href}
                   onClick={() => setMobileMenuOpen(false)}
-                  className={`px-4 py-2.5 rounded-xl text-[14px] font-medium transition-colors ${
-                    activeSection === link.id
+                  className={`px-4 py-2.5 rounded-xl text-[14px] font-medium transition-colors ${activeSection === link.id
                       ? 'bg-[#B48454]/10 text-[#9E6E3E] font-semibold'
                       : 'text-ink-muted hover:text-ink hover:bg-stone/15'
-                  }`}
+                    }`}
                 >
                   {link.label}
                 </a>
@@ -390,8 +387,8 @@ interface ActivityItem {
         {/* Background image + overlay */}
         <div className="absolute inset-0">
           <img
-            src="https://images.unsplash.com/photo-1582719508461-905c673771fd?w=1920&h=1080&fit=crop&auto=format&q=85"
-            alt="Tropical resort garden"
+            src={landingImg}
+            alt="Cambacay Breeze Inn"
             className="w-full h-full object-cover"
             style={{ filter: 'saturate(0.9) brightness(0.95)' }}
           />
@@ -442,9 +439,9 @@ interface ActivityItem {
         <div className="max-w-[1280px] mx-auto px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             {[
-              { value: '7+',   label: 'Luxury Room Types' },
-              { value: '12',   label: 'Rental Motorcycles' },
-              { value: '4.9',  label: 'Guest Satisfaction', hasStar: true },
+              { value: '7+', label: 'Luxury Room Types' },
+              { value: '12', label: 'Rental Motorcycles' },
+              { value: '4.9', label: 'Guest Satisfaction', hasStar: true },
               { value: '24/7', label: 'Front Desk Service' },
             ].map((stat) => (
               <div key={stat.label}>
@@ -531,12 +528,12 @@ interface ActivityItem {
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {displayRooms.map((room, idx) => {
-              const name        = (room.name || room.room_type || 'Room') as string
-              const roomType    = (room.room_type || room.roomType || '') as string
+              const name = (room.name || room.room_type || 'Room') as string
+              const roomType = (room.room_type || room.roomType || '') as string
               const description = (room.description || '') as string
-              const image       = (room.image_urls ? (Array.isArray(room.image_urls) ? (room.image_urls as string[])[0] : '') : (room.image || '')) as string
-              const price       = Number(room.rate_per_night || room.price || 0)
-              const id          = room.id || room.roomId || room.room_id
+              const image = (room.image_urls ? (Array.isArray(room.image_urls) ? (room.image_urls as string[])[0] : '') : (room.image || '')) as string
+              const price = Number(room.rate_per_night || room.price || 0)
+              const id = room.id || room.roomId || room.room_id
 
               return (
                 <Reveal key={String(id)} delay={idx + 1}>
@@ -648,12 +645,12 @@ interface ActivityItem {
 
           <div className={`grid gap-8 ${displayActivities.length >= 3 ? 'md:grid-cols-2 lg:grid-cols-3' : displayActivities.length === 2 ? 'md:grid-cols-2 max-w-3xl mx-auto' : 'max-w-lg mx-auto'}`}>
             {displayActivities.map((activity, idx) => {
-              const aName  = activity.name
-              const aDesc  = activity.description || ''
+              const aName = activity.name
+              const aDesc = activity.description || ''
               const aImage = activity.image_url || activity.image || ''
               const aPrice = Number(activity.price_per_unit || activity.price || 0)
-              const aUnit  = activity.unit || 'hour'
-              const aId    = activity.id
+              const aUnit = activity.unit || 'hour'
+              const aId = activity.id
 
               return (
                 <Reveal key={String(aId)} delay={Math.min(idx + 1, 5)}>

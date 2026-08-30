@@ -92,7 +92,10 @@ export default function AdminUsers() {
   const loadUsers = () => {
     setLoading(true)
     usersApi.getAllUsers()
-      .then(setUsers)
+      .then((data) => {
+        setUsers(data)
+        window.dispatchEvent(new CustomEvent('users-updated'))
+      })
       .catch((err: unknown) => console.error('Failed to load users:', err))
       .finally(() => setLoading(false))
   }

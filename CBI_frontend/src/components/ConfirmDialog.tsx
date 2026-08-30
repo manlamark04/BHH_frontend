@@ -7,6 +7,8 @@ interface ConfirmDialogProps {
   confirmLabel?: string
   cancelLabel?: string
   variant?: 'danger' | 'success' | 'warning'
+  errorMessage?: string
+  loading?: boolean
   onConfirm: () => void
   onCancel: () => void
 }
@@ -18,6 +20,8 @@ export default function ConfirmDialog({
   confirmLabel = 'Confirm',
   cancelLabel = 'Cancel',
   variant = 'danger',
+  errorMessage,
+  loading = false,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
@@ -55,18 +59,27 @@ export default function ConfirmDialog({
           </div>
         </div>
 
+        {errorMessage && (
+          <div className="mb-4 p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/50 rounded-xl text-rose-800 dark:text-rose-300 font-semibold text-xs flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
+            <span>{errorMessage}</span>
+          </div>
+        )}
+
         <div className="flex gap-2.5 justify-end pt-3 border-t border-black/[0.06] dark:border-neutral-800 mt-4">
           <button
             onClick={onCancel}
-            className="px-4 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-700 text-neutral-600 dark:text-neutral-300 text-xs font-semibold hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-white transition-colors cursor-pointer"
+            disabled={loading}
+            className="px-4 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-700 text-neutral-600 dark:text-neutral-300 text-xs font-semibold hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-white transition-colors cursor-pointer disabled:opacity-50"
           >
             {cancelLabel}
           </button>
           <button
             onClick={onConfirm}
-            className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${btnStyles[variant]}`}
+            disabled={loading}
+            className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer disabled:opacity-50 ${btnStyles[variant]}`}
           >
-            {confirmLabel}
+            {loading ? 'Submitting...' : confirmLabel}
           </button>
         </div>
       </div>
