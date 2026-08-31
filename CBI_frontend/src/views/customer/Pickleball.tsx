@@ -358,8 +358,8 @@ export default function CustomerPickleball({ customerId, customerName }: Props) 
         
         <div className="bg-white dark:bg-[#181B20] p-2.5 sm:p-3 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_2px_rgba(0,0,0,0.03)] flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[9px] uppercase font-bold tracking-wider text-[#B48454]">COURTS CAPACITY</span>
-            <div className="w-5 h-5 rounded-md bg-[#B48454]/10 text-[#B48454] flex items-center justify-center">
+            <span className="text-[9px] uppercase font-bold tracking-wider text-[#6B7A5E]">COURTS CAPACITY</span>
+            <div className="w-5 h-5 rounded-md bg-[#6B7A5E]/10 text-[#6B7A5E] flex items-center justify-center">
               <Layers className="w-3 h-3" strokeWidth={1.5} />
             </div>
           </div>
@@ -375,8 +375,8 @@ export default function CustomerPickleball({ customerId, customerName }: Props) 
 
         <div className="bg-white dark:bg-[#181B20] p-2.5 sm:p-3 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_2px_rgba(0,0,0,0.03)] flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[9px] uppercase font-bold tracking-wider text-[#B48454]">HOURLY RATE</span>
-            <div className="w-5 h-5 rounded-md bg-[#B48454]/10 text-[#B48454] flex items-center justify-center">
+            <span className="text-[9px] uppercase font-bold tracking-wider text-[#6B7A5E]">HOURLY RATE</span>
+            <div className="w-5 h-5 rounded-md bg-[#6B7A5E]/10 text-[#6B7A5E] flex items-center justify-center">
               <Clock className="w-3 h-3" strokeWidth={1.5} />
             </div>
           </div>
@@ -390,8 +390,8 @@ export default function CustomerPickleball({ customerId, customerName }: Props) 
 
         <div className="bg-white dark:bg-[#181B20] p-2.5 sm:p-3 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_2px_rgba(0,0,0,0.03)] flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[9px] uppercase font-bold tracking-wider text-[#B48454]">OPERATING HOURS</span>
-            <div className="w-5 h-5 rounded-md bg-[#B48454]/10 text-[#B48454] flex items-center justify-center">
+            <span className="text-[9px] uppercase font-bold tracking-wider text-[#6B7A5E]">OPERATING HOURS</span>
+            <div className="w-5 h-5 rounded-md bg-[#6B7A5E]/10 text-[#6B7A5E] flex items-center justify-center">
               <Sparkles className="w-3 h-3" strokeWidth={1.5} />
             </div>
           </div>
@@ -403,8 +403,8 @@ export default function CustomerPickleball({ customerId, customerName }: Props) 
 
         <div className="bg-white dark:bg-[#181B20] p-2.5 sm:p-3 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_2px_rgba(0,0,0,0.03)] flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[9px] uppercase font-bold tracking-wider text-[#B48454]">MY RESERVATIONS</span>
-            <div className="w-5 h-5 rounded-md bg-[#B48454]/10 text-[#B48454] flex items-center justify-center">
+            <span className="text-[9px] uppercase font-bold tracking-wider text-[#6B7A5E]">MY RESERVATIONS</span>
+            <div className="w-5 h-5 rounded-md bg-[#6B7A5E]/10 text-[#6B7A5E] flex items-center justify-center">
               <Calendar className="w-3 h-3" strokeWidth={1.5} />
             </div>
           </div>
@@ -419,7 +419,7 @@ export default function CustomerPickleball({ customerId, customerName }: Props) 
       {myActiveReservation && (
         <div className="p-4 bg-gradient-to-r from-amber-50 to-orange-50/50 dark:from-[#221D16] dark:to-[#1B1814] rounded-2xl border border-amber-300/80 dark:border-amber-700/50 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-[#B48454]/15 dark:bg-[#B48454]/25 text-[#B48454] flex items-center justify-center shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-[#6B7A5E]/15 dark:bg-[#6B7A5E]/25 text-[#6B7A5E] flex items-center justify-center shrink-0">
               <Sparkles className="w-4 h-4" />
             </div>
             <div>
@@ -434,7 +434,7 @@ export default function CustomerPickleball({ customerId, customerName }: Props) 
               </p>
             </div>
           </div>
-          <div className="text-right self-end sm:self-auto font-mono text-xs text-[#B48454] font-bold bg-white/80 dark:bg-black/40 px-3 py-1.5 rounded-lg border border-amber-200 dark:border-amber-800/60">
+          <div className="text-right self-end sm:self-auto font-mono text-xs text-[#6B7A5E] font-bold bg-white/80 dark:bg-black/40 px-3 py-1.5 rounded-lg border border-amber-200 dark:border-amber-800/60">
             ₱{Number(myActiveReservation.total_price || 150).toLocaleString()}
           </div>
         </div>
@@ -456,7 +456,7 @@ export default function CustomerPickleball({ customerId, customerName }: Props) 
             onClick={() => openBookModalForCourt('any')}
             className="self-start sm:self-auto px-4 py-2 bg-neutral-900 dark:bg-white hover:bg-neutral-800 dark:hover:bg-neutral-100 text-white dark:text-neutral-900 rounded-xl font-semibold text-xs transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
           >
-            <Sparkles className="w-3.5 h-3.5 text-[#B48454]" />
+            <Sparkles className="w-3.5 h-3.5 text-[#6B7A5E]" />
             <span>Quick Book: Any Available Court</span>
           </button>
         </div>
@@ -491,7 +491,7 @@ export default function CustomerPickleball({ customerId, customerName }: Props) 
                   </div>
 
                   <div className="absolute top-3 right-3">
-                    <span className="bg-[#B48454] text-white text-[10px] font-bold px-2.5 py-1 rounded-full font-mono shadow-sm">
+                    <span className="bg-[#6B7A5E] text-white text-[10px] font-bold px-2.5 py-1 rounded-full font-mono shadow-sm">
                       ₱{Number(court.hourly_rate || 150)} / hr
                     </span>
                   </div>
@@ -533,11 +533,11 @@ export default function CustomerPickleball({ customerId, customerName }: Props) 
 
                   <div className="grid grid-cols-2 gap-2 text-[11px] pt-1">
                     <div className="p-2 rounded-lg bg-neutral-50 dark:bg-[#14171C] border border-black/[0.05] dark:border-neutral-800 flex items-center gap-2">
-                      <Sparkles className="w-3.5 h-3.5 text-[#B48454] shrink-0" />
+                      <Sparkles className="w-3.5 h-3.5 text-[#6B7A5E] shrink-0" />
                       <span className="text-neutral-700 dark:text-neutral-300 font-medium">4 Paddles + Balls</span>
                     </div>
                     <div className="p-2 rounded-lg bg-neutral-50 dark:bg-[#14171C] border border-black/[0.05] dark:border-neutral-800 flex items-center gap-2">
-                      <Clock className="w-3.5 h-3.5 text-[#B48454] shrink-0" />
+                      <Clock className="w-3.5 h-3.5 text-[#6B7A5E] shrink-0" />
                       <span className="text-neutral-700 dark:text-neutral-300 font-medium">24/7 Access</span>
                     </div>
                   </div>
@@ -546,7 +546,7 @@ export default function CustomerPickleball({ customerId, customerName }: Props) 
                   <div className="pt-2 border-t border-black/[0.06] dark:border-neutral-800 flex items-center justify-between">
                     <div>
                       <span className="text-[10px] uppercase font-bold text-neutral-400 block">STARTING RATE</span>
-                      <strong className="font-display text-sm font-bold text-[#B48454]">₱{Number(court.hourly_rate || 150)} <span className="text-[10px] font-normal text-neutral-500">/ hour</span></strong>
+                      <strong className="font-display text-sm font-bold text-[#6B7A5E]">₱{Number(court.hourly_rate || 150)} <span className="text-[10px] font-normal text-neutral-500">/ hour</span></strong>
                     </div>
 
                     <button
@@ -559,7 +559,7 @@ export default function CustomerPickleball({ customerId, customerName }: Props) 
                           ? 'bg-rose-100 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border border-rose-300 dark:border-rose-800/60 cursor-not-allowed'
                           : isReserved
                           ? 'bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800/60 cursor-not-allowed'
-                          : 'bg-[#B48454] hover:bg-[#9E6E3E] text-white shadow-xs hover:shadow-md cursor-pointer'
+                          : 'bg-[#6B7A5E] hover:bg-[#4F5D45] text-white shadow-xs hover:shadow-md cursor-pointer'
                       }`}
                     >
                       {isMaint ? (
@@ -587,7 +587,7 @@ export default function CustomerPickleball({ customerId, customerName }: Props) 
       <div className="bg-white dark:bg-[#181B20] rounded-2xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
         <div className="px-5 py-3.5 border-b border-black/[0.06] dark:border-neutral-800 bg-neutral-50/60 dark:bg-[#15181D] flex items-center justify-between">
           <h3 className="font-display font-bold text-sm text-neutral-900 dark:text-white">My Court Booking History</h3>
-          <span className="text-xs font-mono font-bold text-[#B48454]">{courtBookings.length} bookings</span>
+          <span className="text-xs font-mono font-bold text-[#6B7A5E]">{courtBookings.length} bookings</span>
         </div>
 
         <div className="overflow-x-auto">
@@ -605,7 +605,7 @@ export default function CustomerPickleball({ customerId, customerName }: Props) 
             <tbody className="divide-y divide-black/[0.06] dark:divide-neutral-800">
               {courtBookings.map((b) => (
                 <tr key={String(b.id)} className="hover:bg-black/[0.01] dark:hover:bg-white/[0.01] transition-colors">
-                  <td className="px-4 py-3 font-mono font-bold text-[#B48454]">
+                  <td className="px-4 py-3 font-mono font-bold text-[#6B7A5E]">
                     {b.rental_ref || `AR-${new Date().getFullYear()}-${String(b.id).padStart(4, '0')}`}
                   </td>
                   <td className="px-4 py-3">
@@ -620,7 +620,7 @@ export default function CustomerPickleball({ customerId, customerName }: Props) 
                   <td className="px-4 py-3 text-neutral-600 dark:text-neutral-400 font-mono">
                     {b.duration_hours || 1} hr(s)
                   </td>
-                  <td className="px-4 py-3 font-display font-bold text-[#B48454]">
+                  <td className="px-4 py-3 font-display font-bold text-[#6B7A5E]">
                     ₱{Number(b.total_price || 150).toLocaleString()}
                   </td>
                   <td className="px-4 py-3">
@@ -654,11 +654,11 @@ export default function CustomerPickleball({ customerId, customerName }: Props) 
           {/* Non-editable Designated Court Confirmation */}
           <div className="p-3 bg-neutral-50 dark:bg-[#14171C] border border-black/[0.06] dark:border-neutral-800 rounded-xl flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-[#B48454]/10 text-[#B48454] flex items-center justify-center font-bold text-xs font-mono">
+              <div className="w-8 h-8 rounded-lg bg-[#6B7A5E]/10 text-[#6B7A5E] flex items-center justify-center font-bold text-xs font-mono">
                 {selectedCourtId === 'any' ? 'ANY' : (selectedCourtObj?.court_code || 'CT')}
               </div>
               <div>
-                <span className="text-[9px] uppercase font-bold tracking-wider text-[#B48454] block">
+                <span className="text-[9px] uppercase font-bold tracking-wider text-[#6B7A5E] block">
                   {selectedCourtId === 'any' ? 'AUTO-ASSIGNMENT' : 'RESERVING COURT'}
                 </span>
                 <p className="font-display font-bold text-sm text-neutral-900 dark:text-white leading-tight">
@@ -668,7 +668,7 @@ export default function CustomerPickleball({ customerId, customerName }: Props) 
             </div>
 
             <div className="text-right">
-              <span className="font-display font-bold text-sm text-[#B48454] font-mono">
+              <span className="font-display font-bold text-sm text-[#6B7A5E] font-mono">
                 ₱{courtRate} <span className="text-[10px] font-sans font-normal text-neutral-500 dark:text-neutral-400">/ hr</span>
               </span>
               <span className="text-[10px] text-neutral-500 dark:text-neutral-400 block">
@@ -686,7 +686,7 @@ export default function CustomerPickleball({ customerId, customerName }: Props) 
                 onChange={(e) => handleDateChange(e.target.value)}
                 min={getTodayDateString()}
                 required
-                className="w-full px-3 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#15181D] text-xs dark:text-white focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                className="w-full px-3 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#15181D] text-xs dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
               />
             </div>
 
@@ -699,7 +699,7 @@ export default function CustomerPickleball({ customerId, customerName }: Props) 
                   <button
                     type="button"
                     onClick={() => setStartTime(getCurrentTimeString())}
-                    className="text-[11px] font-semibold text-[#B48454] hover:text-[#9E6E3E] hover:underline flex items-center gap-1 cursor-pointer"
+                    className="text-[11px] font-semibold text-[#6B7A5E] hover:text-[#4F5D45] hover:underline flex items-center gap-1 cursor-pointer"
                     title="Snap to current clock time"
                   >
                     <Clock className="w-3 h-3" />
@@ -712,7 +712,7 @@ export default function CustomerPickleball({ customerId, customerName }: Props) 
                 required
                 value={startTime}
                 onChange={(e) => setStartTime(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#15181D] font-mono text-xs font-bold text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                className="w-full px-3 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#15181D] font-mono text-xs font-bold text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
               />
               {!startTime && date !== getTodayDateString() && (
                 <p className="text-[10px] text-neutral-400 mt-1">Select an intended start time for this day.</p>
@@ -743,7 +743,7 @@ export default function CustomerPickleball({ customerId, customerName }: Props) 
                       const mm = m.substring(0, 2)
                       setStartTime(`${String(hh).padStart(2, '0')}:${mm}`)
                     }}
-                    className="text-[11px] text-[#B48454] hover:underline font-semibold cursor-pointer"
+                    className="text-[11px] text-[#6B7A5E] hover:underline font-semibold cursor-pointer"
                   >
                     👉 Jump to nearest available time ({availabilityStatus.suggestedSlot})
                   </button>
@@ -770,7 +770,7 @@ export default function CustomerPickleball({ customerId, customerName }: Props) 
               <select
                 value={duration}
                 onChange={(e) => setDuration(Number(e.target.value))}
-                className="w-full px-3 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#15181D] text-xs font-semibold dark:text-white focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                className="w-full px-3 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#15181D] text-xs font-semibold dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
               >
                 <option value={0.5}>0.5 Hour (30 Mins) — ₱{courtRate * 0.5}</option>
                 <option value={1}>1.0 Hour (60 Mins) — ₱{courtRate * 1}</option>
@@ -783,7 +783,7 @@ export default function CustomerPickleball({ customerId, customerName }: Props) 
             <div>
               <label className="block font-semibold text-neutral-900 dark:text-white uppercase tracking-wider mb-1">Expected Match End</label>
               <div className="w-full px-3 py-2 rounded-xl border border-amber-300/80 bg-amber-50/70 dark:bg-[#221D16] font-mono text-xs font-bold text-amber-900 dark:text-amber-200 flex items-center gap-2">
-                <Clock className="w-3.5 h-3.5 text-[#B48454] shrink-0" />
+                <Clock className="w-3.5 h-3.5 text-[#6B7A5E] shrink-0" />
                 <span>{calculateExpectedEndTime(startTime, duration, date)}</span>
               </div>
             </div>
@@ -794,7 +794,7 @@ export default function CustomerPickleball({ customerId, customerName }: Props) 
             <select
               value={players}
               onChange={(e) => setPlayers(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#15181D] text-xs dark:text-white focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+              className="w-full px-3 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#15181D] text-xs dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
             >
               <option value="2">2 Players (Singles match)</option>
               <option value="4">4 Players (Doubles match)</option>
@@ -818,7 +818,7 @@ export default function CustomerPickleball({ customerId, customerName }: Props) 
             </div>
             <div className="pt-1.5 border-t border-black/[0.06] dark:border-neutral-800 flex justify-between items-center">
               <span className="font-semibold text-neutral-700 dark:text-neutral-300">Total Rental Fee:</span>
-              <span className="font-display font-bold text-[#B48454] text-base">₱{totalCost.toLocaleString()}</span>
+              <span className="font-display font-bold text-[#6B7A5E] text-base">₱{totalCost.toLocaleString()}</span>
             </div>
           </div>
 
@@ -833,7 +833,7 @@ export default function CustomerPickleball({ customerId, customerName }: Props) 
             <button
               type="submit"
               disabled={submitting || !date || !startTime || !availabilityStatus.isAvailable}
-              className="flex-1 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl text-xs font-semibold shadow-sm disabled:opacity-50 transition-all cursor-pointer"
+              className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl text-xs font-semibold shadow-sm disabled:opacity-50 transition-all cursor-pointer"
             >
               {submitting ? 'Reserving...' : 'Confirm Court Reservation'}
             </button>

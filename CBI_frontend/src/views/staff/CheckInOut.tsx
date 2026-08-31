@@ -132,8 +132,8 @@ export default function StaffCheckInOut() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
         <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase font-bold tracking-wider text-[#B48454]">ARRIVALS TODAY</span>
-            <div className="w-6 h-6 rounded-lg bg-[#B48454]/10 text-[#B48454] flex items-center justify-center">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-[#6B7A5E]">ARRIVALS TODAY</span>
+            <div className="w-6 h-6 rounded-lg bg-[#6B7A5E]/10 text-[#6B7A5E] flex items-center justify-center">
               <Luggage className="w-3.5 h-3.5" strokeWidth={1.5} />
             </div>
           </div>
@@ -192,7 +192,7 @@ export default function StaffCheckInOut() {
               onClick={() => { setTab(t.id); setSearch('') }}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-semibold transition-all cursor-pointer ${
                 tab === t.id
-                  ? 'bg-[#B48454] text-white shadow-2xs'
+                  ? 'bg-[#6B7A5E] text-white shadow-2xs'
                   : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-white dark:hover:bg-neutral-800'
               }`}
             >
@@ -214,7 +214,7 @@ export default function StaffCheckInOut() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search guest name, booking ID, room..."
-            className="w-full pl-8.5 pr-3.5 py-1.5 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+            className="w-full pl-8.5 pr-3.5 py-1.5 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
           />
         </div>
       </div>
@@ -253,7 +253,7 @@ export default function StaffCheckInOut() {
                     <tr key={id} className="hover:bg-sand/20 transition-colors">
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs bg-[#B48454]/15 text-[#B48454] shrink-0">
+                          <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs bg-[#6B7A5E]/15 text-[#6B7A5E] shrink-0">
                             {name.charAt(0)}
                           </div>
                           <div>
@@ -262,7 +262,7 @@ export default function StaffCheckInOut() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-5 py-4 font-mono font-bold text-xs text-[#B48454]">{String(b.booking_ref || b.unique_id || `#BK-${b.id}`)}</td>
+                      <td className="px-5 py-4 font-mono font-bold text-xs text-[#6B7A5E]">{String(b.booking_ref || b.unique_id || `#BK-${b.id}`)}</td>
                       <td className="px-5 py-4">
                         <p className="font-semibold text-ink text-xs">{String(b.room_type || '')}</p>
                         <p className="font-mono text-[10px] text-ink-muted">
@@ -293,7 +293,7 @@ export default function StaffCheckInOut() {
                                 {isPaid && (
                                   <button
                                     onClick={() => setConfirmAction({ id, status: 'checked_in', label: 'Check-In', name })}
-                                    className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-[#B48454] hover:bg-[#9E6E3E] text-white shadow-xs transition-all cursor-pointer"
+                                    className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-[#6B7A5E] hover:bg-[#4F5D45] text-white shadow-xs transition-all cursor-pointer"
                                   >
                                     Check In
                                   </button>
@@ -331,14 +331,14 @@ export default function StaffCheckInOut() {
 
       {/* ─── 5. ROOM STATUS GRID ─── */}
       <div className="bg-white rounded-2xl border border-stone/20 shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-stone/15 bg-[#FCFAF7]">
+        <div className="px-6 py-4 border-b border-stone/15 bg-[#F6F2E8]">
           <h3 className="font-display font-bold text-lg text-ink">Room Status Overview</h3>
           <p className="text-xs text-ink-muted">Real-time housekeeping and room occupancy matrix</p>
         </div>
         <div className="p-6 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
           {rooms.map((r) => {
             const roomStatus = String(r.status || '').toLowerCase()
-            const bg = roomStatus === 'available' ? 'bg-[#FAF8F5] border-stone/20 hover:border-[#B48454]/40'
+            const bg = roomStatus === 'available' ? 'bg-[#F6F2E8] border-stone/20 hover:border-[#6B7A5E]/40'
               : roomStatus === 'occupied' ? 'bg-amber-50/60 border-amber-200'
               : roomStatus === 'reserved' ? 'bg-blue-50/60 border-blue-200'
               : roomStatus === 'cleaning' ? 'bg-purple-50/60 border-purple-200'
@@ -381,7 +381,7 @@ export default function StaffCheckInOut() {
                     </p>
                   </div>
                   <div className="text-right space-y-1">
-                    <span className="font-mono text-xs font-bold text-[#B48454] block">{String(viewArrivalTarget.booking_ref || `#BK-${viewArrivalTarget.id}`)}</span>
+                    <span className="font-mono text-xs font-bold text-[#6B7A5E] block">{String(viewArrivalTarget.booking_ref || `#BK-${viewArrivalTarget.id}`)}</span>
                     <StatusBadge status={String(viewArrivalTarget.status || '').toUpperCase()} />
                   </div>
                 </div>

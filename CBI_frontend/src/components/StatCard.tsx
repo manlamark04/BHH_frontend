@@ -19,8 +19,8 @@ export default function StatCard({
   value,
   subtext,
   icon: Icon,
-  iconColor = 'text-[#B48454]',
-  iconBg = 'bg-[#B48454]/10',
+  iconColor = 'text-[#6B7A5E]',
+  iconBg = 'bg-[#6B7A5E]/12',
   valueColor = 'text-neutral-900 dark:text-white',
   onClick,
   children,
@@ -33,7 +33,7 @@ export default function StatCard({
       onClick={onClick}
       className={`p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 bg-white dark:bg-[#181B20] shadow-[0_1px_3px_rgba(0,0,0,0.04)] dark:shadow-none flex flex-col justify-between text-left transition-all ${
         onClick
-          ? 'hover:shadow-md hover:border-[#B48454]/40 cursor-pointer'
+          ? 'hover:shadow-md hover:border-[#6B7A5E]/40 cursor-pointer'
           : 'hover:shadow-[0_4px_12px_rgba(0,0,0,0.04)]'
       }`}
     >

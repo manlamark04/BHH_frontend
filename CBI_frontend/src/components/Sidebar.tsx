@@ -102,11 +102,11 @@ interface SidebarProps {
   onMobileClose: () => void
 }
 
-// ─── Espresso palette — hardcoded, never tied to dark mode toggle ───
-// bg:         #2B2420  warm espresso brown
+// ─── Forest & Sage palette — hardcoded, never tied to dark mode toggle ───
+// bg:         #2A3126  deeper forest green
 // text-logo:  #F5F1EC  off-white
-// active bg:  rgba(184,128,79,0.15)
-// active fg:  #B8804F  terracotta/gold
+// active bg:  rgba(107,122,94,0.18)
+// active fg:  #6B7A5E  sage green
 // inactive:   #A8A29E  warm gray
 // hover bg:   rgba(255,255,255,0.05)
 // border:     rgba(255,255,255,0.08)
@@ -198,12 +198,12 @@ export default function Sidebar({
 
   const SidebarContent = () => (
     <aside
-      style={{ backgroundColor: '#2B2420', borderRight: '1px solid rgba(255,255,255,0.06)' }}
+      style={{ backgroundColor: '#2A3126', borderRight: '1px solid rgba(255,255,255,0.06)' }}
       className={`flex flex-col h-full transition-all duration-300 ${collapsed ? 'w-20' : 'w-64'}`}
     >
       {/* ─── Top Branding ─── */}
       <div
-        style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', backgroundColor: '#2B2420' }}
+        style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', backgroundColor: '#2A3126' }}
         className="px-4 py-4 flex items-center justify-between min-h-[64px]"
       >
         <div className="flex items-center gap-3 min-w-0">
@@ -220,7 +220,7 @@ export default function Sidebar({
                 Cambacay Breeze Inn
               </p>
               <p
-                style={{ color: '#B8804F' }}
+                style={{ color: '#C9A66B' }}
                 className="text-[9.5px] font-bold uppercase tracking-[0.14em] leading-none mt-1"
               >
                 {SUITE_LABELS[role] || 'HOSPITALITY'}
@@ -258,9 +258,9 @@ export default function Sidebar({
           </span>
           <span
             style={{
-              color: '#B8804F',
-              backgroundColor: 'rgba(184,128,79,0.14)',
-              borderColor: 'rgba(184,128,79,0.25)',
+              color: '#6B7A5E',
+              backgroundColor: 'rgba(107,122,94,0.18)',
+              borderColor: 'rgba(107,122,94,0.30)',
             }}
             className="font-mono text-[10px] font-bold border px-2 py-0.5 rounded-md"
           >
@@ -293,9 +293,9 @@ export default function Sidebar({
               style={
                 active
                   ? {
-                      backgroundColor: 'rgba(184,128,79,0.15)',
-                      color: '#B8804F',
-                      borderLeft: '3px solid #B8804F',
+                      backgroundColor: 'rgba(107,122,94,0.18)',
+                      color: '#6B7A5E',
+                      borderLeft: '3px solid #6B7A5E',
                       paddingLeft: '10px',
                     }
                   : {
@@ -328,7 +328,7 @@ export default function Sidebar({
                   <span
                     className={`absolute -top-1.5 -right-2 min-w-[14px] h-[14px] px-0.5 ${
                       item.badgeVariant === 'rose' ? 'bg-rose-600' : 'bg-amber-600 dark:bg-amber-500'
-                    } text-white text-[9px] font-bold rounded-full flex items-center justify-center leading-none shadow-xs border border-[#2B2420]`}
+                    } text-white text-[9px] font-bold rounded-full flex items-center justify-center leading-none shadow-xs border border-[#2A3126]`}
                   >
                     {badgeCount > 99 ? '99+' : badgeCount}
                   </span>
@@ -354,7 +354,7 @@ export default function Sidebar({
 
               {active && !collapsed && (
                 <span
-                  style={{ backgroundColor: '#B8804F' }}
+                  style={{ backgroundColor: '#6B7A5E' }}
                   className={`w-1.5 h-1.5 rounded-full shrink-0 ${badgeCount > 0 ? 'ml-1.5' : 'ml-auto'}`}
                 />
               )}
@@ -382,7 +382,7 @@ export default function Sidebar({
         >
           <div className="flex items-center gap-2.5">
             {isDarkMode ? (
-              <Sun className="w-4 h-4 shrink-0" style={{ color: '#B8804F' }} strokeWidth={1.5} />
+              <Sun className="w-4 h-4 shrink-0" style={{ color: '#C9A66B' }} strokeWidth={1.5} />
             ) : (
               <Moon className="w-4 h-4 shrink-0" style={{ color: '#A8A29E' }} strokeWidth={1.5} />
             )}
@@ -393,7 +393,7 @@ export default function Sidebar({
 
           {!collapsed && (
             <div
-              style={{ backgroundColor: isDarkMode ? '#B8804F' : 'rgba(255,255,255,0.18)' }}
+              style={{ backgroundColor: isDarkMode ? '#6B7A5E' : 'rgba(255,255,255,0.18)' }}
               className="w-8 h-4.5 flex items-center rounded-full p-0.5 transition-colors duration-200"
             >
               <div
@@ -412,7 +412,7 @@ export default function Sidebar({
           }`}
         >
           <div
-            style={{ backgroundColor: '#B8804F' }}
+            style={{ backgroundColor: '#6B7A5E' }}
             className="w-7 h-7 rounded-full text-white font-display font-bold text-xs flex items-center justify-center shrink-0"
           >
             {userName.charAt(0).toUpperCase()}

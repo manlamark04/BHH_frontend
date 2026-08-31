@@ -124,7 +124,7 @@ export default function CustomerTransactions() {
         </div>
 
         <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-[#B48454]/10 text-[#B48454] border border-[#B48454]/20 flex items-center justify-center shrink-0">
+          <div className="w-8 h-8 rounded-lg bg-[#6B7A5E]/10 text-[#6B7A5E] border border-[#6B7A5E]/20 flex items-center justify-center shrink-0">
             <Calendar className="w-4 h-4" strokeWidth={1.5} />
           </div>
           <div>
@@ -142,7 +142,7 @@ export default function CustomerTransactions() {
             onClick={() => setActiveTab('bookings')}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
               activeTab === 'bookings'
-                ? 'bg-[#B48454] text-white shadow-xs'
+                ? 'bg-[#6B7A5E] text-white shadow-xs'
                 : 'bg-neutral-100/70 dark:bg-[#14171C] text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white border border-black/[0.06] dark:border-neutral-800'
             }`}
           >
@@ -154,7 +154,7 @@ export default function CustomerTransactions() {
             onClick={() => setActiveTab('bills')}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
               activeTab === 'bills'
-                ? 'bg-[#B48454] text-white shadow-xs'
+                ? 'bg-[#6B7A5E] text-white shadow-xs'
                 : 'bg-neutral-100/70 dark:bg-[#14171C] text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white border border-black/[0.06] dark:border-neutral-800'
             }`}
           >
@@ -171,7 +171,7 @@ export default function CustomerTransactions() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search invoice, BK-ref, room..."
-            className="w-full pl-9 pr-4 py-2 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#B48454]/40 font-medium"
+            className="w-full pl-9 pr-4 py-2 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40 font-medium"
           />
         </div>
       </div>
@@ -197,7 +197,7 @@ export default function CustomerTransactions() {
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-black/[0.06] dark:border-neutral-800">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-[#B48454]/10 border border-[#B48454]/20 flex items-center justify-center font-bold text-[#B48454] font-mono text-xs">
+                      <div className="w-10 h-10 rounded-xl bg-[#6B7A5E]/10 border border-[#6B7A5E]/20 flex items-center justify-center font-bold text-[#6B7A5E] font-mono text-xs">
                         BK
                       </div>
                       <div>
@@ -245,7 +245,7 @@ export default function CustomerTransactions() {
                       </div>
                       <button
                         onClick={() => setSelectedBookingForPay(b)}
-                        className="px-4 py-2 bg-[#B48454] hover:bg-[#9E6E3E] text-white font-semibold rounded-xl text-xs shadow-xs shrink-0 cursor-pointer"
+                        className="px-4 py-2 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white font-semibold rounded-xl text-xs shadow-xs shrink-0 cursor-pointer"
                       >
                         How to Pay
                       </button>
@@ -383,7 +383,7 @@ export default function CustomerTransactions() {
 
                   return (
                     <tr key={String(b.id)} className="hover:bg-neutral-50/50 dark:hover:bg-neutral-900/40 transition-colors">
-                      <td className="px-5 py-4 font-mono font-bold text-[#B48454]">{invoiceNum}</td>
+                      <td className="px-5 py-4 font-mono font-bold text-[#6B7A5E]">{invoiceNum}</td>
                       <td className="px-5 py-4 font-mono font-bold text-neutral-800 dark:text-neutral-200">
                         {receiptNum !== '—' ? (
                           <span className="px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50 text-[11px]">
@@ -451,11 +451,11 @@ export default function CustomerTransactions() {
         {selectedBookingForPay && (
           <div className="space-y-4 text-xs font-sans">
             <div className="p-4 bg-sand/40 border border-stone/20 rounded-2xl space-y-1.5">
-              <span className="text-[10px] uppercase font-bold text-[#B48454]">RESERVATION SUMMARY</span>
+              <span className="text-[10px] uppercase font-bold text-[#6B7A5E]">RESERVATION SUMMARY</span>
               <p className="font-display font-bold text-ink text-base">{selectedBookingForPay.booking_ref} · {selectedBookingForPay.room_type}</p>
               <div className="flex justify-between items-center text-sm pt-2 border-t border-stone/15">
                 <span className="text-ink-muted">Total Payment Required:</span>
-                <span className="font-display font-bold text-xl text-[#B48454]">
+                <span className="font-display font-bold text-xl text-[#6B7A5E]">
                   ₱{Number(selectedBookingForPay.total_price).toLocaleString()}
                 </span>
               </div>
@@ -464,23 +464,23 @@ export default function CustomerTransactions() {
             <div className="space-y-3">
               <h4 className="font-bold text-ink text-xs uppercase tracking-wider">Accepted Payment Options</h4>
               
-              <div className="p-3.5 bg-[#FAF8F5] border border-stone/20 rounded-xl space-y-1">
+              <div className="p-3.5 bg-[#F6F2E8] border border-stone/20 rounded-xl space-y-1">
                 <div className="flex justify-between items-center font-bold text-ink">
                   <span>1. GCash / Maya E-Wallet</span>
-                  <span className="font-mono text-[#B48454]">0917-888-9999</span>
+                  <span className="font-mono text-[#6B7A5E]">0917-888-9999</span>
                 </div>
                 <p className="text-[11px] text-ink-muted">Account Name: Batuan Hammock Hostel Inc.</p>
               </div>
 
-              <div className="p-3.5 bg-[#FAF8F5] border border-stone/20 rounded-xl space-y-1">
+              <div className="p-3.5 bg-[#F6F2E8] border border-stone/20 rounded-xl space-y-1">
                 <div className="flex justify-between items-center font-bold text-ink">
                   <span>2. BDO Bank Transfer</span>
-                  <span className="font-mono text-[#B48454]">0012-3456-7890</span>
+                  <span className="font-mono text-[#6B7A5E]">0012-3456-7890</span>
                 </div>
                 <p className="text-[11px] text-ink-muted">Account Name: Batuan Hammock Hostel Inc.</p>
               </div>
 
-              <div className="p-3.5 bg-[#FAF8F5] border border-stone/20 rounded-xl space-y-1">
+              <div className="p-3.5 bg-[#F6F2E8] border border-stone/20 rounded-xl space-y-1">
                 <div className="flex justify-between items-center font-bold text-ink">
                   <span>3. Front Desk Cash</span>
                   <span className="font-mono text-emerald-700">Counter Payment</span>
@@ -497,7 +497,7 @@ export default function CustomerTransactions() {
               <button
                 type="button"
                 onClick={() => setSelectedBookingForPay(null)}
-                className="w-full py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl font-semibold shadow-xs transition-all"
+                className="w-full py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl font-semibold shadow-xs transition-all"
               >
                 Understood
               </button>

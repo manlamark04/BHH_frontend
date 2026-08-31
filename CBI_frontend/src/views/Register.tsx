@@ -118,7 +118,7 @@ export default function Register({ onNavigate }: RegisterProps) {
       <div className="relative z-10 w-full max-w-5xl bg-white/95 backdrop-blur-xl rounded-[2rem] shadow-2xl border border-white/20 overflow-hidden grid lg:grid-cols-12 min-h-[680px]">
         
         {/* Left Form Section */}
-        <div className="lg:col-span-7 p-6 sm:p-10 md:p-12 flex flex-col justify-between bg-[#FCFAF7]/95">
+        <div className="lg:col-span-7 p-6 sm:p-10 md:p-12 flex flex-col justify-between bg-[#F6F2E8]/95">
           <div>
             {/* Top Navigation & Brand Header */}
             <div className="flex items-center justify-between gap-4 mb-6">
@@ -133,7 +133,7 @@ export default function Register({ onNavigate }: RegisterProps) {
 
               <div className="flex items-center gap-2.5 cursor-pointer group" onClick={() => onNavigate('landing')}>
                 <InteractiveLogoMark size="sm" />
-                <span className="font-display text-sm font-bold text-ink tracking-tight group-hover:text-[#B48454] transition-colors">
+                <span className="font-display text-sm font-bold text-ink tracking-tight group-hover:text-[#6B7A5E] transition-colors">
                   Cambacay Breeze Inn
                 </span>
               </div>
@@ -167,13 +167,13 @@ export default function Register({ onNavigate }: RegisterProps) {
                 <div>
                   <h3 className="font-display font-bold text-ink text-2xl">Registration Submitted!</h3>
                   <p className="text-xs sm:text-sm text-ink-muted mt-1.5 leading-relaxed">
-                    Your official Guest ID is <strong className="font-mono text-[#B48454] text-base">{success.unique_id}</strong>.
+                    Your official Guest ID is <strong className="font-mono text-[#6B7A5E] text-base">{success.unique_id}</strong>.
                   </p>
                 </div>
 
-                <div className="p-4 bg-[#FAF8F5] border border-stone/20 rounded-2xl text-xs text-ink-muted leading-relaxed text-left space-y-1.5">
+                <div className="p-4 bg-[#F6F2E8] border border-stone/20 rounded-2xl text-xs text-ink-muted leading-relaxed text-left space-y-1.5">
                   <p className="font-semibold text-ink flex items-center gap-1.5">
-                    <ShieldCheck className="w-4 h-4 text-[#B48454]" />
+                    <ShieldCheck className="w-4 h-4 text-[#6B7A5E]" />
                     <span>Awaiting Administrator Review &amp; Activation</span>
                   </p>
                   <p>
@@ -185,7 +185,7 @@ export default function Register({ onNavigate }: RegisterProps) {
                   <button
                     type="button"
                     onClick={() => onNavigate('login')}
-                    className="flex-1 py-3 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl font-semibold text-xs tracking-wide shadow-sm hover:shadow-md transition-all"
+                    className="flex-1 py-3 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl font-semibold text-xs tracking-wide shadow-sm hover:shadow-md transition-all"
                   >
                     Proceed to Sign In
                   </button>
@@ -210,7 +210,7 @@ export default function Register({ onNavigate }: RegisterProps) {
                       value={firstName}
                       onChange={(e) => setFirstName(e.target.value)}
                       placeholder="e.g. Juan"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-white text-ink focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-white text-ink focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
                     />
                   </div>
 
@@ -222,7 +222,7 @@ export default function Register({ onNavigate }: RegisterProps) {
                       value={middleName}
                       onChange={(e) => setMiddleName(e.target.value)}
                       placeholder="e.g. Santos"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-white text-ink focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-white text-ink focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
                     />
                   </div>
 
@@ -233,7 +233,7 @@ export default function Register({ onNavigate }: RegisterProps) {
                       value={lastName}
                       onChange={(e) => setLastName(e.target.value)}
                       placeholder="e.g. Dela Cruz"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-white text-ink focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-white text-ink focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
                     />
                   </div>
                 </div>
@@ -248,7 +248,7 @@ export default function Register({ onNavigate }: RegisterProps) {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="e.g. juan@example.com"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-white text-ink focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-white text-ink focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
                     />
                   </div>
 
@@ -264,7 +264,7 @@ export default function Register({ onNavigate }: RegisterProps) {
                       className={`w-full px-3.5 py-2.5 rounded-xl border bg-white text-ink font-mono focus:outline-none focus:ring-2 transition-all ${
                         phone && (phone.length !== 11 || !phone.startsWith('09'))
                           ? 'border-amber-400 focus:ring-amber-400/40'
-                          : 'border-stone/30 focus:ring-[#B48454]/40'
+                          : 'border-stone/30 focus:ring-[#6B7A5E]/40'
                       }`}
                     />
                     {phone && (!phone.startsWith('09') || phone.length !== 11) && (
@@ -284,7 +284,7 @@ export default function Register({ onNavigate }: RegisterProps) {
                       type="date"
                       value={dob}
                       onChange={(e) => setDob(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-white text-ink focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-white text-ink focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
                     />
                   </div>
 
@@ -293,7 +293,7 @@ export default function Register({ onNavigate }: RegisterProps) {
                     <select
                       value={gender}
                       onChange={(e) => setGender(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-white text-ink font-medium focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-white text-ink font-medium focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
                     >
                       <option value="Male">Male</option>
                       <option value="Female">Female</option>
@@ -306,7 +306,7 @@ export default function Register({ onNavigate }: RegisterProps) {
                     <select
                       value={civilStatus}
                       onChange={(e) => setCivilStatus(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-white text-ink font-medium focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-white text-ink font-medium focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
                     >
                       <option value="Single">Single</option>
                       <option value="Married">Married</option>
@@ -325,7 +325,7 @@ export default function Register({ onNavigate }: RegisterProps) {
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
                     placeholder="e.g. Brgy. Poblacion, Batuan, Bohol, Philippines"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-white text-ink focus:outline-none focus:ring-2 focus:ring-[#B48454]/40 resize-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-white text-ink focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40 resize-none"
                   />
                 </div>
 
@@ -338,7 +338,7 @@ export default function Register({ onNavigate }: RegisterProps) {
                 <div className="pt-2 space-y-3">
                   <button
                     type="submit"
-                    className="w-full bg-[#B48454] hover:bg-[#9E6E3E] text-white py-3.5 rounded-xl font-semibold text-sm tracking-wide shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 group cursor-pointer"
+                    className="w-full bg-[#6B7A5E] hover:bg-[#4F5D45] text-white py-3.5 rounded-xl font-semibold text-sm tracking-wide shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 group cursor-pointer"
                   >
                     <UserPlus className="w-4 h-4 group-hover:scale-110 transition-transform" />
                     <span>Complete Guest Registration</span>
@@ -349,7 +349,7 @@ export default function Register({ onNavigate }: RegisterProps) {
                     <button
                       type="button"
                       onClick={() => onNavigate('login')}
-                      className="font-bold text-[#B48454] hover:underline"
+                      className="font-bold text-[#6B7A5E] hover:underline"
                     >
                       Sign In Here
                     </button>
@@ -428,9 +428,9 @@ export default function Register({ onNavigate }: RegisterProps) {
           </p>
 
           {/* Details Recap Card */}
-          <div className="bg-[#FAF8F5] dark:bg-[#14171C] rounded-2xl p-4 border border-black/[0.06] dark:border-neutral-800 space-y-2.5">
+          <div className="bg-[#F6F2E8] dark:bg-[#14171C] rounded-2xl p-4 border border-black/[0.06] dark:border-neutral-800 space-y-2.5">
             <div>
-              <span className="text-[10px] uppercase font-bold tracking-wider text-[#B48454] block">Full Legal Name</span>
+              <span className="text-[10px] uppercase font-bold tracking-wider text-[#6B7A5E] block">Full Legal Name</span>
               <p className="font-display text-base font-bold text-neutral-900 dark:text-white mt-0.5">
                 {firstName.trim()} {middleName.trim() ? `${middleName.trim()} ` : ''}{lastName.trim()}
               </p>
@@ -478,7 +478,7 @@ export default function Register({ onNavigate }: RegisterProps) {
               type="button"
               disabled={submitting}
               onClick={executeRegistration}
-              className="flex-1 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl text-xs font-semibold shadow-xs disabled:opacity-50 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+              className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl text-xs font-semibold shadow-xs disabled:opacity-50 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
             >
               {submitting ? 'Submitting Registration...' : 'Yes, Submit Registration'}
             </button>

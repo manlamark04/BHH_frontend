@@ -99,8 +99,8 @@ export default function AdminGuests() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
         <div className="bg-white dark:bg-[#181B20] rounded-xl p-3.5 sm:p-4 border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase font-bold tracking-wider text-[#B48454]">TOTAL REGISTERED</span>
-            <div className="w-6 h-6 rounded-lg bg-[#B48454]/10 text-[#B48454] flex items-center justify-center">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-[#6B7A5E]">TOTAL REGISTERED</span>
+            <div className="w-6 h-6 rounded-lg bg-[#6B7A5E]/10 text-[#6B7A5E] flex items-center justify-center">
               <Users className="w-3.5 h-3.5" strokeWidth={1.5} />
             </div>
           </div>
@@ -125,8 +125,8 @@ export default function AdminGuests() {
 
         <div className="bg-white dark:bg-[#181B20] rounded-xl p-3.5 sm:p-4 border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase font-bold tracking-wider text-[#B48454]">TOTAL GUEST SPEND</span>
-            <div className="w-6 h-6 rounded-lg bg-[#B48454]/10 text-[#B48454] flex items-center justify-center">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-[#6B7A5E]">TOTAL GUEST SPEND</span>
+            <div className="w-6 h-6 rounded-lg bg-[#6B7A5E]/10 text-[#6B7A5E] flex items-center justify-center">
               <CreditCard className="w-3.5 h-3.5" strokeWidth={1.5} />
             </div>
           </div>
@@ -145,13 +145,13 @@ export default function AdminGuests() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by name, customer ID, or email..."
-            className="w-full pl-8.5 pr-3.5 py-1.5 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+            className="w-full pl-8.5 pr-3.5 py-1.5 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
           />
         </div>
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value as 'All' | 'ACTIVE' | 'DISABLED' | 'PENDING')}
-          className="px-3 py-1.5 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-xs font-semibold text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#B48454]/40 cursor-pointer"
+          className="px-3 py-1.5 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-xs font-semibold text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40 cursor-pointer"
         >
           <option value="All">All Statuses</option>
           <option value="ACTIVE">Active</option>
@@ -181,7 +181,7 @@ export default function AdminGuests() {
                 <tr key={g.id} className="hover:bg-sand/20 transition-colors">
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-[#B48454]/15 text-[#B48454] flex items-center justify-center font-display font-bold text-sm shrink-0">
+                      <div className="w-9 h-9 rounded-full bg-[#6B7A5E]/15 text-[#6B7A5E] flex items-center justify-center font-display font-bold text-sm shrink-0">
                         {g.fullName.charAt(0)}
                       </div>
                       <div>
@@ -190,7 +190,7 @@ export default function AdminGuests() {
                       </div>
                     </div>
                   </td>
-                  <td className="px-5 py-4 font-mono font-bold text-[#B48454]">{g.customerId}</td>
+                  <td className="px-5 py-4 font-mono font-bold text-[#6B7A5E]">{g.customerId}</td>
                   <td className="px-5 py-4 text-xs text-ink-muted">{g.contact}</td>
                   <td className="px-5 py-4">
                     <span className="font-display font-bold text-ink">{g.stays}</span>
@@ -217,7 +217,7 @@ export default function AdminGuests() {
         </div>
         {loading && (
           <div className="text-center py-16 text-ink-muted text-xs">
-            <div className="w-6 h-6 border-2 border-[#B48454] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+            <div className="w-6 h-6 border-2 border-[#6B7A5E] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
             <p>Loading guest profiles...</p>
           </div>
         )}
@@ -235,12 +235,12 @@ export default function AdminGuests() {
       <Modal isOpen={!!selectedGuest} onClose={() => setSelectedGuest(null)} title="Guest Profile" size="sm">
         {selectedGuest && (
           <div className="space-y-4 text-xs font-sans">
-            <div className="bg-[#FAF8F5] rounded-2xl p-4 text-center border border-stone/20">
-              <div className="w-14 h-14 rounded-full bg-[#B48454] text-white font-display text-xl font-bold flex items-center justify-center mx-auto mb-2 shadow-sm">
+            <div className="bg-[#F6F2E8] rounded-2xl p-4 text-center border border-stone/20">
+              <div className="w-14 h-14 rounded-full bg-[#6B7A5E] text-white font-display text-xl font-bold flex items-center justify-center mx-auto mb-2 shadow-sm">
                 {selectedGuest.fullName.charAt(0)}
               </div>
               <p className="font-display font-bold text-ink text-base">{selectedGuest.fullName}</p>
-              <p className="font-mono text-xs text-[#B48454] font-bold mt-0.5">{selectedGuest.customerId}</p>
+              <p className="font-mono text-xs text-[#6B7A5E] font-bold mt-0.5">{selectedGuest.customerId}</p>
             </div>
             <div className="space-y-2">
               <div className="flex justify-between py-2 border-b border-stone/15">
@@ -257,7 +257,7 @@ export default function AdminGuests() {
               </div>
               <div className="flex justify-between py-2 border-b border-stone/15">
                 <span className="text-ink-muted">Total Spent</span>
-                <span className="font-bold text-[#B48454]">₱{selectedGuest.totalSpent.toLocaleString()}</span>
+                <span className="font-bold text-[#6B7A5E]">₱{selectedGuest.totalSpent.toLocaleString()}</span>
               </div>
               <div className="flex justify-between py-2 items-center">
                 <span className="text-ink-muted">Status</span>

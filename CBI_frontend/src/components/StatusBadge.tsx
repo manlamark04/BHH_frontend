@@ -96,8 +96,8 @@ const STATUS_CONFIGS: Record<string, StatusConfig> = {
     label: 'Cancelled',
   },
   COMPLETED: {
-    badge: 'bg-[#B48454] text-white border-[#9E6E3E] font-bold shadow-xs',
-    dot: 'bg-amber-100',
+    badge: 'bg-teal-600 text-white border-teal-500 font-bold shadow-xs',
+    dot: 'bg-teal-100',
     label: 'Completed',
   },
   OVERDUE: {
@@ -113,8 +113,8 @@ const STATUS_CONFIGS: Record<string, StatusConfig> = {
     label: 'Available',
   },
   OCCUPIED: {
-    badge: 'bg-[#B48454] text-white border-[#9E6E3E] font-bold shadow-xs',
-    dot: 'bg-amber-100',
+    badge: 'bg-amber-700 text-white border-amber-600 font-bold shadow-xs',
+    dot: 'bg-amber-200',
     label: 'Occupied',
   },
   RESERVED: {

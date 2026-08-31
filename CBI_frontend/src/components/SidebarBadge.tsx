@@ -27,7 +27,7 @@ export default function SidebarBadge({
     amber: 'bg-amber-600 dark:bg-amber-500 text-white shadow-xs',
     rose: 'bg-rose-600 text-white shadow-xs',
     emerald: 'bg-emerald-600 text-white shadow-xs',
-    gold: 'bg-[#B8804F] text-white shadow-xs',
+    gold: 'bg-[#C9A66B] text-white shadow-xs',
   }
 
   return (

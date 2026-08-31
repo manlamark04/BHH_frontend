@@ -278,7 +278,7 @@ export default function AdminUsers() {
         </div>
         <button
           onClick={() => setNewStaffModal(true)}
-          className="px-3.5 py-1.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-lg font-semibold text-xs shadow-xs hover:shadow-sm transition-all flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
+          className="px-3.5 py-1.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-lg font-semibold text-xs shadow-xs hover:shadow-sm transition-all flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
         >
           <Plus className="w-3.5 h-3.5" strokeWidth={2} />
           <span>Create Staff Account</span>
@@ -296,13 +296,13 @@ export default function AdminUsers() {
               onClick={() => setRoleTab(role)}
               className={`px-2.5 py-1 rounded-md font-bold uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer ${
                 roleTab === role
-                  ? 'bg-[#B48454] text-white shadow-2xs'
+                  ? 'bg-[#6B7A5E] text-white shadow-2xs'
                   : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-white dark:hover:bg-neutral-800'
               }`}
             >
               <span>{role === 'ALL' ? 'All Roles' : role === 'PENDING' ? 'Pending Approvals' : role}</span>
               {role === 'PENDING' && pendingCustomers.length > 0 && (
-                <span className={`px-1.5 py-0.2 rounded-full text-[9px] font-bold ${roleTab === 'PENDING' ? 'bg-white text-[#B48454]' : 'bg-rose-500 text-white'}`}>
+                <span className={`px-1.5 py-0.2 rounded-full text-[9px] font-bold ${roleTab === 'PENDING' ? 'bg-white text-[#6B7A5E]' : 'bg-rose-500 text-white'}`}>
                   {pendingCustomers.length}
                 </span>
               )}
@@ -318,14 +318,14 @@ export default function AdminUsers() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search name, ID, email..."
-              className="w-full pl-8.5 pr-3.5 py-1.5 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+              className="w-full pl-8.5 pr-3.5 py-1.5 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
             />
           </div>
 
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as 'ALL' | 'ACTIVE' | 'PENDING' | 'DISABLED')}
-            className="px-2.5 py-1.5 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-xs font-semibold text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#B48454]/40 cursor-pointer"
+            className="px-2.5 py-1.5 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-xs font-semibold text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40 cursor-pointer"
           >
             <option value="ALL">All Statuses</option>
             <option value="ACTIVE">Active</option>
@@ -351,7 +351,7 @@ export default function AdminUsers() {
           </div>
           <button
             onClick={() => setRoleTab('PENDING')}
-            className="px-3 py-1 bg-[#B48454] hover:bg-[#9E6E3E] text-white text-xs font-semibold rounded-lg shadow-xs self-start sm:self-auto cursor-pointer"
+            className="px-3 py-1 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white text-xs font-semibold rounded-lg shadow-xs self-start sm:self-auto cursor-pointer"
           >
             View Queue
           </button>
@@ -369,7 +369,7 @@ export default function AdminUsers() {
               {roleTab === 'PENDING' ? 'Pending applications ready for account creation' : 'All active staff and registered customers'}
             </p>
           </div>
-          <span className="text-xs font-mono font-bold text-[#B48454]">
+          <span className="text-xs font-mono font-bold text-[#6B7A5E]">
             {filtered.length} users listed
           </span>
         </div>
@@ -399,7 +399,7 @@ export default function AdminUsers() {
                   <tr key={String(u.id)} className="hover:bg-sand/20 transition-colors">
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-[#B48454]/15 text-[#B48454] font-display font-bold text-sm flex items-center justify-center shrink-0">
+                        <div className="w-9 h-9 rounded-full bg-[#6B7A5E]/15 text-[#6B7A5E] font-display font-bold text-sm flex items-center justify-center shrink-0">
                           {getInitials(name)}
                         </div>
                         <div>
@@ -409,11 +409,11 @@ export default function AdminUsers() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-5 py-4 font-mono font-bold text-[#B48454]">{uniqueId}</td>
+                    <td className="px-5 py-4 font-mono font-bold text-[#6B7A5E]">{uniqueId}</td>
                     <td className="px-5 py-4">
                       <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border uppercase tracking-wider ${
                         role === 'ADMIN' ? 'bg-amber-500/10 text-amber-900 border-amber-500/20' :
-                        role === 'STAFF' ? 'bg-[#B48454]/15 text-[#B48454] border-[#B48454]/30' :
+                        role === 'STAFF' ? 'bg-[#6B7A5E]/15 text-[#6B7A5E] border-[#6B7A5E]/30' :
                         'bg-blue-50 text-blue-800 border-blue-200'
                       }`}>
                         {role}
@@ -432,7 +432,7 @@ export default function AdminUsers() {
                           <>
                             <button
                               onClick={() => handleOpenApproveModal(u)}
-                              className="text-xs bg-[#B48454] hover:bg-[#9E6E3E] text-white px-3 py-1.5 rounded-lg transition-all font-semibold shadow-xs flex items-center gap-1 cursor-pointer"
+                              className="text-xs bg-[#6B7A5E] hover:bg-[#4F5D45] text-white px-3 py-1.5 rounded-lg transition-all font-semibold shadow-xs flex items-center gap-1 cursor-pointer"
                             >
                               <UserCheck className="w-3.5 h-3.5" />
                               <span>Approve</span>
@@ -464,7 +464,7 @@ export default function AdminUsers() {
                             {(status === 'SUSPENDED' || status === 'DISABLED' || status === 'REJECTED') && (
                               <button
                                 onClick={() => handleReactivate(u)}
-                                className="text-xs bg-[#B48454] hover:bg-[#9E6E3E] text-white px-2.5 py-1.5 rounded-lg transition-all font-semibold shadow-sm cursor-pointer"
+                                className="text-xs bg-[#6B7A5E] hover:bg-[#4F5D45] text-white px-2.5 py-1.5 rounded-lg transition-all font-semibold shadow-sm cursor-pointer"
                               >
                                 Reactivate
                               </button>
@@ -482,7 +482,7 @@ export default function AdminUsers() {
 
         {loading && (
           <div className="text-center py-16 text-ink-muted text-xs">
-            <div className="w-6 h-6 border-2 border-[#B48454] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+            <div className="w-6 h-6 border-2 border-[#6B7A5E] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
             <p>Loading user accounts...</p>
           </div>
         )}
@@ -501,14 +501,14 @@ export default function AdminUsers() {
       <Modal isOpen={!!viewUser} onClose={() => setViewUser(null)} title="User Profile & Credentials" size="lg">
         {viewUser && (
           <div className="space-y-5 max-h-[75vh] overflow-y-auto pr-1 text-xs font-sans">
-            <div className="bg-[#FAF8F5] border border-stone/20 rounded-2xl p-4 flex items-center justify-between">
+            <div className="bg-[#F6F2E8] border border-stone/20 rounded-2xl p-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-[#B48454] text-white font-display text-lg font-bold flex items-center justify-center shadow-sm">
+                <div className="w-12 h-12 rounded-full bg-[#6B7A5E] text-white font-display text-lg font-bold flex items-center justify-center shadow-sm">
                   {getInitials(String(viewUser.full_name || viewUser.name || ''))}
                 </div>
                 <div>
                   <p className="font-display font-bold text-ink text-lg leading-tight">{String(viewUser.full_name || viewUser.name)}</p>
-                  <p className="font-mono text-xs font-bold text-[#B48454]">{String(viewUser.unique_id || viewUser.userId)}</p>
+                  <p className="font-mono text-xs font-bold text-[#6B7A5E]">{String(viewUser.unique_id || viewUser.userId)}</p>
                 </div>
               </div>
               <StatusBadge status={String(viewUser.status).toUpperCase()} size="md" />
@@ -518,10 +518,10 @@ export default function AdminUsers() {
             <div className="p-4 bg-amber-500/10 border border-amber-500/25 rounded-2xl space-y-3">
               <div className="flex items-center justify-between">
                 <h4 className="font-display font-bold text-ink text-sm flex items-center gap-1.5">
-                  <Key className="w-4 h-4 text-[#B48454]" />
+                  <Key className="w-4 h-4 text-[#6B7A5E]" />
                   <span>Account Login Credentials</span>
                 </h4>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white text-[#B48454] border border-stone/20 uppercase tracking-wider">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white text-[#6B7A5E] border border-stone/20 uppercase tracking-wider">
                   Admin Created
                 </span>
               </div>
@@ -536,7 +536,7 @@ export default function AdminUsers() {
 
                 <div className="bg-white p-3 rounded-xl border border-stone/20">
                   <span className="text-[10px] uppercase font-bold text-ink-muted block mb-1">Default / Initial Password</span>
-                  <code className="font-mono font-bold text-sm text-[#B48454] block">
+                  <code className="font-mono font-bold text-sm text-[#6B7A5E] block">
                     {String(viewUser.default_password || 'user123')}
                   </code>
                 </div>
@@ -562,7 +562,7 @@ export default function AdminUsers() {
               </div>
               <div>
                 <span className="text-ink-muted">Role:</span>
-                <span className="font-bold text-[#B48454] uppercase ml-2">{String(viewUser.role)}</span>
+                <span className="font-bold text-[#6B7A5E] uppercase ml-2">{String(viewUser.role)}</span>
               </div>
               <div>
                 <span className="text-ink-muted">Date of Birth:</span>
@@ -598,7 +598,7 @@ export default function AdminUsers() {
                   {auditLogs.map((log) => (
                     <div key={String(log.id)} className="p-3.5 flex items-start justify-between">
                       <div>
-                        <p className="font-bold text-[#B48454]">{String(log.action)}</p>
+                        <p className="font-bold text-[#6B7A5E]">{String(log.action)}</p>
                         <p className="text-ink-muted mt-0.5">{String(log.remarks || '')}</p>
                         <p className="text-ink-faint text-[10px] mt-1">Performed by: {String(log.performed_by_name || 'System')}</p>
                       </div>
@@ -628,7 +628,7 @@ export default function AdminUsers() {
             {/* Applicant Summary Card */}
             <div className="p-4 bg-sand/40 border border-stone/20 rounded-2xl space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] uppercase font-bold tracking-widest text-[#B48454]">APPLICANT DETAILS</span>
+                <span className="text-[10px] uppercase font-bold tracking-widest text-[#6B7A5E]">APPLICANT DETAILS</span>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
                   Pending Approval
                 </span>
@@ -656,7 +656,7 @@ export default function AdminUsers() {
             {/* Account Credentials Setup */}
             <div className="space-y-3 pt-1">
               <h4 className="font-display font-bold text-ink text-sm flex items-center gap-1.5">
-                <Key className="w-4 h-4 text-[#B48454]" />
+                <Key className="w-4 h-4 text-[#6B7A5E]" />
                 <span>Account Access & Login Credentials</span>
               </h4>
 
@@ -667,7 +667,7 @@ export default function AdminUsers() {
                     required
                     value={appUniqueId}
                     onChange={(e) => setAppUniqueId(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] font-mono font-bold text-ink focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                    className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#F6F2E8] font-mono font-bold text-ink focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
                   />
                 </div>
                 <div>
@@ -676,7 +676,7 @@ export default function AdminUsers() {
                     required
                     value={appUsername}
                     onChange={(e) => setAppUsername(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] font-mono font-semibold text-ink focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                    className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#F6F2E8] font-mono font-semibold text-ink focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
                   />
                 </div>
               </div>
@@ -690,7 +690,7 @@ export default function AdminUsers() {
                     value={appPassword}
                     onChange={(e) => setAppPassword(e.target.value)}
                     placeholder="e.g. user123"
-                    className="w-full pl-3 pr-24 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] font-mono font-bold text-ink focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                    className="w-full pl-3 pr-24 py-2.5 rounded-xl border border-stone/30 bg-[#F6F2E8] font-mono font-bold text-ink focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
                   />
                   <button
                     type="button"
@@ -700,7 +700,7 @@ export default function AdminUsers() {
                     Generate
                   </button>
                 </div>
-                <p className="text-[10px] text-ink-muted mt-1">Default is <code className="font-mono text-[#B48454]">user123</code>. The customer can change their password after logging in.</p>
+                <p className="text-[10px] text-ink-muted mt-1">Default is <code className="font-mono text-[#6B7A5E]">user123</code>. The customer can change their password after logging in.</p>
               </div>
 
               <div className="p-3 bg-emerald-50/80 border border-emerald-200 rounded-xl text-xs text-emerald-950 flex items-start gap-2">
@@ -722,7 +722,7 @@ export default function AdminUsers() {
               <button
                 type="submit"
                 disabled={approving || !appUsername || !appPassword}
-                className="flex-1 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl font-semibold shadow-sm disabled:opacity-50 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl font-semibold shadow-sm disabled:opacity-50 transition-all cursor-pointer flex items-center justify-center gap-1.5"
               >
                 <UserCheck className="w-4 h-4" />
                 <span>{approving ? 'Creating Account...' : 'Approve & Create Account'}</span>
@@ -817,7 +817,7 @@ export default function AdminUsers() {
                 value={nsFirstName}
                 onChange={(e) => handleFirstNameChange(e.target.value)}
                 placeholder="e.g. Maria"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-black/[0.12] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-black/[0.12] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
               />
             </div>
             <div>
@@ -828,7 +828,7 @@ export default function AdminUsers() {
                 value={nsMiddleName}
                 onChange={(e) => setNsMiddleName(e.target.value)}
                 placeholder="e.g. Santos"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-black/[0.12] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-black/[0.12] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
               />
             </div>
             <div>
@@ -840,7 +840,7 @@ export default function AdminUsers() {
                 value={nsLastName}
                 onChange={(e) => handleLastNameChange(e.target.value)}
                 placeholder="e.g. Dela Cruz"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-black/[0.12] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-black/[0.12] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
               />
             </div>
           </div>
@@ -855,7 +855,7 @@ export default function AdminUsers() {
                 type="date"
                 value={nsDob}
                 onChange={(e) => setNsDob(e.target.value)}
-                className="w-full px-3.5 py-2 rounded-xl border border-black/[0.12] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                className="w-full px-3.5 py-2 rounded-xl border border-black/[0.12] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
               />
             </div>
             <div>
@@ -865,7 +865,7 @@ export default function AdminUsers() {
               <select
                 value={nsGender}
                 onChange={(e) => setNsGender(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-black/[0.12] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-[#B48454]/40 cursor-pointer"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-black/[0.12] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40 cursor-pointer"
               >
                 <option value="Male">Male</option>
                 <option value="Female">Female</option>
@@ -879,7 +879,7 @@ export default function AdminUsers() {
               <select
                 value={nsCivilStatus}
                 onChange={(e) => setNsCivilStatus(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-black/[0.12] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-[#B48454]/40 cursor-pointer"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-black/[0.12] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40 cursor-pointer"
               >
                 <option value="Single">Single</option>
                 <option value="Married">Married</option>
@@ -899,7 +899,7 @@ export default function AdminUsers() {
               value={nsAddress}
               onChange={(e) => setNsAddress(e.target.value)}
               placeholder="e.g. Brgy. Poblacion, Batuan, Bohol, Philippines"
-              className="w-full px-3.5 py-2 rounded-xl border border-black/[0.12] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#B48454]/40 resize-none"
+              className="w-full px-3.5 py-2 rounded-xl border border-black/[0.12] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40 resize-none"
             />
           </div>
 
@@ -913,7 +913,7 @@ export default function AdminUsers() {
                 value={nsPhone}
                 onChange={(e) => setNsPhone(e.target.value)}
                 placeholder="e.g. 0917-123-4567"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-black/[0.12] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-black/[0.12] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
               />
             </div>
             <div>
@@ -926,7 +926,7 @@ export default function AdminUsers() {
                 value={nsEmail}
                 onChange={(e) => setNsEmail(e.target.value)}
                 placeholder="e.g. maria@breezeinn.com"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-black/[0.12] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-black/[0.12] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
               />
             </div>
           </div>
@@ -942,10 +942,10 @@ export default function AdminUsers() {
                 value={nsUsername}
                 onChange={(e) => setNsUsername(e.target.value)}
                 placeholder="e.g. maria.delacruz"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-black/[0.12] dark:border-neutral-700 bg-neutral-50 dark:bg-[#20252E] text-neutral-900 dark:text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-black/[0.12] dark:border-neutral-700 bg-neutral-50 dark:bg-[#20252E] text-neutral-900 dark:text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
               />
               <p className="text-[10px] text-neutral-400 mt-1">
-                Auto-formatted: <span className="font-mono text-[#B48454]">firstname.lastname</span>
+                Auto-formatted: <span className="font-mono text-[#6B7A5E]">firstname.lastname</span>
               </p>
             </div>
             <div>
@@ -958,10 +958,10 @@ export default function AdminUsers() {
                 value={nsPassword}
                 onChange={(e) => setNsPassword(e.target.value)}
                 placeholder="e.g. maria123"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-black/[0.12] dark:border-neutral-700 bg-neutral-50 dark:bg-[#20252E] text-neutral-900 dark:text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-black/[0.12] dark:border-neutral-700 bg-neutral-50 dark:bg-[#20252E] text-neutral-900 dark:text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
               />
               <p className="text-[10px] text-neutral-400 mt-1">
-                Auto-formatted: <span className="font-mono text-[#B48454]">firstname123</span>
+                Auto-formatted: <span className="font-mono text-[#6B7A5E]">firstname123</span>
               </p>
             </div>
           </div>
@@ -977,7 +977,7 @@ export default function AdminUsers() {
             <button
               type="submit"
               disabled={creating || !nsFirstName || !nsLastName || !nsEmail || !nsUsername || !nsPassword}
-              className="flex-1 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl font-semibold shadow-xs disabled:opacity-50 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+              className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl font-semibold shadow-xs disabled:opacity-50 transition-all cursor-pointer flex items-center justify-center gap-1.5"
             >
               <UserPlus className="w-4 h-4" />
               <span>{creating ? 'Creating...' : 'Create Staff Account'}</span>

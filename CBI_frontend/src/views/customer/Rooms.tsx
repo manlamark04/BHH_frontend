@@ -238,8 +238,8 @@ export default function CustomerRooms({ customerName }: Props) {
         
         <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase font-bold tracking-wider text-[#B48454]">TOTAL INVENTORY</span>
-            <div className="w-6 h-6 rounded-lg bg-[#B48454]/10 text-[#B48454] flex items-center justify-center">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-[#6B7A5E]">TOTAL INVENTORY</span>
+            <div className="w-6 h-6 rounded-lg bg-[#6B7A5E]/10 text-[#6B7A5E] flex items-center justify-center">
               <Building2 className="w-3.5 h-3.5" strokeWidth={1.5} />
             </div>
           </div>
@@ -264,8 +264,8 @@ export default function CustomerRooms({ customerName }: Props) {
 
         <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase font-bold tracking-wider text-[#B48454]">STARTING FROM</span>
-            <div className="w-6 h-6 rounded-lg bg-[#B48454]/10 text-[#B48454] flex items-center justify-center">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-[#6B7A5E]">STARTING FROM</span>
+            <div className="w-6 h-6 rounded-lg bg-[#6B7A5E]/10 text-[#6B7A5E] flex items-center justify-center">
               <Sparkles className="w-3.5 h-3.5" strokeWidth={1.5} />
             </div>
           </div>
@@ -327,7 +327,7 @@ export default function CustomerRooms({ customerName }: Props) {
               onClick={() => setActiveType(type)}
               className={`px-3 py-1.5 rounded-md font-semibold transition-all cursor-pointer ${
                 activeType === type
-                  ? 'bg-[#B48454] text-white shadow-xs'
+                  ? 'bg-[#6B7A5E] text-white shadow-xs'
                   : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-white dark:hover:bg-neutral-800'
               }`}
             >
@@ -344,7 +344,7 @@ export default function CustomerRooms({ customerName }: Props) {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search room type, number..."
-            className="w-full pl-9 pr-4 py-2 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+            className="w-full pl-9 pr-4 py-2 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
           />
         </div>
       </div>
@@ -358,7 +358,7 @@ export default function CustomerRooms({ customerName }: Props) {
           return (
             <div
               key={r.id}
-              className="bg-white rounded-2xl border border-stone/20 shadow-sm hover:shadow-md hover:border-[#B48454]/40 transition-all overflow-hidden flex flex-col justify-between group"
+              className="bg-white rounded-2xl border border-stone/20 shadow-sm hover:shadow-md hover:border-[#6B7A5E]/40 transition-all overflow-hidden flex flex-col justify-between group"
             >
               {/* Image & Badges */}
               <div className="h-52 overflow-hidden relative bg-sand">
@@ -391,12 +391,12 @@ export default function CustomerRooms({ customerName }: Props) {
                   </p>
 
                   <div className="flex items-center gap-2 mt-3 text-[11px] text-ink-muted">
-                    <span className="bg-[#FAF8F5] border border-stone/20 px-2.5 py-1 rounded-lg flex items-center gap-1">
-                      <Users className="w-3 h-3 text-[#B48454]" />
+                    <span className="bg-[#F6F2E8] border border-stone/20 px-2.5 py-1 rounded-lg flex items-center gap-1">
+                      <Users className="w-3 h-3 text-[#6B7A5E]" />
                       <span>Sleeps {r.capacity || 2}</span>
                     </span>
-                    <span className="bg-[#FAF8F5] border border-stone/20 px-2.5 py-1 rounded-lg flex items-center gap-1">
-                      <Wind className="w-3 h-3 text-[#B48454]" />
+                    <span className="bg-[#F6F2E8] border border-stone/20 px-2.5 py-1 rounded-lg flex items-center gap-1">
+                      <Wind className="w-3 h-3 text-[#6B7A5E]" />
                       <span>Air Conditioned</span>
                     </span>
                   </div>
@@ -406,7 +406,7 @@ export default function CustomerRooms({ customerName }: Props) {
                 <div className="flex gap-2 pt-2 border-t border-stone/15">
                   <button
                     onClick={() => setViewRoom(r)}
-                    className="flex-1 py-2.5 border border-stone/30 hover:bg-[#FAF8F5] text-ink font-semibold rounded-xl text-xs transition-all shadow-xs"
+                    className="flex-1 py-2.5 border border-stone/30 hover:bg-[#F6F2E8] text-ink font-semibold rounded-xl text-xs transition-all shadow-xs"
                   >
                     View Details
                   </button>
@@ -415,7 +415,7 @@ export default function CustomerRooms({ customerName }: Props) {
                     disabled={!isAvail}
                     className={`flex-1 py-2.5 rounded-xl text-xs font-semibold shadow-sm transition-all ${
                       isAvail
-                        ? 'bg-[#B48454] hover:bg-[#9E6E3E] text-white'
+                        ? 'bg-[#6B7A5E] hover:bg-[#4F5D45] text-white'
                         : 'bg-stone-200 text-stone-400 cursor-not-allowed'
                     }`}
                   >
@@ -466,7 +466,7 @@ export default function CustomerRooms({ customerName }: Props) {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-display font-bold text-xl text-ink">{viewRoom.room_type}</h3>
-                <p className="text-xs text-ink-muted">Room Number: <strong className="font-mono text-[#B48454]">{viewRoom.room_number}</strong></p>
+                <p className="text-xs text-ink-muted">Room Number: <strong className="font-mono text-[#6B7A5E]">{viewRoom.room_number}</strong></p>
               </div>
               <div className="text-right">
                 <p className="font-display font-bold text-2xl text-ink">₱{Number(viewRoom.rate_per_night || 0).toLocaleString()}</p>
@@ -478,7 +478,7 @@ export default function CustomerRooms({ customerName }: Props) {
               {viewRoom.description || 'Spacious, elegant tropical accommodation equipped with high-speed WiFi, premium mattress, private hot shower, and scenic balcony.'}
             </p>
 
-            <div className="p-4 bg-[#FAF8F5] border border-stone/20 rounded-2xl grid grid-cols-2 gap-3">
+            <div className="p-4 bg-[#F6F2E8] border border-stone/20 rounded-2xl grid grid-cols-2 gap-3">
               <div>
                 <span className="text-[10px] uppercase font-bold text-ink-muted block">CAPACITY</span>
                 <strong className="text-ink">Up to {viewRoom.capacity || 2} Persons</strong>
@@ -499,7 +499,7 @@ export default function CustomerRooms({ customerName }: Props) {
               {String(viewRoom.status).toLowerCase() === 'available' && (
                 <button
                   onClick={() => { setViewRoom(null); handleStartBooking(viewRoom); }}
-                  className="flex-1 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl font-semibold shadow-sm transition-all"
+                  className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl font-semibold shadow-sm transition-all"
                 >
                   Reserve Now
                 </button>
@@ -529,9 +529,9 @@ export default function CustomerRooms({ customerName }: Props) {
             )}
 
             {/* Room Summary Header */}
-            <div className="p-4 bg-[#FAF8F5] border border-stone/20 rounded-2xl flex items-center justify-between">
+            <div className="p-4 bg-[#F6F2E8] border border-stone/20 rounded-2xl flex items-center justify-between">
               <div>
-                <span className="text-[10px] uppercase font-bold text-[#B48454]">SELECTED SUITE</span>
+                <span className="text-[10px] uppercase font-bold text-[#6B7A5E]">SELECTED SUITE</span>
                 <h4 className="font-display font-bold text-lg text-ink">{bookingRoom.room_type}</h4>
                 <p className="text-xs text-ink-muted">Room {bookingRoom.room_number} · Max {bookingRoom.capacity || 2} guests</p>
               </div>
@@ -556,7 +556,7 @@ export default function CustomerRooms({ customerName }: Props) {
                   }}
                   className={`flex-1 px-3 py-2 rounded-md font-semibold transition-all cursor-pointer ${
                     bookingType === type
-                      ? 'bg-[#B48454] text-white shadow-xs'
+                      ? 'bg-[#6B7A5E] text-white shadow-xs'
                       : 'text-neutral-600 hover:text-neutral-900 hover:bg-white'
                   }`}
                 >
@@ -577,7 +577,7 @@ export default function CustomerRooms({ customerName }: Props) {
                     min={todayStr}
                     value={checkIn}
                     onChange={(e) => setCheckIn(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] font-mono text-xs"
+                    className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#F6F2E8] font-mono text-xs"
                   />
                 </div>
                 <div>
@@ -588,7 +588,7 @@ export default function CustomerRooms({ customerName }: Props) {
                     min={checkIn || todayStr}
                     value={checkOut}
                     onChange={(e) => setCheckOut(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] font-mono text-xs"
+                    className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#F6F2E8] font-mono text-xs"
                   />
                 </div>
               </div>
@@ -604,7 +604,7 @@ export default function CustomerRooms({ customerName }: Props) {
                       min={todayStr}
                       value={checkIn}
                       onChange={(e) => setCheckIn(e.target.value)}
-                      className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] font-mono text-xs"
+                      className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#F6F2E8] font-mono text-xs"
                     />
                   </div>
                   <div>
@@ -614,7 +614,7 @@ export default function CustomerRooms({ customerName }: Props) {
                       type="time"
                       value={checkInTime}
                       onChange={(e) => setCheckInTime(e.target.value)}
-                      className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] font-mono text-xs"
+                      className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#F6F2E8] font-mono text-xs"
                     />
                   </div>
                 </div>
@@ -626,7 +626,7 @@ export default function CustomerRooms({ customerName }: Props) {
                         type="button"
                         onClick={() => setDurationHours((h) => Math.max(1, h - 1))}
                         disabled={durationHours <= 1}
-                        className="w-9 h-9 flex items-center justify-center rounded-lg border border-stone/30 bg-[#FAF8F5] text-ink hover:bg-[#B48454]/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                        className="w-9 h-9 flex items-center justify-center rounded-lg border border-stone/30 bg-[#F6F2E8] text-ink hover:bg-[#6B7A5E]/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
                       >
                         <Minus className="w-3.5 h-3.5" />
                       </button>
@@ -635,7 +635,7 @@ export default function CustomerRooms({ customerName }: Props) {
                         type="button"
                         onClick={() => setDurationHours((h) => Math.min(3, h + 1))}
                         disabled={durationHours >= 3}
-                        className="w-9 h-9 flex items-center justify-center rounded-lg border border-stone/30 bg-[#FAF8F5] text-ink hover:bg-[#B48454]/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                        className="w-9 h-9 flex items-center justify-center rounded-lg border border-stone/30 bg-[#F6F2E8] text-ink hover:bg-[#6B7A5E]/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
                       >
                         <Plus className="w-3.5 h-3.5" />
                       </button>
@@ -645,12 +645,12 @@ export default function CustomerRooms({ customerName }: Props) {
                   <div>
                     <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Check-Out Time</label>
                     <div className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-neutral-100 font-mono text-xs text-ink flex items-center gap-1.5">
-                      <Clock className="w-3.5 h-3.5 text-[#B48454]" />
+                      <Clock className="w-3.5 h-3.5 text-[#6B7A5E]" />
                       {computedCheckout ? (
                         <span>
                           {computedCheckout.time}
                           {computedCheckout.crossesMidnight && computedCheckout.date && (
-                            <span className="text-[#B48454] font-semibold ml-1">({computedCheckout.date})</span>
+                            <span className="text-[#6B7A5E] font-semibold ml-1">({computedCheckout.date})</span>
                           )}
                         </span>
                       ) : (
@@ -672,7 +672,7 @@ export default function CustomerRooms({ customerName }: Props) {
                 max={Number(bookingRoom.capacity || 4)}
                 value={numGuests}
                 onChange={(e) => setNumGuests(Number(e.target.value))}
-                className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#FAF8F5] font-mono text-xs font-semibold"
+                className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#F6F2E8] font-mono text-xs font-semibold"
               />
             </div>
 
@@ -684,7 +684,7 @@ export default function CustomerRooms({ customerName }: Props) {
                 value={specialNotes}
                 onChange={(e) => setSpecialNotes(e.target.value)}
                 placeholder="e.g. Late arrival around 8:00 PM, quiet room preference"
-                className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#FAF8F5] text-xs resize-none"
+                className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#F6F2E8] text-xs resize-none"
               />
             </div>
 
@@ -715,7 +715,7 @@ export default function CustomerRooms({ customerName }: Props) {
               )}
               <div className="pt-2 border-t border-stone/15 flex justify-between items-center text-sm">
                 <span className="font-bold text-ink">Total Estimated Bill:</span>
-                <span className="font-display font-bold text-xl text-[#B48454]">
+                <span className="font-display font-bold text-xl text-[#6B7A5E]">
                   ₱{totalAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
                 </span>
               </div>
@@ -746,7 +746,7 @@ export default function CustomerRooms({ customerName }: Props) {
               <button
                 type="submit"
                 disabled={hasDateConflictWithExistingStay || (bookingType === 'per_night' ? nights <= 0 : !checkInTime)}
-                className="flex-1 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl font-semibold shadow-sm disabled:opacity-50 transition-all cursor-pointer"
+                className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl font-semibold shadow-sm disabled:opacity-50 transition-all cursor-pointer"
               >
                 Proceed to Confirmation
               </button>

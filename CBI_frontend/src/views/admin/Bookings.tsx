@@ -299,7 +299,7 @@ export default function AdminBookings() {
         </div>
         <button
           onClick={() => { setShowNewModal(true); setFormError('') }}
-          className="px-3.5 py-1.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-lg font-semibold text-xs shadow-xs hover:shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer self-start sm:self-auto"
+          className="px-3.5 py-1.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-lg font-semibold text-xs shadow-xs hover:shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer self-start sm:self-auto"
         >
           <Plus className="w-3.5 h-3.5" strokeWidth={2} />
           <span>New Booking</span>
@@ -314,7 +314,7 @@ export default function AdminBookings() {
           <div>
             <h2 className="font-display text-base font-bold text-neutral-900 dark:text-white">Reservations</h2>
             <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
-              <span className="font-bold text-[#B48454]">{filteredBookings.length}</span> bookings found
+              <span className="font-bold text-[#6B7A5E]">{filteredBookings.length}</span> bookings found
             </p>
           </div>
 
@@ -337,7 +337,7 @@ export default function AdminBookings() {
                 onClick={() => { setActiveFilter(t.id); setCurrentPage(1) }}
                 className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer ${
                   activeFilter === t.id
-                    ? 'bg-[#B48454] text-white shadow-2xs'
+                    ? 'bg-[#6B7A5E] text-white shadow-2xs'
                     : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-white dark:hover:bg-neutral-800'
                 }`}
               >
@@ -356,7 +356,7 @@ export default function AdminBookings() {
               value={searchQuery}
               onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1) }}
               placeholder="Search by ref, guest, room, phone..."
-              className="w-full pl-8.5 pr-3.5 py-1.5 rounded-lg text-xs border border-black/[0.08] dark:border-neutral-700 bg-neutral-50/80 dark:bg-[#20252E] text-neutral-900 dark:text-white placeholder:text-neutral-400 dark:placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+              className="w-full pl-8.5 pr-3.5 py-1.5 rounded-lg text-xs border border-black/[0.08] dark:border-neutral-700 bg-neutral-50/80 dark:bg-[#20252E] text-neutral-900 dark:text-white placeholder:text-neutral-400 dark:placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
             />
           </div>
 
@@ -365,7 +365,7 @@ export default function AdminBookings() {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as SortField)}
-              className="px-2.5 py-1.5 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-neutral-50/80 dark:bg-[#20252E] text-xs text-neutral-900 dark:text-white font-semibold focus:outline-none focus:ring-2 focus:ring-[#B48454]/40 cursor-pointer"
+              className="px-2.5 py-1.5 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-neutral-50/80 dark:bg-[#20252E] text-xs text-neutral-900 dark:text-white font-semibold focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40 cursor-pointer"
             >
               <option value="newest">Newest First</option>
               <option value="oldest">Oldest First</option>
@@ -401,14 +401,14 @@ export default function AdminBookings() {
                 return (
                   <tr key={String(b.id)} className="hover:bg-neutral-50/70 dark:hover:bg-slate-800/40 transition-colors">
                     {/* REF */}
-                    <td className="px-5 py-4 font-mono font-bold text-[#B48454]">
+                    <td className="px-5 py-4 font-mono font-bold text-[#6B7A5E]">
                       {String(b.booking_ref || `#BK-${b.id}`)}
                     </td>
 
                     {/* GUEST */}
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-full bg-[#B48454]/10 dark:bg-[#B48454]/20 text-[#B48454] dark:text-[#C99A6B] font-bold text-xs flex items-center justify-center shrink-0 border border-[#B48454]/20">
+                        <div className="w-8 h-8 rounded-full bg-[#6B7A5E]/10 dark:bg-[#6B7A5E]/20 text-[#6B7A5E] dark:text-[#C99A6B] font-bold text-xs flex items-center justify-center shrink-0 border border-[#6B7A5E]/20">
                           {String(b.customer_name || 'G').charAt(0)}
                         </div>
                         <div>
@@ -507,7 +507,7 @@ export default function AdminBookings() {
         {/* Loading & Empty State */}
         {loading && (
           <div className="py-16 text-center text-neutral-400 text-xs">
-            <div className="w-6 h-6 border-2 border-[#B48454] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+            <div className="w-6 h-6 border-2 border-[#6B7A5E] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
             <p>Loading reservations...</p>
           </div>
         )}
@@ -547,7 +547,7 @@ export default function AdminBookings() {
                 onClick={() => setCurrentPage(pg)}
                 className={`w-8 h-8 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                   currentPage === pg
-                    ? 'bg-[#B48454] text-white shadow-2xs'
+                    ? 'bg-[#6B7A5E] text-white shadow-2xs'
                     : 'bg-white dark:bg-[#20252E] border border-black/[0.08] dark:border-neutral-700 text-neutral-900 dark:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800'
                 }`}
               >
@@ -703,7 +703,7 @@ export default function AdminBookings() {
               value={newCustomerId}
               onChange={(e) => setNewCustomerId(e.target.value ? Number(e.target.value) : '')}
               required
-              className="w-full px-3 py-2.5 rounded-xl border border-stone bg-cream focus:outline-none focus:ring-2 focus:ring-[#B48454]/30 text-xs"
+              className="w-full px-3 py-2.5 rounded-xl border border-stone bg-cream focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/30 text-xs"
             >
               <option value="">-- Choose Customer --</option>
               {customers.map((c) => (
@@ -721,7 +721,7 @@ export default function AdminBookings() {
               value={newRoomId}
               onChange={(e) => setNewRoomId(e.target.value ? Number(e.target.value) : '')}
               required
-              className="w-full px-3 py-2.5 rounded-xl border border-stone bg-cream focus:outline-none focus:ring-2 focus:ring-[#B48454]/30 text-xs"
+              className="w-full px-3 py-2.5 rounded-xl border border-stone bg-cream focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/30 text-xs"
             >
               <option value="">-- Choose Room --</option>
               {rooms.map((r) => (
@@ -824,7 +824,7 @@ export default function AdminBookings() {
             <button
               type="submit"
               disabled={submitting || !newCustomerId || !newRoomId}
-              className="flex-1 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl font-semibold shadow-sm disabled:opacity-50 transition-all"
+              className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl font-semibold shadow-sm disabled:opacity-50 transition-all"
             >
               {submitting ? 'Creating...' : 'Confirm Booking'}
             </button>
@@ -853,7 +853,7 @@ export default function AdminBookings() {
               value={editRoomId}
               onChange={(e) => setEditRoomId(e.target.value ? Number(e.target.value) : '')}
               required
-              className="w-full px-3 py-2.5 rounded-xl border border-stone bg-cream focus:outline-none focus:ring-2 focus:ring-[#B48454]/30 text-xs"
+              className="w-full px-3 py-2.5 rounded-xl border border-stone bg-cream focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/30 text-xs"
             >
               {rooms.map((r) => (
                 <option key={String(r.id)} value={String(r.id)}>
@@ -918,7 +918,7 @@ export default function AdminBookings() {
             <button
               type="submit"
               disabled={savingEdit || !editRoomId}
-              className="flex-1 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl font-semibold shadow-sm disabled:opacity-50 transition-all"
+              className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl font-semibold shadow-sm disabled:opacity-50 transition-all"
             >
               {savingEdit ? 'Saving...' : 'Save Changes'}
             </button>

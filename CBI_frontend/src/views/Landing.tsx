@@ -30,10 +30,10 @@ import {
 /* ─────────────────────────────────────────────
    Design tokens — single source of truth
    ─────────────────────────────────────────── */
-const ACCENT = '#B48454'
-const ACCENT_HOVER = '#9E6E3E'
-const CHARCOAL = '#1C231F'
-const CHARCOAL_DEEP = '#141A17'
+const ACCENT = '#6B7A5E'
+const ACCENT_HOVER = '#4F5D45'
+const CHARCOAL = '#3B4534'
+const CHARCOAL_DEEP = '#2A3126'
 
 /* ─────────────────────────────────────────────
    Icon container — replaces every emoji
@@ -43,7 +43,7 @@ function IconBox({ children, dark = false }: { children: ReactNode; dark?: boole
     <div
       className="w-11 h-11 rounded-[10px] flex items-center justify-center shrink-0"
       style={{
-        backgroundColor: dark ? 'rgba(180,132,84,0.12)' : 'rgba(180,132,84,0.08)',
+        backgroundColor: dark ? 'rgba(107,122,94,0.12)' : 'rgba(107,122,94,0.08)',
       }}
     >
       {children}
@@ -117,7 +117,7 @@ const CONTACT_ROWS: { Icon: typeof Phone; label: string; value: string }[] = [
    Buttons — consistent heights & radii
    ─────────────────────────────────────────── */
 const btnBase = 'inline-flex items-center justify-center font-sans font-medium transition-all duration-250'
-const btnPrimary = `${btnBase} bg-[${ACCENT}] hover:bg-[${ACCENT_HOVER}] text-white rounded-[10px] shadow-[0_2px_8px_rgba(180,132,84,0.25)] hover:shadow-[0_4px_16px_rgba(180,132,84,0.30)] hover:-translate-y-px`
+const btnPrimary = `${btnBase} bg-[${ACCENT}] hover:bg-[${ACCENT_HOVER}] text-white rounded-[10px] shadow-[0_2px_8px_rgba(107,122,94,0.25)] hover:shadow-[0_4px_16px_rgba(107,122,94,0.30)] hover:-translate-y-px`
 const btnOutline = `${btnBase} border border-white/30 text-white rounded-[10px] hover:bg-white/8`
 const btnOutlineInk = `${btnBase} border border-stone/30 text-ink hover:border-[${ACCENT}] hover:text-[${ACCENT}] rounded-[10px]`
 
@@ -252,15 +252,15 @@ export default function Landing({ onNavigate }: LandingProps) {
 
   /* ───────────── render ───────────── */
   return (
-    <div className="min-h-screen bg-[#FBF9F5] font-sans text-ink antialiased">
+    <div className="min-h-screen bg-[#F6F2E8] font-sans text-ink antialiased">
 
       {/* ═══════════════════════════════════════
           1 · NAVIGATION HEADER
           ═══════════════════════════════════════ */}
       <header
         className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${navScrolled
-            ? 'bg-[#FBF9F5]/95 backdrop-blur-xl shadow-[0_4px_24px_rgba(0,0,0,0.06)] border-b border-stone/20 py-2.5'
-            : 'bg-[#FBF9F5]/85 backdrop-blur-md border-b border-stone/15 py-3.5'
+            ? 'bg-[#F6F2E8]/95 backdrop-blur-xl shadow-[0_4px_24px_rgba(0,0,0,0.06)] border-b border-stone/20 py-2.5'
+            : 'bg-[#F6F2E8]/85 backdrop-blur-md border-b border-stone/15 py-3.5'
           }`}
       >
         <div className="max-w-[1320px] mx-auto px-6 sm:px-8 flex items-center justify-between">
@@ -276,11 +276,11 @@ export default function Landing({ onNavigate }: LandingProps) {
             <InteractiveLogoMark />
             <div className="flex flex-col">
               <div className="flex items-center gap-2">
-                <span className="font-serif-brand text-[17px] font-bold text-ink tracking-[-0.01em] group-hover:text-[#B48454] transition-colors duration-200">
+                <span className="font-serif-brand text-[17px] font-bold text-ink tracking-[-0.01em] group-hover:text-[#6B7A5E] transition-colors duration-200">
                   Cambacay
                 </span>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-[#B48454]/10 text-[#9E6E3E] uppercase tracking-wider hidden sm:inline-flex">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-[#6B7A5E]/12 text-[#4F5D45] uppercase tracking-wider hidden sm:inline-flex">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#22A66B] animate-pulse" />
                   Nature Retreat
                 </span>
               </div>
@@ -299,7 +299,7 @@ export default function Landing({ onNavigate }: LandingProps) {
                   key={link.id}
                   href={link.href}
                   className={`px-4 py-1.5 rounded-full text-[13px] font-medium transition-all duration-200 ${isActive
-                      ? 'bg-white text-[#9E6E3E] shadow-[0_1px_4px_rgba(0,0,0,0.06)] font-semibold'
+                      ? 'bg-white text-[#4F5D45] shadow-[0_1px_4px_rgba(0,0,0,0.06)] font-semibold'
                       : 'text-ink-muted hover:text-ink hover:bg-white/60'
                     }`}
                 >
@@ -313,14 +313,14 @@ export default function Landing({ onNavigate }: LandingProps) {
           <div className="flex items-center gap-2.5">
             <button
               onClick={() => onNavigate('login')}
-              className="hidden sm:inline-flex items-center justify-center font-sans font-medium text-[13px] text-ink hover:text-[#9E6E3E] px-5 py-2 rounded-xl bg-stone/20 hover:bg-stone/30 border border-stone/25 backdrop-blur-sm shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)] hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
+              className="hidden sm:inline-flex items-center justify-center font-sans font-medium text-[13px] text-ink hover:text-[#4F5D45] px-5 py-2 rounded-xl bg-stone/20 hover:bg-stone/30 border border-stone/25 backdrop-blur-sm shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)] hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
             >
               Sign In
             </button>
 
             <button
               onClick={() => onNavigate('register')}
-              className="inline-flex items-center justify-center font-sans font-medium text-[13px] text-white bg-gradient-to-r from-[#B48454] to-[#C99A6B] hover:from-[#A47444] hover:to-[#B48454] px-5 py-2 rounded-xl shadow-[0_2px_10px_rgba(180,132,84,0.25)] hover:shadow-[0_4px_16px_rgba(180,132,84,0.35)] hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
+              className="inline-flex items-center justify-center font-sans font-medium text-[13px] text-white bg-gradient-to-r from-[#6B7A5E] to-[#4F5D45] hover:from-[#4F5D45] hover:to-[#3B4534] px-5 py-2 rounded-xl shadow-[0_2px_10px_rgba(107,122,94,0.25)] hover:shadow-[0_4px_16px_rgba(107,122,94,0.35)] hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
             >
               Register
             </button>
@@ -339,7 +339,7 @@ export default function Landing({ onNavigate }: LandingProps) {
 
         {/* Mobile Dropdown Drawer */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t border-stone/15 bg-[#FBF9F5]/98 backdrop-blur-xl px-6 py-5 shadow-xl transition-all">
+          <div className="md:hidden border-t border-stone/15 bg-[#F6F2E8]/98 backdrop-blur-xl px-6 py-5 shadow-xl transition-all">
             <div className="flex flex-col space-y-1">
               {NAV_LINKS.map((link) => (
                 <a
@@ -347,7 +347,7 @@ export default function Landing({ onNavigate }: LandingProps) {
                   href={link.href}
                   onClick={() => setMobileMenuOpen(false)}
                   className={`px-4 py-2.5 rounded-xl text-[14px] font-medium transition-colors ${activeSection === link.id
-                      ? 'bg-[#B48454]/10 text-[#9E6E3E] font-semibold'
+                      ? 'bg-[#6B7A5E]/12 text-[#4F5D45] font-semibold'
                       : 'text-ink-muted hover:text-ink hover:bg-stone/15'
                     }`}
                 >
@@ -371,7 +371,7 @@ export default function Landing({ onNavigate }: LandingProps) {
                   setMobileMenuOpen(false)
                   onNavigate('register')
                 }}
-                className="w-full h-10 rounded-xl bg-[#B48454] text-white font-medium text-[13px] shadow-[0_2px_8px_rgba(180,132,84,0.25)] flex items-center justify-center"
+                className="w-full h-10 rounded-xl bg-[#6B7A5E] text-white font-medium text-[13px] shadow-[0_2px_8px_rgba(107,122,94,0.25)] flex items-center justify-center"
               >
                 Register
               </button>
@@ -399,7 +399,7 @@ export default function Landing({ onNavigate }: LandingProps) {
             }}
           />
           {/* extra bottom gradient for text safety */}
-          <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-[#1C231F]/60 to-transparent" />
+          <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-[#2A3126]/60 to-transparent" />
         </div>
 
         <div className="relative max-w-[1280px] mx-auto px-8 py-32 md:py-40 w-full">
@@ -413,7 +413,7 @@ export default function Landing({ onNavigate }: LandingProps) {
             <h1 className="font-display text-[clamp(3rem,7vw,5.5rem)] font-bold leading-[1.02] tracking-[-0.025em] text-white mb-6">
               Cambacay
               <br />
-              <span style={{ color: '#D4A373' }}>Breeze</span> Inn
+              <span style={{ color: '#6B7A5E' }}>Breeze</span> Inn
             </h1>
 
             <p className="font-display text-[clamp(1.1rem,2.2vw,1.5rem)] font-normal italic text-white/85 leading-snug mb-4">
@@ -435,7 +435,7 @@ export default function Landing({ onNavigate }: LandingProps) {
       {/* ═══════════════════════════════════════
           3 · STATS STRIP
           ═══════════════════════════════════════ */}
-      <section className="bg-[#1C231F] text-white py-10 border-y border-white/[0.06]">
+      <section className="bg-[#2A3126] text-white py-10 border-y border-white/[0.06]">
         <div className="max-w-[1280px] mx-auto px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             {[
@@ -447,7 +447,7 @@ export default function Landing({ onNavigate }: LandingProps) {
               <div key={stat.label}>
                 <p className="font-display text-[2rem] sm:text-[2.5rem] font-bold tracking-[-0.02em]" style={{ color: ACCENT }}>
                   {stat.value}
-                  {stat.hasStar && <Star className="inline w-5 h-5 ml-1 -mt-1 fill-current" strokeWidth={0} />}
+                  {stat.hasStar && <Star className="inline w-5 h-5 ml-1 -mt-1 fill-current text-[#C9A66B]" strokeWidth={0} />}
                 </p>
                 <p className="text-white/50 text-[12px] mt-1.5 font-medium tracking-[0.03em]">{stat.label}</p>
               </div>
@@ -459,7 +459,7 @@ export default function Landing({ onNavigate }: LandingProps) {
       {/* ═══════════════════════════════════════
           4 · ABOUT / OUR STORY
           ═══════════════════════════════════════ */}
-      <section id="about" className="py-24 md:py-32 bg-[#FBF9F5]">
+      <section id="about" className="py-24 md:py-32 bg-[#F6F2E8]">
         <div className="max-w-[1280px] mx-auto px-8">
           <div className="grid lg:grid-cols-2 gap-16 lg:gap-24 items-center">
             <Reveal>
@@ -498,7 +498,7 @@ export default function Landing({ onNavigate }: LandingProps) {
                 <div className="absolute -bottom-6 -left-4 lg:-left-8 bg-white rounded-2xl p-5 shadow-[0_8px_24px_rgba(0,0,0,0.08)] border border-stone/10 max-w-[200px]">
                   <div className="flex items-baseline gap-1">
                     <span className="font-display text-[2rem] font-bold tracking-[-0.02em]" style={{ color: ACCENT }}>4.9</span>
-                    <Star className="w-4 h-4 fill-current" style={{ color: ACCENT }} strokeWidth={0} />
+                    <Star className="w-4 h-4 fill-current text-[#C9A66B]" style={{ color: '#C9A66B' }} strokeWidth={0} />
                   </div>
                   <p className="text-[13px] font-semibold text-ink mt-1">Average Guest Review</p>
                   <p className="text-[11px] text-ink-muted mt-0.5">Verified direct feedback</p>
@@ -512,7 +512,7 @@ export default function Landing({ onNavigate }: LandingProps) {
       {/* ═══════════════════════════════════════
           5 · ROOMS
           ═══════════════════════════════════════ */}
-      <section id="rooms" className="py-24 md:py-32 bg-[#F5F1EB]">
+      <section id="rooms" className="py-24 md:py-32 bg-[#EDE7D8]">
         <div className="max-w-[1280px] mx-auto px-8">
           <Reveal>
             <div className="text-center mb-16">
@@ -539,14 +539,14 @@ export default function Landing({ onNavigate }: LandingProps) {
                 <Reveal key={String(id)} delay={idx + 1}>
                   <div className="bg-white rounded-2xl overflow-hidden border border-stone/10 shadow-[0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_32px_rgba(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-300 flex flex-col group">
                     {/* Image — fixed 4:3 ratio */}
-                    <div className="relative aspect-[4/3] overflow-hidden bg-[#EDE9E0]">
+                    <div className="relative aspect-[4/3] overflow-hidden bg-[#E2DCD0]">
                       <img
                         src={image || 'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=800&auto=format&fit=crop&q=80'}
                         alt={name}
                         className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-[600ms] ease-out"
                         style={{ filter: 'saturate(0.92)' }}
                       />
-                      <span className="absolute top-4 right-4 bg-[#1C231F]/70 backdrop-blur-sm text-white text-[11px] font-medium px-3 py-1 rounded-lg tracking-wide">
+                      <span className="absolute top-4 right-4 bg-[#2A3126]/70 backdrop-blur-sm text-white text-[11px] font-medium px-3 py-1 rounded-lg tracking-wide">
                         {roomType}
                       </span>
                     </div>
@@ -613,7 +613,7 @@ export default function Landing({ onNavigate }: LandingProps) {
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {SERVICES.map((svc, idx) => (
               <Reveal key={svc.name} delay={Math.min(idx + 1, 5)}>
-                <div className="bg-[#FBF9F5] rounded-2xl p-6 border border-stone/10 hover:border-stone/25 hover:shadow-[0_4px_16px_rgba(0,0,0,0.04)] transition-all duration-250 h-full">
+                <div className="bg-[#F6F2E8] rounded-2xl p-6 border border-stone/10 hover:border-stone/25 hover:shadow-[0_4px_16px_rgba(0,0,0,0.04)] transition-all duration-250 h-full">
                   <IconBox>
                     <svc.Icon className="w-5 h-5" style={{ color: ACCENT }} strokeWidth={1.5} />
                   </IconBox>
@@ -629,7 +629,7 @@ export default function Landing({ onNavigate }: LandingProps) {
       {/* ═══════════════════════════════════════
           7 · ACTIVITIES (dark section)
           ═══════════════════════════════════════ */}
-      <section id="activities" className="py-24 md:py-32 bg-[#1C231F] text-white">
+      <section id="activities" className="py-24 md:py-32 bg-[#2A3126] text-white">
         <div className="max-w-[1280px] mx-auto px-8">
           <Reveal>
             <div className="text-center mb-16">
@@ -670,7 +670,7 @@ export default function Landing({ onNavigate }: LandingProps) {
                         className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-[600ms] ease-out"
                         style={{ filter: 'saturate(0.95) brightness(0.98)' }}
                       />
-                      <span className="absolute top-4 right-4 bg-[#1C231F]/80 backdrop-blur-sm text-white text-[11px] font-medium px-3 py-1 rounded-lg">
+                      <span className="absolute top-4 right-4 bg-[#2A3126]/80 backdrop-blur-sm text-white text-[11px] font-medium px-3 py-1 rounded-lg">
                         ₱{aPrice.toLocaleString()} / {aUnit}
                       </span>
                     </div>
@@ -705,7 +705,7 @@ export default function Landing({ onNavigate }: LandingProps) {
       {/* ═══════════════════════════════════════
           8 · WHY CHOOSE US
           ═══════════════════════════════════════ */}
-      <section id="why" className="py-24 md:py-32 bg-[#FBF9F5]">
+      <section id="why" className="py-24 md:py-32 bg-[#F6F2E8]">
         <div className="max-w-[1280px] mx-auto px-8">
           <Reveal>
             <div className="text-center mb-16">
@@ -760,7 +760,7 @@ export default function Landing({ onNavigate }: LandingProps) {
       {/* ═══════════════════════════════════════
           10 · CONTACT
           ═══════════════════════════════════════ */}
-      <section id="contact" className="py-24 md:py-32 bg-[#1C231F] text-white">
+      <section id="contact" className="py-24 md:py-32 bg-[#2A3126] text-white">
         <div className="max-w-[1280px] mx-auto px-8">
           <div className="grid lg:grid-cols-2 gap-16 lg:gap-24 items-center">
             <Reveal>
@@ -806,7 +806,7 @@ export default function Landing({ onNavigate }: LandingProps) {
       {/* ═══════════════════════════════════════
           11 · FOOTER
           ═══════════════════════════════════════ */}
-      <footer className="bg-[#141A17] border-t border-white/[0.06] py-10">
+      <footer className="bg-[#1C221A] border-t border-white/[0.06] py-10">
         <div className="max-w-[1280px] mx-auto px-8">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-3">

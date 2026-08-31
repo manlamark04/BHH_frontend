@@ -411,7 +411,7 @@ export default function AdminRooms({ userRole = 'admin' }: AdminRoomsProps) {
         {!isStaff && (
           <button
             onClick={() => { setShowAddModal(true); setAddError('') }}
-            className="px-3.5 py-1.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-lg font-semibold text-xs shadow-xs hover:shadow-sm transition-all flex items-center justify-center gap-1.5 self-start sm:self-auto cursor-pointer"
+            className="px-3.5 py-1.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-lg font-semibold text-xs shadow-xs hover:shadow-sm transition-all flex items-center justify-center gap-1.5 self-start sm:self-auto cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" strokeWidth={2} />
             <span>Add Room</span>
@@ -425,8 +425,8 @@ export default function AdminRooms({ userRole = 'admin' }: AdminRoomsProps) {
         {/* Card 1: TOTAL ROOMS */}
         <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.04)] transition-all flex flex-col justify-between">
           <div className="flex justify-between items-center mb-1">
-            <span className="text-[10px] uppercase font-bold tracking-wider text-[#B48454]">TOTAL ROOMS</span>
-            <div className="w-6 h-6 rounded-lg bg-[#B48454]/10 text-[#B48454] flex items-center justify-center">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-[#6B7A5E]">TOTAL ROOMS</span>
+            <div className="w-6 h-6 rounded-lg bg-[#6B7A5E]/10 text-[#6B7A5E] flex items-center justify-center">
               <Building2 className="w-3.5 h-3.5" strokeWidth={1.5} />
             </div>
           </div>
@@ -488,7 +488,7 @@ export default function AdminRooms({ userRole = 'admin' }: AdminRoomsProps) {
           <div>
             <h2 className="font-display text-base font-bold text-neutral-900 dark:text-white">Room Inventory</h2>
             <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
-              Showing <span className="font-bold text-[#B48454]">{filteredRooms.length}</span> of {rooms.length} registered rooms
+              Showing <span className="font-bold text-[#6B7A5E]">{filteredRooms.length}</span> of {rooms.length} registered rooms
             </p>
           </div>
 
@@ -511,7 +511,7 @@ export default function AdminRooms({ userRole = 'admin' }: AdminRoomsProps) {
                   onClick={() => setActiveFilter(tab.id)}
                   className={`px-3.5 py-1.5 rounded-lg font-semibold transition-all cursor-pointer ${
                     activeFilter === tab.id
-                      ? 'bg-[#B48454] text-white shadow-2xs'
+                      ? 'bg-[#6B7A5E] text-white shadow-2xs'
                       : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-white dark:hover:bg-neutral-800'
                   }`}
                 >
@@ -562,7 +562,7 @@ export default function AdminRooms({ userRole = 'admin' }: AdminRoomsProps) {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search room 101, deluxe, floor 2..."
-              className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-black/[0.08] dark:border-neutral-700 bg-neutral-50/80 dark:bg-[#20252E] text-neutral-900 dark:text-white placeholder:text-neutral-400 dark:placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+              className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-black/[0.08] dark:border-neutral-700 bg-neutral-50/80 dark:bg-[#20252E] text-neutral-900 dark:text-white placeholder:text-neutral-400 dark:placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
             />
           </div>
 
@@ -571,7 +571,7 @@ export default function AdminRooms({ userRole = 'admin' }: AdminRoomsProps) {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as SortOption)}
-              className="px-3 py-2 rounded-xl border border-black/[0.08] dark:border-neutral-700 bg-neutral-50/80 dark:bg-[#20252E] text-neutral-900 dark:text-white font-semibold focus:outline-none focus:ring-2 focus:ring-[#B48454]/40 cursor-pointer"
+              className="px-3 py-2 rounded-xl border border-black/[0.08] dark:border-neutral-700 bg-neutral-50/80 dark:bg-[#20252E] text-neutral-900 dark:text-white font-semibold focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40 cursor-pointer"
             >
               <option value="number_asc">Room Number (Ascending)</option>
               <option value="number_desc">Room Number (Descending)</option>
@@ -594,7 +594,7 @@ export default function AdminRooms({ userRole = 'admin' }: AdminRoomsProps) {
               return (
                 <div
                   key={r.id}
-                  className="bg-[#FAF8F5] dark:bg-[#14171C] rounded-2xl border border-black/[0.07] dark:border-neutral-800 overflow-hidden shadow-2xs hover:shadow-md hover:border-[#B48454]/30 dark:hover:border-[#B48454]/50 transition-all duration-300 flex flex-col justify-between group"
+                  className="bg-[#F6F2E8] dark:bg-[#14171C] rounded-2xl border border-black/[0.07] dark:border-neutral-800 overflow-hidden shadow-2xs hover:shadow-md hover:border-[#6B7A5E]/30 dark:hover:border-[#6B7A5E]/50 transition-all duration-300 flex flex-col justify-between group"
                 >
                   {/* Top Image Container */}
                   <div className="relative h-48 sm:h-52 w-full overflow-hidden bg-sand/50 dark:bg-neutral-800">
@@ -637,7 +637,7 @@ export default function AdminRooms({ userRole = 'admin' }: AdminRoomsProps) {
                         <span className="font-semibold text-neutral-900 dark:text-white">Sleeps {r.capacity || r.max_guests || 2}</span>
                       </div>
                       <div className="text-right">
-                        <span className="font-display text-lg font-bold text-[#B48454] dark:text-[#C99A6B]">
+                        <span className="font-display text-lg font-bold text-[#6B7A5E] dark:text-[#C99A6B]">
                           ₱{Number(r.price_per_night || r.rate_per_night || 0).toLocaleString()}
                         </span>
                         <span className="text-[10px] text-neutral-500 dark:text-neutral-400 ml-0.5">/ night</span>
@@ -663,7 +663,7 @@ export default function AdminRooms({ userRole = 'admin' }: AdminRoomsProps) {
                         <div className="w-full flex items-center justify-end">
                           <button
                             onClick={() => { setStatusRoom(r); setTargetStatus(r.status.toLowerCase()) }}
-                            className="w-full sm:w-auto px-4 py-2 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl text-xs font-semibold transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer"
+                            className="w-full sm:w-auto px-4 py-2 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl text-xs font-semibold transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer"
                           >
                             <span className={`w-2 h-2 rounded-full ${
                               statusStr === 'AVAILABLE' ? 'bg-emerald-300' :
@@ -748,7 +748,7 @@ export default function AdminRooms({ userRole = 'admin' }: AdminRoomsProps) {
                     <td className="px-5 py-3.5 text-neutral-500 dark:text-neutral-400">
                       {r.capacity || r.max_guests || 2} guests
                     </td>
-                    <td className="px-5 py-3.5 font-display font-bold text-[#B48454] dark:text-[#C99A6B] text-sm">
+                    <td className="px-5 py-3.5 font-display font-bold text-[#6B7A5E] dark:text-[#C99A6B] text-sm">
                       ₱{Number(r.price_per_night || r.rate_per_night || 0).toLocaleString()}
                     </td>
                     <td className="px-5 py-3.5">
@@ -759,7 +759,7 @@ export default function AdminRooms({ userRole = 'admin' }: AdminRoomsProps) {
                         {isStaff ? (
                           <button
                             onClick={() => { setStatusRoom(r); setTargetStatus(r.status.toLowerCase()) }}
-                            className="px-3 py-1.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-lg font-semibold text-xs transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                            className="px-3 py-1.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-lg font-semibold text-xs transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
                           >
                             <span className={`w-1.5 h-1.5 rounded-full ${
                               String(r.status).toUpperCase() === 'AVAILABLE' ? 'bg-emerald-300' :
@@ -811,7 +811,7 @@ export default function AdminRooms({ userRole = 'admin' }: AdminRoomsProps) {
         {/* Loading State */}
         {loading && (
           <div className="py-20 text-center text-ink-muted text-xs">
-            <div className="w-7 h-7 border-2 border-[#B48454] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+            <div className="w-7 h-7 border-2 border-[#6B7A5E] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
             <p>Loading rooms inventory...</p>
           </div>
         )}
@@ -861,7 +861,7 @@ export default function AdminRooms({ userRole = 'admin' }: AdminRoomsProps) {
                 onChange={(e) => setAddNumber(e.target.value)}
                 placeholder="e.g. 101, 202"
                 required
-                className="w-full px-3 py-2.5 rounded-xl border border-stone focus:outline-none focus:ring-2 focus:ring-[#B48454]/40 bg-cream"
+                className="w-full px-3 py-2.5 rounded-xl border border-stone focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40 bg-cream"
               />
             </div>
 
@@ -870,7 +870,7 @@ export default function AdminRooms({ userRole = 'admin' }: AdminRoomsProps) {
               <select
                 value={addFloor}
                 onChange={(e) => setAddFloor(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-xl border border-stone focus:outline-none focus:ring-2 focus:ring-[#B48454]/40 bg-cream"
+                className="w-full px-3 py-2.5 rounded-xl border border-stone focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40 bg-cream"
               >
                 <option value="1">Floor 1</option>
                 <option value="2">Floor 2</option>
@@ -886,7 +886,7 @@ export default function AdminRooms({ userRole = 'admin' }: AdminRoomsProps) {
               <select
                 value={addType}
                 onChange={(e) => setAddType(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-xl border border-stone focus:outline-none focus:ring-2 focus:ring-[#B48454]/40 bg-cream"
+                className="w-full px-3 py-2.5 rounded-xl border border-stone focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40 bg-cream"
               >
                 {ROOM_TYPES.map((t) => (
                   <option key={t} value={t}>{t}</option>
@@ -930,7 +930,7 @@ export default function AdminRooms({ userRole = 'admin' }: AdminRoomsProps) {
                 placeholder="2500"
                 min={0}
                 required
-                className="w-full px-3 py-2 rounded-xl border border-stone text-xs font-bold text-[#B48454] bg-cream"
+                className="w-full px-3 py-2 rounded-xl border border-stone text-xs font-bold text-[#6B7A5E] bg-cream"
               />
             </div>
           </div>
@@ -939,7 +939,7 @@ export default function AdminRooms({ userRole = 'admin' }: AdminRoomsProps) {
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label className="font-semibold text-ink uppercase tracking-wider text-[10px] flex items-center gap-1.5">
-                <Camera className="w-3.5 h-3.5 text-[#B48454]" />
+                <Camera className="w-3.5 h-3.5 text-[#6B7A5E]" />
                 <span>Room Photo</span>
               </label>
               {addImageUrl && (
@@ -966,8 +966,8 @@ export default function AdminRooms({ userRole = 'admin' }: AdminRoomsProps) {
               onClick={() => addFileInputRef.current?.click()}
               className={`relative h-40 rounded-2xl overflow-hidden border-2 border-dashed transition-all cursor-pointer group bg-sand/30 flex flex-col items-center justify-center ${
                 isDraggingAdd
-                  ? 'border-[#B48454] bg-[#B48454]/10 shadow-inner'
-                  : 'border-stone/30 hover:border-[#B48454]/70 hover:bg-sand/50'
+                  ? 'border-[#6B7A5E] bg-[#6B7A5E]/10 shadow-inner'
+                  : 'border-stone/30 hover:border-[#6B7A5E]/70 hover:bg-sand/50'
               }`}
             >
               {addImageUrl ? (
@@ -985,7 +985,7 @@ export default function AdminRooms({ userRole = 'admin' }: AdminRoomsProps) {
                 </>
               ) : (
                 <div className="text-center p-5 space-y-1.5">
-                  <div className="w-10 h-10 rounded-xl bg-white/90 border border-stone/20 text-[#B48454] flex items-center justify-center mx-auto shadow-xs">
+                  <div className="w-10 h-10 rounded-xl bg-white/90 border border-stone/20 text-[#6B7A5E] flex items-center justify-center mx-auto shadow-xs">
                     <Upload className="w-5 h-5" strokeWidth={1.5} />
                   </div>
                   <div>
@@ -1033,7 +1033,7 @@ export default function AdminRooms({ userRole = 'admin' }: AdminRoomsProps) {
             <button
               type="submit"
               disabled={submittingAdd || !addNumber.trim() || !addRate}
-              className="flex-1 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl font-semibold shadow-sm disabled:opacity-50 transition-all"
+              className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl font-semibold shadow-sm disabled:opacity-50 transition-all"
             >
               {submittingAdd ? 'Adding...' : 'Add Room'}
             </button>
@@ -1106,7 +1106,7 @@ export default function AdminRooms({ userRole = 'admin' }: AdminRoomsProps) {
                 onChange={(e) => setEditRate(e.target.value)}
                 min={0}
                 required
-                className="w-full px-3 py-2.5 rounded-xl border border-stone font-bold text-[#B48454] bg-cream"
+                className="w-full px-3 py-2.5 rounded-xl border border-stone font-bold text-[#6B7A5E] bg-cream"
               />
             </div>
           </div>
@@ -1115,7 +1115,7 @@ export default function AdminRooms({ userRole = 'admin' }: AdminRoomsProps) {
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label className="font-semibold text-ink uppercase tracking-wider text-[10px] flex items-center gap-1.5">
-                <Camera className="w-3.5 h-3.5 text-[#B48454]" />
+                <Camera className="w-3.5 h-3.5 text-[#6B7A5E]" />
                 <span>Room Photo</span>
               </label>
               {editImageUrl && (
@@ -1142,8 +1142,8 @@ export default function AdminRooms({ userRole = 'admin' }: AdminRoomsProps) {
               onClick={() => editFileInputRef.current?.click()}
               className={`relative h-44 rounded-2xl overflow-hidden border-2 border-dashed transition-all cursor-pointer group bg-sand/30 flex flex-col items-center justify-center ${
                 isDraggingEdit
-                  ? 'border-[#B48454] bg-[#B48454]/10 shadow-inner'
-                  : 'border-stone/30 hover:border-[#B48454]/70 hover:bg-sand/50'
+                  ? 'border-[#6B7A5E] bg-[#6B7A5E]/10 shadow-inner'
+                  : 'border-stone/30 hover:border-[#6B7A5E]/70 hover:bg-sand/50'
               }`}
             >
               {editImageUrl ? (
@@ -1161,7 +1161,7 @@ export default function AdminRooms({ userRole = 'admin' }: AdminRoomsProps) {
                 </>
               ) : (
                 <div className="text-center p-5 space-y-1.5">
-                  <div className="w-10 h-10 rounded-xl bg-white/90 border border-stone/20 text-[#B48454] flex items-center justify-center mx-auto shadow-xs">
+                  <div className="w-10 h-10 rounded-xl bg-white/90 border border-stone/20 text-[#6B7A5E] flex items-center justify-center mx-auto shadow-xs">
                     <Upload className="w-5 h-5" strokeWidth={1.5} />
                   </div>
                   <div>
@@ -1208,7 +1208,7 @@ export default function AdminRooms({ userRole = 'admin' }: AdminRoomsProps) {
             <button
               type="submit"
               disabled={savingEdit || !editNumber.trim()}
-              className="flex-1 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl font-semibold shadow-sm disabled:opacity-50 transition-all"
+              className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl font-semibold shadow-sm disabled:opacity-50 transition-all"
             >
               {savingEdit ? 'Saving...' : 'Save Changes'}
             </button>
@@ -1242,7 +1242,7 @@ export default function AdminRooms({ userRole = 'admin' }: AdminRoomsProps) {
                 <p className="text-ink-muted text-xs font-medium">{viewRoom.room_type || viewRoom.type} · Floor {viewRoom.room_number.charAt(0)}</p>
               </div>
               <div className="text-right">
-                <span className="font-display text-2xl font-bold text-[#B48454]">
+                <span className="font-display text-2xl font-bold text-[#6B7A5E]">
                   ₱{Number(viewRoom.price_per_night || viewRoom.rate_per_night || 0).toLocaleString()}
                 </span>
                 <span className="text-[10px] text-ink-muted block">per night</span>
@@ -1265,7 +1265,7 @@ export default function AdminRooms({ userRole = 'admin' }: AdminRoomsProps) {
               </div>
               <div className="p-2.5 bg-sand/30 rounded-xl">
                 <span className="text-[10px] text-ink-muted block uppercase font-bold">Current Status</span>
-                <span className="font-bold text-[#B48454] uppercase">{viewRoom.status}</span>
+                <span className="font-bold text-[#6B7A5E] uppercase">{viewRoom.status}</span>
               </div>
             </div>
 
@@ -1343,7 +1343,7 @@ export default function AdminRooms({ userRole = 'admin' }: AdminRoomsProps) {
             <button
               type="submit"
               disabled={savingStatus}
-              className="flex-1 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl font-semibold shadow-sm transition-all"
+              className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl font-semibold shadow-sm transition-all"
             >
               {savingStatus ? 'Updating...' : 'Update Status'}
             </button>

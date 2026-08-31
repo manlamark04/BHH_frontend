@@ -220,8 +220,8 @@ export default function StaffBilling() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
         <div className="bg-white dark:bg-[#181B20] rounded-xl p-3.5 sm:p-4 border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase font-bold tracking-wider text-[#B48454]">TOTAL BILLS</span>
-            <div className="w-6 h-6 rounded-lg bg-[#B48454]/10 text-[#B48454] flex items-center justify-center">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-[#6B7A5E]">TOTAL BILLS</span>
+            <div className="w-6 h-6 rounded-lg bg-[#6B7A5E]/10 text-[#6B7A5E] flex items-center justify-center">
               <Receipt className="w-3.5 h-3.5" strokeWidth={1.5} />
             </div>
           </div>
@@ -291,13 +291,13 @@ export default function StaffBilling() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search bill ID or guest..."
-                className="w-full sm:w-64 pl-8 pr-3 py-2 rounded-xl border border-stone/30 bg-[#FAF8F5] text-xs focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                className="w-full sm:w-64 pl-8 pr-3 py-2 rounded-xl border border-stone/30 bg-[#F6F2E8] text-xs focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
               />
             </div>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3 py-2 rounded-xl border border-stone/30 bg-[#FAF8F5] text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+              className="px-3 py-2 rounded-xl border border-stone/30 bg-[#F6F2E8] text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
             >
               <option value="All">All Statuses</option>
               <option value="PAID">Paid</option>
@@ -333,7 +333,7 @@ export default function StaffBilling() {
                 return (
                   <tr key={String(b.id)} className="hover:bg-sand/20 transition-colors">
                     <td className="px-5 py-4 font-mono">
-                      <div className="font-bold text-xs text-[#B48454]">{String(b.unique_id || b.invoice_number || b.bill_number || b.id)}</div>
+                      <div className="font-bold text-xs text-[#6B7A5E]">{String(b.unique_id || b.invoice_number || b.bill_number || b.id)}</div>
                       <div className="text-[10px] text-neutral-500 font-sans mt-0.5">
                         Receipt: <strong className="font-mono text-neutral-700 dark:text-neutral-300 font-semibold">{b.receipt_number && b.receipt_number !== '—' ? b.receipt_number : '—'}</strong>
                       </div>
@@ -409,7 +409,7 @@ export default function StaffBilling() {
                               }
                               setActiveReceipt(receiptObj)
                             }}
-                            className="px-2.5 py-0.5 text-[11px] text-[#B48454] bg-[#B48454]/10 hover:bg-[#B48454]/20 border border-[#B48454]/30 rounded-lg font-semibold transition-all flex items-center gap-1 cursor-pointer"
+                            className="px-2.5 py-0.5 text-[11px] text-[#6B7A5E] bg-[#6B7A5E]/10 hover:bg-[#6B7A5E]/20 border border-[#6B7A5E]/30 rounded-lg font-semibold transition-all flex items-center gap-1 cursor-pointer"
                             title="View and print official payment receipt"
                           >
                             <Printer className="w-3 h-3" />
@@ -448,7 +448,7 @@ export default function StaffBilling() {
         </div>
         {loading && (
           <div className="text-center py-16 text-ink-muted text-xs">
-            <div className="w-6 h-6 border-2 border-[#B48454] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+            <div className="w-6 h-6 border-2 border-[#6B7A5E] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
             <p>Loading folios...</p>
           </div>
         )}
@@ -484,7 +484,7 @@ export default function StaffBilling() {
               {/* Billing Context Header */}
               <div className="p-3.5 bg-sand/30 border border-stone/20 rounded-xl space-y-1">
                 <div className="flex items-center justify-between">
-                  <span className="font-mono font-bold text-[#B48454]">{paymentBill.invoice_number || paymentBill.bill_number}</span>
+                  <span className="font-mono font-bold text-[#6B7A5E]">{paymentBill.invoice_number || paymentBill.bill_number}</span>
                   <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-sand border border-stone/20">
                     {paymentBill.service_type || 'Hotel Service'}
                   </span>
@@ -532,10 +532,10 @@ export default function StaffBilling() {
                   }}
                   onWheel={(e) => (e.target as HTMLInputElement).blur()}
                   placeholder={dueAmount > 0 ? `Enter at least ${dueAmount.toLocaleString()}` : "0.00"}
-                  className={`w-full px-3 py-2.5 rounded-xl border bg-[#FAF8F5] text-xs font-bold transition-all ${
+                  className={`w-full px-3 py-2.5 rounded-xl border bg-[#F6F2E8] text-xs font-bold transition-all ${
                     isExceeded || isUnderpaid
                       ? 'border-rose-500 bg-rose-50/40 text-rose-900 focus:ring-2 focus:ring-rose-400/40'
-                      : 'border-stone/30 focus:outline-none focus:ring-2 focus:ring-[#B48454]/40'
+                      : 'border-stone/30 focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40'
                   }`}
                 />
 
@@ -588,7 +588,7 @@ export default function StaffBilling() {
                 <button
                   onClick={handlePayment}
                   disabled={submitting || !payAmount || isInsufficient || isExceeded || paymentReceivedNum <= 0}
-                  className="flex-1 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl text-xs font-semibold shadow-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                  className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl text-xs font-semibold shadow-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                 >
                   {submitting ? 'Processing...' : 'Record Payment'}
                 </button>

@@ -68,7 +68,7 @@ interface DashboardData {
 
 const ROOM_STATUS_COLORS: Record<string, string> = {
   Available: '#10B981', // emerald
-  Occupied: '#B48454',  // warm gold/brown
+  Occupied: '#C9A66B',  // warm gold/brown
   Cleaning: '#F59E0B',  // amber
   Maintenance: '#EF4444', // red
 }
@@ -241,7 +241,7 @@ export default function AdminDashboard({ onNavigate, userName = 'Alexandra Reyes
           <div>
             <div className="flex items-center gap-2">
               <h1 className="font-display text-xl sm:text-2xl font-bold tracking-tight">Dashboard</h1>
-              <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-md bg-[#B48454]/10 text-[#B48454] border border-[#B48454]/20">
+              <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-md bg-[#6B7A5E]/10 text-[#6B7A5E] border border-[#6B7A5E]/20">
                 Admin Suite
               </span>
             </div>
@@ -259,8 +259,8 @@ export default function AdminDashboard({ onNavigate, userName = 'Alexandra Reyes
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search guest, room, ID..."
-                className={`w-full pl-9 pr-3 py-1.5 rounded-xl text-xs border focus:outline-none focus:ring-2 focus:ring-[#B48454]/20 transition-all ${
-                  darkMode ? 'bg-[#20252E] border-slate-700 text-white placeholder:text-slate-500' : 'bg-neutral-50/80 border-black/[0.08] text-neutral-900 placeholder:text-neutral-400 focus:bg-white focus:border-[#B48454]/60'
+                className={`w-full pl-9 pr-3 py-1.5 rounded-xl text-xs border focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/20 transition-all ${
+                  darkMode ? 'bg-[#20252E] border-slate-700 text-white placeholder:text-slate-500' : 'bg-neutral-50/80 border-black/[0.08] text-neutral-900 placeholder:text-neutral-400 focus:bg-white focus:border-[#6B7A5E]/60'
                 }`}
               />
             </div>
@@ -293,7 +293,7 @@ export default function AdminDashboard({ onNavigate, userName = 'Alexandra Reyes
                   </div>
                   {unreadNotifs.map((n) => (
                     <div key={n.id} className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 space-y-0.5">
-                      <p className="font-semibold text-[#B48454]">{n.title}</p>
+                      <p className="font-semibold text-[#6B7A5E]">{n.title}</p>
                       <p className="text-[11px] opacity-80">{n.message}</p>
                     </div>
                   ))}
@@ -308,9 +308,9 @@ export default function AdminDashboard({ onNavigate, userName = 'Alexandra Reyes
             <div className="relative">
               <button
                 onClick={() => setShowProfileMenu(!showProfileMenu)}
-                className="flex items-center gap-2.5 p-1 pr-3 rounded-xl border border-black/[0.08] hover:border-[#B48454]/40 bg-white transition-all text-left shadow-xs"
+                className="flex items-center gap-2.5 p-1 pr-3 rounded-xl border border-black/[0.08] hover:border-[#6B7A5E]/40 bg-white transition-all text-left shadow-xs"
               >
-                <div className="w-7 h-7 rounded-lg bg-[#B48454] text-white font-bold text-xs flex items-center justify-center shadow-xs">
+                <div className="w-7 h-7 rounded-lg bg-[#6B7A5E] text-white font-bold text-xs flex items-center justify-center shadow-xs">
                   {userName.charAt(0)}
                 </div>
                 <div className="hidden md:block">
@@ -351,7 +351,7 @@ export default function AdminDashboard({ onNavigate, userName = 'Alexandra Reyes
             {/* Relocated New Reservation Button */}
             <button
               onClick={() => setShowNewBookingModal(true)}
-              className="px-3.5 py-1.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl font-semibold text-xs shadow-2xs hover:shadow-xs transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
+              className="px-3.5 py-1.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl font-semibold text-xs shadow-2xs hover:shadow-xs transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
             >
               <Plus className="w-3.5 h-3.5" strokeWidth={1.5} />
               <span>New Reservation</span>
@@ -372,8 +372,8 @@ export default function AdminDashboard({ onNavigate, userName = 'Alexandra Reyes
             darkMode ? 'bg-[#181B20] border-slate-800' : 'bg-white border-black/[0.07]'
           }`}>
             <div className="flex justify-between items-center mb-1.5">
-              <span className="text-[10px] uppercase font-bold tracking-wider text-[#B48454]">TOTAL REVENUE</span>
-              <div className="w-6 h-6 rounded-lg bg-[#B48454]/10 text-[#B48454] flex items-center justify-center text-xs font-bold shrink-0">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-[#6B7A5E]">TOTAL REVENUE</span>
+              <div className="w-6 h-6 rounded-lg bg-[#6B7A5E]/10 text-[#6B7A5E] flex items-center justify-center text-xs font-bold shrink-0">
                 ₱
               </div>
             </div>
@@ -392,7 +392,7 @@ export default function AdminDashboard({ onNavigate, userName = 'Alexandra Reyes
             darkMode ? 'bg-[#181B20] border-slate-800' : 'bg-white border-black/[0.07]'
           }`}>
             <div className="flex justify-between items-center mb-1.5">
-              <span className="text-[10px] uppercase font-bold tracking-wider text-[#B48454]">OCCUPANCY RATE</span>
+              <span className="text-[10px] uppercase font-bold tracking-wider text-[#6B7A5E]">OCCUPANCY RATE</span>
               <div className="w-6 h-6 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0">
                 <Building2 className="w-3.5 h-3.5" strokeWidth={1.5} />
               </div>
@@ -412,7 +412,7 @@ export default function AdminDashboard({ onNavigate, userName = 'Alexandra Reyes
             darkMode ? 'bg-[#181B20] border-slate-800' : 'bg-white border-black/[0.07]'
           }`}>
             <div className="flex justify-between items-center mb-1.5">
-              <span className="text-[10px] uppercase font-bold tracking-wider text-[#B48454]">ACTIVE BOOKINGS</span>
+              <span className="text-[10px] uppercase font-bold tracking-wider text-[#6B7A5E]">ACTIVE BOOKINGS</span>
               <div className="w-6 h-6 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
                 <CalendarCheck className="w-3.5 h-3.5" strokeWidth={1.5} />
               </div>
@@ -432,7 +432,7 @@ export default function AdminDashboard({ onNavigate, userName = 'Alexandra Reyes
             darkMode ? 'bg-[#181B20] border-slate-800' : 'bg-white border-black/[0.07]'
           }`}>
             <div className="flex justify-between items-center mb-1.5">
-              <span className="text-[10px] uppercase font-bold tracking-wider text-[#B48454]">GUESTS IN-HOUSE</span>
+              <span className="text-[10px] uppercase font-bold tracking-wider text-[#6B7A5E]">GUESTS IN-HOUSE</span>
               <div className="w-6 h-6 rounded-lg bg-blue-500/10 text-blue-600 flex items-center justify-center shrink-0">
                 <Users className="w-3.5 h-3.5" strokeWidth={1.5} />
               </div>
@@ -463,7 +463,7 @@ export default function AdminDashboard({ onNavigate, userName = 'Alexandra Reyes
               </div>
               <button
                 onClick={() => onNavigate('admin-reports')}
-                className="px-2.5 py-1 bg-[#B48454]/10 hover:bg-[#B48454]/20 text-[#B48454] font-semibold text-xs rounded-lg border border-[#B48454]/20 transition-all flex items-center gap-1 cursor-pointer"
+                className="px-2.5 py-1 bg-[#6B7A5E]/10 hover:bg-[#6B7A5E]/20 text-[#6B7A5E] font-semibold text-xs rounded-lg border border-[#6B7A5E]/20 transition-all flex items-center gap-1 cursor-pointer"
               >
                 <span>Full Report</span>
                 <span>→</span>
@@ -475,8 +475,8 @@ export default function AdminDashboard({ onNavigate, userName = 'Alexandra Reyes
                 <AreaChart data={data?.revenue_7days || []} margin={{ top: 6, right: 6, left: -10, bottom: 0 }}>
                   <defs>
                     <linearGradient id="goldGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#B48454" stopOpacity={0.35} />
-                      <stop offset="95%" stopColor="#B48454" stopOpacity={0.0} />
+                      <stop offset="5%" stopColor="#6B7A5E" stopOpacity={0.35} />
+                      <stop offset="95%" stopColor="#6B7A5E" stopOpacity={0.0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#334155' : '#F1F1F4'} />
@@ -492,7 +492,7 @@ export default function AdminDashboard({ onNavigate, userName = 'Alexandra Reyes
                     }}
                     formatter={(value: unknown) => [`₱${Number(value || 0).toLocaleString()}`, 'Revenue']}
                   />
-                  <Area type="monotone" dataKey="revenue" stroke="#B48454" strokeWidth={2} fillOpacity={1} fill="url(#goldGradient)" />
+                  <Area type="monotone" dataKey="revenue" stroke="#6B7A5E" strokeWidth={2} fillOpacity={1} fill="url(#goldGradient)" />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -540,7 +540,7 @@ export default function AdminDashboard({ onNavigate, userName = 'Alexandra Reyes
 
               <div className="flex items-center justify-between p-1.5 px-2 rounded-lg bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-800/40">
                 <div className="flex items-center gap-1.5">
-                  <div className="w-2 h-2 rounded-full bg-[#B48454]" />
+                  <div className="w-2 h-2 rounded-full bg-[#6B7A5E]" />
                   <span className="text-[11px] font-medium text-amber-900 dark:text-amber-300">Occupied</span>
                 </div>
                 <span className="font-bold font-mono text-[11px] text-amber-950 dark:text-amber-200">{kpis.occupied_rooms}</span>
@@ -576,7 +576,7 @@ export default function AdminDashboard({ onNavigate, userName = 'Alexandra Reyes
             <div>
               <div className="flex items-center justify-between pb-2.5 mb-3 border-b border-black/[0.05] dark:border-slate-800">
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-full bg-[#B48454]/10 dark:bg-[#B48454]/20 flex items-center justify-center text-[#B48454]">
+                  <div className="w-6 h-6 rounded-full bg-[#6B7A5E]/10 dark:bg-[#6B7A5E]/20 flex items-center justify-center text-[#6B7A5E]">
                     <Luggage className="w-3.5 h-3.5" strokeWidth={1.5} />
                   </div>
                   <h3 className="font-display font-bold text-sm text-neutral-900 dark:text-white">Arrivals Today</h3>
@@ -593,7 +593,7 @@ export default function AdminDashboard({ onNavigate, userName = 'Alexandra Reyes
                     className="p-2.5 rounded-xl bg-neutral-50/70 dark:bg-[#14171C] border border-black/[0.04] dark:border-slate-800 flex items-center justify-between gap-2 text-xs hover:bg-neutral-100/60 dark:hover:bg-[#1A1E24] transition-colors"
                   >
                     <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-7 h-7 rounded-full bg-[#B48454] text-white flex items-center justify-center font-bold text-[11px] shrink-0 shadow-2xs">
+                      <div className="w-7 h-7 rounded-full bg-[#6B7A5E] text-white flex items-center justify-center font-bold text-[11px] shrink-0 shadow-2xs">
                         {String(a.customer_name || 'G').charAt(0)}
                       </div>
                       <div className="min-w-0">
@@ -605,7 +605,7 @@ export default function AdminDashboard({ onNavigate, userName = 'Alexandra Reyes
                     </div>
                     <button
                       onClick={() => handleCheckIn(Number(a.id), String(a.customer_name))}
-                      className="px-2.5 py-1 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-lg font-semibold text-[11px] shrink-0 shadow-2xs transition-all cursor-pointer"
+                      className="px-2.5 py-1 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-lg font-semibold text-[11px] shrink-0 shadow-2xs transition-all cursor-pointer"
                     >
                       Check In
                     </button>
@@ -634,7 +634,7 @@ export default function AdminDashboard({ onNavigate, userName = 'Alexandra Reyes
             <div>
               <div className="flex items-center justify-between pb-2.5 mb-3 border-b border-black/[0.05] dark:border-slate-800">
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-full bg-[#B48454]/10 dark:bg-[#B48454]/20 flex items-center justify-center text-[#B48454]">
+                  <div className="w-6 h-6 rounded-full bg-[#6B7A5E]/10 dark:bg-[#6B7A5E]/20 flex items-center justify-center text-[#6B7A5E]">
                     <PlaneTakeoff className="w-3.5 h-3.5" strokeWidth={1.5} />
                   </div>
                   <h3 className="font-display font-bold text-sm text-neutral-900 dark:text-white">Departures Today</h3>
@@ -651,7 +651,7 @@ export default function AdminDashboard({ onNavigate, userName = 'Alexandra Reyes
                     className="p-2.5 rounded-xl bg-neutral-50/70 dark:bg-[#14171C] border border-black/[0.04] dark:border-slate-800 flex items-center justify-between gap-2 text-xs hover:bg-neutral-100/60 dark:hover:bg-[#1A1E24] transition-colors"
                   >
                     <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-7 h-7 rounded-full bg-[#B48454] text-white flex items-center justify-center font-bold text-[11px] shrink-0 shadow-2xs">
+                      <div className="w-7 h-7 rounded-full bg-[#6B7A5E] text-white flex items-center justify-center font-bold text-[11px] shrink-0 shadow-2xs">
                         {String(d.customer_name || 'G').charAt(0)}
                       </div>
                       <div className="min-w-0">
@@ -663,7 +663,7 @@ export default function AdminDashboard({ onNavigate, userName = 'Alexandra Reyes
                     </div>
                     <button
                       onClick={() => handleCheckOut(Number(d.id), String(d.customer_name))}
-                      className="px-2.5 py-1 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-lg font-semibold text-[11px] shrink-0 shadow-2xs transition-all cursor-pointer"
+                      className="px-2.5 py-1 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-lg font-semibold text-[11px] shrink-0 shadow-2xs transition-all cursor-pointer"
                     >
                       Check Out
                     </button>
@@ -692,14 +692,14 @@ export default function AdminDashboard({ onNavigate, userName = 'Alexandra Reyes
             <div>
               <div className="flex items-center justify-between pb-2.5 mb-3 border-b border-black/[0.05] dark:border-slate-800">
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-full bg-[#B48454]/10 dark:bg-[#B48454]/20 flex items-center justify-center text-[#B48454]">
+                  <div className="w-6 h-6 rounded-full bg-[#6B7A5E]/10 dark:bg-[#6B7A5E]/20 flex items-center justify-center text-[#6B7A5E]">
                     <Calendar className="w-3.5 h-3.5" strokeWidth={1.5} />
                   </div>
                   <h3 className="font-display font-bold text-sm text-neutral-900 dark:text-white">Upcoming Arrivals</h3>
                 </div>
                 <button
                   onClick={() => setShowNewBookingModal(true)}
-                  className="px-2 py-0.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-md font-bold text-[10px] shadow-2xs transition-all flex items-center gap-1 cursor-pointer"
+                  className="px-2 py-0.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-md font-bold text-[10px] shadow-2xs transition-all flex items-center gap-1 cursor-pointer"
                 >
                   <Plus className="w-3 h-3" strokeWidth={2} />
                   <span>New</span>
@@ -750,7 +750,7 @@ export default function AdminDashboard({ onNavigate, userName = 'Alexandra Reyes
             </div>
             <button
               onClick={() => setShowNewBookingModal(true)}
-              className="px-3 py-1.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-lg font-semibold text-xs shadow-2xs flex items-center gap-1.5 cursor-pointer"
+              className="px-3 py-1.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-lg font-semibold text-xs shadow-2xs flex items-center gap-1.5 cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" strokeWidth={1.5} />
               <span>New Reservation</span>
@@ -774,7 +774,7 @@ export default function AdminDashboard({ onNavigate, userName = 'Alexandra Reyes
               <tbody className="divide-y divide-black/[0.04] dark:divide-slate-800 text-xs">
                 {filteredRecent.map((b) => (
                   <tr key={String(b.id)} className="hover:bg-neutral-50/70 dark:hover:bg-slate-800/40 transition-colors">
-                    <td className="px-5 py-3 font-mono font-bold text-[#B48454]">{String(b.booking_ref || `#BKG-${b.id}`)}</td>
+                    <td className="px-5 py-3 font-mono font-bold text-[#6B7A5E]">{String(b.booking_ref || `#BKG-${b.id}`)}</td>
                     <td className="px-5 py-3 font-semibold text-neutral-900 dark:text-white">{String(b.customer_name)}</td>
                     <td className="px-5 py-3 font-medium text-neutral-700 dark:text-neutral-300">Room {String(b.room_number)} · {String(b.room_type || 'Standard')}</td>
                     <td className="px-5 py-3 font-mono text-neutral-500 dark:text-neutral-400">
@@ -809,7 +809,7 @@ export default function AdminDashboard({ onNavigate, userName = 'Alexandra Reyes
               value={selectedCustomerId}
               onChange={(e) => setSelectedCustomerId(e.target.value ? Number(e.target.value) : '')}
               required
-              className="w-full px-3.5 py-2.5 rounded-xl border border-black/[0.08] dark:border-neutral-700 text-xs bg-neutral-50 dark:bg-[#20252E] text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-black/[0.08] dark:border-neutral-700 text-xs bg-neutral-50 dark:bg-[#20252E] text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
             >
               <option value="">-- Select Active Customer --</option>
               {customers.map((c) => (
@@ -826,7 +826,7 @@ export default function AdminDashboard({ onNavigate, userName = 'Alexandra Reyes
               value={selectedRoomId}
               onChange={(e) => setSelectedRoomId(e.target.value ? Number(e.target.value) : '')}
               required
-              className="w-full px-3.5 py-2.5 rounded-xl border border-black/[0.08] dark:border-neutral-700 text-xs bg-neutral-50 dark:bg-[#20252E] text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-black/[0.08] dark:border-neutral-700 text-xs bg-neutral-50 dark:bg-[#20252E] text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
             >
               <option value="">-- Select Room --</option>
               {rooms.map((r) => (
@@ -883,7 +883,7 @@ export default function AdminDashboard({ onNavigate, userName = 'Alexandra Reyes
             <button
               type="submit"
               disabled={submittingBooking || !selectedRoomId || !selectedCustomerId}
-              className="flex-1 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl text-xs font-semibold shadow-sm disabled:opacity-50 transition-all cursor-pointer"
+              className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl text-xs font-semibold shadow-sm disabled:opacity-50 transition-all cursor-pointer"
             >
               {submittingBooking ? 'Reserving...' : 'Confirm Booking'}
             </button>

@@ -170,11 +170,12 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
       setMaintenanceNeeded(false)
       setWaiveLateFee(false)
       setWaiverReason('')
+      const rRes = res as any
       setSuccessMsg(
-        res.late_fee_waived
+        rRes.late_fee_waived
           ? `Return completed for ${res.rental.rental_id}! Late fee waived. Total: ₱${Number(res.final_amount).toLocaleString()}`
           : Number(res.late_fee) > 0
-          ? `Return completed for ${res.rental.rental_id}! Late fee: ₱${Number(res.late_fee).toLocaleString()} (${res.hours_late} hr(s) × ₱${res.hourly_late_rate}/hr), Total: ₱${Number(res.final_amount).toLocaleString()}`
+          ? `Return completed for ${res.rental.rental_id}! Late fee: ₱${Number(res.late_fee).toLocaleString()} (${rRes.hours_late || 0} hr(s) × ₱${rRes.hourly_late_rate || 0}/hr), Total: ₱${Number(res.final_amount).toLocaleString()}`
           : `Return completed for ${res.rental.rental_id}! Total: ₱${Number(res.final_amount).toLocaleString()}`
       )
       setTimeout(() => setSuccessMsg(''), 5500)
@@ -206,7 +207,7 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
         {userRole === 'admin' && (
           <button
             onClick={() => setShowAddMotorDrawer(true)}
-            className="px-3.5 py-1.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-lg font-semibold text-xs shadow-xs hover:shadow-sm transition-all flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
+            className="px-3.5 py-1.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-lg font-semibold text-xs shadow-xs hover:shadow-sm transition-all flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" strokeWidth={2} />
             <span>Add Motorcycle</span>
@@ -217,14 +218,14 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
       {/* ─── STATS ROW ─── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
         <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] flex flex-col justify-between">
-          <span className="text-[10px] text-[#B48454] uppercase font-bold tracking-wider">Available Fleet</span>
+          <span className="text-[10px] text-[#6B7A5E] uppercase font-bold tracking-wider">Available Fleet</span>
           <p className="text-xl sm:text-2xl font-display font-bold text-emerald-600 dark:text-emerald-400 mt-1 leading-tight">{availableMotors.length} <span className="text-xs text-neutral-500 font-normal">/ {motorcycles.length} units</span></p>
           <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium mt-0.5 block">Ready for dispatch</span>
         </div>
         <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] flex flex-col justify-between">
-          <span className="text-[10px] text-[#B48454] uppercase font-bold tracking-wider">Active Rentals</span>
-          <p className="text-xl sm:text-2xl font-display font-bold text-[#B48454] mt-1 leading-tight">{rentals.filter(r => r.status === 'ACTIVE').length}</p>
-          <span className="text-[11px] text-[#B48454] font-medium mt-0.5 block">In circulation</span>
+          <span className="text-[10px] text-[#6B7A5E] uppercase font-bold tracking-wider">Active Rentals</span>
+          <p className="text-xl sm:text-2xl font-display font-bold text-[#6B7A5E] mt-1 leading-tight">{rentals.filter(r => r.status === 'ACTIVE').length}</p>
+          <span className="text-[11px] text-[#6B7A5E] font-medium mt-0.5 block">In circulation</span>
         </div>
         <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] flex flex-col justify-between">
           <span className="text-[10px] text-rose-600 dark:text-rose-400 uppercase font-bold tracking-wider">Overdue Returns</span>
@@ -243,7 +244,7 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
         <button
           onClick={() => setTab('rentals')}
           className={`px-3 py-1.5 rounded-md font-semibold transition-all cursor-pointer ${
-            tab === 'rentals' ? 'bg-[#B48454] text-white shadow-2xs' : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-white dark:hover:bg-neutral-800'
+            tab === 'rentals' ? 'bg-[#6B7A5E] text-white shadow-2xs' : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-white dark:hover:bg-neutral-800'
           }`}
         >
           <span>Active Rentals & History ({rentals.length})</span>
@@ -251,7 +252,7 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
         <button
           onClick={() => setTab('fleet')}
           className={`px-3 py-1.5 rounded-md font-semibold transition-all cursor-pointer ${
-            tab === 'fleet' ? 'bg-[#B48454] text-white shadow-2xs' : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-white dark:hover:bg-neutral-800'
+            tab === 'fleet' ? 'bg-[#6B7A5E] text-white shadow-2xs' : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-white dark:hover:bg-neutral-800'
           }`}
         >
           <span>Motor Fleet ({motorcycles.length})</span>
@@ -278,7 +279,7 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
               <tbody className="divide-y divide-stone/15">
                 {rentals.map((r) => (
                   <tr key={r.id} className="hover:bg-sand/20 transition-colors">
-                    <td className="px-5 py-4 font-mono text-xs text-[#B48454] font-bold">{r.rental_id}</td>
+                    <td className="px-5 py-4 font-mono text-xs text-[#6B7A5E] font-bold">{r.rental_id}</td>
                     <td className="px-5 py-4">
                       <p className="font-semibold text-ink text-sm">{r.brand} {r.model}</p>
                       <p className="text-xs font-mono text-ink-muted">Plate: {r.plate_number}</p>
@@ -302,7 +303,7 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
 
                         return (
                           <div>
-                            <span className="block font-bold text-[#B48454]">
+                            <span className="block font-bold text-[#6B7A5E]">
                               ₱{grandTotal.toLocaleString()}
                             </span>
                             {hasLateFee ? (
@@ -338,7 +339,7 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
                       {(r.status === 'ACTIVE' || r.status === 'OVERDUE') && (
                         <button
                           onClick={() => setReturnRentalModal(r)}
-                          className="px-3 py-1.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-lg text-xs font-semibold shadow-xs transition-all cursor-pointer"
+                          className="px-3 py-1.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-lg text-xs font-semibold shadow-xs transition-all cursor-pointer"
                         >
                           Process Return
                         </button>
@@ -369,7 +370,7 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
       {tab === 'fleet' && (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
           {motorcycles.map((m) => (
-            <div key={m.id} className="bg-white rounded-2xl border border-stone/20 shadow-sm overflow-hidden p-5 flex flex-col justify-between hover:shadow-md hover:border-[#B48454]/40 transition-all group">
+            <div key={m.id} className="bg-white rounded-2xl border border-stone/20 shadow-sm overflow-hidden p-5 flex flex-col justify-between hover:shadow-md hover:border-[#6B7A5E]/40 transition-all group">
               <div>
                 {m.image_url && (
                   <div className="h-44 rounded-xl overflow-hidden mb-3 bg-sand relative">
@@ -385,7 +386,7 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
                         <button
                           type="button"
                           onClick={() => setEditingMotor(m)}
-                          className="w-7 h-7 rounded-full bg-white/90 hover:bg-white text-ink hover:text-[#B48454] shadow-md border border-white/60 backdrop-blur-md flex items-center justify-center transition-all hover:scale-110"
+                          className="w-7 h-7 rounded-full bg-white/90 hover:bg-white text-ink hover:text-[#6B7A5E] shadow-md border border-white/60 backdrop-blur-md flex items-center justify-center transition-all hover:scale-110"
                           title="Edit Motor Details & Photo (Admin Only)"
                           aria-label="Edit Motor"
                         >
@@ -397,11 +398,11 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
                 )}
                 <div className="flex items-start justify-between">
                   <div>
-                    <span className="text-[11px] font-bold uppercase text-[#B48454]">{m.brand} · {m.type}</span>
+                    <span className="text-[11px] font-bold uppercase text-[#6B7A5E]">{m.brand} · {m.type}</span>
                     <h4 className="font-display font-bold text-ink text-base">{m.model}</h4>
                   </div>
                   <div className="text-right">
-                    <span className="font-display font-bold text-[#B48454] text-base">₱{Number(m.rental_rate).toLocaleString()}</span>
+                    <span className="font-display font-bold text-[#6B7A5E] text-base">₱{Number(m.rental_rate).toLocaleString()}</span>
                     <span className="text-[10px] text-ink-muted block">/{m.rate_type}</span>
                   </div>
                 </div>
@@ -422,7 +423,7 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
                         setStatusModalMotor(m)
                         setSelectedNewStatus(m.status)
                       }}
-                      className="w-full py-2 bg-sand/60 hover:bg-[#B48454] text-ink hover:text-white rounded-xl text-xs font-semibold transition-all border border-stone/30 flex items-center justify-center gap-1.5 shadow-2xs group-hover:border-[#B48454] cursor-pointer"
+                      className="w-full py-2 bg-sand/60 hover:bg-[#6B7A5E] text-ink hover:text-white rounded-xl text-xs font-semibold transition-all border border-stone/30 flex items-center justify-center gap-1.5 shadow-2xs group-hover:border-[#6B7A5E] cursor-pointer"
                     >
                       <SlidersHorizontal className="w-3.5 h-3.5" strokeWidth={1.5} />
                       <span>Edit Status</span>
@@ -433,7 +434,7 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
                     <button
                       type="button"
                       onClick={() => setEditingMotor(m)}
-                      className="w-full py-2 bg-[#FAF8F5] hover:bg-[#B48454] text-ink hover:text-white rounded-xl text-xs font-semibold transition-all border border-stone/25 flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
+                      className="w-full py-2 bg-[#F6F2E8] hover:bg-[#6B7A5E] text-ink hover:text-white rounded-xl text-xs font-semibold transition-all border border-stone/25 flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
                     >
                       <Pencil className="w-3.5 h-3.5" strokeWidth={1.5} />
                       <span>Edit Motor Details</span>
@@ -463,7 +464,7 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
               value={selectedCustomerId}
               onChange={(e) => setSelectedCustomerId(e.target.value ? Number(e.target.value) : '')}
               required
-              className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] text-xs focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+              className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#F6F2E8] text-xs focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
             >
               <option value="">-- Select Active Customer --</option>
               {customers.map((c) => (
@@ -508,7 +509,7 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
               value={selectedMotorId}
               onChange={(e) => setSelectedMotorId(e.target.value ? Number(e.target.value) : '')}
               required
-              className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] text-xs focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+              className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#F6F2E8] text-xs focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
             >
               <option value="">-- Select Motorcycle --</option>
               {availableMotors.map((m) => (
@@ -529,7 +530,7 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
                 onChange={(e) => setStartDate(e.target.value)}
                 min={new Date().toISOString().split('T')[0]}
                 required
-                className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#FAF8F5] text-xs"
+                className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#F6F2E8] text-xs"
               />
             </div>
             <div>
@@ -538,7 +539,7 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
                 type="time"
                 value={startTime}
                 onChange={(e) => setStartTime(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#FAF8F5] text-xs"
+                className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#F6F2E8] text-xs"
               />
             </div>
           </div>
@@ -552,7 +553,7 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
                 onChange={(e) => setReturnDate(e.target.value)}
                 min={startDate || new Date().toISOString().split('T')[0]}
                 required
-                className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#FAF8F5] text-xs"
+                className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#F6F2E8] text-xs"
               />
             </div>
             <div>
@@ -561,7 +562,7 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
                 type="time"
                 value={returnTime}
                 onChange={(e) => setReturnTime(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#FAF8F5] text-xs"
+                className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#F6F2E8] text-xs"
               />
             </div>
           </div>
@@ -572,7 +573,7 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="e.g. Helmet issued (Qty: 2), gas tank full"
-              className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#FAF8F5] text-xs"
+              className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#F6F2E8] text-xs"
             />
           </div>
 
@@ -585,7 +586,7 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
             return (
               <div className="bg-sand/40 border border-stone/20 rounded-xl p-3.5 flex justify-between items-center text-xs">
                 <span className="text-ink-muted">Estimated Rental ({days} day{days > 1 ? 's' : ''}):</span>
-                <span className="font-display font-bold text-[#B48454] text-base">₱{total.toLocaleString()}</span>
+                <span className="font-display font-bold text-[#6B7A5E] text-base">₱{total.toLocaleString()}</span>
               </div>
             )
           })()}
@@ -601,7 +602,7 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
             <button
               type="submit"
               disabled={creatingRental || !selectedMotorId || !selectedCustomerId || !!selectedCustomerActiveRental}
-              className="flex-1 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl text-xs font-semibold shadow-sm disabled:opacity-50 transition-all cursor-pointer"
+              className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl text-xs font-semibold shadow-sm disabled:opacity-50 transition-all cursor-pointer"
             >
               {creatingRental ? 'Creating Rental...' : 'Confirm & Dispatch'}
             </button>
@@ -631,10 +632,10 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
 
           return (
             <div className="space-y-4 text-xs font-sans">
-              <div className="bg-[#FAF8F5] border border-stone/20 rounded-2xl p-4 space-y-1">
+              <div className="bg-[#F6F2E8] border border-stone/20 rounded-2xl p-4 space-y-1">
                 <div className="flex justify-between">
                   <span className="text-ink-muted">Rental ID:</span>
-                  <span className="font-mono font-bold text-[#B48454]">{returnRentalModal.rental_id}</span>
+                  <span className="font-mono font-bold text-[#6B7A5E]">{returnRentalModal.rental_id}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-ink-muted">Motorcycle:</span>
@@ -676,7 +677,7 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
                     </div>
                     <div className="flex justify-between pt-1 border-t border-rose-100 font-bold text-xs">
                       <span className="text-ink">Final Billable Total:</span>
-                      <span className="font-mono text-[#B48454]">₱{finalAmount.toLocaleString()}</span>
+                      <span className="font-mono text-[#6B7A5E]">₱{finalAmount.toLocaleString()}</span>
                     </div>
                   </div>
 
@@ -722,7 +723,7 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
                   onChange={(e) => setReturnRemarks(e.target.value)}
                   placeholder="Unit inspected: fuel level OK, helmet returned, condition good."
                   rows={2}
-                  className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#FAF8F5] text-xs resize-none"
+                  className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#F6F2E8] text-xs resize-none"
                 />
               </div>
 
@@ -732,7 +733,7 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
                   id="staffMaintCheck"
                   checked={maintenanceNeeded}
                   onChange={(e) => setMaintenanceNeeded(e.target.checked)}
-                  className="w-4 h-4 text-[#B48454] rounded border-stone"
+                  className="w-4 h-4 text-[#6B7A5E] rounded border-stone"
                 />
                 <label htmlFor="staffMaintCheck" className="text-xs text-ink font-medium">
                   Mark motorcycle as <strong>MAINTENANCE</strong> (service/inspection required)
@@ -751,7 +752,7 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
                   type="button"
                   onClick={handleProcessReturn}
                   disabled={processingReturn || (waiveLateFee && !waiverReason.trim())}
-                  className="flex-1 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl text-xs font-semibold shadow-sm disabled:opacity-50 transition-all cursor-pointer"
+                  className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl text-xs font-semibold shadow-sm disabled:opacity-50 transition-all cursor-pointer"
                 >
                   {processingReturn ? 'Processing...' : 'Complete Return'}
                 </button>
@@ -771,7 +772,7 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
         {statusModalMotor && (
           <div className="space-y-4 text-xs font-sans">
             {/* Motor info summary */}
-            <div className="p-3.5 bg-[#FAF8F5] dark:bg-[#1f242d] border border-stone/20 dark:border-neutral-700 rounded-2xl flex items-center gap-3">
+            <div className="p-3.5 bg-[#F6F2E8] dark:bg-[#1f242d] border border-stone/20 dark:border-neutral-700 rounded-2xl flex items-center gap-3">
               {statusModalMotor.image_url ? (
                 <img
                   src={statusModalMotor.image_url}
@@ -788,7 +789,7 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
                   <h4 className="font-display font-bold text-ink dark:text-white text-sm truncate">
                     {statusModalMotor.brand} {statusModalMotor.model}
                   </h4>
-                  <span className="font-mono text-[10px] font-bold text-[#B48454] bg-sand dark:bg-neutral-800 px-2 py-0.5 rounded">
+                  <span className="font-mono text-[10px] font-bold text-[#6B7A5E] bg-sand dark:bg-neutral-800 px-2 py-0.5 rounded">
                     {statusModalMotor.plate_number}
                   </span>
                 </div>
@@ -842,7 +843,7 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
                       onClick={() => setSelectedNewStatus(opt.value)}
                       className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
                         isSelected
-                          ? `border-[#B48454] bg-[#FAF8F5] dark:bg-[#1f242d] ring-2 ring-[#B48454]/30 shadow-2xs`
+                          ? `border-[#6B7A5E] bg-[#F6F2E8] dark:bg-[#1f242d] ring-2 ring-[#6B7A5E]/30 shadow-2xs`
                           : 'border-stone/20 dark:border-neutral-700/80 hover:border-stone/40 bg-white dark:bg-[#181B20]'
                       }`}
                     >
@@ -858,7 +859,7 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
                         name="motor_status"
                         checked={isSelected}
                         onChange={() => setSelectedNewStatus(opt.value)}
-                        className="text-[#B48454] focus:ring-[#B48454]"
+                        className="text-[#6B7A5E] focus:ring-[#6B7A5E]"
                       />
                     </div>
                   )
@@ -879,7 +880,7 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
                 type="button"
                 onClick={handleSaveMotorStatus}
                 disabled={updatingStatus || selectedNewStatus === statusModalMotor.status}
-                className="flex-1 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl font-semibold shadow-xs disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer text-xs flex items-center justify-center gap-1.5"
+                className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl font-semibold shadow-xs disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer text-xs flex items-center justify-center gap-1.5"
               >
                 {updatingStatus ? 'Updating...' : 'Save Status'}
               </button>

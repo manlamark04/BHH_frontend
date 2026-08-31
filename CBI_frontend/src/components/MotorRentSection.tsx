@@ -207,7 +207,7 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
             onClick={() => setActiveTab('fleet')}
             className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
               activeTab === 'fleet'
-                ? 'bg-[#B48454] text-white shadow-sm'
+                ? 'bg-[#6B7A5E] text-white shadow-sm'
                 : 'text-ink-muted hover:text-ink hover:bg-sand/60'
             }`}
           >
@@ -217,7 +217,7 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
             onClick={() => setActiveTab('my-rentals')}
             className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
               activeTab === 'my-rentals'
-                ? 'bg-[#B48454] text-white shadow-sm'
+                ? 'bg-[#6B7A5E] text-white shadow-sm'
                 : 'text-ink-muted hover:text-ink hover:bg-sand/60'
             }`}
           >
@@ -267,7 +267,7 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
                 <select
                   value={brandFilter}
                   onChange={(e) => setBrandFilter(e.target.value)}
-                  className="px-2.5 py-1.5 rounded-lg border border-black/[0.08] dark:border-neutral-700 text-xs bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white font-semibold focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                  className="px-2.5 py-1.5 rounded-lg border border-black/[0.08] dark:border-neutral-700 text-xs bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white font-semibold focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
                 >
                   {uniqueBrands.map((b) => (
                     <option key={b} value={b}>{b}</option>
@@ -280,7 +280,7 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
                 <select
                   value={typeFilter}
                   onChange={(e) => setTypeFilter(e.target.value)}
-                  className="px-2.5 py-1.5 rounded-lg border border-black/[0.08] dark:border-neutral-700 text-xs bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white font-semibold focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                  className="px-2.5 py-1.5 rounded-lg border border-black/[0.08] dark:border-neutral-700 text-xs bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white font-semibold focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
                 >
                   {uniqueTypes.map((t) => (
                     <option key={t} value={t}>{t}</option>
@@ -293,7 +293,7 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="px-2.5 py-1.5 rounded-lg border border-black/[0.08] dark:border-neutral-700 text-xs bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white font-semibold focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                  className="px-2.5 py-1.5 rounded-lg border border-black/[0.08] dark:border-neutral-700 text-xs bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white font-semibold focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
                 >
                   <option value="ALL">All Statuses</option>
                   <option value="AVAILABLE">Available Now</option>
@@ -321,7 +321,7 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
                   key={motor.id}
                   className={`bg-white dark:bg-[#181B20] rounded-xl overflow-hidden border shadow-[0_1px_3px_rgba(0,0,0,0.04)] transition-all flex flex-col justify-between group ${
                     isAvailable
-                      ? 'border-black/[0.07] dark:border-neutral-800 hover:shadow-md hover:border-[#B48454]/40'
+                      ? 'border-black/[0.07] dark:border-neutral-800 hover:shadow-md hover:border-[#6B7A5E]/40'
                       : 'border-black/[0.08] dark:border-neutral-800 opacity-80 bg-neutral-50/50 dark:bg-neutral-900/40'
                   }`}
                 >
@@ -337,7 +337,7 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
                       ) : (
                         <div className="text-center p-4">
                           <Bike className="w-8 h-8 text-neutral-400 mx-auto mb-1" strokeWidth={1.5} />
-                          <p className="font-display font-bold text-[#B48454] text-sm">{motor.brand} {motor.model}</p>
+                          <p className="font-display font-bold text-[#6B7A5E] text-sm">{motor.brand} {motor.model}</p>
                         </div>
                       )}
                       <div className="absolute top-2.5 left-2.5">
@@ -351,7 +351,7 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
                           <button
                             type="button"
                             onClick={() => setEditingMotor(motor)}
-                            className="w-6 h-6 rounded-full bg-white/90 dark:bg-neutral-800 hover:bg-white text-neutral-900 dark:text-white hover:text-[#B48454] shadow-xs border border-white/60 dark:border-neutral-700 backdrop-blur-md flex items-center justify-center transition-all cursor-pointer"
+                            className="w-6 h-6 rounded-full bg-white/90 dark:bg-neutral-800 hover:bg-white text-neutral-900 dark:text-white hover:text-[#6B7A5E] shadow-xs border border-white/60 dark:border-neutral-700 backdrop-blur-md flex items-center justify-center transition-all cursor-pointer"
                             title="Edit Motorcycle Listing (Admin Only)"
                             aria-label="Edit Motorcycle"
                           >
@@ -365,7 +365,7 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
                     <div className="p-3.5 sm:p-4">
                       <div className="flex items-start justify-between mb-1">
                         <div>
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-[#B48454]">{motor.brand} · {motor.type}</span>
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-[#6B7A5E]">{motor.brand} · {motor.type}</span>
                           <h3 className="font-display text-base font-bold text-neutral-900 dark:text-white leading-tight">{motor.model}</h3>
                         </div>
                         <div className="text-right">
@@ -403,7 +403,7 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
                         disabled={!isAvailable}
                         className={`w-full py-2 rounded-lg font-semibold text-xs transition-all shadow-xs flex items-center justify-center gap-2 ${
                           isAvailable
-                            ? 'bg-[#B48454] hover:bg-[#9E6E3E] text-white cursor-pointer hover:shadow-sm'
+                            ? 'bg-[#6B7A5E] hover:bg-[#4F5D45] text-white cursor-pointer hover:shadow-sm'
                             : 'bg-neutral-200 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-500 cursor-not-allowed'
                         }`}
                       >
@@ -435,7 +435,7 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
               </h3>
               <p className="text-xs text-ink-muted">Rental logs and returned units</p>
             </div>
-            <span className="text-xs font-mono font-bold text-[#B48454]">{rentals.length} transactions</span>
+            <span className="text-xs font-mono font-bold text-[#6B7A5E]">{rentals.length} transactions</span>
           </div>
 
           <div className="overflow-x-auto">
@@ -454,7 +454,7 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
               <tbody className="divide-y divide-stone/15">
                 {rentals.map((r) => (
                   <tr key={r.id} className="hover:bg-sand/20 transition-colors">
-                    <td className="px-5 py-4 font-mono text-xs text-[#B48454] font-bold">{r.rental_id}</td>
+                    <td className="px-5 py-4 font-mono text-xs text-[#6B7A5E] font-bold">{r.rental_id}</td>
                     <td className="px-5 py-4">
                       <p className="font-semibold text-ink">{r.brand} {r.model}</p>
                       <p className="text-[10px] font-mono text-ink-muted">Plate: {r.plate_number}</p>
@@ -537,7 +537,7 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
             {/* Selected Motor Overview Card */}
             <div className="bg-neutral-50 dark:bg-[#14171C] rounded-2xl p-4 flex items-center justify-between border border-black/[0.06] dark:border-neutral-800">
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#B48454]">{selectedMotor.brand} · {selectedMotor.type}</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#6B7A5E]">{selectedMotor.brand} · {selectedMotor.type}</span>
                 <h4 className="font-display text-base font-bold text-neutral-900 dark:text-white">{selectedMotor.model}</h4>
                 <p className="text-[10px] font-mono text-neutral-500 dark:text-neutral-400 mt-0.5">Plate: {selectedMotor.plate_number} · ID: {selectedMotor.motor_id}</p>
               </div>
@@ -557,7 +557,7 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
                   onChange={(e) => setStartDate(e.target.value)}
                   min={new Date().toISOString().split('T')[0]}
                   required
-                  className="w-full px-3 py-2.5 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-white dark:bg-[#15181D] text-neutral-900 dark:text-white font-mono text-xs focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                  className="w-full px-3 py-2.5 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-white dark:bg-[#15181D] text-neutral-900 dark:text-white font-mono text-xs focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
                 />
               </div>
 
@@ -567,7 +567,7 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
                   value={startTime}
                   onChange={(e) => setStartTime(e.target.value)}
                   required
-                  className="w-full px-3 py-2.5 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-white dark:bg-[#15181D] text-neutral-900 dark:text-white font-mono text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                  className="w-full px-3 py-2.5 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-white dark:bg-[#15181D] text-neutral-900 dark:text-white font-mono text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
                 >
                   {TIME_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>
@@ -585,7 +585,7 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
                   onChange={(e) => setReturnDate(e.target.value)}
                   min={startDate || new Date().toISOString().split('T')[0]}
                   required
-                  className="w-full px-3 py-2.5 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-white dark:bg-[#15181D] text-neutral-900 dark:text-white font-mono text-xs focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                  className="w-full px-3 py-2.5 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-white dark:bg-[#15181D] text-neutral-900 dark:text-white font-mono text-xs focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
                 />
               </div>
 
@@ -595,7 +595,7 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
                   value={returnTime}
                   onChange={(e) => setReturnTime(e.target.value)}
                   required
-                  className="w-full px-3 py-2.5 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-white dark:bg-[#15181D] text-neutral-900 dark:text-white font-mono text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                  className="w-full px-3 py-2.5 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-white dark:bg-[#15181D] text-neutral-900 dark:text-white font-mono text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
                 >
                   {TIME_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>
@@ -616,7 +616,7 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Visiting Chocolate Hills, Panglao, etc."
-                className="w-full px-3 py-2.5 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-white dark:bg-[#15181D] text-neutral-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                className="w-full px-3 py-2.5 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-white dark:bg-[#15181D] text-neutral-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
               />
             </div>
 
@@ -644,7 +644,7 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
               </div>
               <div className="flex justify-between pt-1.5 border-t border-black/[0.06] dark:border-neutral-800 text-sm font-bold text-neutral-900 dark:text-white">
                 <span>Total Expected Rental Cost:</span>
-                <span className="font-display text-[#B48454] text-lg font-bold">₱{total.toLocaleString()}</span>
+                <span className="font-display text-[#6B7A5E] text-lg font-bold">₱{total.toLocaleString()}</span>
               </div>
             </div>
 
@@ -659,7 +659,7 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
               <button
                 type="submit"
                 disabled={submitting || duration <= 0}
-                className="flex-1 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl text-xs font-semibold shadow-sm disabled:opacity-50 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl text-xs font-semibold shadow-sm disabled:opacity-50 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
               >
                 {submitting ? 'Confirming Rental...' : 'Confirm & Reserve'}
               </button>
@@ -678,7 +678,7 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
         {successRental && (
           <div className="space-y-4 text-center text-xs font-sans">
             <div>
-              <span className="text-[10px] font-bold uppercase tracking-widest text-[#B48454]">Rental Transaction ID</span>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-[#6B7A5E]">Rental Transaction ID</span>
               <p className="font-mono text-2xl font-bold text-neutral-900 dark:text-white mt-0.5">{successRental.rental_id}</p>
             </div>
 
@@ -689,7 +689,7 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
               </div>
               <div className="flex justify-between">
                 <span className="text-neutral-500 dark:text-neutral-400">Plate Number:</span>
-                <span className="font-mono font-semibold text-[#B48454]">{successRental.plate_number}</span>
+                <span className="font-mono font-semibold text-[#6B7A5E]">{successRental.plate_number}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-neutral-500 dark:text-neutral-400">Start Time:</span>
@@ -711,7 +711,7 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
 
             <button
               onClick={() => setSuccessRental(null)}
-              className="w-full py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl text-xs font-semibold shadow-sm cursor-pointer"
+              className="w-full py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl text-xs font-semibold shadow-sm cursor-pointer"
             >
               Done / View My Rentals
             </button>

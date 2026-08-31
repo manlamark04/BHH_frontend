@@ -234,9 +234,9 @@ export default function AuthLoadingScreen({
             >
               <defs>
                 <linearGradient id={`goldGrad-${gradId}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#B48454" />
-                  <stop offset="50%" stopColor="#D4A373" />
-                  <stop offset="100%" stopColor="#8F5F32" />
+                  <stop offset="0%" stopColor="#6B7A5E" />
+                  <stop offset="50%" stopColor="#8A9A7C" />
+                  <stop offset="100%" stopColor="#4F5D45" />
                 </linearGradient>
               </defs>
 
@@ -297,7 +297,7 @@ export default function AuthLoadingScreen({
             }}
           >
             {/* "Cambacay" (Fraunces Regular 400-500, Charcoal) */}
-            <span className="font-normal text-[#2C231F] inline-flex">
+            <span className="font-normal text-[#2A2822] inline-flex">
               {cambacayLetters.map((char, i) => (
                 <span
                   key={`c-${i}`}
@@ -312,9 +312,9 @@ export default function AuthLoadingScreen({
               ))}
             </span>
 
-            {/* "Breeze" (Fraunces Italic, Terracotta / Golden Accent with amplified wave) */}
+            {/* "Breeze" (Fraunces Italic, Sage Green Accent with amplified wave) */}
             <span
-              className="font-normal italic text-[#B48454] inline-flex"
+              className="font-normal italic text-[#6B7A5E] inline-flex"
               style={{
                 fontStyle: 'italic',
               }}
@@ -334,7 +334,7 @@ export default function AuthLoadingScreen({
             </span>
 
             {/* "Inn" (Fraunces Regular 400-500, Charcoal) */}
-            <span className="font-normal text-[#2C231F] inline-flex">
+            <span className="font-normal text-[#2A2822] inline-flex">
               {innLetters.map((char, i) => (
                 <span
                   key={`i-${i}`}
@@ -364,7 +364,7 @@ export default function AuthLoadingScreen({
             </p>
           ) : (
             /* Fallback / Initial Status with Subtle Ambient Ellipsis */
-            <p className="text-[10.5px] sm:text-[11.5px] uppercase font-bold text-[#B48454]/85 text-center tracking-[0.18em] inline-flex items-center">
+            <p className="text-[10.5px] sm:text-[11.5px] uppercase font-bold text-[#6B7A5E]/85 text-center tracking-[0.18em] inline-flex items-center">
               <span>{baseStatus}</span>
               <span className="inline-flex tracking-wider ml-1.5">
                 <span className="first-light-dot dot-1">.</span>
@@ -380,7 +380,7 @@ export default function AuthLoadingScreen({
       <style>{`
         /* 1. Ambient Background Gradient Shift (6-8s continuous loop) */
         .first-light-sky {
-          background: linear-gradient(135deg, #FAF7F2 0%, #F5ECE2 30%, #FAF5EE 60%, #EFE3D3 100%);
+          background: linear-gradient(135deg, #F6F2E8 0%, #EDE7D8 30%, #F6F2E8 60%, #E2DCD0 100%);
           background-size: 260% 260%;
           animation: skyGradientShift 7.5s ease-in-out infinite;
         }
@@ -396,7 +396,7 @@ export default function AuthLoadingScreen({
 
         /* 1. Drifting Tide / Horizon Line */
         .first-light-tide {
-          background: radial-gradient(ellipse at 50% 50%, rgba(180, 132, 84, 0.08) 0%, rgba(180, 132, 84, 0.02) 50%, transparent 80%);
+          background: radial-gradient(ellipse at 50% 50%, rgba(107, 122, 94, 0.08) 0%, rgba(107, 122, 94, 0.02) 50%, transparent 80%);
           filter: blur(12px);
           animation: tideDrift 6s ease-in-out infinite;
         }
@@ -471,8 +471,8 @@ export default function AuthLoadingScreen({
 
         /* 4. Ripple Rings (Emanate outward after logo is drawn) */
         .first-light-ripple-ring {
-          border: 1.5px solid rgba(184, 128, 79, 0.38);
-          box-shadow: 0 0 16px rgba(184, 128, 79, 0.14);
+          border: 1.5px solid rgba(107, 122, 94, 0.38);
+          box-shadow: 0 0 16px rgba(107, 122, 94, 0.14);
           will-change: transform, opacity;
         }
 

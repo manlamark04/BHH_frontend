@@ -89,7 +89,7 @@ export default function AdminAuditLog() {
           disabled={loading}
           className="px-3 py-1.5 bg-white dark:bg-[#20252E] hover:bg-neutral-100 dark:hover:bg-neutral-800 border border-black/[0.08] dark:border-neutral-700 rounded-lg font-semibold text-xs text-neutral-800 dark:text-neutral-200 shadow-2xs hover:shadow-xs transition-all flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
         >
-          <RefreshCw className={`w-3.5 h-3.5 text-[#B48454] ${loading ? 'animate-spin' : ''}`} strokeWidth={2} />
+          <RefreshCw className={`w-3.5 h-3.5 text-[#6B7A5E] ${loading ? 'animate-spin' : ''}`} strokeWidth={2} />
           <span>Refresh</span>
         </button>
       </div>
@@ -105,7 +105,7 @@ export default function AdminAuditLog() {
               onClick={() => setActiveModule(mod)}
               className={`px-2.5 py-1 rounded-md font-bold uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer ${
                 activeModule === mod
-                  ? 'bg-[#B48454] text-white shadow-2xs'
+                  ? 'bg-[#6B7A5E] text-white shadow-2xs'
                   : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-white dark:hover:bg-neutral-800'
               }`}
             >
@@ -121,7 +121,7 @@ export default function AdminAuditLog() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search action, user, reason..."
-            className="w-full pl-8.5 pr-3.5 py-1.5 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-[#B48454]/40 placeholder:text-neutral-400"
+            className="w-full pl-8.5 pr-3.5 py-1.5 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40 placeholder:text-neutral-400"
           />
         </div>
       </div>
@@ -133,7 +133,7 @@ export default function AdminAuditLog() {
             <h3 className="font-display font-bold text-base text-neutral-900 dark:text-white">System Audit Trail</h3>
             <p className="text-[11px] text-neutral-500 dark:text-neutral-400">Live ledger of historical events</p>
           </div>
-          <span className="text-xs font-mono font-bold text-[#B48454]">{filtered.length} entries</span>
+          <span className="text-xs font-mono font-bold text-[#6B7A5E]">{filtered.length} entries</span>
         </div>
 
         <div className="divide-y divide-black/[0.06] dark:divide-neutral-800">
@@ -149,7 +149,7 @@ export default function AdminAuditLog() {
                 <div className="flex flex-wrap items-center gap-2 mt-1 text-[11px] text-neutral-500 dark:text-neutral-400">
                   <span className="font-semibold text-neutral-900 dark:text-white">{log.userName || 'System'}</span>
                   <span>·</span>
-                  <span className="bg-neutral-100 dark:bg-[#20252E] border border-black/[0.06] dark:border-neutral-700 px-1.5 py-0.2 rounded text-[10px] font-medium text-[#B48454]">{log.module}</span>
+                  <span className="bg-neutral-100 dark:bg-[#20252E] border border-black/[0.06] dark:border-neutral-700 px-1.5 py-0.2 rounded text-[10px] font-medium text-[#6B7A5E]">{log.module}</span>
                 </div>
               </div>
               <p className="font-mono text-[11px] text-neutral-400 shrink-0 mt-0.5">
@@ -171,7 +171,7 @@ export default function AdminAuditLog() {
 
         {loading && (
           <div className="text-center py-10 text-xs text-neutral-500">
-            <RefreshCw className="w-5 h-5 text-[#B48454] animate-spin mx-auto mb-2" />
+            <RefreshCw className="w-5 h-5 text-[#6B7A5E] animate-spin mx-auto mb-2" />
             <span>Loading live audit trail...</span>
           </div>
         )}

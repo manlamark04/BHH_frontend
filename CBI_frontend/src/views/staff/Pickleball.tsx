@@ -480,7 +480,7 @@ export default function StaffPickleball() {
           </button>
           <button
             onClick={() => openReserveModal('any')}
-            className="px-3.5 py-1.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-lg font-semibold text-xs shadow-xs hover:shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+            className="px-3.5 py-1.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-lg font-semibold text-xs shadow-xs hover:shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" strokeWidth={2} />
             <span>Reserve Court for Guest</span>
@@ -494,7 +494,7 @@ export default function StaffPickleball() {
           onClick={() => setTab('schedule')}
           className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
             tab === 'schedule'
-              ? 'bg-[#B48454] text-white shadow-xs'
+              ? 'bg-[#6B7A5E] text-white shadow-xs'
               : 'bg-white dark:bg-[#181B20] text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white border border-black/[0.06] dark:border-neutral-800'
           }`}
         >
@@ -504,7 +504,7 @@ export default function StaffPickleball() {
           onClick={() => setTab('facility')}
           className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
             tab === 'facility'
-              ? 'bg-[#B48454] text-white shadow-xs'
+              ? 'bg-[#6B7A5E] text-white shadow-xs'
               : 'bg-white dark:bg-[#181B20] text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white border border-black/[0.06] dark:border-neutral-800'
           }`}
         >
@@ -515,7 +515,7 @@ export default function StaffPickleball() {
       {/* ─── INDEPENDENT COURT STATUS CARDS (SIDE-BY-SIDE WITH PHOTO PREVIEW) ─── */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <span className="text-[10px] uppercase font-bold tracking-wider text-[#B48454]">
+          <span className="text-[10px] uppercase font-bold tracking-wider text-[#6B7A5E]">
             LIVE COURT STATUS ({courts.length} INDEPENDENT ENTITIES)
           </span>
           <span className="text-[11px] text-neutral-500 font-mono">Open 24 Hours (6 AM – 6 AM)</span>
@@ -541,7 +541,7 @@ export default function StaffPickleball() {
                     ? 'border-amber-300 dark:border-amber-900/60'
                     : isMaint
                     ? 'border-neutral-300 dark:border-neutral-800'
-                    : 'border-black/[0.08] dark:border-neutral-800 hover:border-[#B48454]/40'
+                    : 'border-black/[0.08] dark:border-neutral-800 hover:border-[#6B7A5E]/40'
                 }`}
               >
                 {/* Court Image Banner */}
@@ -630,12 +630,12 @@ export default function StaffPickleball() {
                     ) : court.upcoming_match ? (
                       <div>
                         <div className="flex items-center justify-between text-[11px]">
-                          <span className="text-[#B48454] font-semibold">Reserved (Paid):</span>
+                          <span className="text-[#6B7A5E] font-semibold">Reserved (Paid):</span>
                           <span className="font-semibold text-neutral-900 dark:text-white truncate max-w-[120px]">
                             {court.upcoming_match.customer_name}
                           </span>
                         </div>
-                        <div className="text-[10px] font-mono text-[#B48454] mt-0.5">
+                        <div className="text-[10px] font-mono text-[#6B7A5E] mt-0.5">
                           Starts: {formatCourtDateTime(court.upcoming_match.start_time)}
                         </div>
                       </div>
@@ -685,7 +685,7 @@ export default function StaffPickleball() {
                       <button
                         onClick={() => openReserveModal(court.id)}
                         disabled={isMaint}
-                        className="px-2.5 py-1 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-lg text-[10px] font-semibold shadow-2xs transition-all disabled:opacity-40 cursor-pointer"
+                        className="px-2.5 py-1 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-lg text-[10px] font-semibold shadow-2xs transition-all disabled:opacity-40 cursor-pointer"
                       >
                         Book Slot
                       </button>
@@ -708,7 +708,7 @@ export default function StaffPickleball() {
             </div>
             <button
               onClick={() => { setShowAddCourtModal(true); setAddCourtError('') }}
-              className="px-3 py-1.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-lg font-semibold text-xs transition-all flex items-center gap-1.5 cursor-pointer"
+              className="px-3 py-1.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-lg font-semibold text-xs transition-all flex items-center gap-1.5 cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Add Another Court</span>
@@ -729,7 +729,7 @@ export default function StaffPickleball() {
                   <div>
                     <div className="flex items-center justify-between">
                       <h4 className="font-display font-bold text-sm text-neutral-900 dark:text-white">{court.name}</h4>
-                      <span className="font-mono text-xs font-bold text-[#B48454]">₱{Number(court.hourly_rate || 150)}/hr</span>
+                      <span className="font-mono text-xs font-bold text-[#6B7A5E]">₱{Number(court.hourly_rate || 150)}/hr</span>
                     </div>
                     <p className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-1 line-clamp-2">
                       {court.description || 'Regulation tournament court with LED night lighting and tournament netting.'}
@@ -739,7 +739,7 @@ export default function StaffPickleball() {
                     <span className="font-mono text-neutral-400">{court.court_code}</span>
                     <button
                       onClick={() => openEditCourtModal(court)}
-                      className="text-[#B48454] hover:underline font-semibold flex items-center gap-1 cursor-pointer"
+                      className="text-[#6B7A5E] hover:underline font-semibold flex items-center gap-1 cursor-pointer"
                     >
                       <Camera className="w-3 h-3" />
                       <span>Change Photo</span>
@@ -767,7 +767,7 @@ export default function StaffPickleball() {
               onClick={() => setSelectedCourtFilter('all')}
               className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                 selectedCourtFilter === 'all'
-                  ? 'bg-[#B48454] text-white shadow-2xs'
+                  ? 'bg-[#6B7A5E] text-white shadow-2xs'
                   : 'bg-white dark:bg-[#181B20] text-neutral-600 dark:text-neutral-400 border border-black/[0.08] dark:border-neutral-800 hover:bg-neutral-100'
               }`}
             >
@@ -781,7 +781,7 @@ export default function StaffPickleball() {
                   onClick={() => setSelectedCourtFilter(c.id)}
                   className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                     selectedCourtFilter === c.id
-                      ? 'bg-[#B48454] text-white shadow-2xs'
+                      ? 'bg-[#6B7A5E] text-white shadow-2xs'
                       : 'bg-white dark:bg-[#181B20] text-neutral-600 dark:text-neutral-400 border border-black/[0.08] dark:border-neutral-800 hover:bg-neutral-100'
                   }`}
                 >
@@ -814,7 +814,7 @@ export default function StaffPickleball() {
 
                 return (
                   <tr key={String(b.id)} className="hover:bg-black/[0.01] dark:hover:bg-white/[0.01] transition-colors">
-                    <td className="px-4 py-3 font-mono font-bold text-[#B48454]">
+                    <td className="px-4 py-3 font-mono font-bold text-[#6B7A5E]">
                       {b.rental_ref || `AR-${new Date().getFullYear()}-${String(b.id).padStart(4, '0')}`}
                     </td>
                     <td className="px-4 py-3">
@@ -839,7 +839,7 @@ export default function StaffPickleball() {
                     <td className="px-4 py-3 font-mono font-semibold text-amber-900 dark:text-amber-200">
                       {formatCourtDateTime(b.end_time)}
                     </td>
-                    <td className="px-4 py-3 font-display font-bold text-[#B48454]">
+                    <td className="px-4 py-3 font-display font-bold text-[#6B7A5E]">
                       ₱{Number(b.total_price || 150).toLocaleString()}
                     </td>
                     <td className="px-4 py-3">
@@ -883,7 +883,7 @@ export default function StaffPickleball() {
                                 alert(err instanceof Error ? err.message : 'Failed to complete session')
                               }
                             }}
-                            className="px-2 py-1 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-lg text-[10px] font-semibold shadow-2xs transition-all cursor-pointer"
+                            className="px-2 py-1 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-lg text-[10px] font-semibold shadow-2xs transition-all cursor-pointer"
                           >
                             Complete
                           </button>
@@ -893,7 +893,7 @@ export default function StaffPickleball() {
                         <div className="flex items-center justify-end gap-1.5">
                           <button
                             onClick={() => openExtendModal(b)}
-                            className="px-2 py-1 border border-[#B48454] text-[#B48454] hover:bg-[#B48454]/10 rounded-lg text-[10px] font-semibold transition-all flex items-center gap-1 cursor-pointer"
+                            className="px-2 py-1 border border-[#6B7A5E] text-[#6B7A5E] hover:bg-[#6B7A5E]/10 rounded-lg text-[10px] font-semibold transition-all flex items-center gap-1 cursor-pointer"
                             title="Extend playing time"
                           >
                             <Clock className="w-3 h-3" />
@@ -937,7 +937,7 @@ export default function StaffPickleball() {
 
         {loading && (
           <div className="text-center py-12 text-neutral-500 text-xs">
-            <div className="w-6 h-6 border-2 border-[#B48454] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+            <div className="w-6 h-6 border-2 border-[#6B7A5E] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
             <p>Loading court bookings...</p>
           </div>
         )}
@@ -971,7 +971,7 @@ export default function StaffPickleball() {
                 onClick={() => setSelectedCourtIdForBooking('any')}
                 className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
                   selectedCourtIdForBooking === 'any'
-                    ? 'border-[#B48454] bg-[#B48454]/10 text-[#B48454] ring-1 ring-[#B48454]'
+                    ? 'border-[#6B7A5E] bg-[#6B7A5E]/10 text-[#6B7A5E] ring-1 ring-[#6B7A5E]'
                     : 'border-black/[0.08] dark:border-neutral-800 bg-neutral-50/50 dark:bg-[#15181D] text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100'
                 }`}
               >
@@ -993,7 +993,7 @@ export default function StaffPickleball() {
                     onClick={() => setSelectedCourtIdForBooking(c.id)}
                     className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
                       isSelected
-                        ? 'border-[#B48454] bg-[#B48454]/10 text-[#B48454] ring-1 ring-[#B48454]'
+                        ? 'border-[#6B7A5E] bg-[#6B7A5E]/10 text-[#6B7A5E] ring-1 ring-[#6B7A5E]'
                         : 'border-black/[0.08] dark:border-neutral-800 bg-neutral-50/50 dark:bg-[#15181D] text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100'
                     }`}
                   >
@@ -1015,7 +1015,7 @@ export default function StaffPickleball() {
               value={selectedCustomerId}
               onChange={(e) => setSelectedCustomerId(e.target.value ? Number(e.target.value) : '')}
               required
-              className="w-full px-3 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#15181D] text-xs dark:text-white focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+              className="w-full px-3 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#15181D] text-xs dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
             >
               <option value="">-- Select Guest --</option>
               {customers.map((c) => (
@@ -1035,7 +1035,7 @@ export default function StaffPickleball() {
                 onChange={(e) => handleDateChange(e.target.value)}
                 min={getTodayDateString()}
                 required
-                className="w-full px-3 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#15181D] text-xs dark:text-white focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                className="w-full px-3 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#15181D] text-xs dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
               />
             </div>
 
@@ -1048,7 +1048,7 @@ export default function StaffPickleball() {
                   <button
                     type="button"
                     onClick={() => setStartTime(getCurrentTimeString())}
-                    className="text-[11px] font-semibold text-[#B48454] hover:text-[#9E6E3E] hover:underline flex items-center gap-1 cursor-pointer"
+                    className="text-[11px] font-semibold text-[#6B7A5E] hover:text-[#4F5D45] hover:underline flex items-center gap-1 cursor-pointer"
                     title="Snap to current clock time"
                   >
                     <Clock className="w-3 h-3" />
@@ -1061,7 +1061,7 @@ export default function StaffPickleball() {
                 required
                 value={startTime}
                 onChange={(e) => setStartTime(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#15181D] font-mono text-xs font-bold text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                className="w-full px-3 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#15181D] font-mono text-xs font-bold text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
               />
               {!startTime && date !== getTodayDateString() && (
                 <p className="text-[10px] text-neutral-400 mt-1">Select an intended start time for this day.</p>
@@ -1092,7 +1092,7 @@ export default function StaffPickleball() {
                       const mm = m.substring(0, 2)
                       setStartTime(`${String(hh).padStart(2, '0')}:${mm}`)
                     }}
-                    className="text-[11px] text-[#B48454] hover:underline font-semibold cursor-pointer"
+                    className="text-[11px] text-[#6B7A5E] hover:underline font-semibold cursor-pointer"
                   >
                     👉 Jump to nearest available time ({availabilityStatus.suggestedSlot})
                   </button>
@@ -1119,7 +1119,7 @@ export default function StaffPickleball() {
               <select
                 value={duration}
                 onChange={(e) => setDuration(Number(e.target.value))}
-                className="w-full px-3 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#15181D] text-xs font-semibold dark:text-white focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                className="w-full px-3 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#15181D] text-xs font-semibold dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
               >
                 <option value={0.5}>0.5 Hour (30 Mins) — ₱{bookingRate * 0.5}</option>
                 <option value={1}>1.0 Hour (60 Mins) — ₱{bookingRate * 1}</option>
@@ -1134,7 +1134,7 @@ export default function StaffPickleball() {
             <div>
               <label className="block font-semibold text-neutral-900 dark:text-white uppercase tracking-wider mb-1">Expected Match End</label>
               <div className="w-full px-3 py-2 rounded-xl border border-amber-300/80 bg-amber-50/70 dark:bg-[#221D16] font-mono text-xs font-bold text-amber-900 dark:text-amber-200 flex items-center gap-2">
-                <Clock className="w-3.5 h-3.5 text-[#B48454] shrink-0" />
+                <Clock className="w-3.5 h-3.5 text-[#6B7A5E] shrink-0" />
                 <span>{calculateExpectedEndTime(startTime, duration, date)}</span>
               </div>
             </div>
@@ -1146,7 +1146,7 @@ export default function StaffPickleball() {
               <select
                 value={players}
                 onChange={(e) => setPlayers(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#15181D] text-xs dark:text-white focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                className="w-full px-3 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#15181D] text-xs dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
               >
                 <option value="2">2 Players (Singles)</option>
                 <option value="4">4 Players (Doubles)</option>
@@ -1160,7 +1160,7 @@ export default function StaffPickleball() {
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Equipment requests, etc."
-                className="w-full px-3 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#15181D] text-xs dark:text-white focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                className="w-full px-3 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#15181D] text-xs dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
               />
             </div>
           </div>
@@ -1180,7 +1180,7 @@ export default function StaffPickleball() {
             </div>
             <div className="pt-1.5 border-t border-black/[0.06] dark:border-neutral-800 flex justify-between items-center">
               <span className="font-medium text-neutral-700 dark:text-neutral-300">Total Rental Fee:</span>
-              <span className="font-display font-bold text-[#B48454] text-base">₱{totalCost.toLocaleString()}</span>
+              <span className="font-display font-bold text-[#6B7A5E] text-base">₱{totalCost.toLocaleString()}</span>
             </div>
           </div>
 
@@ -1195,7 +1195,7 @@ export default function StaffPickleball() {
             <button
               type="submit"
               disabled={submitting || !selectedCustomerId || !date || !startTime || !availabilityStatus.isAvailable}
-              className="flex-1 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl text-xs font-semibold shadow-sm disabled:opacity-50 transition-all cursor-pointer"
+              className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl text-xs font-semibold shadow-sm disabled:opacity-50 transition-all cursor-pointer"
             >
               {submitting ? 'Confirming...' : 'Confirm Court Booking'}
             </button>
@@ -1267,7 +1267,7 @@ export default function StaffPickleball() {
                   placeholder="Or paste image URL (https://...)"
                   value={newCourtImage.startsWith('data:') ? '(Uploaded file)' : newCourtImage}
                   onChange={(e) => setNewCourtImage(e.target.value)}
-                  className="w-full px-3 py-1.5 rounded-xl border border-black/[0.08] dark:border-neutral-800 bg-neutral-50 dark:bg-[#15181D] text-[11px] dark:text-white focus:outline-none focus:ring-1 focus:ring-[#B48454]"
+                  className="w-full px-3 py-1.5 rounded-xl border border-black/[0.08] dark:border-neutral-800 bg-neutral-50 dark:bg-[#15181D] text-[11px] dark:text-white focus:outline-none focus:ring-1 focus:ring-[#6B7A5E]"
                 />
               </div>
             </div>
@@ -1284,7 +1284,7 @@ export default function StaffPickleball() {
                 placeholder="e.g. Court C"
                 value={newCourtName}
                 onChange={(e) => setNewCourtName(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#15181D] text-xs dark:text-white focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                className="w-full px-3 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#15181D] text-xs dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
               />
             </div>
 
@@ -1297,7 +1297,7 @@ export default function StaffPickleball() {
                 placeholder="e.g. COURT-C"
                 value={newCourtCode}
                 onChange={(e) => setNewCourtCode(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#15181D] font-mono text-xs dark:text-white focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                className="w-full px-3 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#15181D] font-mono text-xs dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
               />
             </div>
           </div>
@@ -1314,7 +1314,7 @@ export default function StaffPickleball() {
                 required
                 value={newCourtRate}
                 onChange={(e) => setNewCourtRate(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#15181D] font-mono text-xs font-bold dark:text-white focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                className="w-full px-3 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#15181D] font-mono text-xs font-bold dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
               />
             </div>
 
@@ -1325,7 +1325,7 @@ export default function StaffPickleball() {
               <select
                 value={newCourtStatus}
                 onChange={(e) => setNewCourtStatus(e.target.value as 'AVAILABLE' | 'MAINTENANCE')}
-                className="w-full px-3 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#15181D] text-xs font-semibold dark:text-white focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                className="w-full px-3 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#15181D] text-xs font-semibold dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
               >
                 <option value="AVAILABLE">Available for Booking</option>
                 <option value="MAINTENANCE">Maintenance</option>
@@ -1342,7 +1342,7 @@ export default function StaffPickleball() {
               placeholder="e.g. Regulation tournament court with LED night lighting and shaded seating."
               value={newCourtDesc}
               onChange={(e) => setNewCourtDesc(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#15181D] text-xs dark:text-white focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+              className="w-full px-3 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#15181D] text-xs dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
             />
           </div>
 
@@ -1357,7 +1357,7 @@ export default function StaffPickleball() {
             <button
               type="submit"
               disabled={addCourtSubmitting || !newCourtName.trim()}
-              className="flex-1 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl text-xs font-semibold shadow-sm disabled:opacity-50 transition-all cursor-pointer"
+              className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl text-xs font-semibold shadow-sm disabled:opacity-50 transition-all cursor-pointer"
             >
               {addCourtSubmitting ? 'Registering...' : 'Register Court'}
             </button>
@@ -1440,7 +1440,7 @@ export default function StaffPickleball() {
                     placeholder="Or paste image URL (https://...)"
                     value={editCourtImage.startsWith('data:') ? '(Uploaded file)' : editCourtImage}
                     onChange={(e) => setEditCourtImage(e.target.value)}
-                    className="w-full px-3 py-1.5 rounded-xl border border-black/[0.08] dark:border-neutral-800 bg-neutral-50 dark:bg-[#15181D] text-[11px] dark:text-white focus:outline-none focus:ring-1 focus:ring-[#B48454]"
+                    className="w-full px-3 py-1.5 rounded-xl border border-black/[0.08] dark:border-neutral-800 bg-neutral-50 dark:bg-[#15181D] text-[11px] dark:text-white focus:outline-none focus:ring-1 focus:ring-[#6B7A5E]"
                   />
                 </div>
               </div>
@@ -1456,7 +1456,7 @@ export default function StaffPickleball() {
                   required
                   value={editCourtName}
                   onChange={(e) => setEditCourtName(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#15181D] text-xs dark:text-white focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                  className="w-full px-3 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#15181D] text-xs dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
                 />
               </div>
 
@@ -1471,7 +1471,7 @@ export default function StaffPickleball() {
                   required
                   value={editCourtRate}
                   onChange={(e) => setEditCourtRate(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#15181D] font-mono text-xs font-bold dark:text-white focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                  className="w-full px-3 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#15181D] font-mono text-xs font-bold dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
                 />
               </div>
             </div>
@@ -1483,7 +1483,7 @@ export default function StaffPickleball() {
               <select
                 value={editCourtStatus}
                 onChange={(e) => setEditCourtStatus(e.target.value as 'AVAILABLE' | 'MAINTENANCE' | 'INACTIVE')}
-                className="w-full px-3 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#15181D] text-xs font-semibold dark:text-white focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                className="w-full px-3 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#15181D] text-xs font-semibold dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
               >
                 <option value="AVAILABLE">Available</option>
                 <option value="MAINTENANCE">Maintenance</option>
@@ -1499,7 +1499,7 @@ export default function StaffPickleball() {
                 rows={2}
                 value={editCourtDesc}
                 onChange={(e) => setEditCourtDesc(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#15181D] text-xs dark:text-white focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                className="w-full px-3 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#15181D] text-xs dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
               />
             </div>
 
@@ -1514,7 +1514,7 @@ export default function StaffPickleball() {
               <button
                 type="submit"
                 disabled={editCourtSubmitting || !editCourtName.trim()}
-                className="flex-1 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl text-xs font-semibold shadow-sm disabled:opacity-50 transition-all cursor-pointer"
+                className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl text-xs font-semibold shadow-sm disabled:opacity-50 transition-all cursor-pointer"
               >
                 {editCourtSubmitting ? 'Saving...' : 'Save Changes'}
               </button>
@@ -1549,7 +1549,7 @@ export default function StaffPickleball() {
               <div className="flex items-center justify-between">
                 <div>
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] uppercase font-bold tracking-wider text-[#B48454] block">ACTIVE RESERVATION</span>
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-[#6B7A5E] block">ACTIVE RESERVATION</span>
                     <span className="px-1.5 py-0.2 rounded bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-200 font-bold text-[10px]">
                       {selectedRentalForExtend.court_name || 'Court A'}
                     </span>
@@ -1579,7 +1579,7 @@ export default function StaffPickleball() {
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label className="font-semibold text-neutral-900 dark:text-white uppercase tracking-wider">Additional Playing Time *</label>
-                <span className="text-xs font-bold text-[#B48454] font-mono">+{extendHours} Hour{extendHours > 1 ? 's' : ''}</span>
+                <span className="text-xs font-bold text-[#6B7A5E] font-mono">+{extendHours} Hour{extendHours > 1 ? 's' : ''}</span>
               </div>
 
               <div className="grid grid-cols-4 gap-1.5 mb-2">
@@ -1595,7 +1595,7 @@ export default function StaffPickleball() {
                     onClick={() => handleExtendHoursChange(h)}
                     className={`py-2 rounded-lg font-semibold text-xs border transition-all cursor-pointer ${
                       extendHours === h
-                        ? 'bg-[#B48454] text-white border-[#B48454] shadow-2xs'
+                        ? 'bg-[#6B7A5E] text-white border-[#6B7A5E] shadow-2xs'
                         : 'bg-neutral-50 dark:bg-[#15181D] text-neutral-700 dark:text-neutral-300 border-black/[0.08] dark:border-neutral-800 hover:bg-neutral-100'
                     }`}
                   >
@@ -1607,7 +1607,7 @@ export default function StaffPickleball() {
               <select
                 value={extendHours}
                 onChange={(e) => handleExtendHoursChange(Number(e.target.value))}
-                className="w-full px-3 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#15181D] text-xs font-semibold dark:text-white focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                className="w-full px-3 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#15181D] text-xs font-semibold dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
               >
                 <option value={0.5}>+0.5 Hour (30 Minutes) — ₱{activeExtendRate * 0.5}</option>
                 <option value={1}>+1.0 Hour (60 Minutes) — ₱{activeExtendRate * 1}</option>
@@ -1622,7 +1622,7 @@ export default function StaffPickleball() {
             <div className="p-3 bg-amber-50/80 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/60 rounded-xl space-y-1.5">
               <div className="flex items-center justify-between text-xs">
                 <span className="font-semibold text-amber-950 dark:text-amber-200 flex items-center gap-1.5">
-                  <Clock className="w-3.5 h-3.5 text-[#B48454]" />
+                  <Clock className="w-3.5 h-3.5 text-[#6B7A5E]" />
                   <span>New End Time on {selectedRentalForExtend.court_name || 'Court'}:</span>
                 </span>
                 <span className="font-mono font-bold text-amber-900 dark:text-amber-200 text-sm">
@@ -1653,7 +1653,7 @@ export default function StaffPickleball() {
                       type="checkbox"
                       checked={extendOverrideConflict}
                       onChange={(e) => setExtendOverrideConflict(e.target.checked)}
-                      className="mt-0.5 accent-[#B48454] rounded"
+                      className="mt-0.5 accent-[#6B7A5E] rounded"
                     />
                     <span>Staff Override: I have confirmed directly with the affected guest that this slot extension is permitted.</span>
                   </label>
@@ -1669,7 +1669,7 @@ export default function StaffPickleball() {
                         value={extendOverrideReason}
                         onChange={(e) => setExtendOverrideReason(e.target.value)}
                         placeholder="e.g. Next guest rescheduled, other court available"
-                        className="w-full px-2.5 py-1.5 rounded-lg border border-amber-300 dark:border-amber-700 bg-white dark:bg-[#15181D] text-xs focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                        className="w-full px-2.5 py-1.5 rounded-lg border border-amber-300 dark:border-amber-700 bg-white dark:bg-[#15181D] text-xs focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
                       />
                     </div>
                   )}
@@ -1684,7 +1684,7 @@ export default function StaffPickleball() {
                   <span className="text-[10px] uppercase font-bold text-neutral-400 block">EXTENSION CHARGE DUE</span>
                   <p className="text-xs text-neutral-500">₱{activeExtendRate} × {extendHours} hr(s)</p>
                 </div>
-                <strong className="font-display font-bold text-xl text-[#B48454]">₱{activeExtendCost.toLocaleString()}</strong>
+                <strong className="font-display font-bold text-xl text-[#6B7A5E]">₱{activeExtendCost.toLocaleString()}</strong>
               </div>
 
               <div className="grid grid-cols-2 gap-2 pt-2 border-t border-black/[0.06] dark:border-neutral-800">
@@ -1693,7 +1693,7 @@ export default function StaffPickleball() {
                   <select
                     value={extendPayMethod}
                     onChange={(e) => setExtendPayMethod(e.target.value)}
-                    className="w-full px-2.5 py-2 rounded-lg border border-black/[0.1] dark:border-neutral-800 bg-white dark:bg-[#181B20] text-xs font-semibold dark:text-white focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                    className="w-full px-2.5 py-2 rounded-lg border border-black/[0.1] dark:border-neutral-800 bg-white dark:bg-[#181B20] text-xs font-semibold dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
                   >
                     <option value="cash">Cash Payment</option>
                     <option value="gcash">GCash</option>
@@ -1712,7 +1712,7 @@ export default function StaffPickleball() {
                     required
                     value={extendPayAmount}
                     onChange={(e) => setExtendPayAmount(e.target.value)}
-                    className="w-full px-2.5 py-2 rounded-lg border border-black/[0.1] dark:border-neutral-800 bg-white dark:bg-[#181B20] font-mono text-xs font-bold text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                    className="w-full px-2.5 py-2 rounded-lg border border-black/[0.1] dark:border-neutral-800 bg-white dark:bg-[#181B20] font-mono text-xs font-bold text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
                   />
                 </div>
               </div>
@@ -1737,7 +1737,7 @@ export default function StaffPickleball() {
                   value={extendRemarks}
                   onChange={(e) => setExtendRemarks(e.target.value)}
                   placeholder="e.g. Extra match requested by guest"
-                  className="w-full px-2.5 py-1.5 rounded-lg border border-black/[0.1] dark:border-neutral-800 bg-white dark:bg-[#181B20] text-xs dark:text-white focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                  className="w-full px-2.5 py-1.5 rounded-lg border border-black/[0.1] dark:border-neutral-800 bg-white dark:bg-[#181B20] text-xs dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
                 />
               </div>
             </div>
@@ -1758,7 +1758,7 @@ export default function StaffPickleball() {
               <button
                 type="submit"
                 disabled={extendSubmitting || activeExtendUnderpaid || (!!activeConflict && !extendOverrideConflict)}
-                className="flex-1 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl font-semibold shadow-sm disabled:opacity-50 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl font-semibold shadow-sm disabled:opacity-50 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <Clock className="w-3.5 h-3.5" />
                 <span>{extendSubmitting ? 'Extending...' : `Confirm Extension (₱${activeExtendCost.toLocaleString()})`}</span>

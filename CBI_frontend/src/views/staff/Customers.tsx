@@ -79,7 +79,7 @@ export default function StaffCustomers() {
             value={search}
             onChange={(e) => handleSearch(e.target.value)}
             placeholder="Search customer ID, name, email..."
-            className="w-full pl-8.5 pr-3.5 py-1.5 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+            className="w-full pl-8.5 pr-3.5 py-1.5 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
           />
         </div>
       </div>
@@ -89,8 +89,8 @@ export default function StaffCustomers() {
         
         <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase font-bold tracking-wider text-[#B48454]">TOTAL REGISTERED</span>
-            <div className="w-6 h-6 rounded-lg bg-[#B48454]/10 text-[#B48454] flex items-center justify-center">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-[#6B7A5E]">TOTAL REGISTERED</span>
+            <div className="w-6 h-6 rounded-lg bg-[#6B7A5E]/10 text-[#6B7A5E] flex items-center justify-center">
               <Users className="w-3.5 h-3.5" strokeWidth={1.5} />
             </div>
           </div>
@@ -149,7 +149,7 @@ export default function StaffCustomers() {
             onClick={() => handleStatusFilter(st)}
             className={`px-3 py-1 rounded-md font-semibold uppercase text-[10px] tracking-wider transition-all cursor-pointer ${
               statusFilter === st
-                ? 'bg-[#B48454] text-white shadow-2xs'
+                ? 'bg-[#6B7A5E] text-white shadow-2xs'
                 : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-white dark:hover:bg-neutral-800'
             }`}
           >
@@ -165,7 +165,7 @@ export default function StaffCustomers() {
             <h3 className="font-display font-bold text-base text-neutral-900 dark:text-white">Guest Profiles Directory</h3>
             <p className="text-[11px] text-neutral-500 dark:text-neutral-400">Master database of all guest accounts</p>
           </div>
-          <span className="text-xs font-mono font-bold text-[#B48454]">{customers.length} records</span>
+          <span className="text-xs font-mono font-bold text-[#6B7A5E]">{customers.length} records</span>
         </div>
 
         <div className="overflow-x-auto">
@@ -192,10 +192,10 @@ export default function StaffCustomers() {
 
                 return (
                   <tr key={String(c.id)} className="hover:bg-sand/20 transition-colors">
-                    <td className="px-5 py-4 font-mono font-bold text-[#B48454]">{uniqueId}</td>
+                    <td className="px-5 py-4 font-mono font-bold text-[#6B7A5E]">{uniqueId}</td>
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-[#B48454]/15 text-[#B48454] font-display font-bold text-xs flex items-center justify-center shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-[#6B7A5E]/15 text-[#6B7A5E] font-display font-bold text-xs flex items-center justify-center shrink-0">
                           {getInitials(fullName)}
                         </div>
                         <div>
@@ -213,7 +213,7 @@ export default function StaffCustomers() {
                     <td className="px-5 py-4 text-right">
                       <button
                         onClick={() => handleViewCustomer(c)}
-                        className="px-3.5 py-1.5 bg-[#FAF8F5] hover:bg-sand border border-stone/30 text-ink rounded-lg text-xs font-semibold shadow-xs transition-all"
+                        className="px-3.5 py-1.5 bg-[#F6F2E8] hover:bg-sand border border-stone/30 text-ink rounded-lg text-xs font-semibold shadow-xs transition-all"
                       >
                         View Profile
                       </button>
@@ -246,9 +246,9 @@ export default function StaffCustomers() {
           <div className="space-y-5 text-xs font-sans">
             
             {/* Header Banner */}
-            <div className="bg-[#FAF8F5] border border-stone/20 rounded-2xl p-5 flex items-center justify-between">
+            <div className="bg-[#F6F2E8] border border-stone/20 rounded-2xl p-5 flex items-center justify-between">
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#B48454]">CUSTOMER ID</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#6B7A5E]">CUSTOMER ID</span>
                 <p className="font-mono text-xl font-bold text-ink">{String(viewCustomer.unique_id || viewCustomer.id)}</p>
                 <p className="text-xs text-ink-muted mt-0.5">{String(viewCustomer.email || '')}</p>
               </div>
@@ -257,29 +257,29 @@ export default function StaffCustomers() {
 
             {/* Profile Grid */}
             <div className="grid grid-cols-2 gap-3 text-xs">
-              <div className="p-3.5 bg-[#FAF8F5] border border-stone/20 rounded-xl">
+              <div className="p-3.5 bg-[#F6F2E8] border border-stone/20 rounded-xl">
                 <span className="text-[10px] text-ink-muted uppercase font-bold block">FULL NAME</span>
                 <strong className="text-ink">{String(viewCustomer.full_name || '—')}</strong>
               </div>
 
-              <div className="p-3.5 bg-[#FAF8F5] border border-stone/20 rounded-xl">
+              <div className="p-3.5 bg-[#F6F2E8] border border-stone/20 rounded-xl">
                 <span className="text-[10px] text-ink-muted uppercase font-bold block">CONTACT NUMBER</span>
                 <strong className="text-ink font-mono">{String(viewCustomer.phone || '—')}</strong>
               </div>
 
-              <div className="p-3.5 bg-[#FAF8F5] border border-stone/20 rounded-xl">
+              <div className="p-3.5 bg-[#F6F2E8] border border-stone/20 rounded-xl">
                 <span className="text-[10px] text-ink-muted uppercase font-bold block">GENDER & STATUS</span>
                 <span className="text-ink">{String(viewCustomer.gender || '—')} · {String(viewCustomer.civil_status || '—')}</span>
               </div>
 
-              <div className="p-3.5 bg-[#FAF8F5] border border-stone/20 rounded-xl">
+              <div className="p-3.5 bg-[#F6F2E8] border border-stone/20 rounded-xl">
                 <span className="text-[10px] text-ink-muted uppercase font-bold block">REGISTERED DATE</span>
                 <span className="font-mono text-ink">{String(viewCustomer.created_at || '').substring(0, 10)}</span>
               </div>
             </div>
 
             {/* Address */}
-            <div className="p-3.5 bg-[#FAF8F5] border border-stone/20 rounded-xl">
+            <div className="p-3.5 bg-[#F6F2E8] border border-stone/20 rounded-xl">
               <span className="text-[10px] text-ink-muted uppercase font-bold block">REGISTERED ADDRESS</span>
               <p className="text-ink mt-0.5">{String(viewCustomer.address || 'No address on file.')}</p>
             </div>
@@ -289,7 +289,7 @@ export default function StaffCustomers() {
               <h4 className="font-display font-bold text-sm text-ink mb-2">Account Activity Trail</h4>
               <div className="max-h-36 overflow-y-auto space-y-1.5 pr-1">
                 {auditLogs.map((log, i) => (
-                  <div key={i} className="p-2.5 bg-[#FAF8F5] border border-stone/15 rounded-xl text-[11px] flex justify-between">
+                  <div key={i} className="p-2.5 bg-[#F6F2E8] border border-stone/15 rounded-xl text-[11px] flex justify-between">
                     <div>
                       <p className="font-semibold text-ink">{String(log.action || log.description)}</p>
                       <p className="text-[10px] text-ink-muted">{String(log.user_name || 'System')}</p>

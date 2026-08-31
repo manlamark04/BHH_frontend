@@ -156,7 +156,7 @@ export default function CustomerProfile({ userName, userId }: CustomerProfilePro
       {/* ─── 1. MEMBER OVERVIEW BANNER CARD ─── */}
       <div className="bg-white dark:bg-[#181B20] rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-[#B48454] text-white font-display text-lg font-bold flex items-center justify-center shadow-xs shrink-0">
+          <div className="w-12 h-12 rounded-full bg-[#6B7A5E] text-white font-display text-lg font-bold flex items-center justify-center shadow-xs shrink-0">
             {(firstName || fullNameDisplay).charAt(0).toUpperCase()}
           </div>
           <div>
@@ -169,7 +169,7 @@ export default function CustomerProfile({ userName, userId }: CustomerProfilePro
               </span>
             </div>
             <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
-              Guest ID: <strong className="font-mono text-[#B48454] font-bold">{userId}</strong> · Member since {createdAt || '2026'}
+              Guest ID: <strong className="font-mono text-[#6B7A5E] font-bold">{userId}</strong> · Member since {createdAt || '2026'}
             </p>
           </div>
         </div>
@@ -177,7 +177,7 @@ export default function CustomerProfile({ userName, userId }: CustomerProfilePro
         {!editing && (
           <button
             onClick={() => setEditing(true)}
-            className="px-3.5 py-1.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-lg font-semibold text-xs shadow-xs hover:shadow-sm transition-all flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
+            className="px-3.5 py-1.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-lg font-semibold text-xs shadow-xs hover:shadow-sm transition-all flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
           >
             <Edit3 className="w-3.5 h-3.5" strokeWidth={2} />
             <span>Edit Profile</span>
@@ -208,7 +208,7 @@ export default function CustomerProfile({ userName, userId }: CustomerProfilePro
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
                   placeholder="e.g. Mark"
-                  className="w-full px-3.5 py-2 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                  className="w-full px-3.5 py-2 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
                 />
               </div>
               <div>
@@ -219,7 +219,7 @@ export default function CustomerProfile({ userName, userId }: CustomerProfilePro
                   value={middleName}
                   onChange={(e) => setMiddleName(e.target.value)}
                   placeholder="e.g. Jaime"
-                  className="w-full px-3.5 py-2 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                  className="w-full px-3.5 py-2 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
                 />
               </div>
               <div>
@@ -231,7 +231,7 @@ export default function CustomerProfile({ userName, userId }: CustomerProfilePro
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
                   placeholder="e.g. Manla"
-                  className="w-full px-3.5 py-2 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                  className="w-full px-3.5 py-2 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
                 />
               </div>
             </div>
@@ -245,7 +245,7 @@ export default function CustomerProfile({ userName, userId }: CustomerProfilePro
                 <select
                   value={gender}
                   onChange={(e) => setGender(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-[#B48454]/40 cursor-pointer"
+                  className="w-full px-3.5 py-2 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40 cursor-pointer"
                 >
                   <option value="">-- Select Gender --</option>
                   <option value="Male">Male</option>
@@ -264,7 +264,7 @@ export default function CustomerProfile({ userName, userId }: CustomerProfilePro
                   value={dob}
                   onChange={(e) => setDob(e.target.value)}
                   max={new Date().toISOString().split('T')[0]}
-                  className="w-full px-3.5 py-2 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                  className="w-full px-3.5 py-2 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
                 />
               </div>
             </div>
@@ -278,7 +278,7 @@ export default function CustomerProfile({ userName, userId }: CustomerProfilePro
                 <select
                   value={civilStatus}
                   onChange={(e) => setCivilStatus(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-[#B48454]/40 cursor-pointer"
+                  className="w-full px-3.5 py-2 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40 cursor-pointer"
                 >
                   <option value="">-- Select Civil Status --</option>
                   <option value="Single">Single</option>
@@ -297,7 +297,7 @@ export default function CustomerProfile({ userName, userId }: CustomerProfilePro
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="e.g. 0917-123-4567"
-                  className="w-full px-3.5 py-2 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                  className="w-full px-3.5 py-2 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
                 />
               </div>
             </div>
@@ -312,7 +312,7 @@ export default function CustomerProfile({ userName, userId }: CustomerProfilePro
                 onChange={(e) => setAddress(e.target.value)}
                 placeholder="Street address, Barangay, City/Municipality, Province, ZIP"
                 rows={2}
-                className="w-full px-3.5 py-2 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-[#B48454]/40 resize-none"
+                className="w-full px-3.5 py-2 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40 resize-none"
               />
             </div>
 
@@ -341,7 +341,7 @@ export default function CustomerProfile({ userName, userId }: CustomerProfilePro
                 type="button"
                 onClick={handleSave}
                 disabled={saving}
-                className="flex-1 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-lg font-semibold shadow-xs disabled:opacity-50 transition-all cursor-pointer"
+                className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-lg font-semibold shadow-xs disabled:opacity-50 transition-all cursor-pointer"
               >
                 {saving ? 'Saving Changes...' : 'Save Profile Details'}
               </button>
@@ -408,7 +408,7 @@ export default function CustomerProfile({ userName, userId }: CustomerProfilePro
           {!changingPassword && (
             <button
               onClick={() => setChangingPassword(true)}
-              className="px-3.5 py-1.5 border border-[#B48454] text-[#B48454] hover:bg-[#B48454] hover:text-white rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer"
+              className="px-3.5 py-1.5 border border-[#6B7A5E] text-[#6B7A5E] hover:bg-[#6B7A5E] hover:text-white rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer"
             >
               <Key className="w-3.5 h-3.5" />
               <span>Change Password</span>
@@ -432,7 +432,7 @@ export default function CustomerProfile({ userName, userId }: CustomerProfilePro
                 value={currentPw}
                 onChange={(e) => setCurrentPw(e.target.value)}
                 placeholder="Enter current password"
-                className="w-full px-3.5 py-2 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                className="w-full px-3.5 py-2 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
               />
             </div>
 
@@ -444,7 +444,7 @@ export default function CustomerProfile({ userName, userId }: CustomerProfilePro
                   value={newPw}
                   onChange={(e) => setNewPw(e.target.value)}
                   placeholder="Minimum 6 characters"
-                  className="w-full px-3.5 py-2 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                  className="w-full px-3.5 py-2 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
                 />
               </div>
 
@@ -455,7 +455,7 @@ export default function CustomerProfile({ userName, userId }: CustomerProfilePro
                   value={confirmPw}
                   onChange={(e) => setConfirmPw(e.target.value)}
                   placeholder="Re-enter new password"
-                  className="w-full px-3.5 py-2 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                  className="w-full px-3.5 py-2 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
                 />
               </div>
             </div>
@@ -472,7 +472,7 @@ export default function CustomerProfile({ userName, userId }: CustomerProfilePro
                 type="button"
                 onClick={handleChangePassword}
                 disabled={saving}
-                className="flex-1 py-2 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-lg font-semibold shadow-xs disabled:opacity-50 transition-all cursor-pointer"
+                className="flex-1 py-2 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-lg font-semibold shadow-xs disabled:opacity-50 transition-all cursor-pointer"
               >
                 {saving ? 'Updating Password...' : 'Update Password'}
               </button>

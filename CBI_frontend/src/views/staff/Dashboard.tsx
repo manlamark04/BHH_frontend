@@ -93,18 +93,18 @@ export default function StaffDashboard({ onNavigate, userName, userId }: StaffDa
       {/* ─── 2. STAFF DUTY BADGE CARD ─── */}
       <div className="bg-white dark:bg-[#181B20] rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-[#B48454] text-white font-display text-base font-bold flex items-center justify-center shadow-xs shrink-0">
+          <div className="w-10 h-10 rounded-full bg-[#6B7A5E] text-white font-display text-base font-bold flex items-center justify-center shadow-xs shrink-0">
             {userName.charAt(0).toUpperCase()}
           </div>
           <div>
             <div className="flex items-center gap-2">
               <h2 className="font-display text-base sm:text-lg font-bold text-neutral-900 dark:text-white">{userName}</h2>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#B48454]/10 text-[#B48454] border border-[#B48454]/20 uppercase">
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#6B7A5E]/10 text-[#6B7A5E] border border-[#6B7A5E]/20 uppercase">
                 Front Desk Staff
               </span>
             </div>
             <p className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5">
-              Staff ID: <strong className="font-mono text-[#B48454] font-bold">{userId}</strong> · Terminal Session Active
+              Staff ID: <strong className="font-mono text-[#6B7A5E] font-bold">{userId}</strong> · Terminal Session Active
             </p>
           </div>
         </div>
@@ -122,11 +122,11 @@ export default function StaffDashboard({ onNavigate, userName, userId }: StaffDa
         
         <button
           onClick={() => onNavigate('staff-checkinout')}
-          className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-md hover:border-[#B48454]/40 transition-all text-left flex flex-col justify-between cursor-pointer"
+          className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-md hover:border-[#6B7A5E]/40 transition-all text-left flex flex-col justify-between cursor-pointer"
         >
           <div className="flex items-center justify-between w-full">
-            <span className="text-[10px] uppercase font-bold tracking-wider text-[#B48454]">ARRIVALS TODAY</span>
-            <div className="w-6 h-6 rounded-lg bg-[#B48454]/10 text-[#B48454] flex items-center justify-center">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-[#6B7A5E]">ARRIVALS TODAY</span>
+            <div className="w-6 h-6 rounded-lg bg-[#6B7A5E]/10 text-[#6B7A5E] flex items-center justify-center">
               <Luggage className="w-3.5 h-3.5" strokeWidth={1.5} />
             </div>
           </div>
@@ -194,9 +194,9 @@ export default function StaffDashboard({ onNavigate, userName, userId }: StaffDa
           <button
             key={item.label}
             onClick={() => onNavigate(item.view)}
-            className="p-3.5 sm:p-4 bg-white dark:bg-[#181B20] rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-md hover:border-[#B48454]/40 transition-all text-left flex flex-col justify-between group cursor-pointer"
+            className="p-3.5 sm:p-4 bg-white dark:bg-[#181B20] rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-md hover:border-[#6B7A5E]/40 transition-all text-left flex flex-col justify-between group cursor-pointer"
           >
-            <div className="w-8 h-8 rounded-lg bg-neutral-100 dark:bg-neutral-800 border border-black/[0.06] dark:border-neutral-700 flex items-center justify-center text-neutral-500 dark:text-neutral-400 mb-2.5 group-hover:bg-[#B48454]/10 group-hover:text-[#B48454] transition-colors">
+            <div className="w-8 h-8 rounded-lg bg-neutral-100 dark:bg-neutral-800 border border-black/[0.06] dark:border-neutral-700 flex items-center justify-center text-neutral-500 dark:text-neutral-400 mb-2.5 group-hover:bg-[#6B7A5E]/10 group-hover:text-[#6B7A5E] transition-colors">
               <item.Icon className="w-4 h-4" strokeWidth={1.5} />
             </div>
             <div>
@@ -219,7 +219,7 @@ export default function StaffDashboard({ onNavigate, userName, userId }: StaffDa
             </div>
             <button
               onClick={() => onNavigate('staff-bookings')}
-              className="text-xs font-semibold text-[#B48454] hover:underline cursor-pointer"
+              className="text-xs font-semibold text-[#6B7A5E] hover:underline cursor-pointer"
             >
               View All ({bookings.length}) →
             </button>
@@ -229,11 +229,11 @@ export default function StaffDashboard({ onNavigate, userName, userId }: StaffDa
             {pendingBookings.slice(0, 6).map((b) => (
               <div
                 key={String(b.id)}
-                className="p-3 bg-neutral-50/70 dark:bg-[#14171C] border border-black/[0.06] dark:border-neutral-800 rounded-lg flex items-center justify-between gap-3 hover:border-[#B48454]/40 transition-all shadow-2xs"
+                className="p-3 bg-neutral-50/70 dark:bg-[#14171C] border border-black/[0.06] dark:border-neutral-800 rounded-lg flex items-center justify-between gap-3 hover:border-[#6B7A5E]/40 transition-all shadow-2xs"
               >
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs font-bold text-[#B48454]">
+                    <span className="font-mono text-xs font-bold text-[#6B7A5E]">
                       {String(b.booking_ref || b.unique_id || `#BK-${b.id}`)}
                     </span>
                     <StatusBadge status={String(b.status || 'PENDING').toUpperCase()} />
@@ -246,7 +246,7 @@ export default function StaffDashboard({ onNavigate, userName, userId }: StaffDa
 
                 <button
                   onClick={() => onNavigate('staff-bookings')}
-                  className="px-2.5 py-1 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-lg text-xs font-semibold shadow-2xs transition-all cursor-pointer"
+                  className="px-2.5 py-1 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-lg text-xs font-semibold shadow-2xs transition-all cursor-pointer"
                 >
                   Review
                 </button>
@@ -274,7 +274,7 @@ export default function StaffDashboard({ onNavigate, userName, userId }: StaffDa
             </div>
             <button
               onClick={() => onNavigate('staff-checkinout')}
-              className="text-xs font-semibold text-[#B48454] hover:underline cursor-pointer"
+              className="text-xs font-semibold text-[#6B7A5E] hover:underline cursor-pointer"
             >
               Check-In/Out →
             </button>
@@ -296,7 +296,7 @@ export default function StaffDashboard({ onNavigate, userName, userId }: StaffDa
                       : isClean
                       ? 'bg-purple-50/60 border-purple-200'
                       : isAvail
-                      ? 'bg-[#FAF8F5] border-stone/20 hover:border-[#B48454]/40'
+                      ? 'bg-[#F6F2E8] border-stone/20 hover:border-[#6B7A5E]/40'
                       : 'bg-stone-100 border-stone-200'
                   }`}
                 >

@@ -31,7 +31,7 @@ import {
 type PeriodOption = 'this_month' | 'last_month' | 'last_3_months' | 'last_6_months' | 'this_year' | 'last_year' | 'custom'
 type GroupByOption = 'daily' | 'monthly' | 'yearly'
 
-const DONUT_COLORS = ['#B48454', '#8C6239', '#5B3E25', '#D4A373', '#A5A58D', '#6B705C', '#3D405B', '#E07A5F']
+const DONUT_COLORS = ['#6B7A5E', '#8C6239', '#5B3E25', '#D4A373', '#A5A58D', '#6B705C', '#3D405B', '#E07A5F']
 const STATUS_COLORS: Record<string, string> = {
   'COMPLETED': '#2E7D32',
   'CONFIRMED': '#0284C7',
@@ -445,7 +445,7 @@ export default function AdminReports() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search report records..."
-            className="w-full pl-8.5 pr-3.5 py-1.5 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#B48454]/40 text-xs"
+            className="w-full pl-8.5 pr-3.5 py-1.5 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40 text-xs"
           />
         </div>
       </div>
@@ -462,7 +462,7 @@ export default function AdminReports() {
 
           <button
             onClick={handleExportCSV}
-            className="px-3.5 py-1.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-lg text-xs font-semibold shadow-xs hover:shadow-sm transition-all flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
+            className="px-3.5 py-1.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-lg text-xs font-semibold shadow-xs hover:shadow-sm transition-all flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
           >
             <Download className="w-3.5 h-3.5" strokeWidth={1.5} />
             <span>Export CSV</span>
@@ -478,7 +478,7 @@ export default function AdminReports() {
             <select
               value={period}
               onChange={(e) => setPeriod(e.target.value as PeriodOption)}
-              className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#FAF8F5] text-ink font-semibold focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+              className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#F6F2E8] text-ink font-semibold focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
             >
               <option value="this_month">This Month</option>
               <option value="last_month">Last Month</option>
@@ -496,7 +496,7 @@ export default function AdminReports() {
             <select
               value={groupBy}
               onChange={(e) => setGroupBy(e.target.value as GroupByOption)}
-              className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#FAF8F5] text-ink font-semibold focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+              className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#F6F2E8] text-ink font-semibold focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
             >
               <option value="daily">Daily View</option>
               <option value="monthly">Monthly Aggregate</option>
@@ -510,7 +510,7 @@ export default function AdminReports() {
             <select
               value={roomTypeFilter}
               onChange={(e) => setRoomTypeFilter(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#FAF8F5] text-ink font-semibold focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+              className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#F6F2E8] text-ink font-semibold focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
             >
               <option value="All">All Room Types</option>
               {uniqueRoomTypes.map((rt) => (
@@ -525,7 +525,7 @@ export default function AdminReports() {
             <select
               value={paymentMethodFilter}
               onChange={(e) => setPaymentMethodFilter(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#FAF8F5] text-ink font-semibold focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+              className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#F6F2E8] text-ink font-semibold focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
             >
               <option value="All">All Payment Methods</option>
               <option value="cash">Cash</option>
@@ -565,7 +565,7 @@ export default function AdminReports() {
         
         {/* Net Revenue */}
         <div className="bg-white p-4 sm:p-4.5 rounded-xl border border-black/[0.07] shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.04)] transition-all flex flex-col justify-between">
-          <span className="text-[10px] uppercase font-bold tracking-wider text-[#B48454]">TOTAL REVENUE (NET)</span>
+          <span className="text-[10px] uppercase font-bold tracking-wider text-[#6B7A5E]">TOTAL REVENUE (NET)</span>
           <p className="font-display text-2xl font-bold text-neutral-900 mt-1 leading-tight">
             ₱{netRevenue.toLocaleString()}
           </p>
@@ -610,7 +610,7 @@ export default function AdminReports() {
               <h3 className="font-display text-xl font-bold text-ink">Monthly Revenue</h3>
               <p className="text-xs text-ink-muted mt-0.5">Collected payments — {period.replace(/_/g, ' ')}</p>
             </div>
-            <span className="font-mono text-xs font-bold text-[#B48454] bg-[#B48454]/10 px-2.5 py-1 rounded-full">
+            <span className="font-mono text-xs font-bold text-[#6B7A5E] bg-[#6B7A5E]/10 px-2.5 py-1 rounded-full">
               ₱{netRevenue.toLocaleString()} Total
             </span>
           </div>
@@ -629,9 +629,9 @@ export default function AdminReports() {
                   />
                   <Tooltip
                     formatter={(v) => [`₱${Number(v).toLocaleString()}`, 'Collected Revenue']}
-                    contentStyle={{ backgroundColor: '#FAF8F5', borderRadius: '12px', border: '1px solid #D6CEBE', fontSize: '12px' }}
+                    contentStyle={{ backgroundColor: '#F6F2E8', borderRadius: '12px', border: '1px solid #D6CEBE', fontSize: '12px' }}
                   />
-                  <Bar dataKey="revenue" fill="#B48454" radius={[6, 6, 0, 0]} maxBarSize={48} />
+                  <Bar dataKey="revenue" fill="#6B7A5E" radius={[6, 6, 0, 0]} maxBarSize={48} />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
@@ -673,7 +673,7 @@ export default function AdminReports() {
                       const item = roomTypeRevenueData.find((d) => d.name === name)
                       return [`₱${Number(value).toLocaleString()} (${item?.percentage || 0}%)`, String(name)]
                     }}
-                    contentStyle={{ backgroundColor: '#FAF8F5', borderRadius: '12px', border: '1px solid #D6CEBE', fontSize: '12px' }}
+                    contentStyle={{ backgroundColor: '#F6F2E8', borderRadius: '12px', border: '1px solid #D6CEBE', fontSize: '12px' }}
                   />
                   <Legend
                     verticalAlign="bottom"
@@ -734,7 +734,7 @@ export default function AdminReports() {
                       const item = bookingStatusMixData.find((d) => d.name === name)
                       return [`${value} bookings (${item?.percentage || 0}%)`, String(name)]
                     }}
-                    contentStyle={{ backgroundColor: '#FAF8F5', borderRadius: '12px', border: '1px solid #D6CEBE', fontSize: '12px' }}
+                    contentStyle={{ backgroundColor: '#F6F2E8', borderRadius: '12px', border: '1px solid #D6CEBE', fontSize: '12px' }}
                   />
                   <Legend
                     verticalAlign="bottom"
@@ -762,7 +762,7 @@ export default function AdminReports() {
             {topGuestsData.length > 5 && (
               <button
                 onClick={() => setShowAllTopGuests(!showAllTopGuests)}
-                className="text-xs font-semibold text-[#B48454] hover:underline"
+                className="text-xs font-semibold text-[#6B7A5E] hover:underline"
               >
                 {showAllTopGuests ? 'Show Top 5' : `View All (${topGuestsData.length})`}
               </button>
@@ -773,16 +773,16 @@ export default function AdminReports() {
             {displayedTopGuests.map((guest, idx) => (
               <div
                 key={guest.id}
-                className="p-3 bg-[#FAF8F5] border border-stone/20 rounded-xl flex items-center justify-between gap-3 shadow-xs hover:border-[#B48454]/40 transition-all"
+                className="p-3 bg-[#F6F2E8] border border-stone/20 rounded-xl flex items-center justify-between gap-3 shadow-xs hover:border-[#6B7A5E]/40 transition-all"
               >
                 <div className="flex items-center gap-3">
                   <span className={`w-6 h-6 rounded-full flex items-center justify-center font-mono font-bold text-xs ${
-                    idx === 0 ? 'bg-[#B48454] text-white' : idx === 1 ? 'bg-amber-600 text-white' : idx === 2 ? 'bg-stone-500 text-white' : 'bg-sand text-ink-muted'
+                    idx === 0 ? 'bg-[#6B7A5E] text-white' : idx === 1 ? 'bg-amber-600 text-white' : idx === 2 ? 'bg-stone-500 text-white' : 'bg-sand text-ink-muted'
                   }`}>
                     {idx + 1}
                   </span>
 
-                  <div className="w-9 h-9 rounded-full bg-[#B48454]/15 text-[#B48454] font-display font-bold text-sm flex items-center justify-center shrink-0">
+                  <div className="w-9 h-9 rounded-full bg-[#6B7A5E]/15 text-[#6B7A5E] font-display font-bold text-sm flex items-center justify-center shrink-0">
                     {getInitials(guest.name)}
                   </div>
 
@@ -816,14 +816,14 @@ export default function AdminReports() {
             <h3 className="font-display text-xl font-bold text-ink">Payment Method Analytics</h3>
             <p className="text-xs text-ink-muted mt-0.5">Distribution of settled transactions across payment channels</p>
           </div>
-          <span className="text-xs font-mono font-bold text-[#B48454]">
+          <span className="text-xs font-mono font-bold text-[#6B7A5E]">
             {paymentMethodData.reduce((sum, d) => sum + d.count, 0)} Total Transactions
           </span>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           {paymentMethodData.map((item) => (
-            <div key={item.method} className="p-3.5 bg-[#FAF8F5] border border-stone/20 rounded-2xl space-y-1">
+            <div key={item.method} className="p-3.5 bg-[#F6F2E8] border border-stone/20 rounded-2xl space-y-1">
               <span className="text-[10px] uppercase font-bold tracking-wider text-ink-muted block truncate">{item.method}</span>
               <p className="font-display font-bold text-ink text-base">₱{item.total.toLocaleString()}</p>
               <p className="text-[10px] font-mono text-ink-muted">{item.count} {item.count === 1 ? 'transaction' : 'transactions'}</p>

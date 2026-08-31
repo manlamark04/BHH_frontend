@@ -67,7 +67,7 @@ export const OfficialReceiptModal: React.FC<OfficialReceiptModalProps> = ({
       <div className="space-y-4">
         
         {/* Top Control Bar (Hidden during print) */}
-        <div className="no-print flex flex-wrap items-center justify-between gap-2 p-3 bg-[#FAF8F5] dark:bg-neutral-900 border border-stone/20 dark:border-neutral-800 rounded-2xl">
+        <div className="no-print flex flex-wrap items-center justify-between gap-2 p-3 bg-[#F6F2E8] dark:bg-neutral-900 border border-stone/20 dark:border-neutral-800 rounded-2xl">
           <div className="flex items-center gap-2 text-xs font-semibold text-emerald-800 dark:text-emerald-400">
             <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
             <span>Payment successfully recorded & locked.</span>
@@ -76,7 +76,7 @@ export const OfficialReceiptModal: React.FC<OfficialReceiptModalProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={handlePrint}
-              className="px-3.5 py-1.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white font-semibold text-xs rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+              className="px-3.5 py-1.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white font-semibold text-xs rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
               title="Print standard or thermal receipt"
             >
               <Printer className="w-3.5 h-3.5" />
@@ -114,7 +114,7 @@ export const OfficialReceiptModal: React.FC<OfficialReceiptModalProps> = ({
           {/* Header Branding */}
           <div className="text-center border-b-2 border-dashed border-neutral-300 pb-5 mb-5">
             <div className="flex items-center justify-center gap-2 mb-1">
-              <span className="text-lg font-black tracking-widest text-[#B48454] uppercase font-display">
+              <span className="text-lg font-black tracking-widest text-[#6B7A5E] uppercase font-display">
                 CAMBACAY BREEZE INN
               </span>
             </div>
@@ -135,7 +135,7 @@ export const OfficialReceiptModal: React.FC<OfficialReceiptModalProps> = ({
           <div className="grid grid-cols-2 sm:grid-cols-2 gap-4 text-xs mb-5 font-mono">
             <div>
               <span className="text-[10px] text-neutral-500 uppercase font-bold block">OFFICIAL RECEIPT NO.</span>
-              <strong className="text-sm font-bold text-neutral-950 block tracking-wider text-[#B48454]">
+              <strong className="text-sm font-bold text-neutral-950 block tracking-wider text-[#6B7A5E]">
                 {receipt.receipt_number}
               </strong>
               <span className="text-[10px] text-neutral-500 mt-1 block">

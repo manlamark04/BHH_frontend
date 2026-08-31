@@ -176,8 +176,8 @@ export default function CustomerActivities({ customerId, customerName }: Props) 
         
         <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase font-bold tracking-wider text-[#B48454]">MOTORCYCLE FLEET</span>
-            <div className="w-6 h-6 rounded-lg bg-[#B48454]/10 text-[#B48454] flex items-center justify-center">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-[#6B7A5E]">MOTORCYCLE FLEET</span>
+            <div className="w-6 h-6 rounded-lg bg-[#6B7A5E]/10 text-[#6B7A5E] flex items-center justify-center">
               <Bike className="w-3.5 h-3.5" strokeWidth={1.5} />
             </div>
           </div>
@@ -215,8 +215,8 @@ export default function CustomerActivities({ customerId, customerName }: Props) 
 
         <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase font-bold tracking-wider text-[#B48454]">COURT RATE</span>
-            <div className="w-6 h-6 rounded-lg bg-[#B48454]/10 text-[#B48454] flex items-center justify-center">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-[#6B7A5E]">COURT RATE</span>
+            <div className="w-6 h-6 rounded-lg bg-[#6B7A5E]/10 text-[#6B7A5E] flex items-center justify-center">
               <Clock className="w-3.5 h-3.5" strokeWidth={1.5} />
             </div>
           </div>
@@ -236,7 +236,7 @@ export default function CustomerActivities({ customerId, customerName }: Props) 
           onClick={() => setActiveCategory('motor')}
           className={`px-4 py-2 rounded-md font-semibold transition-all cursor-pointer ${
             activeCategory === 'motor'
-              ? 'bg-[#B48454] text-white shadow-xs'
+              ? 'bg-[#6B7A5E] text-white shadow-xs'
               : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-white dark:hover:bg-neutral-800'
           }`}
         >
@@ -246,7 +246,7 @@ export default function CustomerActivities({ customerId, customerName }: Props) 
           onClick={() => setActiveCategory('pickleball')}
           className={`px-4 py-2 rounded-md font-semibold transition-all cursor-pointer ${
             activeCategory === 'pickleball'
-              ? 'bg-[#B48454] text-white shadow-xs'
+              ? 'bg-[#6B7A5E] text-white shadow-xs'
               : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-white dark:hover:bg-neutral-800'
           }`}
         >
@@ -293,7 +293,7 @@ export default function CustomerActivities({ customerId, customerName }: Props) 
             <div className="lg:w-1/2 p-6 sm:p-8 flex flex-col justify-between space-y-5">
               <div>
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] uppercase font-bold tracking-widest text-[#B48454]">RESORT AMENITY</span>
+                  <span className="text-[10px] uppercase font-bold tracking-widest text-[#6B7A5E]">RESORT AMENITY</span>
                   {currentOngoingMatch ? (
                     <span className="text-[10px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-md">
                       Active match in progress
@@ -334,11 +334,11 @@ export default function CustomerActivities({ customerId, customerName }: Props) 
                 )}
 
                 <div className="grid grid-cols-2 gap-3 mt-4 text-xs">
-                  <div className="p-3 bg-[#FAF8F5] border border-stone/20 rounded-xl">
+                  <div className="p-3 bg-[#F6F2E8] border border-stone/20 rounded-xl">
                     <span className="text-[10px] uppercase font-bold text-ink-muted block">EQUIPMENT</span>
                     <strong className="text-ink">4 Paddles & Balls Included</strong>
                   </div>
-                  <div className="p-3 bg-[#FAF8F5] border border-stone/20 rounded-xl">
+                  <div className="p-3 bg-[#F6F2E8] border border-stone/20 rounded-xl">
                     <span className="text-[10px] uppercase font-bold text-ink-muted block">LIGHTING</span>
                     <strong className="text-ink">Night Play Ready</strong>
                   </div>
@@ -347,7 +347,7 @@ export default function CustomerActivities({ customerId, customerName }: Props) 
 
               <button
                 onClick={() => setShowBookingModal(true)}
-                className="w-full py-3 bg-[#B48454] hover:bg-[#9E6E3E] text-white font-semibold rounded-xl text-xs shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full py-3 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white font-semibold rounded-xl text-xs shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Calendar className="w-4 h-4" strokeWidth={1.5} />
                 <span>Reserve Another Time Slot</span>
@@ -357,12 +357,12 @@ export default function CustomerActivities({ customerId, customerName }: Props) 
 
           {/* Court Reservation History Table */}
           <div className="bg-white rounded-2xl border border-stone/20 shadow-sm overflow-hidden">
-            <div className="px-6 py-4 border-b border-stone/15 bg-[#FCFAF7] flex items-center justify-between">
+            <div className="px-6 py-4 border-b border-stone/15 bg-[#F6F2E8] flex items-center justify-between">
               <div>
                 <h3 className="font-display font-bold text-lg text-ink">My Court Reservations</h3>
                 <p className="text-xs text-ink-muted">Personal schedule & booking history</p>
               </div>
-              <span className="text-xs font-mono font-bold text-[#B48454]">{courtBookings.length} bookings</span>
+              <span className="text-xs font-mono font-bold text-[#6B7A5E]">{courtBookings.length} bookings</span>
             </div>
 
             <div className="overflow-x-auto">
@@ -442,7 +442,7 @@ export default function CustomerActivities({ customerId, customerName }: Props) 
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
                 min={new Date().toISOString().split('T')[0]}
-                className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] font-mono text-xs focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#F6F2E8] font-mono text-xs focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
               />
             </div>
             <div>
@@ -450,7 +450,7 @@ export default function CustomerActivities({ customerId, customerName }: Props) 
               <select
                 value={startTime}
                 onChange={(e) => setStartTime(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] font-mono text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#F6F2E8] font-mono text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
               >
                 {COURT_TIME_SLOTS.map((opt) => {
                   const booked = isSlotBooked(opt.value)
@@ -470,7 +470,7 @@ export default function CustomerActivities({ customerId, customerName }: Props) 
               <select
                 value={duration}
                 onChange={(e) => setDuration(Number(e.target.value))}
-                className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] font-semibold text-xs focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#F6F2E8] font-semibold text-xs focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
               >
                 <option value={1}>1 Hour</option>
                 <option value={2}>2 Hours</option>
@@ -480,7 +480,7 @@ export default function CustomerActivities({ customerId, customerName }: Props) 
             <div>
               <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Expected End of Playing Time</label>
               <div className="w-full px-3 py-2.5 rounded-xl border border-amber-300/80 bg-amber-50/70 font-mono text-xs font-bold text-amber-900 flex items-center gap-2">
-                <Clock className="w-3.5 h-3.5 text-[#B48454] shrink-0" />
+                <Clock className="w-3.5 h-3.5 text-[#6B7A5E] shrink-0" />
                 <span>{calculateExpectedEndTime(startTime, duration, date)}</span>
               </div>
             </div>
@@ -491,14 +491,14 @@ export default function CustomerActivities({ customerId, customerName }: Props) 
             <select
               value={players}
               onChange={(e) => setPlayers(e.target.value)}
-              className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] font-semibold text-xs focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+              className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#F6F2E8] font-semibold text-xs focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
             >
               <option value="2">2 Players (Singles)</option>
               <option value="4">4 Players (Doubles)</option>
             </select>
           </div>
 
-          <div className="p-4 bg-[#FAF8F5] border border-stone/20 rounded-2xl space-y-2">
+          <div className="p-4 bg-[#F6F2E8] border border-stone/20 rounded-2xl space-y-2">
             <div className="flex items-center justify-between text-xs">
               <span className="text-ink-muted">Playing Schedule:</span>
               <span className="font-mono font-semibold text-ink">
@@ -516,7 +516,7 @@ export default function CustomerActivities({ customerId, customerName }: Props) 
                 <span className="text-[10px] uppercase font-bold text-ink-muted">TOTAL RESERVATION RATE</span>
                 <p className="text-xs text-ink-muted">₱{courtRate} × {duration} hr(s)</p>
               </div>
-              <strong className="font-display font-bold text-2xl text-[#B48454]">₱{totalCost.toLocaleString()}</strong>
+              <strong className="font-display font-bold text-2xl text-[#6B7A5E]">₱{totalCost.toLocaleString()}</strong>
             </div>
           </div>
 
@@ -531,7 +531,7 @@ export default function CustomerActivities({ customerId, customerName }: Props) 
             <button
               type="submit"
               disabled={submitting}
-              className="flex-1 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl font-semibold shadow-sm disabled:opacity-50 transition-all"
+              className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl font-semibold shadow-sm disabled:opacity-50 transition-all"
             >
               {submitting ? 'Reserving...' : 'Confirm Court Booking'}
             </button>

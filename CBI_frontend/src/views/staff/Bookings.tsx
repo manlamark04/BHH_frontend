@@ -267,7 +267,7 @@ export default function StaffBookings() {
           onClick={() => setActiveTab('pending_payment')}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
             activeTab === 'pending_payment'
-              ? 'bg-[#B48454] text-white shadow-xs'
+              ? 'bg-[#6B7A5E] text-white shadow-xs'
               : 'bg-white dark:bg-[#181B20] text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white border border-black/[0.06] dark:border-neutral-800'
           }`}
         >
@@ -310,7 +310,7 @@ export default function StaffBookings() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by Guest Name, Booking Ref, Room, Phone..."
-            className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] text-xs focus:outline-none focus:ring-2 focus:ring-[#B48454]/40 font-medium"
+            className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-stone/30 bg-[#F6F2E8] text-xs focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40 font-medium"
           />
         </div>
 
@@ -318,7 +318,7 @@ export default function StaffBookings() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-4 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] text-xs focus:outline-none focus:ring-2 focus:ring-[#B48454]/40 font-semibold"
+            className="px-4 py-2.5 rounded-xl border border-stone/30 bg-[#F6F2E8] text-xs focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40 font-semibold"
           >
             <option value="All">All Statuses</option>
             <option value="pending_approval">Pending Approval</option>
@@ -560,12 +560,12 @@ export default function StaffBookings() {
       {/* ─── TAB 3: ALL BOOKINGS LEDGER ─── */}
       {activeTab === 'all' && (
         <div className="bg-white rounded-2xl border border-stone/20 shadow-xs overflow-hidden">
-          <div className="px-6 py-4 border-b border-stone/15 bg-[#FCFAF7] flex items-center justify-between">
+          <div className="px-6 py-4 border-b border-stone/15 bg-[#F6F2E8] flex items-center justify-between">
             <div>
               <h3 className="font-display font-bold text-lg text-ink">Master Reservations Ledger</h3>
               <p className="text-xs text-ink-muted">Historical requests across all state transitions</p>
             </div>
-            <span className="text-xs font-mono font-bold text-[#B48454]">{displayedBookings.length} records</span>
+            <span className="text-xs font-mono font-bold text-[#6B7A5E]">{displayedBookings.length} records</span>
           </div>
 
           <div className="overflow-x-auto">
@@ -588,7 +588,7 @@ export default function StaffBookings() {
                   const id = Number(b.id)
                   return (
                     <tr key={id} className="hover:bg-sand/20 transition-colors">
-                      <td className="px-5 py-4 font-mono font-bold text-xs text-[#B48454]">{b.booking_ref || `BK-${b.id}`}</td>
+                      <td className="px-5 py-4 font-mono font-bold text-xs text-[#6B7A5E]">{b.booking_ref || `BK-${b.id}`}</td>
                       <td className="px-5 py-4 font-semibold text-ink text-xs">{b.customer_name}</td>
                       <td className="px-5 py-4 text-ink-muted text-xs">
                         {b.room_type} ({b.room_number})
@@ -643,7 +643,7 @@ export default function StaffBookings() {
 
           {loading && (
             <div className="text-center py-16 text-ink-muted text-xs">
-              <div className="w-6 h-6 border-2 border-[#B48454] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+              <div className="w-6 h-6 border-2 border-[#6B7A5E] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
               <p>Loading ledger...</p>
             </div>
           )}
@@ -702,7 +702,7 @@ export default function StaffBookings() {
               <select
                 value={rejectReason}
                 onChange={(e) => setRejectReason(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-rose-500/40"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-[#F6F2E8] text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-rose-500/40"
               >
                 {REJECTION_REASONS.map((r) => (
                   <option key={r} value={r}>
@@ -721,7 +721,7 @@ export default function StaffBookings() {
                 onChange={(e) => setRejectNotes(e.target.value)}
                 rows={3}
                 placeholder="Provide helpful context regarding the cancellation or alternative accommodation options..."
-                className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] text-xs focus:outline-none focus:ring-2 focus:ring-rose-500/40 font-medium"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-[#F6F2E8] text-xs focus:outline-none focus:ring-2 focus:ring-rose-500/40 font-medium"
               />
             </div>
 
@@ -768,7 +768,7 @@ export default function StaffBookings() {
                 required
                 value={payAmount}
                 onChange={(e) => setPayAmount(e.target.value)}
-                className="w-full px-3.5 py-2 rounded-xl border border-stone/30 bg-[#FAF8F5] text-xs font-mono font-bold"
+                className="w-full px-3.5 py-2 rounded-xl border border-stone/30 bg-[#F6F2E8] text-xs font-mono font-bold"
               />
             </div>
 
@@ -777,7 +777,7 @@ export default function StaffBookings() {
               <select
                 value={payMethod}
                 onChange={(e) => setPayMethod(e.target.value)}
-                className="w-full px-3.5 py-2 rounded-xl border border-stone/30 bg-[#FAF8F5] text-xs font-semibold"
+                className="w-full px-3.5 py-2 rounded-xl border border-stone/30 bg-[#F6F2E8] text-xs font-semibold"
               >
                 <option value="cash">Cash</option>
               </select>
@@ -790,7 +790,7 @@ export default function StaffBookings() {
                 placeholder="e.g. GCash Ref 908123891"
                 value={payRef}
                 onChange={(e) => setPayRef(e.target.value)}
-                className="w-full px-3.5 py-2 rounded-xl border border-stone/30 bg-[#FAF8F5] text-xs font-mono"
+                className="w-full px-3.5 py-2 rounded-xl border border-stone/30 bg-[#F6F2E8] text-xs font-mono"
               />
             </div>
 
@@ -801,7 +801,7 @@ export default function StaffBookings() {
                 placeholder="Optional notes..."
                 value={payNotes}
                 onChange={(e) => setPayNotes(e.target.value)}
-                className="w-full px-3.5 py-2 rounded-xl border border-stone/30 bg-[#FAF8F5] text-xs"
+                className="w-full px-3.5 py-2 rounded-xl border border-stone/30 bg-[#F6F2E8] text-xs"
               />
             </div>
 
@@ -816,7 +816,7 @@ export default function StaffBookings() {
               <button
                 type="submit"
                 disabled={paySubmitting}
-                className="px-4 py-2 rounded-xl text-xs font-semibold bg-[#B48454] hover:bg-[#9E6E3E] text-white shadow-xs"
+                className="px-4 py-2 rounded-xl text-xs font-semibold bg-[#6B7A5E] hover:bg-[#4F5D45] text-white shadow-xs"
               >
                 {paySubmitting ? 'Recording...' : 'Submit & Promote to Approval Queue'}
               </button>

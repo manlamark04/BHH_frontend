@@ -475,8 +475,8 @@ export default function AdminPayments() {
         {/* Card 1: Collected */}
         <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.04)] transition-all flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase font-bold tracking-wider text-[#B48454]">COLLECTED</span>
-            <div className="w-6 h-6 rounded-lg bg-[#B48454]/10 text-[#B48454] flex items-center justify-center">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-[#6B7A5E]">COLLECTED</span>
+            <div className="w-6 h-6 rounded-lg bg-[#6B7A5E]/10 text-[#6B7A5E] flex items-center justify-center">
               <Receipt className="w-3.5 h-3.5" strokeWidth={1.5} />
             </div>
           </div>
@@ -542,7 +542,7 @@ export default function AdminPayments() {
                   onClick={() => { setActiveFilter(tab); setCurrentPage(1); }}
                   className={`px-3.5 py-1.5 rounded-lg font-semibold transition-all ${
                     activeFilter === tab
-                      ? 'bg-[#B48454] text-white shadow-sm'
+                      ? 'bg-[#6B7A5E] text-white shadow-sm'
                       : 'text-ink-muted hover:text-ink hover:bg-white/60'
                   }`}
                 >
@@ -562,7 +562,7 @@ export default function AdminPayments() {
                   setCurrentPage(1)
                 }}
                 placeholder="Search invoice #, guest, room..."
-                className="pl-8.5 pr-8 py-1.5 rounded-xl border border-black/[0.08] dark:border-neutral-700/80 bg-[#FAF8F5] dark:bg-[#20252E] text-xs font-medium text-neutral-900 dark:text-white placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-[#B48454]/40 w-52 sm:w-64 transition-all"
+                className="pl-8.5 pr-8 py-1.5 rounded-xl border border-black/[0.08] dark:border-neutral-700/80 bg-[#F6F2E8] dark:bg-[#20252E] text-xs font-medium text-neutral-900 dark:text-white placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40 w-52 sm:w-64 transition-all"
               />
               {searchQuery && (
                 <button
@@ -613,7 +613,7 @@ export default function AdminPayments() {
                     
                     {/* INVOICE & RECEIPT */}
                     <td className="px-4 py-4 font-mono">
-                      <div className="font-bold text-[#B48454] text-xs">{inv.invoice_number}</div>
+                      <div className="font-bold text-[#6B7A5E] text-xs">{inv.invoice_number}</div>
                       <div className="text-[10px] text-neutral-500 font-sans mt-0.5">
                         Receipt: <strong className="font-mono text-neutral-700 dark:text-neutral-300 font-semibold">{inv.receipt_number || '—'}</strong>
                       </div>
@@ -622,7 +622,7 @@ export default function AdminPayments() {
                     {/* GUEST */}
                     <td className="px-4 py-4">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-full bg-[#B48454]/15 text-[#B48454] font-display font-bold text-xs flex items-center justify-center shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-[#6B7A5E]/15 text-[#6B7A5E] font-display font-bold text-xs flex items-center justify-center shrink-0">
                           {getInitials(inv.customer_name)}
                         </div>
                         <div>
@@ -757,7 +757,7 @@ export default function AdminPayments() {
                               }
                               setActiveReceipt(receiptObj)
                             }}
-                            className="px-2.5 py-1 text-xs text-[#B48454] bg-[#B48454]/10 hover:bg-[#B48454]/20 border border-[#B48454]/30 rounded-lg font-semibold transition-all shadow-xs shrink-0 cursor-pointer flex items-center gap-1"
+                            className="px-2.5 py-1 text-xs text-[#6B7A5E] bg-[#6B7A5E]/10 hover:bg-[#6B7A5E]/20 border border-[#6B7A5E]/30 rounded-lg font-semibold transition-all shadow-xs shrink-0 cursor-pointer flex items-center gap-1"
                             title="View and print official payment receipt"
                           >
                             <Printer className="w-3 h-3" />
@@ -814,7 +814,7 @@ export default function AdminPayments() {
         {/* Loading State */}
         {loading && (
           <div className="text-center py-16 text-ink-muted text-xs">
-            <div className="w-6 h-6 border-2 border-[#B48454] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+            <div className="w-6 h-6 border-2 border-[#6B7A5E] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
             <p>Loading payment transactions...</p>
           </div>
         )}
@@ -832,7 +832,7 @@ export default function AdminPayments() {
 
         {/* ─── 5. PAGINATION CONTROLS ─── */}
         {!loading && filteredInvoices.length > 0 && (
-          <div className="px-6 py-4 border-t border-stone/15 bg-[#FCFAF7] flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs">
+          <div className="px-6 py-4 border-t border-stone/15 bg-[#F6F2E8] flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs">
             <span className="text-ink-muted font-medium">
               Showing <strong className="text-ink">{(currentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, filteredInvoices.length)}</strong> of <strong className="text-ink">{filteredInvoices.length}</strong> transactions
             </span>
@@ -841,7 +841,7 @@ export default function AdminPayments() {
               <button
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
-                className="px-3 py-1.5 rounded-xl border border-stone/30 bg-[#FAF8F5] text-ink font-semibold disabled:opacity-40 hover:bg-sand transition-all"
+                className="px-3 py-1.5 rounded-xl border border-stone/30 bg-[#F6F2E8] text-ink font-semibold disabled:opacity-40 hover:bg-sand transition-all"
               >
                 Previous
               </button>
@@ -852,8 +852,8 @@ export default function AdminPayments() {
                   onClick={() => setCurrentPage(pg)}
                   className={`w-8 h-8 rounded-xl font-semibold transition-all ${
                     currentPage === pg
-                      ? 'bg-[#B48454] text-white shadow-sm'
-                      : 'border border-stone/30 bg-[#FAF8F5] text-ink hover:bg-sand'
+                      ? 'bg-[#6B7A5E] text-white shadow-sm'
+                      : 'border border-stone/30 bg-[#F6F2E8] text-ink hover:bg-sand'
                   }`}
                 >
                   {pg}
@@ -863,7 +863,7 @@ export default function AdminPayments() {
               <button
                 onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                 disabled={currentPage === totalPages}
-                className="px-3 py-1.5 rounded-xl border border-stone/30 bg-[#FAF8F5] text-ink font-semibold disabled:opacity-40 hover:bg-sand transition-all"
+                className="px-3 py-1.5 rounded-xl border border-stone/30 bg-[#F6F2E8] text-ink font-semibold disabled:opacity-40 hover:bg-sand transition-all"
               >
                 Next
               </button>
@@ -890,7 +890,7 @@ export default function AdminPayments() {
             <select
               value={selectedBillId}
               onChange={(e) => handleInvoiceSelect(e.target.value ? Number(e.target.value) : '')}
-              className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] font-semibold text-xs text-ink focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+              className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#F6F2E8] font-semibold text-xs text-ink focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
             >
               <option value="">-- Choose from Invoices ({invoices.filter(i => String(i.status).toUpperCase() !== 'PAID').length} Pending) --</option>
               {invoices.map((i) => {
@@ -966,13 +966,13 @@ export default function AdminPayments() {
 
           {/* ─── 1. PROMINENT TOTAL BILL AMOUNT ROW (Above Payment Fields) ─── */}
           {(selectedInvoice || selectedBooking) && (
-            <div className="p-3.5 bg-[#FAF8F5] dark:bg-[#181B20] border border-stone/20 dark:border-neutral-700/80 rounded-2xl flex items-center justify-between shadow-2xs">
+            <div className="p-3.5 bg-[#F6F2E8] dark:bg-[#181B20] border border-stone/20 dark:border-neutral-700/80 rounded-2xl flex items-center justify-between shadow-2xs">
               <div>
                 <span className="text-[10px] uppercase font-bold text-ink-muted tracking-wider block">TOTAL BILL AMOUNT</span>
                 <span className="text-[11px] text-ink-muted font-medium">Remaining balance owed</span>
               </div>
               <div className="text-right">
-                <span className="font-display font-bold text-2xl text-[#B48454]">
+                <span className="font-display font-bold text-2xl text-[#6B7A5E]">
                   ₱{activeDueAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
                 </span>
               </div>
@@ -1012,7 +1012,7 @@ export default function AdminPayments() {
                 className={`w-full px-3 py-2.5 rounded-xl border font-display font-bold text-sm transition-all ${
                   isExceeded || isUnderpaid
                     ? 'border-rose-500 bg-rose-50/40 text-rose-900 focus:ring-2 focus:ring-rose-400/40'
-                    : 'border-stone focus:ring-2 focus:ring-[#B48454]/40'
+                    : 'border-stone focus:ring-2 focus:ring-[#6B7A5E]/40'
                 }`}
               />
 
@@ -1094,7 +1094,7 @@ export default function AdminPayments() {
             <button
               type="submit"
               disabled={processingPayment || (!selectedBillId && !selectedBookingId) || !payAmount || isInsufficient || isExceeded || paymentReceivedNum <= 0}
-              className="flex-1 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl font-semibold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer"
+              className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl font-semibold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer"
             >
               {processingPayment ? 'Recording...' : 'Record Payment'}
             </button>
@@ -1116,10 +1116,10 @@ export default function AdminPayments() {
           <div className="space-y-5 max-h-[78vh] overflow-y-auto pr-1 text-xs font-sans">
             
             {/* Top Banner Card */}
-            <div className="bg-[#FAF8F5] border border-stone/20 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="bg-[#F6F2E8] border border-stone/20 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2 mb-0.5">
-                  <span className="text-[10px] uppercase font-bold tracking-widest text-[#B48454]">INVOICE STATEMENT</span>
+                  <span className="text-[10px] uppercase font-bold tracking-widest text-[#6B7A5E]">INVOICE STATEMENT</span>
                   <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-sand text-ink border border-stone/20">
                     {viewInvoice.service_type || 'Service Invoice'}
                   </span>
@@ -1127,7 +1127,7 @@ export default function AdminPayments() {
                 <h3 className="font-display font-bold text-xl text-ink leading-tight">{viewInvoice.customer_name}</h3>
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-xs">
                   <p className="font-mono text-neutral-600">
-                    Invoice No.: <strong className="font-bold text-[#B48454]">{viewInvoice.invoice_number}</strong>
+                    Invoice No.: <strong className="font-bold text-[#6B7A5E]">{viewInvoice.invoice_number}</strong>
                   </p>
                   <p className="font-mono text-neutral-600">
                     Receipt No.: <strong className="font-bold text-neutral-900 dark:text-white">{viewInvoice.receipt_number && viewInvoice.receipt_number !== '—' ? viewInvoice.receipt_number : '—'}</strong>
@@ -1181,7 +1181,7 @@ export default function AdminPayments() {
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
                           <span className="text-[10px] text-neutral-500 uppercase font-bold">Receipt No.:</span>
-                          <strong className="font-mono font-bold text-[#B48454] text-xs">
+                          <strong className="font-mono font-bold text-[#6B7A5E] text-xs">
                             {p.receipt_number && p.receipt_number !== '—' ? p.receipt_number : '—'}
                           </strong>
                           <span className="capitalize font-semibold text-ink bg-sand/40 px-2 py-0.5 rounded text-[10px] border border-stone/20">
@@ -1232,7 +1232,7 @@ export default function AdminPayments() {
                             }
                             setActiveReceipt(pastReceipt)
                           }}
-                          className="px-2.5 py-1 text-[11px] text-[#B48454] border border-[#B48454]/40 bg-[#B48454]/5 rounded-lg hover:bg-sand/40 font-semibold transition-all cursor-pointer flex items-center gap-1"
+                          className="px-2.5 py-1 text-[11px] text-[#6B7A5E] border border-[#6B7A5E]/40 bg-[#6B7A5E]/5 rounded-lg hover:bg-sand/40 font-semibold transition-all cursor-pointer flex items-center gap-1"
                           title="View and print official payment receipt"
                         >
                           <Printer className="w-3 h-3" />

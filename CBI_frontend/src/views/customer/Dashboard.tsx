@@ -77,7 +77,7 @@ export default function CustomerDashboard({ onNavigate, userName, userId }: Cust
       {/* ─── 1. GUEST PROFILE CARD ─── */}
       <div className="bg-white dark:bg-[#181B20] rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-[#B48454] text-white font-display text-base font-bold flex items-center justify-center shadow-xs shrink-0">
+          <div className="w-10 h-10 rounded-full bg-[#6B7A5E] text-white font-display text-base font-bold flex items-center justify-center shadow-xs shrink-0">
             {userName.charAt(0).toUpperCase()}
           </div>
           <div>
@@ -88,7 +88,7 @@ export default function CustomerDashboard({ onNavigate, userName, userId }: Cust
               </span>
             </div>
             <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
-              Guest ID: <strong className="font-mono text-[#B48454] font-bold">{userId}</strong>
+              Guest ID: <strong className="font-mono text-[#6B7A5E] font-bold">{userId}</strong>
             </p>
           </div>
         </div>
@@ -109,11 +109,11 @@ export default function CustomerDashboard({ onNavigate, userName, userId }: Cust
         {/* Total Bookings */}
         <button
           onClick={() => onNavigate('customer-transactions')}
-          className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-md hover:border-[#B48454]/40 transition-all text-left flex flex-col justify-between cursor-pointer"
+          className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-md hover:border-[#6B7A5E]/40 transition-all text-left flex flex-col justify-between cursor-pointer"
         >
           <div className="flex items-center justify-between w-full">
-            <span className="text-[10px] uppercase font-bold tracking-wider text-[#B48454]">RESERVATIONS</span>
-            <div className="w-6 h-6 rounded-lg bg-[#B48454]/10 text-[#B48454] flex items-center justify-center">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-[#6B7A5E]">RESERVATIONS</span>
+            <div className="w-6 h-6 rounded-lg bg-[#6B7A5E]/10 text-[#6B7A5E] flex items-center justify-center">
               <Calendar className="w-3.5 h-3.5" strokeWidth={1.5} />
             </div>
           </div>
@@ -142,11 +142,11 @@ export default function CustomerDashboard({ onNavigate, userName, userId }: Cust
         {/* Total Paid */}
         <button
           onClick={() => onNavigate('customer-transactions')}
-          className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-md hover:border-[#B48454]/40 transition-all text-left flex flex-col justify-between cursor-pointer"
+          className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-md hover:border-[#6B7A5E]/40 transition-all text-left flex flex-col justify-between cursor-pointer"
         >
           <div className="flex items-center justify-between w-full">
-            <span className="text-[10px] uppercase font-bold tracking-wider text-[#B48454]">SETTLED PAYMENTS</span>
-            <div className="w-6 h-6 rounded-lg bg-[#B48454]/10 text-[#B48454] flex items-center justify-center">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-[#6B7A5E]">SETTLED PAYMENTS</span>
+            <div className="w-6 h-6 rounded-lg bg-[#6B7A5E]/10 text-[#6B7A5E] flex items-center justify-center">
               <Wallet className="w-3.5 h-3.5" strokeWidth={1.5} />
             </div>
           </div>
@@ -191,7 +191,7 @@ export default function CustomerDashboard({ onNavigate, userName, userId }: Cust
             </div>
             <button
               onClick={() => onNavigate('customer-rooms')}
-              className="text-xs font-semibold text-[#B48454] hover:underline flex items-center gap-1 cursor-pointer"
+              className="text-xs font-semibold text-[#6B7A5E] hover:underline flex items-center gap-1 cursor-pointer"
             >
               <span>Browse Rooms</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -212,7 +212,7 @@ export default function CustomerDashboard({ onNavigate, userName, userId }: Cust
                       Room {String(activeBooking.room_number || '')} · {String(activeBooking.room_type || 'Deluxe Room')}
                     </h4>
                   </div>
-                  <span className="font-mono text-xs font-bold text-[#B48454]">
+                  <span className="font-mono text-xs font-bold text-[#6B7A5E]">
                     {String(activeBooking.booking_ref || `#BK-${activeBooking.id}`)}
                   </span>
                 </div>
@@ -226,7 +226,7 @@ export default function CustomerDashboard({ onNavigate, userName, userId }: Cust
 
             {/* Upcoming Stays */}
             {upcomingBookings.map((b) => (
-              <div key={String(b.id)} className="p-3.5 rounded-lg bg-neutral-50/70 dark:bg-[#14171C] border border-black/[0.06] dark:border-neutral-800 space-y-2 hover:border-[#B48454]/40 transition-all">
+              <div key={String(b.id)} className="p-3.5 rounded-lg bg-neutral-50/70 dark:bg-[#14171C] border border-black/[0.06] dark:border-neutral-800 space-y-2 hover:border-[#6B7A5E]/40 transition-all">
                 <div className="flex items-start justify-between">
                   <div>
                     <StatusBadge status={String(b.status).toUpperCase()} />
@@ -234,7 +234,7 @@ export default function CustomerDashboard({ onNavigate, userName, userId }: Cust
                       Room {String(b.room_number || '')} · {String(b.room_type || 'Standard Room')}
                     </h4>
                   </div>
-                  <span className="font-mono text-xs font-bold text-[#B48454]">
+                  <span className="font-mono text-xs font-bold text-[#6B7A5E]">
                     {String(b.booking_ref || `#BK-${b.id}`)}
                   </span>
                 </div>
@@ -255,7 +255,7 @@ export default function CustomerDashboard({ onNavigate, userName, userId }: Cust
                 <p className="mt-0.5 text-[11px]">Experience the tropical warmth of Cambacay Breeze Inn.</p>
                 <button
                   onClick={() => onNavigate('customer-rooms')}
-                  className="mt-3 px-3.5 py-1.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-lg text-xs font-semibold transition-all shadow-xs cursor-pointer"
+                  className="mt-3 px-3.5 py-1.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-lg text-xs font-semibold transition-all shadow-xs cursor-pointer"
                 >
                   Find Your Perfect Room
                 </button>
@@ -282,9 +282,9 @@ export default function CustomerDashboard({ onNavigate, userName, userId }: Cust
               <button
                 key={item.label}
                 onClick={() => onNavigate(item.view)}
-                className="p-3 rounded-lg border border-black/[0.06] dark:border-neutral-800 bg-neutral-50/70 dark:bg-[#14171C] hover:bg-white dark:hover:bg-[#1E232B] hover:border-[#B48454]/40 hover:shadow-2xs transition-all text-left flex flex-col justify-between group cursor-pointer"
+                className="p-3 rounded-lg border border-black/[0.06] dark:border-neutral-800 bg-neutral-50/70 dark:bg-[#14171C] hover:bg-white dark:hover:bg-[#1E232B] hover:border-[#6B7A5E]/40 hover:shadow-2xs transition-all text-left flex flex-col justify-between group cursor-pointer"
               >
-                <div className="w-7 h-7 rounded-lg bg-neutral-200/60 dark:bg-neutral-800 flex items-center justify-center text-neutral-600 dark:text-neutral-400 mb-1.5 group-hover:bg-[#B48454]/10 group-hover:text-[#B48454] transition-colors">
+                <div className="w-7 h-7 rounded-lg bg-neutral-200/60 dark:bg-neutral-800 flex items-center justify-center text-neutral-600 dark:text-neutral-400 mb-1.5 group-hover:bg-[#6B7A5E]/10 group-hover:text-[#6B7A5E] transition-colors">
                   <item.Icon className="w-3.5 h-3.5" strokeWidth={1.5} />
                 </div>
                 <div>
@@ -307,7 +307,7 @@ export default function CustomerDashboard({ onNavigate, userName, userId }: Cust
           </div>
           <button
             onClick={() => onNavigate('customer-activities')}
-            className="text-xs font-semibold text-[#B48454] hover:underline flex items-center gap-1 cursor-pointer"
+            className="text-xs font-semibold text-[#6B7A5E] hover:underline flex items-center gap-1 cursor-pointer"
           >
             <span>View All Activities</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -347,7 +347,7 @@ export default function CustomerDashboard({ onNavigate, userName, userId }: Cust
               <div
                 key={String(a.id)}
                 onClick={() => onNavigate('customer-activities')}
-                className="rounded-xl border border-black/[0.06] dark:border-neutral-800 overflow-hidden bg-neutral-50/70 dark:bg-[#14171C] hover:shadow-sm hover:border-[#B48454]/40 transition-all cursor-pointer group"
+                className="rounded-xl border border-black/[0.06] dark:border-neutral-800 overflow-hidden bg-neutral-50/70 dark:bg-[#14171C] hover:shadow-sm hover:border-[#6B7A5E]/40 transition-all cursor-pointer group"
               >
                 <div className="h-28 bg-neutral-200 dark:bg-neutral-800 overflow-hidden relative">
                   <img

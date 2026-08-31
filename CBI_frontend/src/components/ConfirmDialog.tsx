@@ -30,19 +30,19 @@ export default function ConfirmDialog({
   const btnStyles = {
     danger: 'bg-rose-600 hover:bg-rose-700 text-white shadow-xs',
     success: 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs',
-    warning: 'bg-[#B48454] hover:bg-[#9E6E3E] text-white shadow-xs',
+    warning: 'bg-[#6B7A5E] hover:bg-[#4F5D45] text-white shadow-xs',
   }
 
   const icons = {
     danger: <AlertTriangle className="w-5 h-5 text-rose-600" strokeWidth={1.5} />,
     success: <CheckCircle className="w-5 h-5 text-emerald-600" strokeWidth={1.5} />,
-    warning: <Info className="w-5 h-5 text-[#B48454]" strokeWidth={1.5} />,
+    warning: <Info className="w-5 h-5 text-[#6B7A5E]" strokeWidth={1.5} />,
   }
 
   const iconBgs = {
     danger: 'bg-rose-50 border-rose-100',
     success: 'bg-emerald-50 border-emerald-100',
-    warning: 'bg-[#B48454]/10 border-[#B48454]/20',
+    warning: 'bg-[#6B7A5E]/12 border-[#6B7A5E]/20',
   }
 
   return (

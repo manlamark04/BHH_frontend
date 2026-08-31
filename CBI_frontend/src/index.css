@@ -5,25 +5,25 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --color-cream: #FAFAFA;
-  --color-cream-dark: #F4F4F5;
-  --color-forest: #1F2937;
-  --color-forest-hover: #111827;
-  --color-forest-muted: #4B5563;
-  --color-leaf: #10B981;
-  --color-amber: #B48454;
-  --color-amber-light: #C99A6B;
-  --color-bark: #4A3525;
-  --color-sand: #F4F4F5;
-  --color-stone: #E4E4E7;
-  --color-stone-light: #F4F4F5;
-  --color-ink: #18181B;
-  --color-ink-muted: #71717A;
-  --color-ink-faint: #A1A1AA;
+  --color-cream: #F6F2E8;
+  --color-cream-dark: #EDE7D8;
+  --color-forest: #3B4534;
+  --color-forest-hover: #2A3126;
+  --color-forest-muted: #55624B;
+  --color-leaf: #22A66B;
+  --color-amber: #6B7A5E;
+  --color-amber-light: #C9A66B;
+  --color-bark: #2A3126;
+  --color-sand: #EDE7D8;
+  --color-stone: #E2DCD0;
+  --color-stone-light: #EDE7D8;
+  --color-ink: #2A2822;
+  --color-ink-muted: #7C7A6C;
+  --color-ink-faint: #A8A698;
   --color-white: #FFFFFF;
   --color-red-soft: #EF4444;
   --color-blue-soft: #3B82F6;
-  --color-teal-soft: #10B981;
+  --color-teal-soft: #22A66B;
 
   --font-display: 'Inter', system-ui, -apple-system, sans-serif;
   --font-body: 'Inter', system-ui, -apple-system, sans-serif;
@@ -53,25 +53,25 @@ html {
 
 body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  background-color: #FAFAFA;
-  color: #18181B;
+  background-color: #F6F2E8;
+  color: #2A2822;
   -webkit-font-smoothing: antialiased;
 }
 
 html.dark body {
-  background-color: #121418;
-  color: #F4F4F5;
+  background-color: #141713;
+  color: #F6F2E8;
 }
 
 html.dark {
-  --color-cream: #121418;
-  --color-cream-dark: #181B20;
-  --color-sand: #1E232B;
-  --color-stone: #2A303C;
-  --color-stone-light: #1A1E26;
-  --color-ink: #F4F4F5;
-  --color-ink-muted: #A1A1AA;
-  --color-ink-faint: #71717A;
+  --color-cream: #141713;
+  --color-cream-dark: #1C221A;
+  --color-sand: #222920;
+  --color-stone: #2F382C;
+  --color-stone-light: #1E251C;
+  --color-ink: #F6F2E8;
+  --color-ink-muted: #A8A698;
+  --color-ink-faint: #7C7A6C;
 }
 
 /* ─── Global Enterprise Dark Mode Surfaces & Contrast ─── */
@@ -80,12 +80,13 @@ html.dark {
 }
 
 html.dark .bg-white {
-  background-color: #181B20;
+  background-color: #1C221A;
 }
 
 html.dark .bg-\[\#FCFAF7\],
 html.dark .bg-\[\#FAF8F5\],
 html.dark .bg-\[\#FBF9F6\],
+html.dark .bg-\[\#F6F2E8\],
 html.dark .bg-sand\/40,
 html.dark .bg-sand\/30,
 html.dark .bg-sand\/20,
@@ -93,14 +94,14 @@ html.dark .bg-neutral-50,
 html.dark .bg-neutral-50\/60,
 html.dark .bg-neutral-50\/70,
 html.dark .bg-neutral-50\/80 {
-  background-color: #14171C;
+  background-color: #161B14;
 }
 
 html.dark tr.bg-sand\/30,
 html.dark tr.bg-neutral-50\/80,
 html.dark thead tr {
-  background-color: #14171C;
-  color: #9CA3AF;
+  background-color: #161B14;
+  color: #A8A698;
 }
 
 html.dark tbody tr:hover {
@@ -110,14 +111,14 @@ html.dark tbody tr:hover {
 html.dark input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]),
 html.dark select,
 html.dark textarea {
-  background-color: #20252E;
-  color: #F4F4F5;
-  border-color: #374151;
+  background-color: #1E251C;
+  color: #F6F2E8;
+  border-color: #2F382C;
 }
 
 html.dark input::placeholder,
 html.dark textarea::placeholder {
-  color: #6B7280;
+  color: #7C7A6C;
 }
 
 html.dark .border-stone\/15,
@@ -130,25 +131,25 @@ html.dark .border-black\/\[0\.06\],
 html.dark .border-black\/\[0\.07\],
 html.dark .border-black\/\[0\.08\],
 html.dark .border-black\/\[0\.1\] {
-  border-color: #27272A;
+  border-color: #283124;
 }
 
 html.dark .divide-stone\/15,
 html.dark .divide-stone\/20,
 html.dark .divide-black\/\[0\.04\] {
-  border-color: #27272A;
+  border-color: #283124;
 }
 
 html.dark .text-ink {
-  color: #F4F4F5;
+  color: #F6F2E8;
 }
 
 html.dark .text-ink-muted {
-  color: #9CA3AF;
+  color: #A8A698;
 }
 
 html.dark .text-forest {
-  color: #F4F4F5;
+  color: #F6F2E8;
 }
 
 /* Custom scrollbar */
@@ -160,18 +161,18 @@ html.dark .text-forest {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #E4E4E7;
+  background: #E2DCD0;
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #D4D4D8;
+  background: #D4CDBC;
 }
 
 html.dark ::-webkit-scrollbar-thumb {
-  background: #27272A;
+  background: #283124;
 }
 html.dark ::-webkit-scrollbar-thumb:hover {
-  background: #3F3F46;
+  background: #3B4534;
 }
 
 /* Hide scrollbar when not hovering */
