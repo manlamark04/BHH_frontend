@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo, type ReactNode } fro
 import type { View } from '../types'
 import { roomsApi } from '../api/rooms'
 import { catalogApi } from '../api/services'
+import { inquiriesApi } from '../api/inquiries'
 import logo from '../imports/logo.png'
 import InteractiveLogoMark from '../components/InteractiveLogoMark'
 import pickleballCourtImg from '../imports/pickleball_court.jpg'
@@ -141,6 +142,45 @@ export default function Landing({ onNavigate }: LandingProps) {
   const [navScrolled, setNavScrolled] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [activeSection, setActiveSection] = useState('')
+
+  // Inquiry Form State
+  const [inqName, setInqName] = useState('')
+  const [inqEmail, setInqEmail] = useState('')
+  const [inqPhone, setInqPhone] = useState('')
+  const [inqSubject, setInqSubject] = useState('Room Reservation Inquiry')
+  const [inqMessage, setInqMessage] = useState('')
+  const [inqSending, setInqSending] = useState(false)
+  const [inqSuccess, setInqSuccess] = useState('')
+  const [inqError, setInqError] = useState('')
+
+  const handleSendInquiry = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!inqName.trim() || !inqEmail.trim() || !inqMessage.trim()) {
+      setInqError('Please fill out your name, email, and message.')
+      return
+    }
+    setInqSending(true)
+    setInqError('')
+    setInqSuccess('')
+    try {
+      const res = await inquiriesApi.submitInquiry({
+        full_name: inqName.trim(),
+        email: inqEmail.trim(),
+        phone: inqPhone.trim() || undefined,
+        subject: inqSubject,
+        message: inqMessage.trim(),
+      })
+      setInqSuccess(res.message || 'Thank you! Your message has been sent.')
+      setInqName('')
+      setInqEmail('')
+      setInqPhone('')
+      setInqMessage('')
+    } catch (err) {
+      setInqError(err instanceof Error ? err.message : 'Failed to send inquiry. Please try again.')
+    } finally {
+      setInqSending(false)
+    }
+  }
 
   useEffect(() => {
     roomsApi.getRooms().then(setRooms).catch(() => { })
@@ -790,13 +830,101 @@ export default function Landing({ onNavigate }: LandingProps) {
             </Reveal>
 
             <Reveal delay={1}>
-              <div className="rounded-2xl overflow-hidden aspect-[4/3] bg-white/[0.03] border border-white/[0.06]">
-                <img
-                  src="https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?w=800&h=600&fit=crop&auto=format&q=85"
-                  alt="Cambacay Breeze Inn front desk"
-                  className="w-full h-full object-cover"
-                  style={{ filter: 'saturate(0.85) brightness(0.88)' }}
-                />
+              <div className="bg-white/[0.04] p-6 sm:p-8 rounded-3xl border border-white/[0.08] backdrop-blur-md space-y-4">
+                <div>
+                  <p className="text-[11px] font-medium uppercase tracking-[0.15em] text-[#6B7A5E]">Direct Front Desk Message</p>
+                  <h3 className="font-display text-xl sm:text-2xl font-bold text-white mt-1">Send Us an Inquiry</h3>
+                  <p className="text-white/60 text-xs mt-1">
+                    Have questions regarding availability, group events, or court reservations? Drop us a note!
+                  </p>
+                </div>
+
+                {inqSuccess && (
+                  <div className="p-3 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-xs font-semibold">
+                    ✓ {inqSuccess}
+                  </div>
+                )}
+
+                {inqError && (
+                  <div className="p-3 bg-rose-500/20 border border-rose-500/40 rounded-xl text-rose-300 text-xs font-semibold">
+                    ⚠ {inqError}
+                  </div>
+                )}
+
+                <form onSubmit={handleSendInquiry} className="space-y-3 text-xs">
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-white/70 text-[11px] font-semibold mb-1">Your Full Name *</label>
+                      <input
+                        type="text"
+                        value={inqName}
+                        onChange={(e) => setInqName(e.target.value)}
+                        placeholder="e.g. Maria Santos"
+                        className="w-full px-3.5 py-2 rounded-xl bg-white/[0.06] border border-white/[0.12] text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-white/70 text-[11px] font-semibold mb-1">Email Address *</label>
+                      <input
+                        type="email"
+                        value={inqEmail}
+                        onChange={(e) => setInqEmail(e.target.value)}
+                        placeholder="maria@example.com"
+                        className="w-full px-3.5 py-2 rounded-xl bg-white/[0.06] border border-white/[0.12] text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-white/70 text-[11px] font-semibold mb-1">Contact Phone (Optional)</label>
+                      <input
+                        type="tel"
+                        value={inqPhone}
+                        onChange={(e) => setInqPhone(e.target.value)}
+                        placeholder="0917 123 4567"
+                        className="w-full px-3.5 py-2 rounded-xl bg-white/[0.06] border border-white/[0.12] text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-white/70 text-[11px] font-semibold mb-1">Inquiry Subject</label>
+                      <select
+                        value={inqSubject}
+                        onChange={(e) => setInqSubject(e.target.value)}
+                        className="w-full px-3.5 py-2 rounded-xl bg-[#2A3126] border border-white/[0.12] text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]"
+                      >
+                        <option value="Room Reservation Inquiry">Room Reservation Inquiry</option>
+                        <option value="Pickleball Court Booking">Pickleball Court Booking</option>
+                        <option value="Motorcycle Rental Question">Motorcycle Rental Question</option>
+                        <option value="Event or Gathering Package">Event or Gathering Package</option>
+                        <option value="General Question">General Question</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-white/70 text-[11px] font-semibold mb-1">Your Message *</label>
+                    <textarea
+                      rows={3}
+                      value={inqMessage}
+                      onChange={(e) => setInqMessage(e.target.value)}
+                      placeholder="Tell us your desired dates, number of guests, or questions..."
+                      className="w-full px-3.5 py-2 rounded-xl bg-white/[0.06] border border-white/[0.12] text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-[#6B7A5E] resize-none"
+                      required
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={inqSending}
+                    className="w-full py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white font-semibold rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    <span>{inqSending ? 'Sending Message...' : 'Submit Inquiry'}</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </form>
               </div>
             </Reveal>
           </div>

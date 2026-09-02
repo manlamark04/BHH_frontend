@@ -59,6 +59,11 @@ async function apiFetch<T = unknown>(
   const data = await res.json().catch(() => ({}))
 
   if (!res.ok) {
+    // Auto-logout on 401: token expired or invalid
+    if (res.status === 401) {
+      localStorage.removeItem('bhh_token')
+      window.dispatchEvent(new CustomEvent('auth:expired'))
+    }
     throw new ApiError(res.status, data as Record<string, unknown>)
   }
 

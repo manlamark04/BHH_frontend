@@ -21,6 +21,12 @@ import { bookingsApi, type BookingItem } from '../../api/bookings'
 import StatusBadge from '../../components/StatusBadge'
 import Modal from '../../components/Modal'
 import { OfficialReceiptModal } from '../../components/OfficialReceiptModal'
+import ConfirmDialog from '../../components/ConfirmDialog'
+import EmptyState from '../../components/EmptyState'
+import CashierEODModal from '../../components/CashierEODModal'
+import { SkeletonTable } from '../../components/SkeletonLoader'
+import { useToast } from '../../context/ToastContext'
+import { useDebounce } from '../../hooks/useDebounce'
 
 type FilterOption = 'All' | 'Paid' | 'Partially Paid' | 'Pending' | 'Refunded'
 type SortOption = 'newest' | 'oldest' | 'amount_desc' | 'amount_asc' | 'guest_asc' | 'invoice_asc'
@@ -35,7 +41,14 @@ export default function AdminPayments() {
   const [searchQuery, setSearchQuery] = useState('')
   const [sortBy, setSortBy] = useState<SortOption>('newest')
   const [currentPage, setCurrentPage] = useState(1)
-  const [toast, setToast] = useState('')
+  const [showEODModal, setShowEODModal] = useState(false)
+  const toast = useToast()
+
+  const debouncedSearch = useDebounce(searchQuery, 300)
+
+  // Cancel Invoice Confirm Dialog state
+  const [cancelInvoiceTarget, setCancelInvoiceTarget] = useState<InvoiceItem | null>(null)
+  const [cancellingInvoice, setCancellingInvoice] = useState(false)
 
   // View Invoice / Transaction History Modal
   const [viewInvoice, setViewInvoice] = useState<InvoiceItem | null>(null)
@@ -60,10 +73,6 @@ export default function AdminPayments() {
   const [refundReason, setRefundReason] = useState('')
   const [processingRefund, setProcessingRefund] = useState(false)
 
-  const fireToast = (msg: string) => {
-    setToast(msg)
-    setTimeout(() => setToast(''), 4500)
-  }
 
   const loadData = () => {
     setLoading(true)
@@ -243,8 +252,8 @@ export default function AdminPayments() {
     }
 
     // Search Query
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase().trim()
+    if (debouncedSearch.trim()) {
+      const q = debouncedSearch.toLowerCase().trim()
       list = list.filter((inv) =>
         String(inv.invoice_number || '').toLowerCase().includes(q) ||
         String(inv.bill_number || '').toLowerCase().includes(q) ||
@@ -280,7 +289,7 @@ export default function AdminPayments() {
     })
 
     return list
-  }, [invoices, activeFilter, searchQuery, sortBy])
+  }, [invoices, activeFilter, debouncedSearch, sortBy])
 
   // Pagination
   const totalPages = Math.max(1, Math.ceil(filteredInvoices.length / ITEMS_PER_PAGE))
@@ -402,7 +411,10 @@ export default function AdminPayments() {
         notes: finalNotes,
       })
 
-      fireToast(`✓ Payment of ₱${amountToRecord.toLocaleString()} recorded successfully!${change > 0 ? ` (Change: ₱${change.toLocaleString()})` : ''} Receipt No.: ${res.receipt_number || '—'}`)
+      toast.success(
+        `Payment of ₱${amountToRecord.toLocaleString()} recorded successfully!${change > 0 ? ` (Change: ₱${change.toLocaleString()})` : ''} Receipt No.: ${res.receipt_number || '—'}`,
+        'Payment Recorded'
+      )
       
       const receiptSnapshot: OfficialReceiptData = res.receipt_data || {
         receipt_number: res.receipt_number || '—',
@@ -455,7 +467,7 @@ export default function AdminPayments() {
     setProcessingRefund(true)
     try {
       await billingApi.refundPayment(refundTarget.payment.id, refundReason.trim())
-      fireToast(`✓ Payment of ₱${Number(refundTarget.payment.amount).toLocaleString()} refunded successfully.`)
+      toast.success(`Payment of ₱${Number(refundTarget.payment.amount).toLocaleString()} refunded successfully.`, 'Refund Processed')
       setRefundTarget(null)
       setRefundReason('')
       setViewInvoice(null)
@@ -467,16 +479,25 @@ export default function AdminPayments() {
     }
   }
 
+  // ─── 5. CANCEL INVOICE HANDLER (CONFIRM DIALOG) ───
+  const handleConfirmCancelInvoice = async () => {
+    if (!cancelInvoiceTarget) return
+    setCancellingInvoice(true)
+    try {
+      await billingApi.cancelBill(cancelInvoiceTarget.id)
+      toast.success(`Invoice ${cancelInvoiceTarget.invoice_number} cancelled and voided.`, 'Invoice Cancelled')
+      setCancelInvoiceTarget(null)
+      loadData()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to cancel invoice', 'Error')
+    } finally {
+      setCancellingInvoice(false)
+    }
+  }
+
   return (
     <div className="p-4 sm:p-5 max-w-7xl mx-auto space-y-4 font-sans">
-      
-      {/* Toast Alert */}
-      {toast && (
-        <div className="fixed top-6 right-6 z-50 px-5 py-3.5 bg-emerald-700 text-white font-medium text-xs rounded-2xl shadow-xl border border-emerald-500 animate-slideDown flex items-center gap-2">
-          <Check className="w-4 h-4 text-emerald-200" strokeWidth={2} />
-          <span>{toast}</span>
-        </div>
-      )}
+
 
       {/* ─── 1. SUMMARY STATISTIC CARDS (3 CARDS) ─── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
@@ -542,6 +563,14 @@ export default function AdminPayments() {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
+            <button
+              onClick={() => setShowEODModal(true)}
+              className="px-3.5 py-1.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl text-xs font-semibold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+              title="Daily Cashier Shift Reconciliation"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              <span>Cashier Shift Report</span>
+            </button>
             
             {/* Filter Tabs */}
             <div className="flex flex-wrap gap-1 p-1 bg-sand/40 rounded-xl border border-stone/20 text-xs">
@@ -814,16 +843,7 @@ export default function AdminPayments() {
                         {/* 3. CANCEL */}
                         {String(inv.status).toUpperCase() !== 'PAID' && String(inv.status).toUpperCase() !== 'CANCELLED' && (
                           <button
-                            onClick={async () => {
-                              if (!confirm(`Cancel invoice ${inv.invoice_number}? This will void the bill and release any reserved equipment or room.`)) return
-                              try {
-                                await billingApi.cancelBill(inv.id)
-                                fireToast(`Invoice ${inv.invoice_number} cancelled.`)
-                                loadData()
-                              } catch (err) {
-                                alert(err instanceof Error ? err.message : 'Failed to cancel invoice')
-                              }
-                            }}
+                            onClick={() => setCancelInvoiceTarget(inv)}
                             className="px-2.5 py-1 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 border border-rose-200 dark:border-rose-800/60 rounded-lg font-semibold transition-all flex items-center gap-1 cursor-pointer shrink-0"
                           >
                             <X className="w-3 h-3" />
@@ -841,22 +861,15 @@ export default function AdminPayments() {
         </div>
 
         {/* Loading State */}
-        {loading && (
-          <div className="text-center py-16 text-ink-muted text-xs">
-            <div className="w-6 h-6 border-2 border-[#6B7A5E] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-            <p>Loading payment transactions...</p>
-          </div>
-        )}
+        {loading && <SkeletonTable rows={6} cols={7} />}
 
         {/* Empty States */}
         {!loading && paginatedInvoices.length === 0 && (
-          <div className="py-20 text-center text-xs text-ink-muted">
-            <div className="w-12 h-12 rounded-2xl bg-sand/60 border border-stone/20 flex items-center justify-center mx-auto mb-3 text-ink-muted">
-              <Receipt className="w-6 h-6" strokeWidth={1.5} />
-            </div>
-            <p className="font-display font-bold text-ink text-base">No invoices found.</p>
-            <p className="mt-0.5">Try searching with another keyword or changing the filter.</p>
-          </div>
+          <EmptyState
+            icon={Receipt}
+            title="No invoices found"
+            subtitle="Try searching with another keyword or changing the filter tab."
+          />
         )}
 
         {/* ─── 5. PAGINATION CONTROLS ─── */}
@@ -1363,6 +1376,30 @@ export default function AdminPayments() {
         receipt={activeReceipt}
       />
 
+      {/* ══════════════════════════════════════════════════════════════
+          MODAL 5: CONFIRM CANCEL INVOICE DIALOG
+         ══════════════════════════════════════════════════════════════ */}
+      <ConfirmDialog
+        isOpen={Boolean(cancelInvoiceTarget)}
+        title="Cancel and Void Invoice"
+        message={`Are you sure you want to cancel invoice ${cancelInvoiceTarget?.invoice_number}? This will void the bill and release any reserved rooms or equipment.`}
+        confirmLabel="Yes, Cancel Invoice"
+        cancelLabel="Keep Invoice"
+        variant="danger"
+        loading={cancellingInvoice}
+        onConfirm={handleConfirmCancelInvoice}
+        onCancel={() => setCancelInvoiceTarget(null)}
+      />
+
+      {/* ══════════════════════════════════════════════════════════════
+          MODAL 6: CASHIER END-OF-DAY (EOD) SHIFT RECONCILIATION
+         ══════════════════════════════════════════════════════════════ */}
+      <CashierEODModal
+        isOpen={showEODModal}
+        onClose={() => setShowEODModal(false)}
+      />
+
     </div>
   )
 }
+

@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Menu } from 'lucide-react'
+import { Menu, AlertCircle } from 'lucide-react'
 import type { View, Role } from './types'
 import { authApi } from './api/auth'
 import { getToken, clearToken } from './api/client'
 import { ThemeProvider } from './context/ThemeContext'
+import { ToastProvider } from './context/ToastContext'
+import ErrorBoundary from './components/ErrorBoundary'
 
 // Views
 import Landing from './views/Landing'
@@ -13,6 +15,7 @@ import Register from './views/Register'
 // Shared layout
 import Sidebar from './components/Sidebar'
 import TopBar from './components/TopBar'
+import NotificationCenter from './components/NotificationCenter'
 
 // Customer views
 import CustomerDashboard from './views/customer/Dashboard'
@@ -46,6 +49,8 @@ import AdminReports from './views/admin/Reports'
 import AdminAuditLog from './views/admin/AuditLog'
 import AdminCheckInOut from './views/admin/CheckInOut'
 import AdminPayments from './views/admin/Payments'
+import AdminProfile from './views/admin/Profile'
+import StaffProfile from './views/staff/Profile'
 
 const VIEW_TITLES: Partial<Record<View, { title: string; subtitle?: string }>> = {
   'customer-dashboard': { title: 'My Dashboard', subtitle: 'Welcome to Cambacay Breeze Inn' },
@@ -88,6 +93,7 @@ interface AuthState {
   name: string
   userId: string
   dbId: number
+  mustChangePassword: boolean
 }
 
 export default function App() {
@@ -111,6 +117,7 @@ export default function App() {
           name: user.full_name,
           userId: user.unique_id,
           dbId: user.id,
+          mustChangePassword: Boolean(user.must_change_password),
         })
         setView(DEFAULT_VIEW[user.role])
       })
@@ -122,9 +129,24 @@ export default function App() {
       })
   }, [])
 
-  const handleLogin = useCallback((role: Role, name: string, userId: string, dbId: number) => {
-    setAuth({ role, name, userId, dbId })
+  // Task 1: Listen for JWT expiry events fired by client.ts
+  useEffect(() => {
+    const handleExpired = () => {
+      setAuth(null)
+      setView('login')
+    }
+    window.addEventListener('auth:expired', handleExpired)
+    return () => window.removeEventListener('auth:expired', handleExpired)
+  }, [])
+
+  const handleLogin = useCallback((role: Role, name: string, userId: string, dbId: number, mustChangePassword = false) => {
+    setAuth({ role, name, userId, dbId, mustChangePassword })
     setView(DEFAULT_VIEW[role])
+  }, [])
+
+  // Called by Profile after password change
+  const handlePasswordChanged = useCallback(() => {
+    setAuth((prev) => prev ? { ...prev, mustChangePassword: false } : prev)
   }, [])
 
   const handleLogout = useCallback(() => {
@@ -133,6 +155,7 @@ export default function App() {
     setView('landing')
   }, [])
 
+  // Guests and staff can freely navigate across all pages anytime
   const navigate = useCallback((v: View) => {
     setView(v)
     setMobileMenuOpen(false)
@@ -188,7 +211,7 @@ export default function App() {
       case 'customer-transactions':
         return <CustomerTransactions />
       case 'customer-profile':
-        return <CustomerProfile userName={name} userId={userId} />
+        return <CustomerProfile userName={name} userId={userId} onPasswordChanged={handlePasswordChanged} />
 
       // Staff
       case 'staff-dashboard':
@@ -211,6 +234,8 @@ export default function App() {
         return <AdminPayments />
       case 'staff-customers':
         return <StaffCustomers />
+      case 'staff-profile':
+        return <StaffProfile userName={name} userId={userId} onPasswordChanged={handlePasswordChanged} />
 
       // Admin
       case 'admin-dashboard':
@@ -233,6 +258,8 @@ export default function App() {
         return <AdminReports />
       case 'admin-audit':
         return <AdminAuditLog />
+      case 'admin-profile':
+        return <AdminProfile userName={name} userId={userId} onPasswordChanged={handlePasswordChanged} />
 
       default:
         return (
@@ -244,48 +271,59 @@ export default function App() {
   }
 
   return (
-    <ThemeProvider>
-      <div className="flex h-screen bg-[#FAFAFA] dark:bg-[#121418] text-[#18181B] dark:text-slate-100 overflow-hidden transition-colors duration-300">
-        <Sidebar
-          currentView={view}
-          onNavigate={navigate}
-          role={role}
-          userName={name}
-          userId={userId}
-          notifCount={0}
-          onLogout={handleLogout}
-          isMobileOpen={mobileMenuOpen}
-          onMobileClose={() => setMobileMenuOpen(false)}
-        />
+    <ToastProvider>
+      <ThemeProvider>
+        <div className="flex h-screen bg-[#FAFAFA] dark:bg-[#121418] text-[#18181B] dark:text-slate-100 overflow-hidden transition-colors duration-300">
+          <Sidebar
+            currentView={view}
+            onNavigate={navigate}
+            role={role}
+            userName={name}
+            userId={userId}
+            notifCount={0}
+            onLogout={handleLogout}
+            isMobileOpen={mobileMenuOpen}
+            onMobileClose={() => setMobileMenuOpen(false)}
+          />
 
-        <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[#FAFAFA] dark:bg-[#121418] transition-colors duration-300">
-          {role !== 'admin' && role !== 'staff' && (
-            <TopBar
-              title={titleInfo?.title ?? 'Cambacay Breeze Inn'}
-              subtitle={titleInfo?.subtitle}
-              onMobileMenuOpen={() => setMobileMenuOpen(true)}
-            />
-          )}
+          <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[#FAFAFA] dark:bg-[#121418] transition-colors duration-300">
+            {role !== 'admin' && role !== 'staff' && (
+              <TopBar
+                title={titleInfo?.title ?? 'Cambacay Breeze Inn'}
+                subtitle={titleInfo?.subtitle}
+                role={role}
+                onNavigate={navigate}
+                onMobileMenuOpen={() => setMobileMenuOpen(true)}
+              />
+            )}
 
-          {/* Mobile top-bar only for responsive sidebar trigger in admin/staff */}
-          {(role === 'admin' || role === 'staff') && (
-            <div className="lg:hidden p-3 bg-white dark:bg-[#181B20] border-b border-black/[0.06] dark:border-neutral-800 flex items-center justify-between transition-colors">
-              <button
-                onClick={() => setMobileMenuOpen(true)}
-                className="w-9 h-9 rounded-lg border border-black/[0.08] dark:border-neutral-700 flex items-center justify-center text-ink dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shadow-xs"
-                aria-label="Open Navigation Menu"
-              >
-                <Menu className="w-4 h-4 text-ink dark:text-neutral-200" strokeWidth={1.5} />
-              </button>
-              <span className="font-display font-semibold text-ink dark:text-white text-sm">Cambacay Breeze Inn</span>
-            </div>
-          )}
+            {/* Mobile top-bar only for responsive sidebar trigger in admin/staff */}
+            {(role === 'admin' || role === 'staff') && (
+              <div className="lg:hidden p-3 bg-white dark:bg-[#181B20] border-b border-black/[0.06] dark:border-neutral-800 flex items-center justify-between transition-colors">
+                <div className="flex items-center gap-2.5">
+                  <button
+                    onClick={() => setMobileMenuOpen(true)}
+                    className="w-9 h-9 rounded-lg border border-black/[0.08] dark:border-neutral-700 flex items-center justify-center text-ink dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shadow-xs"
+                    aria-label="Open Navigation Menu"
+                  >
+                    <Menu className="w-4 h-4 text-ink dark:text-neutral-200" strokeWidth={1.5} />
+                  </button>
+                  <span className="font-display font-semibold text-ink dark:text-white text-sm">Cambacay Breeze Inn</span>
+                </div>
+                <NotificationCenter role={role} onNavigate={navigate} />
+              </div>
+            )}
 
-          <main className="flex-1 overflow-y-auto">
-            {renderView()}
-          </main>
+
+
+            <main className="flex-1 overflow-y-auto">
+              <ErrorBoundary>
+                {renderView()}
+              </ErrorBoundary>
+            </main>
+          </div>
         </div>
-      </div>
-    </ThemeProvider>
+      </ThemeProvider>
+    </ToastProvider>
   )
 }

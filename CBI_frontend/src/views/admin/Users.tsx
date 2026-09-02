@@ -21,6 +21,11 @@ import {
 import { usersApi } from '../../api/users'
 import StatusBadge from '../../components/StatusBadge'
 import Modal from '../../components/Modal'
+import ConfirmDialog from '../../components/ConfirmDialog'
+import EmptyState from '../../components/EmptyState'
+import { SkeletonTable } from '../../components/SkeletonLoader'
+import { useToast } from '../../context/ToastContext'
+import { useDebounce } from '../../hooks/useDebounce'
 
 const ROLE_TABS = ['ALL', 'PENDING', 'ADMIN', 'STAFF', 'CUSTOMER'] as const
 const STATUS_FILTERS = ['All', 'ACTIVE', 'PENDING', 'SUSPENDED', 'DISABLED']
@@ -30,6 +35,7 @@ export default function AdminUsers() {
   const [roleTab, setRoleTab] = useState<typeof ROLE_TABS[number]>('ALL')
   const [statusFilter, setStatusFilter] = useState('All')
   const [search, setSearch] = useState('')
+  const debouncedSearch = useDebounce(search, 300)
   const [viewUser, setViewUser] = useState<Record<string, unknown> | null>(null)
   const [auditLogs, setAuditLogs] = useState<Record<string, unknown>[]>([])
   const [newStaffModal, setNewStaffModal] = useState(false)
@@ -37,8 +43,11 @@ export default function AdminUsers() {
   const [rejectReason, setRejectReason] = useState('')
   const [suspendModalUser, setSuspendModalUser] = useState<Record<string, unknown> | null>(null)
   const [suspendReason, setSuspendReason] = useState('')
+  const [reactivateTarget, setReactivateTarget] = useState<Record<string, unknown> | null>(null)
+  const [reactivating, setReactivating] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [toast, setToast] = useState('')
+  const toast = useToast()
+
 
   // Approve & Create Account Modal State
   const [approveModalUser, setApproveModalUser] = useState<Record<string, unknown> | null>(null)
@@ -84,11 +93,6 @@ export default function AdminUsers() {
     autoGenerateCredentials(nsFirstName, val)
   }
 
-  const fireToast = (msg: string) => {
-    setToast(msg)
-    setTimeout(() => setToast(''), 4500)
-  }
-
   const loadUsers = () => {
     setLoading(true)
     usersApi.getAllUsers()
@@ -126,10 +130,10 @@ export default function AdminUsers() {
       })
       const guestName = String(approveModalUser.full_name || approveModalUser.name)
       setApproveModalUser(null)
-      fireToast(`✓ Account created & approved for ${guestName}! Customer can now log in.`)
+      toast.success(`Account created & approved for ${guestName}! Customer can now log in.`, 'Account Activated')
       loadUsers()
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to approve customer account')
+      toast.error(err instanceof Error ? err.message : 'Failed to approve customer account', 'Approval Failed')
     } finally {
       setApproving(false)
     }
@@ -141,10 +145,10 @@ export default function AdminUsers() {
       await usersApi.rejectUser(Number(rejectModalUser.id), rejectReason.trim() || undefined)
       setRejectModalUser(null)
       setRejectReason('')
-      fireToast(`✓ Registration for ${String(rejectModalUser.full_name || rejectModalUser.name)} denied.`)
+      toast.info(`Registration for ${String(rejectModalUser.full_name || rejectModalUser.name)} denied.`, 'Registration Denied')
       loadUsers()
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to reject')
+      toast.error(err instanceof Error ? err.message : 'Failed to reject registration', 'Error')
     }
   }
 
@@ -154,20 +158,25 @@ export default function AdminUsers() {
       await usersApi.toggleUserStatus(Number(suspendModalUser.id))
       setSuspendModalUser(null)
       setSuspendReason('')
-      fireToast(`✓ User ${String(suspendModalUser.full_name || suspendModalUser.name)} status updated.`)
+      toast.warning(`Account for ${String(suspendModalUser.full_name || suspendModalUser.name)} suspended.`, 'Account Suspended')
       loadUsers()
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to suspend user')
+      toast.error(err instanceof Error ? err.message : 'Failed to suspend user', 'Action Blocked')
     }
   }
 
-  const handleReactivate = async (user: Record<string, unknown>) => {
+  const handleConfirmReactivate = async () => {
+    if (!reactivateTarget) return
+    setReactivating(true)
     try {
-      await usersApi.toggleUserStatus(Number(user.id))
-      fireToast(`✓ User ${String(user.full_name || user.name)} reactivated.`)
+      await usersApi.toggleUserStatus(Number(reactivateTarget.id))
+      toast.success(`User ${String(reactivateTarget.full_name || reactivateTarget.name)} reactivated.`, 'Account Reactivated')
+      setReactivateTarget(null)
       loadUsers()
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to reactivate user')
+      toast.error(err instanceof Error ? err.message : 'Failed to reactivate user', 'Action Blocked')
+    } finally {
+      setReactivating(false)
     }
   }
 
@@ -220,10 +229,10 @@ export default function AdminUsers() {
       setNsDob('')
       setNsGender('Male')
       setNsCivilStatus('Single')
-      fireToast(`✓ Staff account for ${fullName} created successfully.`)
+      toast.success(`Staff account for ${fullName} created successfully.`, 'Staff Account Created')
       loadUsers()
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to create staff')
+      toast.error(err instanceof Error ? err.message : 'Failed to create staff', 'Creation Failed')
     } finally {
       setCreating(false)
     }
@@ -241,7 +250,7 @@ export default function AdminUsers() {
 
     const statusMatch =
       statusFilter === 'All' || String(u.status || '').toUpperCase() === statusFilter.toUpperCase()
-    const q = search.toLowerCase().trim()
+    const q = debouncedSearch.toLowerCase().trim()
     const searchMatch =
       !q ||
       String(u.full_name || u.name || '').toLowerCase().includes(q) ||
@@ -261,14 +270,7 @@ export default function AdminUsers() {
 
   return (
     <div className="p-4 sm:p-5 max-w-7xl mx-auto space-y-4 sm:space-y-5 font-sans">
-      
-      {/* Toast Alert */}
-      {toast && (
-        <div className="fixed top-6 right-6 z-50 px-5 py-3.5 bg-emerald-700 text-white font-medium text-xs rounded-2xl shadow-xl border border-emerald-500 animate-slideDown flex items-center gap-2">
-          <Check className="w-4 h-4 text-emerald-200" strokeWidth={2} />
-          <span>{toast}</span>
-        </div>
-      )}
+
 
       {/* ─── PAGE HEADER ─── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-black/[0.06] dark:border-neutral-800">
@@ -463,7 +465,7 @@ export default function AdminUsers() {
                             )}
                             {(status === 'SUSPENDED' || status === 'DISABLED' || status === 'REJECTED') && (
                               <button
-                                onClick={() => handleReactivate(u)}
+                                onClick={() => setReactivateTarget(u)}
                                 className="text-xs bg-[#6B7A5E] hover:bg-[#4F5D45] text-white px-2.5 py-1.5 rounded-lg transition-all font-semibold shadow-sm cursor-pointer"
                               >
                                 Reactivate
@@ -480,20 +482,14 @@ export default function AdminUsers() {
           </table>
         </div>
 
-        {loading && (
-          <div className="text-center py-16 text-ink-muted text-xs">
-            <div className="w-6 h-6 border-2 border-[#6B7A5E] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-            <p>Loading user accounts...</p>
-          </div>
-        )}
+        {loading && <SkeletonTable rows={5} cols={6} />}
 
         {!loading && filtered.length === 0 && (
-          <div className="text-center py-16 text-ink-muted text-xs">
-            <div className="w-12 h-12 rounded-2xl bg-sand/60 border border-stone/20 flex items-center justify-center mx-auto mb-2 text-ink-muted">
-              <Users className="w-6 h-6" strokeWidth={1.5} />
-            </div>
-            <p className="font-display font-bold text-ink text-sm">No users match your filter criteria.</p>
-          </div>
+          <EmptyState
+            icon={Users}
+            title="No users match your filter criteria"
+            subtitle="Try switching roles or changing the search keyword."
+          />
         )}
       </div>
 
@@ -986,6 +982,20 @@ export default function AdminUsers() {
         </form>
       </Modal>
 
+      {/* ─── MODAL: CONFIRM REACTIVATE USER ─── */}
+      <ConfirmDialog
+        isOpen={Boolean(reactivateTarget)}
+        title="Reactivate User Account"
+        message={`Are you sure you want to reactivate the account for ${String(reactivateTarget?.full_name || reactivateTarget?.name)} (${String(reactivateTarget?.unique_id)})? The user will regain access to log in.`}
+        confirmLabel="Yes, Reactivate"
+        cancelLabel="Cancel"
+        variant="success"
+        loading={reactivating}
+        onConfirm={handleConfirmReactivate}
+        onCancel={() => setReactivateTarget(null)}
+      />
+
     </div>
   )
 }
+

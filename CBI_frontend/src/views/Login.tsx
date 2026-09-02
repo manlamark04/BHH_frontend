@@ -10,7 +10,7 @@ import AuthLoadingScreen from '../components/AuthLoadingScreen'
 import Modal from '../components/Modal'
 
 interface LoginProps {
-  onLogin: (role: Role, name: string, userId: string, dbId: number) => void
+  onLogin: (role: Role, name: string, userId: string, dbId: number, mustChangePassword?: boolean) => void
   onNavigate: (view: View) => void
 }
 
@@ -34,6 +34,7 @@ export default function Login({ onLogin, onNavigate }: LoginProps) {
     dbId: number
     gender?: string | null
     civilStatus?: string | null
+    mustChangePassword?: boolean
   } | null>(null)
   const [authRole, setAuthRole] = useState<Role | undefined>(undefined)
   const [loadingError, setLoadingError] = useState('')
@@ -136,6 +137,7 @@ export default function Login({ onLogin, onNavigate }: LoginProps) {
         dbId: res.user.id,
         gender: res.user.gender,
         civilStatus: res.user.civil_status,
+        mustChangePassword: Boolean(res.user.must_change_password),
       })
 
       // Maintain loading screen for 5 seconds
@@ -164,7 +166,7 @@ export default function Login({ onLogin, onNavigate }: LoginProps) {
     if (loadingPhase === 'success' && authResult) {
       // Success: hand off to App.tsx which mounts the dashboard
       setShowLoadingScreen(false)
-      onLogin(authResult.role, authResult.name, authResult.userId, authResult.dbId)
+      onLogin(authResult.role, authResult.name, authResult.userId, authResult.dbId, authResult.mustChangePassword)
     } else if (loadingPhase === 'error') {
       // Error: fade back to login form with error shown
       setShowLoadingScreen(false)

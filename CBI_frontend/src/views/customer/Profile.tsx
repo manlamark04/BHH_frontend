@@ -14,16 +14,19 @@ import {
   MapPin,
   Heart,
   UserCheck,
+  Copy,
 } from 'lucide-react'
 import { authApi } from '../../api/auth'
 import { ApiError } from '../../api/client'
+import { useToast } from '../../context/ToastContext'
 
 interface CustomerProfileProps {
   userName: string
   userId: string
+  onPasswordChanged?: () => void
 }
 
-export default function CustomerProfile({ userName, userId }: CustomerProfileProps) {
+export default function CustomerProfile({ userName, userId, onPasswordChanged }: CustomerProfileProps) {
   const [editing, setEditing] = useState(false)
   const [firstName, setFirstName] = useState('')
   const [middleName, setMiddleName] = useState('')
@@ -37,18 +40,15 @@ export default function CustomerProfile({ userName, userId }: CustomerProfilePro
   const [status, setStatus] = useState('ACTIVE')
   const [createdAt, setCreatedAt] = useState('')
   const [changingPassword, setChangingPassword] = useState(false)
-  const [toast, setToast] = useState('')
+  const [copiedId, setCopiedId] = useState(false)
   const [saving, setSaving] = useState(false)
+  const toast = useToast()
 
   const [currentPw, setCurrentPw] = useState('')
   const [newPw, setNewPw] = useState('')
   const [confirmPw, setConfirmPw] = useState('')
   const [pwError, setPwError] = useState('')
 
-  const fireToast = (msg: string) => {
-    setToast(msg)
-    setTimeout(() => setToast(''), 4500)
-  }
 
   useEffect(() => {
     authApi.getMe().then((user) => {
@@ -99,9 +99,9 @@ export default function CustomerProfile({ userName, userId }: CustomerProfilePro
       setCivilStatus(updated.civil_status || '')
       setAddress(updated.address || '')
       setEditing(false)
-      fireToast('Profile details updated successfully.')
+      toast.success('Profile details updated successfully.', 'Profile Updated')
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to save profile')
+      toast.error(err instanceof Error ? err.message : 'Failed to save profile', 'Update Failed')
     } finally {
       setSaving(false)
     }
@@ -129,7 +129,9 @@ export default function CustomerProfile({ userName, userId }: CustomerProfilePro
       setCurrentPw('')
       setNewPw('')
       setConfirmPw('')
-      fireToast('Password updated successfully.')
+      toast.success('Password updated successfully.', 'Password Changed')
+      // Task 15: Notify App.tsx so mustChangePassword banner clears
+      if (onPasswordChanged) onPasswordChanged()
     } catch (err) {
       if (err instanceof ApiError) {
         const errors = (err.data.errors as string[])
@@ -144,14 +146,6 @@ export default function CustomerProfile({ userName, userId }: CustomerProfilePro
 
   return (
     <div className="p-4 sm:p-5 max-w-4xl mx-auto space-y-4 font-sans">
-      
-      {/* Toast Alert */}
-      {toast && (
-        <div className="fixed top-6 right-6 z-50 px-5 py-3.5 bg-emerald-700 text-white font-medium text-xs rounded-2xl shadow-xl border border-emerald-500 animate-slideDown flex items-center gap-2">
-          <Check className="w-4 h-4 text-emerald-200" strokeWidth={2} />
-          <span>{toast}</span>
-        </div>
-      )}
 
       {/* ─── 1. MEMBER OVERVIEW BANNER CARD ─── */}
       <div className="bg-white dark:bg-[#181B20] rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors">
@@ -168,8 +162,24 @@ export default function CustomerProfile({ userName, userId }: CustomerProfilePro
                 ● {status.toUpperCase()}
               </span>
             </div>
-            <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
-              Guest ID: <strong className="font-mono text-[#6B7A5E] font-bold">{userId}</strong> · Member since {createdAt || '2026'}
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5 flex flex-wrap items-center gap-1.5">
+              <span>Account ID:</span>
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(userId).then(() => {
+                    setCopiedId(true)
+                    toast.info(`ID ${userId} copied to clipboard`, 'Copied')
+                    setTimeout(() => setCopiedId(false), 2000)
+                  }).catch(() => {})
+                }}
+                className="font-mono text-[#6B7A5E] font-bold inline-flex items-center gap-1 bg-[#6B7A5E]/10 hover:bg-[#6B7A5E]/20 px-2 py-0.5 rounded-md border border-[#6B7A5E]/25 transition-colors cursor-pointer"
+                title="Click to copy ID"
+              >
+                <span>{userId}</span>
+                {copiedId ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3 text-[#6B7A5E]" />}
+              </button>
+              <span>· Member since {createdAt || '2026'}</span>
             </p>
           </div>
         </div>
@@ -402,7 +412,7 @@ export default function CustomerProfile({ userName, userId }: CustomerProfilePro
         <div className="pb-2.5 border-b border-black/[0.06] dark:border-neutral-800 flex items-center justify-between">
           <div>
             <h3 className="font-display font-bold text-base text-neutral-900 dark:text-white">Account Security & Password</h3>
-            <p className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5">Ensure your customer portal account stays protected</p>
+            <p className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5">Change your default password or update your login credentials whenever you want</p>
           </div>
 
           {!changingPassword && (
@@ -426,14 +436,19 @@ export default function CustomerProfile({ userName, userId }: CustomerProfilePro
             )}
 
             <div>
-              <label className="block font-semibold text-neutral-900 dark:text-white uppercase tracking-wider mb-1">Current Password *</label>
+              <label className="block font-semibold text-neutral-900 dark:text-white uppercase tracking-wider mb-1">
+                Current or Default Password *
+              </label>
               <input
                 type="password"
                 value={currentPw}
                 onChange={(e) => setCurrentPw(e.target.value)}
-                placeholder="Enter current password"
+                placeholder="Enter your current or default password"
                 className="w-full px-3.5 py-2 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
               />
+              <p className="text-[10px] text-neutral-500 dark:text-neutral-400 mt-1">
+                If your account was assigned a default password upon registration, enter it here.
+              </p>
             </div>
 
             <div className="grid sm:grid-cols-2 gap-3">

@@ -9,6 +9,7 @@ import {
   Check,
   AlertCircle,
   Calendar,
+  Printer,
 } from 'lucide-react'
 import { bookingsApi } from '../../api/bookings'
 import { roomsApi } from '../../api/rooms'
@@ -16,6 +17,7 @@ import { usersApi } from '../../api/users'
 import StatusBadge from '../../components/StatusBadge'
 import Modal from '../../components/Modal'
 import ConfirmDialog from '../../components/ConfirmDialog'
+import BookingVoucherModal, { type BookingVoucherData } from '../../components/BookingVoucherModal'
 
 type FilterTab = 'all' | 'pending_approval' | 'pending_payment' | 'confirmed' | 'checked_in' | 'completed' | 'rejected' | 'cancelled'
 type SortField = 'newest' | 'oldest' | 'checkin' | 'checkout' | 'amount' | 'status'
@@ -23,6 +25,7 @@ type SortField = 'newest' | 'oldest' | 'checkin' | 'checkout' | 'amount' | 'stat
 export default function AdminBookings() {
   const [bookings, setBookings] = useState<Record<string, unknown>[]>([])
   const [rooms, setRooms] = useState<Record<string, unknown>[]>([])
+  const [selectedVoucher, setSelectedVoucher] = useState<BookingVoucherData | null>(null)
   const [customers, setCustomers] = useState<Record<string, unknown>[]>([])
   const [loading, setLoading] = useState(true)
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all')
@@ -482,6 +485,32 @@ export default function AdminBookings() {
                           aria-label="View Details"
                         >
                           <Eye className="w-3.5 h-3.5" strokeWidth={1.5} />
+                        </button>
+
+                        {/* Print Voucher */}
+                        <button
+                          onClick={() => setSelectedVoucher({
+                            id: Number(b.id),
+                            booking_ref: String(b.booking_ref),
+                            customer_name: String(b.customer_name || 'Valued Guest'),
+                            customer_email: b.customer_email ? String(b.customer_email) : undefined,
+                            customer_phone: b.customer_phone ? String(b.customer_phone) : undefined,
+                            customer_id: b.customer_code ? String(b.customer_code) : undefined,
+                            room_number: b.room_number ? String(b.room_number) : undefined,
+                            room_type: b.room_type ? String(b.room_type) : undefined,
+                            capacity: Number(b.capacity || 2),
+                            check_in: String(b.check_in),
+                            check_out: String(b.check_out),
+                            total_price: Number(b.total_price || 0),
+                            paid_amount: Number(b.amount_paid || 0),
+                            remaining_balance: Number(b.remaining_balance || 0),
+                            status: String(b.status || 'CONFIRMED'),
+                          })}
+                          title="Print Booking Voucher"
+                          className="p-1.5 rounded-lg border border-black/[0.08] dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-[#6B7A5E] hover:text-[#4F5D45] text-xs transition-colors cursor-pointer"
+                          aria-label="Print Booking Voucher"
+                        >
+                          <Printer className="w-3.5 h-3.5" strokeWidth={1.5} />
                         </button>
 
                         {/* Edit */}
@@ -1029,6 +1058,13 @@ export default function AdminBookings() {
         message={`Are you sure you want to cancel booking ${String(cancelBooking?.booking_ref || '')} for ${String(cancelBooking?.customer_name || 'guest')}? The reserved room will immediately be released back into available inventory.`}
         confirmLabel="Yes, Cancel Booking"
         variant="danger"
+      />
+
+      {/* Booking Voucher Modal */}
+      <BookingVoucherModal
+        isOpen={Boolean(selectedVoucher)}
+        onClose={() => setSelectedVoucher(null)}
+        booking={selectedVoucher}
       />
 
     </div>

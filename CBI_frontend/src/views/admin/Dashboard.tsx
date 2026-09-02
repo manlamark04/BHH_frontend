@@ -39,6 +39,7 @@ import {
 } from 'lucide-react'
 import StatusBadge from '../../components/StatusBadge'
 import Modal from '../../components/Modal'
+import NotificationCenter from '../../components/NotificationCenter'
 
 interface AdminDashboardProps {
   onNavigate: (view: View) => void
@@ -265,44 +266,8 @@ export default function AdminDashboard({ onNavigate, userName = 'Alexandra Reyes
               />
             </div>
 
-            {/* Notifications Bell */}
-            <div className="relative">
-              <button
-                onClick={() => setShowNotifications(!showNotifications)}
-                className={`p-2 rounded-xl border text-sm transition-all relative shadow-xs ${
-                  darkMode ? 'bg-[#20252E] border-slate-700 text-slate-300' : 'bg-white border-black/[0.08] text-neutral-500 hover:text-neutral-900 hover:bg-neutral-50'
-                }`}
-                aria-label="Notifications"
-              >
-                <Bell className="w-4 h-4" strokeWidth={1.5} />
-                {unreadNotifs.length > 0 && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full text-[9px] font-bold flex items-center justify-center animate-pulse">
-                    {unreadNotifs.length}
-                  </span>
-                )}
-              </button>
-
-              {/* Notifications Dropdown */}
-              {showNotifications && (
-                <div className={`absolute right-0 mt-2 w-80 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.1)] border p-4 z-50 text-xs space-y-2 animate-fadeIn ${
-                  darkMode ? 'bg-[#20252E] border-slate-700 text-slate-200' : 'bg-white border-black/[0.08] text-neutral-900'
-                }`}>
-                  <div className="flex items-center justify-between pb-2 border-b border-black/[0.05]">
-                    <span className="font-bold uppercase tracking-wider text-[10px] text-neutral-500">Operational Alerts</span>
-                    <span className="text-[10px] text-neutral-400 font-mono">{unreadNotifs.length} alerts</span>
-                  </div>
-                  {unreadNotifs.map((n) => (
-                    <div key={n.id} className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 space-y-0.5">
-                      <p className="font-semibold text-[#6B7A5E]">{n.title}</p>
-                      <p className="text-[11px] opacity-80">{n.message}</p>
-                    </div>
-                  ))}
-                  {unreadNotifs.length === 0 && (
-                    <p className="text-center py-4 text-neutral-400">No pending alerts.</p>
-                  )}
-                </div>
-              )}
-            </div>
+            {/* Live Operations Notification Center */}
+            <NotificationCenter role="admin" onNavigate={onNavigate} />
 
             {/* Admin Avatar & Dropdown */}
             <div className="relative">

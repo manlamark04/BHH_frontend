@@ -158,4 +158,39 @@ export const billingApi = {
     if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('billing-updated'))
     return res
   },
+
+  /** GET /api/bills/eod-report — Staff/Admin: daily cashier shift reconciliation */
+  getEODReport: (date?: string) =>
+    api.get<EODReportData>(`/api/bills/eod-report${date ? `?date=${date}` : ''}`),
 }
+
+export interface EODReportData {
+  reportDate: string
+  generatedAt: string
+  generatedBy: string
+  metrics: {
+    grossTotal: number
+    netTotal: number
+    cashTotal: number
+    gcashTotal: number
+    cardTotal: number
+    bankTotal: number
+    otherTotal: number
+    refundsTotal: number
+    transactionCount: number
+  }
+  transactions: Array<{
+    payment_id: number
+    bill_id: number
+    amount: number
+    method: string
+    receipt_number?: string
+    notes?: string
+    paid_at: string
+    invoice_number: string
+    bill_description?: string
+    customer_name?: string
+    cashier_name?: string
+  }>
+}
+

@@ -29,8 +29,12 @@ import {
   Moon,
   Sun,
   ClipboardCheck,
+  Copy,
+  Check,
+  MessageSquare,
   type LucideIcon,
 } from 'lucide-react'
+import InquiriesModal from './InquiriesModal'
 
 interface NavItem {
   label: string
@@ -52,6 +56,7 @@ const ADMIN_NAV: NavItem[] = [
   { label: 'Payments', view: 'admin-payments', icon: CreditCard, badgeKey: 'outstanding-bills', badgeVariant: 'amber' },
   { label: 'Reports & Analytics', view: 'admin-reports', icon: BarChart3 },
   { label: 'Audit Log', view: 'admin-audit', icon: History },
+  { label: 'My Profile', view: 'admin-profile', icon: User },
 ]
 
 const STAFF_NAV: NavItem[] = [
@@ -65,6 +70,7 @@ const STAFF_NAV: NavItem[] = [
   { label: 'Pickleball Court', view: 'staff-pickleball', icon: Trophy },
   { label: 'Customer Records', view: 'staff-customers', icon: Users },
   { label: 'Billing & Payments', view: 'staff-billing', icon: CreditCard, badgeKey: 'outstanding-bills', badgeVariant: 'amber' },
+  { label: 'My Profile', view: 'staff-profile', icon: User },
 ]
 
 const CUSTOMER_NAV: NavItem[] = [
@@ -128,7 +134,9 @@ export default function Sidebar({
 }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false)
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false)
+  const [showInquiriesModal, setShowInquiriesModal] = useState(false)
   const [badgeCounts, setBadgeCounts] = useState<Record<string, number>>({})
+  const [copiedId, setCopiedId] = useState(false)
   const { isDarkMode, toggleDarkMode } = useTheme()
 
   const navItems = ROLE_NAV[role] || []
@@ -287,16 +295,27 @@ export default function Sidebar({
           <span style={{ color: '#A8A29E' }} className="text-[10px] uppercase font-bold tracking-wider">
             {ROLE_LABELS[role]}
           </span>
-          <span
-            style={{
-              color: '#6B7A5E',
-              backgroundColor: 'rgba(107,122,94,0.18)',
-              borderColor: 'rgba(107,122,94,0.30)',
+          {/* Task 11: Copy-to-clipboard unique ID chip */}
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText(userId).then(() => {
+                setCopiedId(true)
+                setTimeout(() => setCopiedId(false), 1500)
+              }).catch(() => {})
             }}
-            className="font-mono text-[10px] font-bold border px-2 py-0.5 rounded-md"
+            title={copiedId ? 'Copied!' : `Copy ID: ${userId}`}
+            style={{
+              color: copiedId ? '#22A66B' : '#6B7A5E',
+              backgroundColor: copiedId ? 'rgba(34,166,107,0.12)' : 'rgba(107,122,94,0.18)',
+              borderColor: copiedId ? 'rgba(34,166,107,0.30)' : 'rgba(107,122,94,0.30)',
+            }}
+            className="flex items-center gap-1 font-mono text-[10px] font-bold border px-2 py-0.5 rounded-md transition-all cursor-pointer hover:opacity-80"
           >
-            {userId}
-          </span>
+            <span>{userId}</span>
+            {copiedId
+              ? <Check className="w-2.5 h-2.5" strokeWidth={2.5} />
+              : <Copy className="w-2.5 h-2.5" strokeWidth={2} />}
+          </button>
         </div>
       )}
 
@@ -399,6 +418,25 @@ export default function Sidebar({
         style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}
         className="p-3 space-y-1"
       >
+        {/* Guest Inquiries Trigger (Staff & Admin) */}
+        {(role === 'staff' || role === 'admin') && (
+          <button
+            onClick={() => setShowInquiriesModal(true)}
+            style={{ color: '#A8A29E' }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'rgba(255,255,255,0.05)' }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent' }}
+            className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl transition-all text-left cursor-pointer ${
+              collapsed ? 'justify-center px-0' : ''
+            }`}
+            title="Guest Inquiries & Messages"
+          >
+            <MessageSquare className="w-4 h-4 shrink-0 text-[#6B7A5E]" strokeWidth={1.5} />
+            {!collapsed && (
+              <span className="text-xs font-medium">Guest Inquiries</span>
+            )}
+          </button>
+        )}
+
         {/* Dark Mode Toggle */}
         <button
           onClick={toggleDarkMode}
@@ -524,6 +562,12 @@ export default function Sidebar({
           onLogout()
         }}
         onCancel={() => setShowSignOutConfirm(false)}
+      />
+
+      {/* Guest Inquiries Review Modal */}
+      <InquiriesModal
+        isOpen={showInquiriesModal}
+        onClose={() => setShowInquiriesModal(false)}
       />
     </>
   )

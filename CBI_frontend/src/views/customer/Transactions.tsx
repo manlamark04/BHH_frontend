@@ -13,15 +13,21 @@ import {
   HelpCircle,
   ArrowRight,
   Info,
+  Printer,
 } from 'lucide-react'
 import { billingApi } from '../../api/billing'
 import { bookingsApi, type BookingItem } from '../../api/bookings'
 import StatusBadge from '../../components/StatusBadge'
 import Modal from '../../components/Modal'
+import { SkeletonTable } from '../../components/SkeletonLoader'
+import EmptyState from '../../components/EmptyState'
+import { useDebounce } from '../../hooks/useDebounce'
+import BookingVoucherModal, { type BookingVoucherData } from '../../components/BookingVoucherModal'
 
 export default function CustomerTransactions() {
   const [bills, setBills] = useState<Record<string, unknown>[]>([])
   const [bookings, setBookings] = useState<BookingItem[]>([])
+  const [selectedVoucher, setSelectedVoucher] = useState<BookingVoucherData | null>(null)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('All')
   const [activeTab, setActiveTab] = useState<'bills' | 'bookings'>('bookings')
@@ -53,9 +59,11 @@ export default function CustomerTransactions() {
     return s + rem
   }, 0)
 
+  const debouncedSearch = useDebounce(search, 300)
+
   const filteredBills = useMemo(() => {
     return bills.filter((b) => {
-      const q = search.toLowerCase().trim()
+      const q = debouncedSearch.toLowerCase().trim()
       const matchSearch =
         !q ||
         String(b.bill_number || b.invoice_number || b.id || '').toLowerCase().includes(q) ||
@@ -71,11 +79,11 @@ export default function CustomerTransactions() {
 
       return matchSearch && matchStatus
     })
-  }, [bills, search, statusFilter])
+  }, [bills, debouncedSearch, statusFilter])
 
   const filteredBookings = useMemo(() => {
     return bookings.filter((b) => {
-      const q = search.toLowerCase().trim()
+      const q = debouncedSearch.toLowerCase().trim()
       return (
         !q ||
         String(b.booking_ref || `#BK-${b.id}`).toLowerCase().includes(q) ||
@@ -83,7 +91,7 @@ export default function CustomerTransactions() {
         String(b.room_type || '').toLowerCase().includes(q)
       )
     })
-  }, [bookings, search])
+  }, [bookings, debouncedSearch])
 
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return '—'
@@ -179,6 +187,19 @@ export default function CustomerTransactions() {
       {/* ─── TAB 1: RESERVATIONS LIFECYCLE ─── */}
       {activeTab === 'bookings' && (
         <div className="space-y-4">
+          {loading ? (
+            <div className="bg-white dark:bg-[#181B20] rounded-2xl border border-black/[0.07] dark:border-neutral-800 overflow-hidden">
+              <SkeletonTable rows={3} cols={1} />
+            </div>
+          ) : filteredBookings.length === 0 ? (
+            <div className="bg-white dark:bg-[#181B20] rounded-2xl border border-black/[0.07] dark:border-neutral-800">
+              <EmptyState
+                icon={CalendarDays}
+                title="No bookings found"
+                subtitle={debouncedSearch ? 'No reservations match your search.' : "You haven't made any room reservations yet."}
+              />
+            </div>
+          ) : (
           <div className="grid gap-4">
             {filteredBookings.map((b) => {
               const status = String(b.status || '').toUpperCase()
@@ -265,14 +286,39 @@ export default function CustomerTransactions() {
                   )}
 
                   {isConfirmed && (
-                    <div className="p-3.5 bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 rounded-xl flex items-start gap-2.5 text-xs text-emerald-950 dark:text-emerald-200">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                      <div>
-                        <p className="font-bold text-emerald-900 dark:text-emerald-300">Reservation Confirmed & Locked</p>
-                        <p className="text-emerald-800 dark:text-emerald-400 mt-0.5">
-                          Your suite is reserved for {formatDate(b.check_in)} to {formatDate(b.check_out)}. Please present your valid ID upon check-in at the front desk.
-                        </p>
+                    <div className="p-3.5 bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-emerald-950 dark:text-emerald-200">
+                      <div className="flex items-start gap-2.5">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-bold text-emerald-900 dark:text-emerald-300">Reservation Confirmed & Locked</p>
+                          <p className="text-emerald-800 dark:text-emerald-400 mt-0.5">
+                            Your suite is reserved for {formatDate(b.check_in)} to {formatDate(b.check_out)}. Please present your valid ID upon check-in at the front desk.
+                          </p>
+                        </div>
                       </div>
+                      <button
+                        onClick={() => setSelectedVoucher({
+                          id: b.id,
+                          booking_ref: b.booking_ref,
+                          customer_name: b.customer_name || 'Valued Guest',
+                          customer_email: b.customer_email,
+                          customer_phone: b.customer_phone,
+                          room_number: b.room_number,
+                          room_type: b.room_type,
+                          check_in: b.check_in,
+                          check_out: b.check_out,
+                          total_price: Number(b.total_price || 0),
+                          paid_amount: amountPaid,
+                          remaining_balance: Math.max(0, Number(b.total_price || 0) - amountPaid),
+                          status: b.status,
+                          booking_type: b.booking_type,
+                          created_at: b.created_at,
+                        })}
+                        className="px-3.5 py-1.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-lg font-semibold text-xs shadow-xs transition-all flex items-center gap-1.5 shrink-0 self-start sm:self-auto cursor-pointer"
+                      >
+                        <Printer className="w-3.5 h-3.5" />
+                        <span>Print Voucher</span>
+                      </button>
                     </div>
                   )}
 
@@ -341,14 +387,8 @@ export default function CustomerTransactions() {
               )
             })}
 
-            {filteredBookings.length === 0 && !loading && (
-              <div className="py-20 text-center text-xs text-neutral-500 dark:text-neutral-400 bg-white dark:bg-[#181B20] rounded-2xl border border-black/[0.07] dark:border-neutral-800">
-                <CalendarDays className="w-10 h-10 text-neutral-400 mx-auto mb-2 opacity-50" />
-                <p className="font-display font-bold text-neutral-900 dark:text-white text-sm">No reservations found.</p>
-                <p className="mt-0.5">Explore our suites to make your first booking.</p>
-              </div>
-            )}
           </div>
+          )}
         </div>
       )}
 
@@ -432,11 +472,14 @@ export default function CustomerTransactions() {
             </table>
           </div>
 
-          {filteredBills.length === 0 && !loading && (
-            <div className="py-16 text-center text-xs text-neutral-500 dark:text-neutral-400">
-              <Receipt className="w-10 h-10 text-neutral-400 mx-auto mb-2 opacity-50" />
-              <p className="font-display font-bold text-neutral-900 dark:text-white text-sm">No billing invoices found.</p>
-            </div>
+          {loading && <SkeletonTable rows={4} cols={8} />}
+
+          {!loading && filteredBills.length === 0 && (
+            <EmptyState
+              icon={Receipt}
+              title="No billing invoices found"
+              subtitle={debouncedSearch ? 'No invoices match your search.' : "Your billing invoices will appear here after your first stay."}
+            />
           )}
         </div>
       )}
@@ -505,6 +548,13 @@ export default function CustomerTransactions() {
           </div>
         )}
       </Modal>
+
+      {/* Booking Voucher Modal */}
+      <BookingVoucherModal
+        isOpen={Boolean(selectedVoucher)}
+        onClose={() => setSelectedVoucher(null)}
+        booking={selectedVoucher}
+      />
 
     </div>
   )

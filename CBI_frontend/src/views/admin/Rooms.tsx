@@ -374,6 +374,17 @@ export default function AdminRooms({ userRole = 'admin' }: AdminRoomsProps) {
     }
   }
 
+  // Handle 1-Click Housekeeping Cleaned & Ready Release
+  const handleQuickReleaseRoom = async (roomId: number, roomNumber: string) => {
+    try {
+      await roomsApi.updateRoomStatus(roomId, 'available', 'Housekeeping turnover completed')
+      fireToast(`✓ Room ${roomNumber} marked Cleaned & Ready for check-in!`)
+      loadRooms()
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to update room status.')
+    }
+  }
+
   // Handle Delete Room
   const handleConfirmDelete = async () => {
     if (!deleteRoomTarget) return
@@ -658,7 +669,18 @@ export default function AdminRooms({ userRole = 'admin' }: AdminRoomsProps) {
                     )}
 
                     {/* Action Buttons Row */}
-                    <div className="flex items-center justify-between gap-2 pt-2">
+                    <div className="flex flex-col gap-2 pt-2">
+                      {statusStr === 'CLEANING' && (
+                        <button
+                          onClick={() => handleQuickReleaseRoom(r.id, r.room_number)}
+                          className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                        >
+                          <Sparkles className="w-3.5 h-3.5" />
+                          <span>Mark Cleaned & Ready</span>
+                        </button>
+                      )}
+
+                      <div className="flex items-center justify-between gap-2">
                       {isStaff ? (
                         <div className="w-full flex items-center justify-end">
                           <button
@@ -709,6 +731,7 @@ export default function AdminRooms({ userRole = 'admin' }: AdminRoomsProps) {
                           </div>
                         </>
                       )}
+                      </div>
                     </div>
 
                   </div>
@@ -756,6 +779,16 @@ export default function AdminRooms({ userRole = 'admin' }: AdminRoomsProps) {
                     </td>
                     <td className="px-5 py-3.5 text-right">
                       <div className="flex items-center justify-end gap-1.5">
+                        {statusStr === 'CLEANING' && (
+                          <button
+                            onClick={() => handleQuickReleaseRoom(r.id, r.room_number)}
+                            className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-2xs flex items-center gap-1 cursor-pointer"
+                            title="Mark Cleaned & Ready for Guests"
+                          >
+                            <Sparkles className="w-3 h-3" />
+                            <span>Ready</span>
+                          </button>
+                        )}
                         {isStaff ? (
                           <button
                             onClick={() => { setStatusRoom(r); setTargetStatus(r.status.toLowerCase()) }}

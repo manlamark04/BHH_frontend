@@ -17,6 +17,7 @@ import type { View } from '../../types'
 import { bookingsApi } from '../../api/bookings'
 import { roomsApi, type RoomRecord } from '../../api/rooms'
 import StatusBadge from '../../components/StatusBadge'
+import NotificationCenter from '../../components/NotificationCenter'
 
 interface StaffDashboardProps {
   onNavigate: (view: View) => void
@@ -87,6 +88,10 @@ export default function StaffDashboard({ onNavigate, userName, userId }: StaffDa
         <div>
           <h1 className="font-display text-lg sm:text-xl font-bold text-neutral-900 dark:text-white tracking-tight">Front Desk Operations</h1>
           <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">Welcome back, <strong className="text-neutral-900 dark:text-white">{userName}</strong> · Duty Station</p>
+        </div>
+
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <NotificationCenter role="staff" onNavigate={onNavigate} />
         </div>
       </div>
 

@@ -14,6 +14,7 @@ import { billingApi, type InvoiceItem } from '../../api/billing'
 import { bookingsApi, type BookingItem } from '../../api/bookings'
 import { roomsApi, type RoomRecord } from '../../api/rooms'
 import { usersApi } from '../../api/users'
+import { useToast } from '../../context/ToastContext'
 import {
   BarChart,
   Bar,
@@ -59,11 +60,56 @@ export default function AdminReports() {
   const [paymentMethodFilter, setPaymentMethodFilter] = useState('All')
   const [searchQuery, setSearchQuery] = useState('')
   const [showAllTopGuests, setShowAllTopGuests] = useState(false)
-  const [toast, setToast] = useState('')
+  const toast = useToast()
 
-  const fireToast = (msg: string) => {
-    setToast(msg)
-    setTimeout(() => setToast(''), 4500)
+  // ─── CSV Export Helper ───
+  const downloadCSV = (rows: Record<string, unknown>[], filename: string) => {
+    if (!rows.length) { toast.warning('No data to export.'); return }
+    const headers = Object.keys(rows[0])
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row =>
+        headers.map(h => {
+          const val = String(row[h] ?? '').replace(/"/g, '""')
+          return `"${val}"`
+        }).join(',')
+      )
+    ].join('\n')
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    a.click()
+    URL.revokeObjectURL(url)
+    toast.success(`${filename} downloaded successfully.`, 'Export Complete')
+  }
+
+  const handleExportInvoices = () => {
+    const rows = filteredInvoices.map((inv: InvoiceItem) => ({
+      'Invoice #': inv.invoice_number || inv.id,
+      'Guest': inv.customer_name || '',
+      'Status': inv.status || '',
+      'Total': inv.total_amount || 0,
+      'Paid': inv.amount_paid || 0,
+      'Balance': inv.remaining_balance ?? inv.balance ?? 0,
+      'Date': inv.created_at ? String(inv.created_at).substring(0, 10) : '',
+    }))
+    downloadCSV(rows, `invoices-${new Date().toISOString().substring(0, 10)}.csv`)
+  }
+
+  const handleExportBookings = () => {
+    const rows = filteredBookings.map((b: BookingItem) => ({
+      'Booking Ref': b.booking_ref || b.id,
+      'Guest': b.customer_name || '',
+      'Room': b.room_number || '',
+      'Check-In': b.check_in ? String(b.check_in).substring(0, 10) : '',
+      'Check-Out': b.check_out ? String(b.check_out).substring(0, 10) : '',
+      'Nights': b.nights || '',
+      'Status': b.status || '',
+      'Amount': b.total_price || 0,
+    }))
+    downloadCSV(rows, `bookings-${new Date().toISOString().substring(0, 10)}.csv`)
   }
 
   const loadData = () => {
@@ -406,7 +452,7 @@ export default function AdminReports() {
     link.click()
     document.body.removeChild(link)
 
-    fireToast('✓ Report data exported successfully as CSV file.')
+    toast.success('Report data exported successfully as CSV file.', 'Export Complete')
   }
 
   // Get Avatar Initials
@@ -421,14 +467,7 @@ export default function AdminReports() {
 
   return (
     <div className="p-4 sm:p-5 max-w-7xl mx-auto space-y-4 sm:space-y-5 font-sans">
-      
-      {/* Toast Alert */}
-      {toast && (
-        <div className="fixed top-6 right-6 z-50 px-5 py-3.5 bg-emerald-700 text-white font-medium text-xs rounded-2xl shadow-xl border border-emerald-500 animate-slideDown flex items-center gap-2">
-          <Check className="w-4 h-4 text-emerald-200" strokeWidth={2} />
-          <span>{toast}</span>
-        </div>
-      )}
+
 
       {/* ─── 1. PAGE HEADER ─── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-black/[0.06] dark:border-neutral-800">

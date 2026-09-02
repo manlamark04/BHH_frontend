@@ -300,4 +300,81 @@ html.dark ::-webkit-scrollbar-thumb:hover {
   }
 }
 
+/* ─── Toast Animations ─────────────────────────────────────── */
+@keyframes bhh-toast-in {
+  from { opacity: 0; transform: translateX(100%) scale(0.95); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
 
+@keyframes bhh-toast-bar {
+  from { width: 100%; }
+  to   { width: 0%; }
+}
+
+/* ─── Skeleton Pulse Animation ─────────────────────────────── */
+@keyframes bhh-skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+.bhh-skeleton {
+  background: linear-gradient(90deg, #e9e5dd 25%, #f0ece3 50%, #e9e5dd 75%);
+  background-size: 200% 100%;
+  animation: bhh-skeleton-shimmer 1.6s ease-in-out infinite;
+  border-radius: 0.5rem;
+}
+
+html.dark .bhh-skeleton {
+  background: linear-gradient(90deg, #1E251C 25%, #252D22 50%, #1E251C 75%);
+  background-size: 200% 100%;
+}
+
+@keyframes bhh-skeleton-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ─── Official Receipt Print Styles ───────────────────────── */
+@media print {
+  /* Hide everything except the receipt */
+  body > *:not(#print-root),
+  .fixed,
+  aside,
+  nav,
+  header,
+  footer {
+    display: none !important;
+  }
+
+  /* Show receipt, voucher, and EOD shift report */
+  #bhh-receipt-print,
+  #official-receipt-print-area,
+  #booking-voucher-print-area,
+  #cashier-eod-print-area {
+    display: block !important;
+    position: static !important;
+    overflow: visible !important;
+    background: white !important;
+    color: black !important;
+  }
+
+  #bhh-receipt-print *,
+  #official-receipt-print-area *,
+  #booking-voucher-print-area *,
+  #cashier-eod-print-area * {
+    color: black !important;
+    background: white !important;
+    border-color: #ccc !important;
+    box-shadow: none !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+
+  @page {
+    margin: 1.5cm;
+    size: A5 portrait;
+  }
+}
