@@ -668,6 +668,31 @@ export default function AdminBookings() {
               </div>
             </div>
 
+            {/* No-Show Penalty Details */}
+            {String(viewBooking.status).toUpperCase() === 'NO_SHOW' && (
+              <div className="bg-purple-50 dark:bg-purple-950/40 p-4 rounded-2xl border border-purple-200 dark:border-purple-800 space-y-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-purple-700 dark:text-purple-300 block">No-Show Penalty Details</span>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  <div>
+                    <span className="text-neutral-500 block text-[10px]">No-Show Fee</span>
+                    <span className="font-bold text-purple-900 dark:text-purple-200 text-sm">₱{Number(viewBooking.no_show_fee || 0).toLocaleString()}</span>
+                  </div>
+                  {viewBooking.no_show_at && (
+                    <div>
+                      <span className="text-neutral-500 block text-[10px]">Flagged On</span>
+                      <span className="font-medium text-neutral-900 dark:text-white">{new Date(String(viewBooking.no_show_at)).toLocaleString()}</span>
+                    </div>
+                  )}
+                  {viewBooking.no_show_waiver_reason && (
+                    <div className="col-span-2">
+                      <span className="text-neutral-500 block text-[10px]">Fee Waiver Reason</span>
+                      <span className="italic text-neutral-700 dark:text-neutral-300">{String(viewBooking.no_show_waiver_reason)}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Actions Footer */}
             <div className="flex justify-end gap-2 pt-2">
               <button

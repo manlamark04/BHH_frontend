@@ -46,7 +46,10 @@ export interface InvoiceItem {
   remaining_balance: number
   balance?: number
   payment_status?: string
-  status: 'PAID' | 'PARTIALLY PAID' | 'PENDING' | 'REFUNDED' | 'FAILED' | 'VOID' | string
+  status: 'PAID' | 'PARTIALLY PAID' | 'PENDING' | 'PENDING_APPROVAL' | 'REFUNDED' | 'FAILED' | 'VOID' | string
+  is_pending_approval?: boolean
+  approval_gated?: boolean
+  can_pay?: boolean
   method: string
   receipt_number?: string
   issued_by_name?: string

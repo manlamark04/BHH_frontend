@@ -17,6 +17,7 @@ export type BookingStatus =
 
 export type RoomStatus =
   | 'AVAILABLE'
+  | 'PENDING_APPROVAL'
   | 'RESERVED'
   | 'OCCUPIED'
   | 'CLEANING'
@@ -206,6 +207,7 @@ export type View =
   | 'customer-transactions'
   | 'customer-profile'
   | 'staff-dashboard'
+  | 'staff-approvals'
   | 'staff-bookings'
   | 'staff-rooms'
   | 'staff-walkin'

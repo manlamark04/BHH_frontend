@@ -105,6 +105,21 @@ const STATUS_CONFIGS: Record<string, StatusConfig> = {
     dot: 'bg-rose-200 animate-ping',
     label: 'Overdue',
   },
+  NO_SHOW: {
+    badge: 'bg-purple-700 text-white border-purple-600 font-bold shadow-xs',
+    dot: 'bg-purple-200',
+    label: 'No-Show',
+  },
+  'NO-SHOW': {
+    badge: 'bg-purple-700 text-white border-purple-600 font-bold shadow-xs',
+    dot: 'bg-purple-200',
+    label: 'No-Show',
+  },
+  'NO SHOW': {
+    badge: 'bg-purple-700 text-white border-purple-600 font-bold shadow-xs',
+    dot: 'bg-purple-200',
+    label: 'No-Show',
+  },
 
   // Room / Motorcycle statuses
   AVAILABLE: {

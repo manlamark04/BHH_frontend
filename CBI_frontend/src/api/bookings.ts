@@ -31,6 +31,10 @@ export interface BookingItem {
   rejection_reason?: string
   rejected_at?: string
   approved_at?: string
+  no_show_fee?: number
+  no_show_at?: string
+  no_show_waived_by?: number
+  no_show_waiver_reason?: string
   payment_deadline?: string
   auto_cancelled?: boolean
   created_at?: string
@@ -163,6 +167,37 @@ export const bookingsApi = {
   /** PATCH /api/bookings/:id/status — Staff/Admin */
   updateBookingStatus: (id: number, status: string, remarks?: string) =>
     api.patch<{ message: string; status: string }>(`/api/bookings/${id}/status`, { status, remarks }),
+
+  /** POST /api/bookings/:id/no-show — Staff/Admin: Mark booking as No-Show */
+  markNoShow: (id: number, data?: { custom_fee?: number; reason?: string }) =>
+    api.post<{
+      success: boolean
+      bookingId: number
+      status: string
+      room_number: string
+      no_show_fee: number
+      remaining_balance: number
+      refund_pending: number
+      message: string
+    }>(`/api/bookings/${id}/no-show`, data || {}),
+
+  /** PATCH /api/bookings/:id/waive-no-show — Staff/Admin: Waive or adjust no-show fee */
+  waiveNoShowFee: (id: number, data: { reason: string; new_fee?: number }) =>
+    api.patch<{
+      success: boolean
+      bookingId: number
+      old_fee: number
+      new_fee: number
+      message: string
+    }>(`/api/bookings/${id}/waive-no-show`, data),
+
+  /** POST /api/bookings/process-no-shows — Staff/Admin: Trigger midnight cutoff sweep */
+  processNoShows: () =>
+    api.post<{
+      success: boolean
+      processed_count: number
+      message: string
+    }>('/api/bookings/process-no-shows', {}),
 
   /** POST /api/bookings/:id/payment — Record payment */
   recordPayment: (id: number, data: {

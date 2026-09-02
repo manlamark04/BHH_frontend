@@ -26,6 +26,7 @@ import CustomerProfile from './views/customer/Profile'
 // Staff views
 import StaffCheckInOut from './views/staff/CheckInOut'
 import StaffDashboard from './views/staff/Dashboard'
+import StaffApprovals from './views/staff/Approvals'
 import StaffBookings from './views/staff/Bookings'
 import StaffRooms from './views/staff/Rooms'
 import StaffWalkIn from './views/staff/WalkIn'
@@ -55,6 +56,7 @@ const VIEW_TITLES: Partial<Record<View, { title: string; subtitle?: string }>> =
   'customer-transactions': { title: 'My Transactions', subtitle: 'Booking & payment history' },
   'customer-profile': { title: 'My Profile', subtitle: 'Manage your account' },
   'staff-dashboard': { title: 'Staff Dashboard', subtitle: 'Operations overview' },
+  'staff-approvals': { title: 'Reservation Approvals', subtitle: 'Review and approve pending room & motorcycle reservations' },
   'staff-rooms': { title: 'Room Inventory', subtitle: 'Live room occupancy and status management' },
   'staff-checkinout': { title: 'Check-In / Out', subtitle: 'Arrivals, in-house guests & departures' },
   'staff-bookings': { title: 'Booking Management', subtitle: 'Confirm, check-in, and check-out guests' },
@@ -191,6 +193,8 @@ export default function App() {
       // Staff
       case 'staff-dashboard':
         return <StaffDashboard onNavigate={navigate} userName={name} userId={userId} />
+      case 'staff-approvals':
+        return <StaffApprovals />
       case 'staff-rooms':
         return <StaffRooms />
       case 'staff-checkinout':

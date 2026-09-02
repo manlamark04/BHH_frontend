@@ -672,7 +672,7 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
       <Modal
         isOpen={!!successRental}
         onClose={() => setSuccessRental(null)}
-        title="Motorcycle Rental Confirmed"
+        title="Motorcycle Reservation Submitted"
         size="sm"
       >
         {successRental && (
@@ -680,6 +680,9 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
             <div>
               <span className="text-[10px] font-bold uppercase tracking-widest text-[#6B7A5E]">Rental Transaction ID</span>
               <p className="font-mono text-2xl font-bold text-neutral-900 dark:text-white mt-0.5">{successRental.rental_id}</p>
+              <div className="mt-1.5 flex justify-center">
+                <StatusBadge status={String(successRental.status || 'PENDING_APPROVAL').toUpperCase()} size="sm" />
+              </div>
             </div>
 
             <div className="bg-neutral-50 dark:bg-[#14171C] rounded-2xl p-4 text-left text-xs space-y-1.5 border border-black/[0.06] dark:border-neutral-800">
@@ -706,7 +709,7 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
             </div>
 
             <p className="text-[11px] text-neutral-500 dark:text-neutral-400">
-              Helmets and safety briefing provided at the front desk upon key handover. Please return the unit on or before the expected return time.
+              Your reservation is now <strong>pending approval by front desk staff</strong>. Once approved, the motorcycle will be reserved and prepared for your trip.
             </p>
 
             <button

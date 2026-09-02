@@ -202,7 +202,7 @@ export default function CustomerRooms({ customerName }: Props) {
 
       await bookingsApi.createBooking(payload)
 
-      fireToast(`Reservation submitted for Room ${bookingRoom.room_number}! Front desk will confirm shortly.`)
+      fireToast(`Reservation submitted for Room ${bookingRoom.room_number}! Your reservation is now pending approval by staff.`)
       setConfirmModal(false)
       setBookingRoom(null)
       loadRooms()
@@ -421,6 +421,8 @@ export default function CustomerRooms({ customerName }: Props) {
                   >
                     {isAvail
                       ? 'Book Room'
+                      : String(r.status).toUpperCase() === 'PENDING_APPROVAL'
+                      ? 'Pending Approval'
                       : String(r.status).toUpperCase() === 'RESERVED'
                       ? 'Reserved'
                       : String(r.status).toUpperCase() === 'OCCUPIED'
@@ -633,14 +635,14 @@ export default function CustomerRooms({ customerName }: Props) {
                       <span className="flex-1 text-center font-mono font-bold text-lg text-ink">{durationHours}</span>
                       <button
                         type="button"
-                        onClick={() => setDurationHours((h) => Math.min(3, h + 1))}
-                        disabled={durationHours >= 3}
+                        onClick={() => setDurationHours((h) => Math.min(5, h + 1))}
+                        disabled={durationHours >= 5}
                         className="w-9 h-9 flex items-center justify-center rounded-lg border border-stone/30 bg-[#F6F2E8] text-ink hover:bg-[#6B7A5E]/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
                       >
                         <Plus className="w-3.5 h-3.5" />
                       </button>
                     </div>
-                    <span className="text-[10px] text-ink-muted mt-0.5 block">Max 3 hours</span>
+                    <span className="text-[10px] text-ink-muted mt-0.5 block">Max 5 hours</span>
                   </div>
                   <div>
                     <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Check-Out Time</label>

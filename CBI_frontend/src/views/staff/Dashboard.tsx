@@ -166,18 +166,18 @@ export default function StaffDashboard({ onNavigate, userName, userId }: StaffDa
         </div>
 
         <button
-          onClick={() => onNavigate('staff-bookings')}
+          onClick={() => onNavigate('staff-approvals')}
           className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-md hover:border-amber-300 transition-all text-left flex flex-col justify-between cursor-pointer"
         >
           <div className="flex items-center justify-between w-full">
-            <span className="text-[10px] uppercase font-bold tracking-wider text-amber-600 dark:text-amber-400">PENDING REQUESTS</span>
+            <span className="text-[10px] uppercase font-bold tracking-wider text-amber-600 dark:text-amber-400">PENDING APPROVALS</span>
             <div className="w-6 h-6 rounded-lg bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center">
               <Clock className="w-3.5 h-3.5" strokeWidth={1.5} />
             </div>
           </div>
           <div>
             <p className="font-display text-xl sm:text-2xl font-bold text-amber-600 dark:text-amber-400 mt-1 leading-tight">{pendingBookings.length}</p>
-            <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5 block">Require staff confirmation</span>
+            <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5 block">Review & approve reservations</span>
           </div>
         </button>
 
@@ -218,10 +218,10 @@ export default function StaffDashboard({ onNavigate, userName, userId }: StaffDa
               <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">Online customer booking requests</p>
             </div>
             <button
-              onClick={() => onNavigate('staff-bookings')}
+              onClick={() => onNavigate('staff-approvals')}
               className="text-xs font-semibold text-[#6B7A5E] hover:underline cursor-pointer"
             >
-              View All ({bookings.length}) →
+              Review Approvals ({pendingBookings.length}) →
             </button>
           </div>
 
