@@ -209,16 +209,14 @@ export default function AdminPayments() {
       const s = String(inv.status || '').toUpperCase().replace('-', '_').replace(' ', '_')
       const isPendingApproval = Boolean(inv.is_pending_approval || s === 'PENDING_APPROVAL')
 
-      // Enforce "approve first, then bill": do NOT count invoices awaiting reservation approval as actionable outstanding
+      // Count actionable unpaid balances (including No-Show / cancellation penalty fees)
       if (
         s !== 'PAID' &&
-        s !== 'CANCELLED' &&
-        s !== 'VOID' &&
         s !== 'REFUNDED' &&
         !isPendingApproval &&
-        (s === 'PENDING' || s === 'UNPAID' || s === 'PARTIALLY_PAID' || rem > 0)
+        rem > 0
       ) {
-        outstanding += rem > 0 ? rem : Number(inv.total_amount || 0)
+        outstanding += rem
         outCount += 1
       }
     }
@@ -239,12 +237,13 @@ export default function AdminPayments() {
     if (activeFilter !== 'All') {
       list = list.filter((inv) => {
         const s = String(inv.status || '').toUpperCase().replace('-', '_').replace(' ', '_')
+        const rem = Number(inv.remaining_balance || 0)
         const isPendingApproval = Boolean(inv.is_pending_approval || s === 'PENDING_APPROVAL')
         if (activeFilter === 'Paid') return s === 'PAID'
         if (activeFilter === 'Partially Paid') return s === 'PARTIALLY_PAID' || s === 'PARTIALLY PAID'
         if (activeFilter === 'Pending') {
-          // While in Pending Approval, invoice should not appear in the actionable Pending filter tab
-          return (s === 'PENDING' || s === 'UNPAID') && !isPendingApproval
+          // Include pending/unpaid and any unpaid No-Show / penalty fee balances
+          return (s === 'PENDING' || s === 'UNPAID' || (s === 'NO_SHOW' && rem > 0) || (s === 'CANCELLED' && rem > 0) || rem > 0) && s !== 'PAID' && s !== 'REFUNDED' && !isPendingApproval
         }
         if (activeFilter === 'Refunded') return s === 'REFUNDED'
         return true
@@ -741,13 +740,21 @@ export default function AdminPayments() {
                     <td className="px-4 py-4">
                       <div className="font-mono">
                         <p className="font-display font-bold text-ink text-sm">
-                          ₱{Number(inv.paid_amount || inv.total_amount || 0).toLocaleString()}
+                          {inv.is_no_show || String(inv.status).toUpperCase() === 'NO_SHOW' ? (
+                            `₱${Number(inv.no_show_fee ?? inv.cancellation_fee ?? inv.remaining_balance ?? 0).toLocaleString()}`
+                          ) : (
+                            `₱${Number(inv.paid_amount || inv.total_amount || 0).toLocaleString()}`
+                          )}
                         </p>
-                        {isPartiallyPaid && (
-                          <p className="text-[10px] text-amber-800 font-semibold">
+                        {inv.is_no_show || String(inv.status).toUpperCase() === 'NO_SHOW' ? (
+                          <p className="text-[10px] text-purple-700 dark:text-purple-300 font-semibold font-sans">
+                            No-Show Fee {Number(inv.remaining_balance) > 0 ? `(₱${Number(inv.remaining_balance).toLocaleString()} balance)` : '(Paid)'}
+                          </p>
+                        ) : isPartiallyPaid ? (
+                          <p className="text-[10px] text-amber-800 font-semibold font-sans">
                             Bal: ₱{Number(inv.remaining_balance).toLocaleString()} of ₱{Number(inv.total_amount).toLocaleString()}
                           </p>
-                        )}
+                        ) : null}
                       </div>
                     </td>
 
@@ -813,8 +820,8 @@ export default function AdminPayments() {
                           </button>
                         )}
 
-                        {/* 3. PAY (GATED: Disabled while reservation is still Pending Approval) */}
-                        {String(inv.status).toUpperCase() !== 'PAID' && String(inv.status).toUpperCase() !== 'CANCELLED' && (
+                        {/* 3. PAY (Active whenever there is an unpaid remaining balance) */}
+                        {Number(inv.remaining_balance || 0) > 0 && String(inv.status).toUpperCase() !== 'PAID' && (
                           inv.is_pending_approval || String(inv.status).toUpperCase() === 'PENDING_APPROVAL' ? (
                             <span
                               className="px-2.5 py-1 text-[11px] text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/50 rounded-lg font-medium shadow-2xs shrink-0 flex items-center gap-1 cursor-not-allowed opacity-85"
@@ -840,8 +847,8 @@ export default function AdminPayments() {
                           )
                         )}
 
-                        {/* 3. CANCEL */}
-                        {String(inv.status).toUpperCase() !== 'PAID' && String(inv.status).toUpperCase() !== 'CANCELLED' && (
+                        {/* 4. CANCEL */}
+                        {String(inv.status).toUpperCase() !== 'PAID' && String(inv.status).toUpperCase() !== 'CANCELLED' && String(inv.status).toUpperCase() !== 'NO_SHOW' && (
                           <button
                             onClick={() => setCancelInvoiceTarget(inv)}
                             className="px-2.5 py-1 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 border border-rose-200 dark:border-rose-800/60 rounded-lg font-semibold transition-all flex items-center gap-1 cursor-pointer shrink-0"

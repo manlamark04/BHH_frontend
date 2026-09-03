@@ -208,7 +208,8 @@ export default function CustomerTransactions() {
               const isConfirmed = status === 'CONFIRMED' || status === 'CHECKED_IN' || status === 'CHECKED_OUT'
               const isRejected = status === 'REJECTED'
               const isCancelled = status === 'CANCELLED'
-              const cancellationFee = Number(b.cancellation_fee || 0)
+              const isNoShow = status === 'NO_SHOW' || status === 'NO-SHOW'
+              const cancellationFee = Number(b.cancellation_fee || b.no_show_fee || 0)
               const amountPaid = Number(b.amount_paid || 0)
 
               return (
@@ -234,9 +235,9 @@ export default function CustomerTransactions() {
 
                     <div className="text-left sm:text-right">
                       <span className="text-[10px] uppercase font-bold text-neutral-500 dark:text-neutral-400 block">
-                        {isCancelled ? 'ORIGINAL BOOKING TOTAL' : 'TOTAL AMOUNT'}
+                        {isCancelled || isNoShow ? 'ORIGINAL BOOKING TOTAL' : 'TOTAL AMOUNT'}
                       </span>
-                      <span className={`font-display font-bold text-lg ${isCancelled ? 'line-through text-neutral-400 dark:text-neutral-500' : 'text-neutral-900 dark:text-white'}`}>
+                      <span className={`font-display font-bold text-lg ${isCancelled || isNoShow ? 'line-through text-neutral-400 dark:text-neutral-500' : 'text-neutral-900 dark:text-white'}`}>
                         ₱{Number(b.total_price || 0).toLocaleString()}
                       </span>
                       {amountPaid > 0 && (
@@ -358,6 +359,26 @@ export default function CustomerTransactions() {
                         ) : (
                           <p className="text-emerald-700 dark:text-emerald-400 font-medium">
                             ✓ No payment due — reservation cancelled before payment. Full balance zeroed out.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {isNoShow && (
+                    <div className="p-3.5 bg-purple-50/80 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800/60 rounded-xl text-xs space-y-1.5 text-purple-950 dark:text-purple-200">
+                      <div className="flex items-center gap-2 font-semibold text-purple-900 dark:text-purple-300">
+                        <AlertCircle className="w-4 h-4 text-purple-600 shrink-0" />
+                        <span>Reservation Flagged as No-Show</span>
+                      </div>
+                      <div className="pl-6 text-[11px] text-purple-800 dark:text-purple-300">
+                        {cancellationFee > 0 ? (
+                          <p>
+                            No-Show service fee: <strong className="font-mono font-bold">₱{cancellationFee.toLocaleString()}</strong>. Unclaimed room was automatically released back to inventory.
+                          </p>
+                        ) : (
+                          <p>
+                            No-Show logged. Service fee was waived (₱0.00). Room was released back to inventory.
                           </p>
                         )}
                       </div>

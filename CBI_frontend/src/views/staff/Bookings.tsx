@@ -1009,7 +1009,7 @@ export default function StaffBookings() {
             {!noShowWaiveFee && (
               <div>
                 <label className="block font-bold text-neutral-700 dark:text-neutral-300 mb-1">
-                  Custom Fee (Optional — leave blank to forfeit 1st night's rate automatically)
+                  Custom Fee (Optional — leave blank for standard 20% fee)
                 </label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 font-bold">₱</span>
@@ -1017,7 +1017,7 @@ export default function StaffBookings() {
                     type="number"
                     min="0"
                     step="0.01"
-                    placeholder="Auto (1st night rate)"
+                    placeholder="Auto (20% of booking)"
                     value={noShowCustomFee}
                     onChange={(e) => setNoShowCustomFee(e.target.value)}
                     className="w-full pl-7 pr-3 py-2 rounded-lg border border-black/[0.1] dark:border-neutral-700 bg-white dark:bg-neutral-800 text-xs focus:outline-none focus:ring-1 focus:ring-purple-600 font-mono"

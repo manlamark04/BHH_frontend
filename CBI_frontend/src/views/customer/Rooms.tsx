@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { roomsApi, type RoomRecord } from '../../api/rooms'
 import { bookingsApi } from '../../api/bookings'
+import { billingApi } from '../../api/billing'
 import StatusBadge from '../../components/StatusBadge'
 import Modal from '../../components/Modal'
 import ConfirmDialog from '../../components/ConfirmDialog'
@@ -55,21 +56,43 @@ export default function CustomerRooms({ customerName }: Props) {
   }
 
   const [myBookings, setMyBookings] = useState<Record<string, unknown>[]>([])
+  const [myBills, setMyBills] = useState<Record<string, unknown>[]>([])
 
   const loadRooms = () => {
     setLoading(true)
     Promise.all([
       roomsApi.getRooms().catch(() => []),
       bookingsApi.getMyBookings().catch(() => []),
-    ]).then(([roomsData, bookingsData]) => {
+      billingApi.getMyBills().catch(() => []),
+    ]).then(([roomsData, bookingsData, billsData]) => {
       setRooms(roomsData as RoomRecord[])
       setMyBookings(Array.isArray(bookingsData) ? bookingsData : [])
+      setMyBills(Array.isArray(billsData) ? billsData : [])
     }).finally(() => setLoading(false))
   }
 
   useEffect(() => {
     loadRooms()
   }, [])
+
+  // Calculate unpaid outstanding balance (from No-Show fees, penalties, or past due balances)
+  const outstandingBalance = useMemo(() => {
+    return myBills.reduce((s, b) => {
+      const isCancelled = String(b.status || '').toUpperCase() === 'CANCELLED' || String(b.status || '').toUpperCase() === 'VOID' || Boolean(b.is_cancelled)
+      const isNoShow = String(b.booking_status || '').toUpperCase() === 'NO_SHOW' || String(b.status || '').toUpperCase() === 'NO_SHOW'
+      const fee = Number(b.no_show_fee ?? b.cancellation_fee ?? 0)
+      const paid = Number(b.amount_paid || b.paid_amount || 0)
+      if (isNoShow || isCancelled) {
+        return s + (fee > 0 ? Math.max(0, fee - paid) : 0)
+      }
+      const total = Number(b.total_amount || 0)
+      const bStatus = String(b.booking_status || '').toLowerCase()
+      if (['checked_out', 'completed'].includes(bStatus) || (!b.booking_id && String(b.status || '').toUpperCase() !== 'PAID')) {
+        return s + Math.max(0, total - paid)
+      }
+      return s
+    }, 0)
+  }, [myBills])
 
   // Active stay in progress (Option B)
   const activeStayReservation = useMemo(() => {
@@ -291,6 +314,32 @@ export default function CustomerRooms({ customerName }: Props) {
         </div>
 
       </div>
+
+      {/* ─── OUTSTANDING BALANCE NOTICE BANNER ─── */}
+      {outstandingBalance > 0 && (
+        <div className="p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800/60 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs animate-fadeIn">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-xl bg-rose-500/15 text-rose-800 dark:text-rose-300 flex items-center justify-center shrink-0 mt-0.5">
+              <AlertCircle className="w-5 h-5" strokeWidth={2} />
+            </div>
+            <div>
+              <h4 className="font-display font-bold text-sm text-rose-950 dark:text-rose-100">
+                Outstanding Balance Required (₱{outstandingBalance.toLocaleString()})
+              </h4>
+              <p className="text-xs text-rose-900/90 dark:text-rose-200/90 mt-0.5 leading-relaxed">
+                You have an unpaid remaining balance of <strong>₱{outstandingBalance.toLocaleString()}</strong> from a previous reservation or No-Show service charge. Please settle your outstanding balance at the front desk before creating new room bookings.
+              </p>
+            </div>
+          </div>
+          <a
+            href="#/customer/transactions"
+            className="px-3.5 py-2 bg-rose-700 hover:bg-rose-800 text-white rounded-xl text-xs font-semibold whitespace-nowrap shadow-xs transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
+          >
+            <Building2 className="w-3.5 h-3.5" />
+            <span>View Bills & Balance</span>
+          </a>
+        </div>
+      )}
 
       {/* ─── ACTIVE STAY NOTICE BANNER (OPTION B) ─── */}
       {activeStayReservation && (
@@ -723,6 +772,19 @@ export default function CustomerRooms({ customerName }: Props) {
               </div>
             </div>
 
+            {/* Outstanding Balance Block Alert */}
+            {outstandingBalance > 0 && (
+              <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs flex items-start gap-2.5">
+                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-bold">Unpaid Remaining Balance (₱{outstandingBalance.toLocaleString()})</p>
+                  <p className="text-[11px] text-rose-700 mt-0.5 leading-relaxed">
+                    You have an outstanding balance from an unpaid No-Show service charge or previous stay. Please settle your balance at the front desk before reserving another room.
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* 1-Stay Conflict Alert (Option B) */}
             {hasDateConflictWithExistingStay && activeStayReservation && (
               <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs flex items-start gap-2.5">
@@ -747,10 +809,10 @@ export default function CustomerRooms({ customerName }: Props) {
               </button>
               <button
                 type="submit"
-                disabled={hasDateConflictWithExistingStay || (bookingType === 'per_night' ? nights <= 0 : !checkInTime)}
+                disabled={outstandingBalance > 0 || hasDateConflictWithExistingStay || (bookingType === 'per_night' ? nights <= 0 : !checkInTime)}
                 className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl font-semibold shadow-sm disabled:opacity-50 transition-all cursor-pointer"
               >
-                Proceed to Confirmation
+                {outstandingBalance > 0 ? `Settle Balance (₱${outstandingBalance.toLocaleString()}) to Book` : 'Proceed to Confirmation'}
               </button>
             </div>
           </form>
