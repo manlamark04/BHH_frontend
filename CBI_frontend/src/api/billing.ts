@@ -55,6 +55,24 @@ export interface InvoiceItem {
   issued_by_name?: string
   issued_at: string
   payments: PaymentTransaction[]
+  driver_license_number?: string
+  driver_license_expiry?: string
+  driver_license_restrictions?: string
+  designated_driver_name?: string
+  license_type?: 'PH' | 'FOREIGN' | string
+  passport_number?: string
+  country_of_issuance?: string
+  foreign_license_number?: string
+  foreign_license_expiry?: string
+  idp_number?: string
+  idp_expiry?: string
+  idp_category_a?: boolean
+  license_verification_status?: 'UNVERIFIED' | 'VERIFIED' | 'FLAGGED' | string
+  license_verified_staff_name?: string
+  license_verified_at?: string
+  license_flag_reason?: string
+  motor_rental_id?: number
+  motor_rental_code?: string
 }
 
 export interface OfficialReceiptData {
@@ -155,6 +173,26 @@ export const billingApi = {
   /** POST /api/bills/:id/cancel — Staff/Admin: cancel unpaid bill */
   cancelBill: async (bill_id: number, reason?: string) => {
     const res = await api.post<{ message: string }>(`/api/bills/${bill_id}/cancel`, { reason })
+    if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('billing-updated'))
+    return res
+  },
+
+  /** POST /api/bills/:id/verify-license — Staff/Admin: verify physical driver's license */
+  verifyLicense: async (bill_id: number) => {
+    const res = await api.post<{ success: boolean; message: string; verification: { status: string; staff_name: string; verified_at: string } }>(
+      `/api/bills/${bill_id}/verify-license`,
+      {}
+    )
+    if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('billing-updated'))
+    return res
+  },
+
+  /** POST /api/bills/:id/flag-license — Staff/Admin: flag driver's license mismatch or issue */
+  flagLicense: async (bill_id: number, reason: string) => {
+    const res = await api.post<{ success: boolean; message: string; verification: { status: string; staff_name: string; verified_at: string; reason: string } }>(
+      `/api/bills/${bill_id}/flag-license`,
+      { reason }
+    )
     if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('billing-updated'))
     return res
   },

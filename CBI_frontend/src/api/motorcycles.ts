@@ -35,7 +35,7 @@ export interface MotorRental {
   late_fee_waived?: boolean
   late_fee_waiver_reason?: string
   final_amount: number
-  status: 'PENDING' | 'RESERVED' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED' | 'OVERDUE'
+  status: 'PENDING_APPROVAL' | 'PENDING_PAYMENT' | 'PENDING' | 'RESERVED' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED' | 'REJECTED' | 'OVERDUE' | string
   notes?: string
   brand?: string
   model?: string
@@ -49,6 +49,22 @@ export interface MotorRental {
   created_by_name?: string
   returned_by_name?: string
   created_at: string
+  driver_license_number?: string
+  driver_license_expiry?: string
+  driver_license_restrictions?: string
+  designated_driver_name?: string
+  license_type?: 'PH' | 'FOREIGN' | string
+  passport_number?: string
+  country_of_issuance?: string
+  foreign_license_number?: string
+  foreign_license_expiry?: string
+  idp_number?: string
+  idp_expiry?: string
+  idp_category_a?: boolean
+  license_verification_status?: string
+  license_verified_staff_name?: string
+  license_verified_at?: string
+  license_flag_reason?: string
 }
 
 export interface CreateMotorRentalPayload {
@@ -57,6 +73,20 @@ export interface CreateMotorRentalPayload {
   start_datetime: string
   expected_return_datetime: string
   notes?: string
+  license_type?: 'PH' | 'FOREIGN'
+  passport_number?: string
+  country_of_issuance?: string
+  foreign_license_number?: string
+  foreign_license_expiry?: string
+  idp_number?: string
+  idp_expiry?: string
+  idp_category_a?: boolean
+  driver_license_number?: string
+  driver_license_expiry?: string
+  driver_license_restrictions?: string
+  designated_driver_name?: string
+  initial_payment?: number
+  payment_method?: string
 }
 
 export interface ReturnMotorPayload {

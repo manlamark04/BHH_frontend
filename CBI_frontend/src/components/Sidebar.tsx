@@ -187,6 +187,12 @@ export default function Sidebar({
           pendingApprovalsCount += 1
         }
       }
+      for (const r of (Array.isArray(motorRentals) ? motorRentals : [])) {
+        const s = String(r.status || '').toUpperCase()
+        if (s === 'PENDING_APPROVAL' || s === 'PENDING') {
+          pendingApprovalsCount += 1
+        }
+      }
 
       setBadgeCounts((prev) => {
         if (

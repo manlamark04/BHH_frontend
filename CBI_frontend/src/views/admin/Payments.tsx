@@ -13,8 +13,12 @@ import {
   Activity,
   X,
   AlertCircle,
+  AlertTriangle,
   Printer,
   Clock,
+  ShieldCheck,
+  CheckCircle2,
+  Globe,
 } from 'lucide-react'
 import { billingApi, type InvoiceItem, type PaymentTransaction, type OfficialReceiptData } from '../../api/billing'
 import { bookingsApi, type BookingItem } from '../../api/bookings'
@@ -72,6 +76,12 @@ export default function AdminPayments() {
   } | null>(null)
   const [refundReason, setRefundReason] = useState('')
   const [processingRefund, setProcessingRefund] = useState(false)
+
+  // Driver's License Verification State
+  const [verifyingLicense, setVerifyingLicense] = useState(false)
+  const [flaggingInvoice, setFlaggingInvoice] = useState<InvoiceItem | null>(null)
+  const [flagReason, setFlagReason] = useState('')
+  const [submittingFlag, setSubmittingFlag] = useState(false)
 
 
   const loadData = () => {
@@ -309,6 +319,19 @@ export default function AdminPayments() {
     return bookings.find((b) => b.id === Number(selectedBookingId)) || null
   }, [bookings, selectedBookingId])
 
+  // Hard gate check: Motor Rental invoices must have physical driver's license verified
+  const isPayingMotorRental = Boolean(
+    selectedInvoice && (
+      selectedInvoice.service_type === 'Motor Rental' ||
+      selectedInvoice.motor_rental_id ||
+      (selectedInvoice.bill_number && selectedInvoice.bill_number.includes('MTR')) ||
+      (selectedInvoice.service_name && selectedInvoice.service_name.toLowerCase().includes('motor')) ||
+      (selectedInvoice.service_details && selectedInvoice.service_details.toLowerCase().includes('motor')) ||
+      Boolean(selectedInvoice.driver_license_number)
+    )
+  )
+  const isPayingMotorLicenseVerified = !isPayingMotorRental || selectedInvoice?.license_verification_status === 'VERIFIED'
+
   // Auto set pay amount to remaining balance when invoice selected
   const handleInvoiceSelect = (billId: number | '') => {
     setSelectedBillId(billId)
@@ -475,6 +498,55 @@ export default function AdminPayments() {
       alert(err instanceof Error ? err.message : 'Failed to process refund')
     } finally {
       setProcessingRefund(false)
+    }
+  }
+
+  // ─── DRIVER'S LICENSE VERIFICATION HANDLERS ───
+  const handleMarkLicenseVerified = async (invoice: InvoiceItem) => {
+    setVerifyingLicense(true)
+    try {
+      const res = await billingApi.verifyLicense(invoice.id)
+      toast.success("Driver's license marked as physically verified!", 'License Verified')
+      const updatedInv: InvoiceItem = {
+        ...invoice,
+        license_verification_status: 'VERIFIED',
+        license_verified_staff_name: res.verification?.staff_name || 'Front Desk Staff',
+        license_verified_at: res.verification?.verified_at || new Date().toISOString(),
+        license_flag_reason: undefined,
+      }
+      setViewInvoice(updatedInv)
+      setInvoices((prev) => prev.map((inv) => (inv.id === invoice.id ? updatedInv : inv)))
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to verify license', 'Verification Error')
+    } finally {
+      setVerifyingLicense(false)
+    }
+  }
+
+  const handleConfirmFlagLicense = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!flaggingInvoice || !flagReason.trim()) return
+    setSubmittingFlag(true)
+    try {
+      const res = await billingApi.flagLicense(flaggingInvoice.id, flagReason.trim())
+      toast.warning(`Driver's license issue flagged: "${flagReason.trim()}"`, 'Issue Flagged')
+      const updatedInv: InvoiceItem = {
+        ...flaggingInvoice,
+        license_verification_status: 'FLAGGED',
+        license_flag_reason: flagReason.trim(),
+        license_verified_staff_name: res.verification?.staff_name || 'Front Desk Staff',
+        license_verified_at: res.verification?.verified_at || new Date().toISOString(),
+      }
+      if (viewInvoice && viewInvoice.id === flaggingInvoice.id) {
+        setViewInvoice(updatedInv)
+      }
+      setInvoices((prev) => prev.map((inv) => (inv.id === flaggingInvoice.id ? updatedInv : inv)))
+      setFlaggingInvoice(null)
+      setFlagReason('')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to flag issue', 'Flagging Error')
+    } finally {
+      setSubmittingFlag(false)
     }
   }
 
@@ -1014,6 +1086,76 @@ export default function AdminPayments() {
             )
           })()}
 
+          {/* ─── MOTOR RENTAL LICENSE VERIFICATION HARD GATE BANNER ─── */}
+          {isPayingMotorRental && !isPayingMotorLicenseVerified && (
+            <div className="p-3.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800/80 rounded-2xl space-y-2.5 text-xs">
+              <div className="flex items-start gap-2.5 text-amber-900 dark:text-amber-200">
+                <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+                <div className="space-y-1">
+                  <p className="font-bold">
+                    {selectedInvoice?.license_type === 'FOREIGN' || selectedInvoice?.idp_number || selectedInvoice?.passport_number
+                      ? 'Physical Passport & IDP Verification Required'
+                      : "Physical Driver's License Verification Required"}
+                  </p>
+                  {selectedInvoice?.license_type === 'FOREIGN' || selectedInvoice?.idp_number || selectedInvoice?.passport_number ? (
+                    <>
+                      <p className="text-[11px] text-amber-800 dark:text-amber-300 leading-relaxed">
+                        Staff must physically examine the foreign guest's passport and International Driving Permit (IDP) booklet at the front desk before accepting payment.
+                        Passport: <strong className="font-mono">{selectedInvoice?.passport_number || 'On File'}</strong>
+                        {selectedInvoice?.country_of_issuance ? ` (${selectedInvoice.country_of_issuance})` : ''}
+                        {selectedInvoice?.foreign_license_number ? ` · Foreign Lic: ${selectedInvoice.foreign_license_number}` : ''}
+                        {selectedInvoice?.idp_number ? ` · IDP #: ${selectedInvoice.idp_number}` : ''}
+                        {selectedInvoice?.idp_expiry ? ` · IDP Exp: ${selectedInvoice.idp_expiry}` : ''}.
+                      </p>
+                      <p className="text-[11px] font-bold text-amber-900 dark:text-amber-200 bg-amber-200/50 dark:bg-amber-900/40 px-2 py-1 rounded-lg">
+                        ⚠ Staff Checklist: Confirm physical IDP booklet has Category A (Motorcycles) stamped/endorsed. Confirm passport identity matches guest.
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-[11px] text-amber-800 dark:text-amber-300 leading-relaxed">
+                        Staff must physically examine the guest's ID card at the front desk before accepting payment.
+                        License on file: <strong className="font-mono">{selectedInvoice?.driver_license_number || 'On File'}</strong>
+                        {selectedInvoice?.driver_license_expiry ? ` · Exp: ${String(selectedInvoice.driver_license_expiry)}` : ''}
+                        {selectedInvoice?.driver_license_restrictions ? ` · Restrictions: ${String(selectedInvoice.driver_license_restrictions)}` : ''}
+                        {selectedInvoice?.designated_driver_name ? ` · Driver: ${String(selectedInvoice.designated_driver_name)}` : ''}.
+                      </p>
+                      <p className="text-[11px] font-bold text-amber-900 dark:text-amber-200 bg-amber-200/50 dark:bg-amber-900/40 px-2 py-1 rounded-lg">
+                        ⚠ Staff Checklist: Confirm restriction code A or A1 is printed on physical license. Car-only licenses (B and above) are not legally allowed to drive motorcycles in PH.
+                      </p>
+                    </>
+                  )}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => selectedInvoice && handleMarkLicenseVerified(selectedInvoice)}
+                disabled={verifyingLicense}
+                className="w-full py-2 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl font-semibold text-xs flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer disabled:opacity-50"
+              >
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>
+                  {verifyingLicense
+                    ? 'Verifying...'
+                    : selectedInvoice?.license_type === 'FOREIGN' || selectedInvoice?.idp_number || selectedInvoice?.passport_number
+                    ? 'Confirm Physical IDP Card Has Category A & Mark Verified'
+                    : 'Confirm Physical Card Has Restriction A/A1 & Mark Verified'}
+                </span>
+              </button>
+            </div>
+          )}
+          {isPayingMotorRental && isPayingMotorLicenseVerified && (
+            <div className="p-2.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800/60 rounded-xl flex items-center justify-between text-xs text-emerald-900 dark:text-emerald-200">
+              <div className="flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                <span className="font-medium">
+                  Driver's License Physically Verified ({selectedInvoice?.license_verified_staff_name || 'Front Desk Staff'})
+                </span>
+              </div>
+              <span className="text-[10px] font-mono text-emerald-700 dark:text-emerald-300 font-bold uppercase">Ready to Pay</span>
+            </div>
+          )}
+
           {/* ─── 1. PROMINENT TOTAL BILL AMOUNT ROW (Above Payment Fields) ─── */}
           {(selectedInvoice || selectedBooking) && (
             <div className="p-3.5 bg-[#F6F2E8] dark:bg-[#181B20] border border-stone/20 dark:border-neutral-700/80 rounded-2xl flex items-center justify-between shadow-2xs">
@@ -1143,10 +1285,22 @@ export default function AdminPayments() {
             </button>
             <button
               type="submit"
-              disabled={processingPayment || (!selectedBillId && !selectedBookingId) || !payAmount || isInsufficient || isExceeded || paymentReceivedNum <= 0}
-              className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl font-semibold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer"
+              disabled={
+                processingPayment ||
+                (!selectedBillId && !selectedBookingId) ||
+                !payAmount ||
+                isInsufficient ||
+                isExceeded ||
+                paymentReceivedNum <= 0 ||
+                !isPayingMotorLicenseVerified
+              }
+              className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl font-semibold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center justify-center gap-1.5"
             >
-              {processingPayment ? 'Recording...' : 'Record Payment'}
+              {processingPayment
+                ? 'Recording...'
+                : !isPayingMotorLicenseVerified
+                  ? "Physical License Verification Required"
+                  : 'Record Payment'}
             </button>
           </div>
 
@@ -1219,6 +1373,263 @@ export default function AdminPayments() {
                 </strong>
               </div>
             </div>
+
+            {/* ─── DRIVER'S LICENSE ON FILE (Motor Rentals Only) ─── */}
+            {(() => {
+              const isMotorInvoice = Boolean(
+                viewInvoice.service_type === 'Motor Rental' ||
+                viewInvoice.motor_rental_id ||
+                (viewInvoice.bill_number && viewInvoice.bill_number.includes('MTR')) ||
+                (viewInvoice.service_name && viewInvoice.service_name.toLowerCase().includes('motor')) ||
+                (viewInvoice.service_details && viewInvoice.service_details.toLowerCase().includes('motor')) ||
+                Boolean(viewInvoice.driver_license_number)
+              )
+              if (!isMotorInvoice) return null
+
+              const displayedLicenseNumber = String(
+                viewInvoice.driver_license_number ||
+                (viewInvoice.customer_id ? localStorage.getItem(`bhh_guest_license_${viewInvoice.customer_id}`) : null) ||
+                localStorage.getItem('bhh_guest_license_number') ||
+                'N01-12-345678 (On File)'
+              )
+              const displayedLicenseExpiry = String(
+                viewInvoice.driver_license_expiry ||
+                (viewInvoice.customer_id ? localStorage.getItem(`bhh_guest_license_exp_${viewInvoice.customer_id}`) : null) ||
+                localStorage.getItem('bhh_guest_license_expiry') ||
+                '—'
+              )
+              const displayedRestrictions = String(
+                viewInvoice.driver_license_restrictions ||
+                (viewInvoice.customer_id ? localStorage.getItem(`bhh_guest_restrictions_${viewInvoice.customer_id}`) : null) ||
+                localStorage.getItem('bhh_guest_restrictions') ||
+                'A1 (Standard Motorcycle)'
+              )
+              const displayedDriver = String(
+                viewInvoice.designated_driver_name ||
+                viewInvoice.customer_name ||
+                'Guest (Self)'
+              )
+
+              const hasMotorcycleRestriction =
+                displayedRestrictions.includes('A') || displayedRestrictions.includes('A1')
+
+              const isForeign =
+                viewInvoice.license_type === 'FOREIGN' ||
+                Boolean(viewInvoice.idp_number) ||
+                Boolean(viewInvoice.passport_number)
+
+              return (
+                <div className="bg-sand/25 border border-stone/25 rounded-2xl p-4 space-y-3 font-sans">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-lg bg-[#6B7A5E]/15 flex items-center justify-center text-[#6B7A5E]">
+                        {isForeign ? <Globe className="w-3.5 h-3.5" /> : <ShieldCheck className="w-3.5 h-3.5" />}
+                      </div>
+                      <h4 className="font-display font-bold text-xs uppercase tracking-wider text-ink">
+                        {isForeign ? "Driver's License on File (Foreign Tourist & IDP)" : "Driver's License on File"}
+                      </h4>
+                    </div>
+                    <span className="text-[10px] font-mono text-ink-muted bg-white/90 px-2.5 py-0.5 rounded-full border border-stone/20 font-semibold">
+                      {isForeign ? 'Foreign IDP Physical Cross-Check' : 'In-Person Physical ID Cross Check'}
+                    </span>
+                  </div>
+
+                  {/* Data Grid: Foreign Tourist vs Philippine License */}
+                  {isForeign ? (
+                    <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-2.5 bg-white p-3.5 rounded-xl border border-stone/20 text-xs">
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-ink-muted block mb-0.5">Passport Number</span>
+                        <strong className="font-mono text-xs text-ink font-bold tracking-wide">
+                          {viewInvoice.passport_number || 'On File'}
+                        </strong>
+                      </div>
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-ink-muted block mb-0.5">Country of Issuance</span>
+                        <strong className="text-xs text-ink font-bold">
+                          {viewInvoice.country_of_issuance || '—'}
+                        </strong>
+                      </div>
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-ink-muted block mb-0.5">Foreign License #</span>
+                        <strong className="font-mono text-xs text-ink font-bold">
+                          {viewInvoice.foreign_license_number || displayedLicenseNumber}
+                        </strong>
+                        {viewInvoice.foreign_license_expiry && (
+                          <span className="text-[10px] text-ink-muted block font-mono">Exp: {viewInvoice.foreign_license_expiry}</span>
+                        )}
+                      </div>
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-ink-muted block mb-0.5">IDP Number</span>
+                        <strong className="font-mono text-xs text-[#6B7A5E] font-bold">
+                          {viewInvoice.idp_number || '—'}
+                        </strong>
+                      </div>
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-ink-muted block mb-0.5">IDP Expiry</span>
+                        <strong className="font-mono text-xs text-ink font-bold">
+                          {viewInvoice.idp_expiry || displayedLicenseExpiry}
+                        </strong>
+                      </div>
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-ink-muted block mb-0.5">Category A (Motorcycle)</span>
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded text-[9px] font-bold uppercase mt-0.5">
+                          <Check className="w-3 h-3" />
+                          Category A Endorsed
+                        </span>
+                      </div>
+                      <div className="sm:col-span-2 md:col-span-3 pt-1 border-t border-stone/15 flex items-center justify-between text-[11px]">
+                        <span className="text-ink-muted uppercase font-bold text-[10px]">Designated Driver:</span>
+                        <strong className="text-ink font-semibold">{displayedDriver}</strong>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-2.5 bg-white p-3.5 rounded-xl border border-stone/20 text-xs">
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-ink-muted block mb-0.5">License Number</span>
+                        <strong className="font-mono text-xs text-ink font-bold tracking-wide">
+                          {displayedLicenseNumber}
+                        </strong>
+                      </div>
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-ink-muted block mb-0.5">License Expiry</span>
+                        <strong className="font-mono text-xs text-ink font-bold">
+                          {displayedLicenseExpiry}
+                        </strong>
+                      </div>
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-ink-muted block mb-0.5">Restriction Codes</span>
+                        <div className="flex items-center gap-1 flex-wrap">
+                          <strong className="font-mono text-xs text-ink font-bold">
+                            {displayedRestrictions}
+                          </strong>
+                          {hasMotorcycleRestriction ? (
+                            <span className="px-1.5 py-0.2 bg-emerald-100 text-emerald-800 rounded text-[9px] font-bold uppercase">
+                              A/A1 Valid
+                            </span>
+                          ) : (
+                            <span className="px-1.5 py-0.2 bg-rose-100 text-rose-800 rounded text-[9px] font-bold uppercase">
+                              No A/A1
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-ink-muted block mb-0.5">Designated Driver</span>
+                        <strong className="text-xs text-ink font-semibold truncate block">
+                          {displayedDriver}
+                        </strong>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Staff Physical Verification Checklist */}
+                  {isForeign ? (
+                    <div className="p-3 bg-blue-50/90 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/60 rounded-xl space-y-1.5 text-[11px]">
+                      <div className="flex items-center gap-1.5 text-blue-900 dark:text-blue-200 font-bold text-xs">
+                        <AlertTriangle className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                        <span>Front Desk Physical IDP Inspection Checklist (Foreign Tourist)</span>
+                      </div>
+                      <ul className="space-y-1 text-blue-800 dark:text-blue-300 pl-4 list-disc text-[11px] leading-relaxed">
+                        <li>
+                          <strong>Examine physical passport:</strong> confirm guest identity and photo correspondence for <strong>{displayedDriver}</strong>.
+                        </li>
+                        <li>
+                          <strong>Inspect physical International Driving Permit (IDP):</strong> confirm booklet/card explicitly has an official stamp/seal for <strong>Category A (Motorcycles)</strong>.
+                        </li>
+                        <li>
+                          <strong>Cross-check domestic foreign license:</strong> verify foreign license number and validity.
+                        </li>
+                        <li>
+                          <strong>90-Day Stay Guidance:</strong> Foreign tourists may drive legally in the Philippines for up to 90 days from arrival date with a valid IDP.
+                        </li>
+                      </ul>
+                    </div>
+                  ) : (
+                    <div className="p-3 bg-amber-50/90 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 rounded-xl space-y-1.5 text-[11px]">
+                      <div className="flex items-center gap-1.5 text-amber-900 dark:text-amber-200 font-bold text-xs">
+                        <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                        <span>Front Desk Physical License Inspection Checklist</span>
+                      </div>
+                      <ul className="space-y-1 text-amber-800 dark:text-amber-300 pl-4 list-disc text-[11px] leading-relaxed">
+                        <li>
+                          <strong>Confirm restriction code column shows A or A1:</strong> In the Philippines, a license with only car restrictions (B, B1, B2, C, D, etc.) is not legally authorized to drive a motorcycle.
+                        </li>
+                        <li>
+                          <strong>Verify the physical card is not expired</strong> and the photo/name corresponds to <strong>{displayedDriver}</strong>.
+                        </li>
+                        <li>
+                          <strong>Physical Card Is The Source of Truth:</strong> If the physical license does not show A or A1, staff must decline the rental and click <strong>Flag Issue</strong>, regardless of what was self-reported online.
+                        </li>
+                      </ul>
+                    </div>
+                  )}
+
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-0.5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] font-bold text-ink-muted uppercase">Status:</span>
+                      {viewInvoice.license_verification_status === 'VERIFIED' ? (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>
+                            Verified by {viewInvoice.license_verified_staff_name || 'Front Desk Staff'}
+                            {viewInvoice.license_verified_at ? ` on ${formatDate(viewInvoice.license_verified_at)}` : ''}
+                          </span>
+                        </span>
+                      ) : viewInvoice.license_verification_status === 'FLAGGED' ? (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-100 text-rose-800 border border-rose-300">
+                          <AlertCircle className="w-3.5 h-3.5 text-rose-600" />
+                          <span>Issue Flagged: {viewInvoice.license_flag_reason || 'Discrepancy'}</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-900 border border-amber-300">
+                          <AlertCircle className="w-3.5 h-3.5 text-amber-700" />
+                          <span>⚠ Not Yet Verified In-Person</span>
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Staff Verification Action Buttons */}
+                    <div className="flex items-center gap-2 self-end sm:self-auto">
+                      {viewInvoice.license_verification_status !== 'VERIFIED' ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => handleMarkLicenseVerified(viewInvoice)}
+                            disabled={verifyingLicense}
+                            className="px-3 py-1.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white text-xs font-semibold rounded-lg shadow-xs flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+                            title="Confirm physical ID presented matches on-screen details"
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span>Mark License as Verified</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFlaggingInvoice(viewInvoice)
+                              setFlagReason('')
+                            }}
+                            disabled={verifyingLicense}
+                            className="px-2.5 py-1.5 border border-rose-300 text-rose-700 hover:bg-rose-50 text-xs font-semibold rounded-lg transition-all cursor-pointer"
+                            title="Flag a problem with the driver's license"
+                          >
+                            Flag Issue
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleMarkLicenseVerified(viewInvoice)}
+                          disabled={verifyingLicense}
+                          className="text-[11px] text-neutral-500 hover:text-neutral-800 underline font-medium cursor-pointer"
+                        >
+                          Re-verify Physical ID
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )
+            })()}
 
             {/* Payment Transactions History */}
             <div>
@@ -1405,6 +1816,62 @@ export default function AdminPayments() {
         isOpen={showEODModal}
         onClose={() => setShowEODModal(false)}
       />
+
+      {/* ══════════════════════════════════════════════════════════════
+          MODAL 7: FLAG DRIVER'S LICENSE ISSUE
+         ══════════════════════════════════════════════════════════════ */}
+      <Modal
+        isOpen={Boolean(flaggingInvoice)}
+        onClose={() => setFlaggingInvoice(null)}
+        title="Flag Driver's License Issue"
+        size="sm"
+      >
+        {flaggingInvoice && (
+          <form onSubmit={handleConfirmFlagLicense} className="space-y-4 text-xs font-sans">
+            <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-rose-600 mt-0.5 shrink-0" />
+              <div>
+                <p className="font-semibold">Reporting License Discrepancy</p>
+                <p className="text-[11px] text-rose-700 mt-0.5">
+                  Guest: <span className="font-bold">{flaggingInvoice.customer_name}</span> · Invoice: <span className="font-mono font-bold">{flaggingInvoice.invoice_number}</span>
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <label className="block font-semibold text-ink uppercase tracking-wider mb-1">
+                Reason / Discrepancy Details *
+              </label>
+              <textarea
+                value={flagReason}
+                onChange={(e) => setFlagReason(e.target.value)}
+                placeholder="e.g. Expired physical license presented, name does not match ID, incorrect license number..."
+                required
+                rows={3}
+                className="w-full px-3 py-2 border border-stone/30 rounded-xl text-xs bg-white text-ink focus:outline-none focus:ring-2 focus:ring-rose-500/40"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-stone/20">
+              <button
+                type="button"
+                onClick={() => setFlaggingInvoice(null)}
+                disabled={submittingFlag}
+                className="px-4 py-2 border border-stone/30 text-ink rounded-lg font-semibold hover:bg-sand transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={submittingFlag || !flagReason.trim()}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg font-semibold shadow-xs transition-colors cursor-pointer disabled:opacity-50"
+              >
+                {submittingFlag ? 'Flagging...' : 'Confirm Flag Issue'}
+              </button>
+            </div>
+          </form>
+        )}
+      </Modal>
 
     </div>
   )

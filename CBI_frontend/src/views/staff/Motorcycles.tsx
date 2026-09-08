@@ -9,13 +9,14 @@ import {
   ShieldCheck,
   Pencil,
   SlidersHorizontal,
+  Globe,
 } from 'lucide-react'
 import { motorcyclesApi, type Motorcycle, type MotorRental } from '../../api/motorcycles'
 import { usersApi } from '../../api/users'
 import StatusBadge from '../../components/StatusBadge'
 import Modal from '../../components/Modal'
 import EditMotorDrawer from '../../components/EditMotorDrawer'
-import { formatDateTimeWithAmPm } from '../../components/MotorRentSection'
+import { formatDateTimeWithAmPm, PH_RESTRICTION_CODES, COMMON_COUNTRIES } from '../../components/MotorRentSection'
 
 interface Props {
   userRole?: 'staff' | 'admin' | 'customer'
@@ -43,9 +44,70 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
   const [startTime, setStartTime] = useState('08:00')
   const [returnDate, setReturnDate] = useState('')
   const [returnTime, setReturnTime] = useState('17:00')
+
+  // License Type & Verification (PH vs Foreign)
+  const [staffLicenseType, setStaffLicenseType] = useState<'PH' | 'FOREIGN'>('PH')
+  const [staffLicenseNumber, setStaffLicenseNumber] = useState('')
+  const [staffLicenseExpiry, setStaffLicenseExpiry] = useState('')
+  const [staffRestrictions, setStaffRestrictions] = useState<string[]>(['A1'])
+
+  // Foreign license fields
+  const [staffPassportNumber, setStaffPassportNumber] = useState('')
+  const [staffCountryOfIssuance, setStaffCountryOfIssuance] = useState('United States')
+  const [staffCustomCountry, setStaffCustomCountry] = useState('')
+  const [staffForeignLicenseNumber, setStaffForeignLicenseNumber] = useState('')
+  const [staffForeignLicenseExpiry, setStaffForeignLicenseExpiry] = useState('')
+  const [staffIdpNumber, setStaffIdpNumber] = useState('')
+  const [staffIdpExpiry, setStaffIdpExpiry] = useState('')
+  const [staffIdpCategoryA, setStaffIdpCategoryA] = useState(false)
+
   const [notes, setNotes] = useState('')
   const [creatingRental, setCreatingRental] = useState(false)
   const [rentError, setRentError] = useState('')
+
+  const staffHasMotorcycleRestriction = staffRestrictions.some((c) => c === 'A' || c === 'A1')
+  const staffIsLicenseExpired = Boolean(
+    staffLicenseExpiry && (() => {
+      const exp = new Date(`${staffLicenseExpiry}T23:59:59`)
+      return !isNaN(exp.getTime()) && exp.getTime() < Date.now()
+    })()
+  )
+
+  const staffIsForeignLicenseExpired = Boolean(
+    staffForeignLicenseExpiry && (() => {
+      const exp = new Date(`${staffForeignLicenseExpiry}T23:59:59`)
+      return !isNaN(exp.getTime()) && exp.getTime() < Date.now()
+    })()
+  )
+
+  const staffIsIdpExpired = Boolean(
+    staffIdpExpiry && (() => {
+      const exp = new Date(`${staffIdpExpiry}T23:59:59`)
+      return !isNaN(exp.getTime()) && exp.getTime() < Date.now()
+    })()
+  )
+
+  const staffFinalCountry =
+    staffCountryOfIssuance === 'Other' ? staffCustomCountry.trim() : staffCountryOfIssuance.trim()
+
+  const staffIsForeignValid =
+    Boolean(staffPassportNumber.trim()) &&
+    Boolean(staffFinalCountry) &&
+    Boolean(staffForeignLicenseNumber.trim()) &&
+    Boolean(staffForeignLicenseExpiry) &&
+    !staffIsForeignLicenseExpired &&
+    Boolean(staffIdpNumber.trim()) &&
+    Boolean(staffIdpExpiry) &&
+    !staffIsIdpExpired &&
+    staffIdpCategoryA
+
+  const staffIsPhValid =
+    Boolean(staffLicenseNumber.trim()) &&
+    Boolean(staffLicenseExpiry) &&
+    !staffIsLicenseExpired &&
+    staffHasMotorcycleRestriction
+
+  const staffIsLicenseValid = staffLicenseType === 'FOREIGN' ? staffIsForeignValid : staffIsPhValid
 
   // Return Motor Modal
   const [returnRentalModal, setReturnRentalModal] = useState<MotorRental | null>(null)
@@ -54,6 +116,13 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
   const [waiveLateFee, setWaiveLateFee] = useState(false)
   const [waiverReason, setWaiverReason] = useState('')
   const [processingReturn, setProcessingReturn] = useState(false)
+
+  // Pending Approval Modal State
+  const [approvingRental, setApprovingRental] = useState<MotorRental | null>(null)
+  const [rejectingRental, setRejectingRental] = useState<MotorRental | null>(null)
+  const [rejectReason, setRejectReason] = useState('Dates/time slot no longer available')
+  const [rejectNotes, setRejectNotes] = useState('')
+  const [processingApproval, setProcessingApproval] = useState(false)
 
   const loadData = () => {
     setLoading(true)
@@ -115,19 +184,118 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
       setRentError(`Customer already has an active or pending motorcycle rental (${selectedCustomerActiveRental.brand} ${selectedCustomerActiveRental.model} · Plate: ${selectedCustomerActiveRental.plate_number}). Only one motorcycle rental is allowed per guest at a time.`)
       return
     }
+
+    if (staffLicenseType === 'FOREIGN') {
+      if (!staffPassportNumber.trim()) {
+        setRentError('Passport number is required for foreign guests.')
+        return
+      }
+      if (!staffFinalCountry) {
+        setRentError('Country of issuance is required.')
+        return
+      }
+      if (!staffForeignLicenseNumber.trim()) {
+        setRentError('Foreign driver license number is required.')
+        return
+      }
+      if (!staffForeignLicenseExpiry || staffIsForeignLicenseExpired) {
+        setRentError('A valid, non-expired foreign license is required.')
+        return
+      }
+      if (!staffIdpNumber.trim()) {
+        setRentError('International Driving Permit (IDP) number is required.')
+        return
+      }
+      if (!staffIdpExpiry || staffIsIdpExpired) {
+        setRentError('A valid, non-expired International Driving Permit (IDP) is required.')
+        return
+      }
+      if (!staffIdpCategoryA) {
+        setRentError(
+          "An International Driving Permit (IDP) with a motorcycle category is required for foreign guests to rent a motorcycle in the Philippines. Please present your IDP at the front desk, or contact us if you don't have one."
+        )
+        return
+      }
+    } else {
+      if (!staffLicenseNumber.trim()) {
+        setRentError("Driver's license number is required.")
+        return
+      }
+      if (!staffLicenseExpiry) {
+        setRentError('License expiry date is required.')
+        return
+      }
+      if (staffIsLicenseExpired) {
+        setRentError('Driver license has expired and cannot be used.')
+        return
+      }
+      if (staffRestrictions.length === 0) {
+        setRentError('Please select at least one restriction code on the physical license.')
+        return
+      }
+      if (!staffHasMotorcycleRestriction) {
+        setRentError('Your license does not include restriction code A or A1, which is required to legally operate a motorcycle in the Philippines. This rental cannot proceed without a valid motorcycle license restriction.')
+        return
+      }
+    }
+
     setCreatingRental(true)
     setRentError('')
     try {
-      const res = await motorcyclesApi.createRental({
-        motor_id: Number(selectedMotorId),
-        customer_id: Number(selectedCustomerId),
-        start_datetime: `${startDate}T${startTime}:00`,
-        expected_return_datetime: `${returnDate}T${returnTime}:00`,
-        notes: notes.trim() || undefined,
-      })
+      let licenseTag = ''
+      let payload: Parameters<typeof motorcyclesApi.createRental>[0]
+
+      if (staffLicenseType === 'FOREIGN') {
+        licenseTag = `[Foreign License: ${staffForeignLicenseNumber.trim()} (${staffFinalCountry}) | Passport: ${staffPassportNumber.trim()} | IDP: ${staffIdpNumber.trim()} | IDP Exp: ${staffIdpExpiry} | Category A: Verified]`
+        payload = {
+          motor_id: Number(selectedMotorId),
+          customer_id: Number(selectedCustomerId),
+          start_datetime: `${startDate}T${startTime}:00`,
+          expected_return_datetime: `${returnDate}T${returnTime}:00`,
+          notes: notes.trim() ? `${notes.trim()}\n${licenseTag}` : licenseTag,
+          license_type: 'FOREIGN',
+          passport_number: staffPassportNumber.trim(),
+          country_of_issuance: staffFinalCountry,
+          foreign_license_number: staffForeignLicenseNumber.trim(),
+          foreign_license_expiry: staffForeignLicenseExpiry,
+          idp_number: staffIdpNumber.trim(),
+          idp_expiry: staffIdpExpiry,
+          idp_category_a: true,
+          driver_license_number: staffForeignLicenseNumber.trim(),
+          driver_license_expiry: staffIdpExpiry || staffForeignLicenseExpiry,
+          driver_license_restrictions: 'IDP Category A (Motorcycle)',
+        }
+      } else {
+        const restrictionsStr = staffRestrictions.join(', ')
+        licenseTag = `[Driver's License: ${staffLicenseNumber.trim()} | Expiry: ${staffLicenseExpiry} | Restrictions: ${restrictionsStr}]`
+        payload = {
+          motor_id: Number(selectedMotorId),
+          customer_id: Number(selectedCustomerId),
+          start_datetime: `${startDate}T${startTime}:00`,
+          expected_return_datetime: `${returnDate}T${returnTime}:00`,
+          notes: notes.trim() ? `${notes.trim()}\n${licenseTag}` : licenseTag,
+          license_type: 'PH',
+          driver_license_number: staffLicenseNumber.trim(),
+          driver_license_expiry: staffLicenseExpiry,
+          driver_license_restrictions: restrictionsStr,
+        }
+      }
+
+      const res = await motorcyclesApi.createRental(payload)
       setShowAddRentModal(false)
       setSelectedMotorId('')
       setSelectedCustomerId('')
+      setStaffLicenseNumber('')
+      setStaffLicenseExpiry('')
+      setStaffRestrictions(['A1'])
+      setStaffPassportNumber('')
+      setStaffCountryOfIssuance('United States')
+      setStaffCustomCountry('')
+      setStaffForeignLicenseNumber('')
+      setStaffForeignLicenseExpiry('')
+      setStaffIdpNumber('')
+      setStaffIdpExpiry('')
+      setStaffIdpCategoryA(false)
       setNotes('')
       setSuccessMsg(`Rental ${res.rental.rental_id} created successfully for ${res.rental.customer_name}!`)
       setTimeout(() => setSuccessMsg(''), 5000)
@@ -184,6 +352,41 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
       alert(err instanceof Error ? err.message : 'Failed to process return')
     } finally {
       setProcessingReturn(false)
+    }
+  }
+
+  const handleApproveRental = async () => {
+    if (!approvingRental) return
+    setProcessingApproval(true)
+    try {
+      await motorcyclesApi.approveRental(approvingRental.id)
+      setSuccessMsg(`Reservation ${approvingRental.rental_id} (${approvingRental.brand} ${approvingRental.model}) approved! Sent to Billing & Payment.`)
+      setTimeout(() => setSuccessMsg(''), 5000)
+      setApprovingRental(null)
+      loadData()
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to approve rental')
+    } finally {
+      setProcessingApproval(false)
+    }
+  }
+
+  const handleRejectRental = async () => {
+    if (!rejectingRental) return
+    setProcessingApproval(true)
+    try {
+      const fullReason = [rejectReason, rejectNotes.trim()].filter(Boolean).join(' - ')
+      await motorcyclesApi.rejectRental(rejectingRental.id, fullReason)
+      setSuccessMsg(`Reservation ${rejectingRental.rental_id} rejected.`)
+      setTimeout(() => setSuccessMsg(''), 5000)
+      setRejectingRental(null)
+      setRejectReason('Dates/time slot no longer available')
+      setRejectNotes('')
+      loadData()
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to reject rental')
+    } finally {
+      setProcessingApproval(false)
     }
   }
 
@@ -331,22 +534,50 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
                       )}
                     </td>
                     <td className="px-5 py-4 text-right">
+                      {String(r.status) === 'PENDING_APPROVAL' && (
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            onClick={() => setApprovingRental(r)}
+                            className="px-3 py-1.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-lg text-xs font-semibold shadow-xs transition-all cursor-pointer flex items-center gap-1"
+                          >
+                            <Check className="w-3.5 h-3.5" />
+                            <span>Review & Approve</span>
+                          </button>
+                          <button
+                            onClick={() => setRejectingRental(r)}
+                            className="px-2.5 py-1.5 text-rose-600 hover:bg-rose-50 border border-rose-200 dark:border-rose-900 rounded-lg text-xs font-semibold transition-all cursor-pointer"
+                          >
+                            Reject
+                          </button>
+                        </div>
+                      )}
                       {String(r.status) === 'PENDING_PAYMENT' && (
                         <span className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-md font-medium">
                           Awaiting Payment
                         </span>
                       )}
-                      {(r.status === 'ACTIVE' || r.status === 'OVERDUE') && (
+                      {(r.status === 'ACTIVE' || r.status === 'OVERDUE' || r.status === 'RESERVED') && (
                         <button
                           onClick={() => setReturnRentalModal(r)}
-                          className="px-3 py-1.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-lg text-xs font-semibold shadow-xs transition-all cursor-pointer"
+                          className="px-3 py-1.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-lg text-xs font-semibold shadow-xs transition-all cursor-pointer flex items-center gap-1.5 ml-auto"
                         >
-                          Process Return
+                          <RotateCcw className="w-3.5 h-3.5" />
+                          <span>Process Return</span>
                         </button>
                       )}
                       {r.status === 'COMPLETED' && (
                         <span className="text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-md font-medium">
                           Returned
+                        </span>
+                      )}
+                      {r.status === 'REJECTED' && (
+                        <span className="text-[11px] text-rose-700 bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-md font-medium">
+                          Rejected
+                        </span>
+                      )}
+                      {r.status === 'CANCELLED' && (
+                        <span className="text-[11px] text-stone/70 bg-sand border border-stone/20 px-2.5 py-1 rounded-md font-medium">
+                          Cancelled
                         </span>
                       )}
                     </td>
@@ -567,6 +798,322 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
             </div>
           </div>
 
+          {/* DRIVER'S LICENSE INFORMATION & RESTRICTION VALIDATION */}
+          <div className="pt-2 border-t border-stone/20 space-y-3 text-xs">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <ShieldCheck className="w-4 h-4 text-[#6B7A5E]" />
+                <label className="block text-[11px] font-bold text-ink uppercase tracking-wider">
+                  Driver's License Information
+                </label>
+              </div>
+              <span className="text-[10px] text-ink-muted">
+                {staffLicenseType === 'PH' ? 'A or A1 Required' : 'Passport & IDP Category A Required'}
+              </span>
+            </div>
+
+            {/* License Type Toggle */}
+            <div className="grid grid-cols-2 gap-2 p-1 bg-stone/10 rounded-xl">
+              <button
+                type="button"
+                onClick={() => setStaffLicenseType('PH')}
+                className={`py-1.5 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                  staffLicenseType === 'PH'
+                    ? 'bg-white text-ink shadow-xs'
+                    : 'text-ink-muted hover:text-ink'
+                }`}
+              >
+                <ShieldCheck className="w-3.5 h-3.5 text-[#6B7A5E]" />
+                <span>Philippine License</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setStaffLicenseType('FOREIGN')}
+                className={`py-1.5 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                  staffLicenseType === 'FOREIGN'
+                    ? 'bg-white text-ink shadow-xs'
+                    : 'text-ink-muted hover:text-ink'
+                }`}
+              >
+                <Globe className="w-3.5 h-3.5 text-[#6B7A5E]" />
+                <span>Foreign License / Tourist</span>
+              </button>
+            </div>
+
+            {/* PATH 1: PHILIPPINE LICENSE */}
+            {staffLicenseType === 'PH' ? (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-semibold text-ink uppercase tracking-wider mb-1 text-[11px]">
+                      Driver's License Number *
+                    </label>
+                    <input
+                      type="text"
+                      value={staffLicenseNumber}
+                      onChange={(e) => setStaffLicenseNumber(e.target.value)}
+                      placeholder="e.g. N01-12-345678"
+                      required
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="characters"
+                      spellCheck={false}
+                      name="staff_motor_license_num"
+                      id="staff_motor_license_num"
+                      className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#F6F2E8] text-ink font-mono text-xs focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-ink uppercase tracking-wider mb-1 text-[11px]">
+                      License Expiry Date *
+                    </label>
+                    <input
+                      type="date"
+                      value={staffLicenseExpiry}
+                      onChange={(e) => setStaffLicenseExpiry(e.target.value)}
+                      required
+                      autoComplete="off"
+                      name="staff_motor_license_exp"
+                      id="staff_motor_license_exp"
+                      className={`w-full px-3 py-2 rounded-xl border bg-[#F6F2E8] text-ink font-mono text-xs focus:outline-none focus:ring-2 ${
+                        staffIsLicenseExpired
+                          ? 'border-rose-500 text-rose-600 focus:ring-rose-500/40'
+                          : 'border-stone/30 focus:ring-[#6B7A5E]/40'
+                      }`}
+                    />
+                    {staffIsLicenseExpired && (
+                      <p className="text-[11px] text-rose-600 mt-1 font-medium leading-tight">
+                        This license has expired and cannot be accepted.
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Restriction Codes Checkboxes */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block font-semibold text-ink uppercase tracking-wider text-[11px]">
+                      License Restriction Code(s) *
+                    </label>
+                    <span className="text-[10px] text-ink-muted">Must match physical card</span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    {PH_RESTRICTION_CODES.map((rc) => {
+                      const isChecked = staffRestrictions.includes(rc.code)
+                      return (
+                        <label
+                          key={rc.code}
+                          className={`flex items-start gap-2 p-2 rounded-xl border cursor-pointer select-none transition-all ${
+                            isChecked
+                              ? rc.isMotorcycle
+                                ? 'bg-[#6B7A5E]/10 border-[#6B7A5E] text-ink ring-1 ring-[#6B7A5E]/30'
+                                : 'bg-stone/10 border-stone/40 text-ink'
+                              : 'border-stone/20 bg-white hover:bg-sand/30 text-ink-muted'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => {
+                              if (isChecked) {
+                                setStaffRestrictions(staffRestrictions.filter((c) => c !== rc.code))
+                              } else {
+                                setStaffRestrictions([...staffRestrictions, rc.code])
+                              }
+                            }}
+                            className="mt-0.5 w-3.5 h-3.5 rounded border-stone text-[#6B7A5E] focus:ring-[#6B7A5E]"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1">
+                              <span className="font-bold font-mono text-xs text-ink">{rc.label}</span>
+                              {rc.isMotorcycle && (
+                                <span className="px-1 py-0.2 bg-emerald-100 text-emerald-800 rounded text-[9px] font-bold">
+                                  Valid
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[9px] text-ink-muted mt-0.5 leading-snug">{rc.desc}</p>
+                          </div>
+                        </label>
+                      )
+                    })}
+                  </div>
+
+                  {/* Inline Error for missing A/A1 */}
+                  {staffRestrictions.length > 0 && !staffHasMotorcycleRestriction && (
+                    <div className="mt-2 p-2.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs font-semibold flex items-start gap-2">
+                      <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-bold text-[11px] text-rose-900">Motorcycle Restriction Missing</p>
+                        <p className="font-normal text-[11px] leading-relaxed text-rose-700">
+                          Your license does not include restriction code A or A1, which is required to legally operate a motorcycle in the Philippines. This rental cannot proceed without a valid motorcycle license restriction.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              /* PATH 2: FOREIGN LICENSE / TOURIST */
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-semibold text-ink uppercase tracking-wider mb-1 text-[11px]">
+                      Passport Number *
+                    </label>
+                    <input
+                      type="text"
+                      value={staffPassportNumber}
+                      onChange={(e) => setStaffPassportNumber(e.target.value.toUpperCase())}
+                      placeholder="e.g. E12345678"
+                      required
+                      autoComplete="off"
+                      className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#F6F2E8] text-ink font-mono text-xs focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-ink uppercase tracking-wider mb-1 text-[11px]">
+                      Country of Issuance *
+                    </label>
+                    <select
+                      value={staffCountryOfIssuance}
+                      onChange={(e) => setStaffCountryOfIssuance(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#F6F2E8] text-ink text-xs focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
+                    >
+                      {COMMON_COUNTRIES.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {staffCountryOfIssuance === 'Other' && (
+                  <div>
+                    <label className="block font-semibold text-ink uppercase tracking-wider mb-1 text-[11px]">
+                      Specify Country Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={staffCustomCountry}
+                      onChange={(e) => setStaffCustomCountry(e.target.value)}
+                      placeholder="Enter passport issuing country"
+                      required
+                      className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#F6F2E8] text-ink text-xs"
+                    />
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-3 pt-1 border-t border-stone/15">
+                  <div>
+                    <label className="block font-semibold text-ink uppercase tracking-wider mb-1 text-[11px]">
+                      Foreign License # *
+                    </label>
+                    <input
+                      type="text"
+                      value={staffForeignLicenseNumber}
+                      onChange={(e) => setStaffForeignLicenseNumber(e.target.value)}
+                      placeholder="Home country license #"
+                      required
+                      className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#F6F2E8] text-ink font-mono text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-ink uppercase tracking-wider mb-1 text-[11px]">
+                      Foreign License Expiry *
+                    </label>
+                    <input
+                      type="date"
+                      value={staffForeignLicenseExpiry}
+                      onChange={(e) => setStaffForeignLicenseExpiry(e.target.value)}
+                      required
+                      className={`w-full px-3 py-2 rounded-xl border bg-[#F6F2E8] text-ink font-mono text-xs ${
+                        staffIsForeignLicenseExpired ? 'border-rose-500 text-rose-600' : 'border-stone/30'
+                      }`}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 pt-1 border-t border-stone/15">
+                  <div>
+                    <label className="block font-semibold text-ink uppercase tracking-wider mb-1 text-[11px]">
+                      International Driving Permit (IDP) # *
+                    </label>
+                    <input
+                      type="text"
+                      value={staffIdpNumber}
+                      onChange={(e) => setStaffIdpNumber(e.target.value)}
+                      placeholder="e.g. IDP-98765432"
+                      required
+                      className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#F6F2E8] text-ink font-mono text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-ink uppercase tracking-wider mb-1 text-[11px]">
+                      IDP Expiry Date *
+                    </label>
+                    <input
+                      type="date"
+                      value={staffIdpExpiry}
+                      onChange={(e) => setStaffIdpExpiry(e.target.value)}
+                      required
+                      className={`w-full px-3 py-2 rounded-xl border bg-[#F6F2E8] text-ink font-mono text-xs ${
+                        staffIsIdpExpired ? 'border-rose-500 text-rose-600' : 'border-stone/30'
+                      }`}
+                    />
+                  </div>
+                </div>
+
+                {/* IDP Category A Checkbox */}
+                <div className="pt-1">
+                  <label
+                    className={`flex items-start gap-2.5 p-2.5 rounded-xl border cursor-pointer select-none transition-all ${
+                      staffIdpCategoryA
+                        ? 'bg-[#6B7A5E]/10 border-[#6B7A5E] text-ink ring-1 ring-[#6B7A5E]/30'
+                        : 'border-amber-300 bg-amber-50/50 text-ink'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={staffIdpCategoryA}
+                      onChange={(e) => setStaffIdpCategoryA(e.target.checked)}
+                      className="mt-0.5 w-4 h-4 rounded border-stone text-[#6B7A5E] focus:ring-[#6B7A5E]"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-bold text-xs text-ink">
+                          Physical IDP Card shows Category A (Motorcycle)
+                        </span>
+                        <span className="px-1 py-0.2 bg-emerald-100 text-emerald-800 rounded text-[9px] font-bold">
+                          Required
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-ink-muted mt-0.5">
+                        Staff verified that the guest's physical International Driving Permit has Category A stamped.
+                      </p>
+                    </div>
+                  </label>
+
+                  {!staffIdpCategoryA && (
+                    <p className="text-[11px] text-rose-600 mt-1 font-medium">
+                      An International Driving Permit (IDP) with a motorcycle category is required for foreign guests to rent a motorcycle in the Philippines. Please present your IDP at the front desk, or contact us if you don't have one.
+                    </p>
+                  )}
+
+                  <div className="mt-2 p-2 bg-blue-50/80 border border-blue-200 rounded-xl text-[10px] text-blue-800 flex items-center gap-1.5">
+                    <Globe className="w-3 h-3 text-blue-600 shrink-0" />
+                    <span>
+                      Notice: Tourists may drive with an IDP + valid foreign license for up to 90 days from arrival in the Philippines.
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
           <div>
             <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Dispatch Notes / Condition</label>
             <input
@@ -595,13 +1142,19 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
             <button
               type="button"
               onClick={() => setShowAddRentModal(false)}
-              className="flex-1 py-2.5 border border-stone/30 rounded-xl text-xs font-semibold text-ink-muted hover:bg-sand"
+              className="flex-1 py-2.5 border border-stone/30 rounded-xl text-xs font-semibold text-ink-muted hover:bg-sand cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
-              disabled={creatingRental || !selectedMotorId || !selectedCustomerId || !!selectedCustomerActiveRental}
+              disabled={
+                creatingRental ||
+                !selectedMotorId ||
+                !selectedCustomerId ||
+                !!selectedCustomerActiveRental ||
+                !staffIsLicenseValid
+              }
               className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl text-xs font-semibold shadow-sm disabled:opacity-50 transition-all cursor-pointer"
             >
               {creatingRental ? 'Creating Rental...' : 'Confirm & Dispatch'}
@@ -883,6 +1436,285 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
                 className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl font-semibold shadow-xs disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer text-xs flex items-center justify-center gap-1.5"
               >
                 {updatingStatus ? 'Updating...' : 'Save Status'}
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* ─── MODAL: PENDING APPROVAL MODAL (Staff/Admin) ─── */}
+      <Modal
+        isOpen={!!approvingRental}
+        onClose={() => setApprovingRental(null)}
+        title="Approve Motorcycle Reservation"
+        size="md"
+      >
+        {approvingRental && (
+          <div className="space-y-4 text-xs font-sans">
+            <div className="p-3.5 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-start gap-2.5">
+              <AlertCircle className="w-4 h-4 text-amber-700 dark:text-amber-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-bold text-amber-900 dark:text-amber-300">Pending Staff Review</p>
+                <p className="text-amber-800 dark:text-amber-400 mt-0.5">
+                  Approving this reservation will mark the motorcycle as <strong>RESERVED</strong> and advance the invoice to <strong>Billing & Payment</strong> for settlement.
+                </p>
+              </div>
+            </div>
+
+            {/* Rental Details Grid */}
+            <div className="bg-neutral-50 dark:bg-[#14171C] rounded-2xl p-4 border border-black/[0.06] dark:border-neutral-800 space-y-2">
+              <div className="flex justify-between">
+                <span className="text-neutral-500 dark:text-neutral-400">Rental ID:</span>
+                <span className="font-mono font-bold text-[#6B7A5E]">{approvingRental.rental_id}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-neutral-500 dark:text-neutral-400">Customer:</span>
+                <span className="font-bold text-neutral-900 dark:text-white">{approvingRental.customer_name || 'Guest'}</span>
+              </div>
+              {approvingRental.customer_phone && (
+                <div className="flex justify-between">
+                  <span className="text-neutral-500 dark:text-neutral-400">Phone:</span>
+                  <span className="font-mono text-neutral-800 dark:text-neutral-200">{approvingRental.customer_phone}</span>
+                </div>
+              )}
+              <div className="flex justify-between">
+                <span className="text-neutral-500 dark:text-neutral-400">Motorcycle:</span>
+                <span className="font-bold text-neutral-900 dark:text-white">{approvingRental.brand} {approvingRental.model}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-neutral-500 dark:text-neutral-400">Plate Number:</span>
+                <span className="font-mono font-semibold text-[#6B7A5E]">{approvingRental.plate_number}</span>
+              </div>
+              <div className="flex justify-between pt-1 border-t border-black/[0.06] dark:border-neutral-800">
+                <span className="text-neutral-500 dark:text-neutral-400">Schedule:</span>
+                <span className="font-mono font-medium text-neutral-900 dark:text-white">{formatDateTimeWithAmPm(approvingRental.start_datetime)} → {formatDateTimeWithAmPm(approvingRental.expected_return_datetime)}</span>
+              </div>
+              <div className="flex justify-between pt-1 border-t border-black/[0.06] dark:border-neutral-800 text-sm font-bold">
+                <span className="text-neutral-900 dark:text-white">Total Expected Cost:</span>
+                <span className="font-display font-bold text-[#6B7A5E] text-base">₱{Number(approvingRental.total_amount).toLocaleString()}</span>
+              </div>
+            </div>
+
+            {/* Driver's License on File & Physical Checklist */}
+            {(() => {
+              const isForeign =
+                approvingRental.license_type === 'FOREIGN' ||
+                Boolean(approvingRental.idp_number) ||
+                Boolean(approvingRental.passport_number)
+
+              let licNo = approvingRental.driver_license_number
+              let licExp = approvingRental.driver_license_expiry
+              let licRest = approvingRental.driver_license_restrictions
+              let desDriver = approvingRental.designated_driver_name
+
+              if (!licNo && approvingRental.notes) {
+                const nm = approvingRental.notes.match(/\[Driver's License:\s*([^|]+)\s*\|\s*Expiry:\s*([^|\]]+)/i)
+                if (nm) {
+                  licNo = nm[1].trim()
+                  licExp = nm[2].trim()
+                }
+              }
+              if (!licRest && approvingRental.notes) {
+                const rm = approvingRental.notes.match(/Restrictions?:\s*([^|\]\n]+)/i)
+                if (rm) licRest = rm[1].trim()
+              }
+              if (!desDriver && approvingRental.notes) {
+                const dm = approvingRental.notes.match(/(?:Designated\s*Driver|Driver):\s*([^|\]\n]+)/i)
+                if (dm) desDriver = dm[1].trim()
+              }
+
+              if (isForeign) {
+                return (
+                  <div className="bg-sand/30 dark:bg-neutral-800/60 rounded-2xl p-3.5 border border-stone/20 dark:border-neutral-700 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 text-ink dark:text-white font-bold text-xs">
+                        <Globe className="w-4 h-4 text-[#6B7A5E]" />
+                        <span>Foreign Tourist License & IDP on File</span>
+                      </div>
+                      <span className="text-[10px] font-mono text-ink-muted bg-sand dark:bg-neutral-800 px-2 py-0.5 rounded">
+                        Tourist IDP Verification
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 bg-white dark:bg-[#15181D] p-2.5 rounded-xl border border-stone/15 text-[11px]">
+                      <div>
+                        <span className="text-[10px] text-ink-muted block uppercase font-bold">Passport Number</span>
+                        <strong className="font-mono text-ink dark:text-white font-bold">{approvingRental.passport_number || 'On File'}</strong>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-ink-muted block uppercase font-bold">Country of Issuance</span>
+                        <strong className="text-ink dark:text-white font-bold">{approvingRental.country_of_issuance || '—'}</strong>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-ink-muted block uppercase font-bold">Foreign License #</span>
+                        <strong className="font-mono text-ink dark:text-white font-bold">{approvingRental.foreign_license_number || licNo || '—'}</strong>
+                        {approvingRental.foreign_license_expiry && (
+                          <span className="text-[10px] text-ink-muted block font-mono">Exp: {approvingRental.foreign_license_expiry}</span>
+                        )}
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-ink-muted block uppercase font-bold">IDP Number</span>
+                        <strong className="font-mono text-[#6B7A5E] font-bold">{approvingRental.idp_number || '—'}</strong>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-ink-muted block uppercase font-bold">IDP Expiry</span>
+                        <strong className="font-mono text-ink dark:text-white font-bold">{approvingRental.idp_expiry || licExp || '—'}</strong>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-ink-muted block uppercase font-bold">Category A (Motorcycle)</span>
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 rounded text-[9px] font-bold uppercase mt-0.5">
+                          <Check className="w-3 h-3" />
+                          Category A Endorsed
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Staff Physical Verification Checklist for Foreign Guests */}
+                    <div className="p-2.5 bg-blue-50/80 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/50 rounded-xl space-y-1 text-[11px] text-blue-900 dark:text-blue-200">
+                      <p className="font-bold flex items-center gap-1">
+                        <AlertCircle className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                        Front Desk Physical Inspection Checklist (Foreign Tourist):
+                      </p>
+                      <ul className="list-disc pl-4 space-y-0.5 text-[10px] text-blue-800 dark:text-blue-300">
+                        <li>Examine the guest's <strong>physical passport</strong> to confirm identity and photo match.</li>
+                        <li>Inspect physical <strong>International Driving Permit (IDP)</strong> card/booklet and confirm it is stamped for <strong>Category A (Motorcycles)</strong>.</li>
+                        <li>Verify cross-reference between foreign license number and IDP record.</li>
+                        <li><strong>90-Day Stay Guidance:</strong> Foreign tourists may legally operate a motorcycle in the Philippines for up to 90 days from arrival when accompanied by a valid IDP.</li>
+                      </ul>
+                    </div>
+                  </div>
+                )
+              }
+
+              return (
+                <div className="bg-sand/30 dark:bg-neutral-800/60 rounded-2xl p-3.5 border border-stone/20 dark:border-neutral-700 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 text-ink dark:text-white font-bold text-xs">
+                      <ShieldCheck className="w-4 h-4 text-[#6B7A5E]" />
+                      <span>Driver's License on File</span>
+                    </div>
+                    <span className="text-[10px] font-mono text-ink-muted">In-Person Verification Required</span>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-white dark:bg-[#15181D] p-2.5 rounded-xl border border-stone/15 text-[11px]">
+                    <div>
+                      <span className="text-[10px] text-ink-muted block uppercase font-bold">License No.</span>
+                      <strong className="font-mono text-ink dark:text-white font-bold">{licNo || 'On File'}</strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-ink-muted block uppercase font-bold">Expiry</span>
+                      <strong className="font-mono text-ink dark:text-white font-bold">{licExp || '—'}</strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-ink-muted block uppercase font-bold">Restrictions</span>
+                      <strong className="font-mono text-[#6B7A5E] font-bold">{licRest || 'A1'}</strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-ink-muted block uppercase font-bold">Driver</span>
+                      <strong className="text-ink dark:text-white font-medium truncate block">{desDriver || approvingRental.customer_name}</strong>
+                    </div>
+                  </div>
+
+                  {/* Staff Physical Verification Checklist */}
+                  <div className="p-2.5 bg-amber-500/10 border border-amber-500/25 rounded-xl space-y-1 text-[11px] text-amber-900 dark:text-amber-200">
+                    <p className="font-bold flex items-center gap-1">
+                      <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                      Staff Physical Verification Checklist:
+                    </p>
+                    <ul className="list-disc pl-4 space-y-0.5 text-[10px] text-amber-800 dark:text-amber-300">
+                      <li>Confirm the physical card explicitly shows restriction code <strong>A</strong> or <strong>A1</strong>. Car-only codes (B and above) do NOT authorize motorcycle driving in the Philippines.</li>
+                      <li>Verify card is valid and not expired, matching the designated driver.</li>
+                      <li>If physical card does not show A or A1, staff must decline/reject this rental.</li>
+                    </ul>
+                  </div>
+                </div>
+              )
+            })()}
+
+            {approvingRental.notes && (
+              <div className="p-3 bg-neutral-100 dark:bg-neutral-800 rounded-xl">
+                <span className="text-[10px] uppercase font-bold text-neutral-500 block">Guest Notes / Remarks:</span>
+                <p className="text-neutral-800 dark:text-neutral-200 mt-0.5">{approvingRental.notes}</p>
+              </div>
+            )}
+
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setApprovingRental(null)}
+                className="flex-1 py-2.5 border border-black/[0.1] dark:border-neutral-700 rounded-xl text-xs font-semibold text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 cursor-pointer transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={processingApproval}
+                onClick={handleApproveRental}
+                className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl text-xs font-semibold shadow-sm flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 transition-all"
+              >
+                <Check className="w-3.5 h-3.5" />
+                <span>{processingApproval ? 'Approving...' : 'Approve & Send to Billing'}</span>
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* ─── MODAL: REJECT MOTORCYCLE RESERVATION ─── */}
+      <Modal
+        isOpen={!!rejectingRental}
+        onClose={() => setRejectingRental(null)}
+        title="Reject Motorcycle Reservation"
+        size="sm"
+      >
+        {rejectingRental && (
+          <div className="space-y-4 text-xs font-sans">
+            <p className="text-neutral-600 dark:text-neutral-400">
+              Please select reason for rejecting reservation <strong className="font-mono text-neutral-900 dark:text-white">{rejectingRental.rental_id}</strong>:
+            </p>
+
+            <div>
+              <label className="block font-semibold uppercase tracking-wider text-neutral-700 dark:text-neutral-300 mb-1">Reason</label>
+              <select
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-white dark:bg-[#15181D] text-neutral-900 dark:text-white text-xs font-semibold"
+              >
+                <option value="Dates/time slot no longer available">Dates/time slot no longer available</option>
+                <option value="Motorcycle scheduled for maintenance">Motorcycle scheduled for maintenance</option>
+                <option value="Duplicate or conflicting reservation">Duplicate or conflicting reservation</option>
+                <option value="Guest requested cancellation">Guest requested cancellation</option>
+                <option value="Unable to contact guest for verification">Unable to contact guest for verification</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block font-semibold uppercase tracking-wider text-neutral-700 dark:text-neutral-300 mb-1">Additional Notes</label>
+              <textarea
+                value={rejectNotes}
+                onChange={(e) => setRejectNotes(e.target.value)}
+                rows={2}
+                placeholder="Optional explanation..."
+                className="w-full px-3 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-white dark:bg-[#15181D] text-neutral-900 dark:text-white text-xs"
+              />
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setRejectingRental(null)}
+                className="flex-1 py-2.5 border border-black/[0.1] dark:border-neutral-700 rounded-xl text-xs font-semibold text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={processingApproval}
+                onClick={handleRejectRental}
+                className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold shadow-sm cursor-pointer disabled:opacity-50"
+              >
+                {processingApproval ? 'Rejecting...' : 'Reject Reservation'}
               </button>
             </div>
           </div>

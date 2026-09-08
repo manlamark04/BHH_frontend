@@ -140,9 +140,9 @@ export default function Login({ onLogin, onNavigate }: LoginProps) {
         mustChangePassword: Boolean(res.user.must_change_password),
       })
 
-      // Maintain loading screen for 5 seconds
+      // Maintain loading screen for 4 seconds
       const elapsed = Date.now() - startTime
-      const remainingDelay = Math.max(0, 5000 - elapsed)
+      const remainingDelay = Math.max(0, 4000 - elapsed)
 
       setTimeout(() => {
         setLoadingPhase('success')

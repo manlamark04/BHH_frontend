@@ -779,7 +779,7 @@ export default function AdminRooms({ userRole = 'admin' }: AdminRoomsProps) {
                     </td>
                     <td className="px-5 py-3.5 text-right">
                       <div className="flex items-center justify-end gap-1.5">
-                        {statusStr === 'CLEANING' && (
+                        {String(r.status).toUpperCase() === 'CLEANING' && (
                           <button
                             onClick={() => handleQuickReleaseRoom(r.id, r.room_number)}
                             className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-2xs flex items-center gap-1 cursor-pointer"

@@ -706,13 +706,13 @@ export default function AdminBookings() {
                     <span className="text-neutral-500 block text-[10px]">No-Show Fee</span>
                     <span className="font-bold text-purple-900 dark:text-purple-200 text-sm">₱{Number(viewBooking.no_show_fee || 0).toLocaleString()}</span>
                   </div>
-                  {viewBooking.no_show_at && (
+                  {Boolean(viewBooking.no_show_at) && (
                     <div>
                       <span className="text-neutral-500 block text-[10px]">Flagged On</span>
                       <span className="font-medium text-neutral-900 dark:text-white">{new Date(String(viewBooking.no_show_at)).toLocaleString()}</span>
                     </div>
                   )}
-                  {viewBooking.no_show_waiver_reason && (
+                  {Boolean(viewBooking.no_show_waiver_reason) && (
                     <div className="col-span-2">
                       <span className="text-neutral-500 block text-[10px]">Fee Waiver Reason</span>
                       <span className="italic text-neutral-700 dark:text-neutral-300">{String(viewBooking.no_show_waiver_reason)}</span>
