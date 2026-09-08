@@ -23,25 +23,29 @@ interface Props {
   customerName?: string
 }
 
-const TIME_OPTIONS = [
-  { value: '06:00', label: '06:00 AM (Early Morning)' },
-  { value: '07:00', label: '07:00 AM' },
-  { value: '08:00', label: '08:00 AM (Morning Pickup)' },
-  { value: '09:00', label: '09:00 AM' },
-  { value: '10:00', label: '10:00 AM' },
-  { value: '11:00', label: '11:00 AM' },
-  { value: '12:00', label: '12:00 PM (Noon)' },
-  { value: '13:00', label: '01:00 PM (Afternoon)' },
-  { value: '14:00', label: '02:00 PM' },
-  { value: '15:00', label: '03:00 PM' },
-  { value: '16:00', label: '04:00 PM' },
-  { value: '17:00', label: '05:00 PM (Sunset Return)' },
-  { value: '18:00', label: '06:00 PM (Evening)' },
-  { value: '19:00', label: '07:00 PM' },
-  { value: '20:00', label: '08:00 PM (Night)' },
-  { value: '21:00', label: '09:00 PM' },
-  { value: '22:00', label: '10:00 PM' },
-]
+export const getTodayDateString = () => {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+export const getCurrentTimeString = () => {
+  const now = new Date()
+  const hours = String(now.getHours()).padStart(2, '0')
+  const minutes = String(now.getMinutes()).padStart(2, '0')
+  return `${hours}:${minutes}`
+}
+
+export const formatTime12h = (timeStr: string) => {
+  if (!timeStr) return '—'
+  const [h, m] = timeStr.split(':').map(Number)
+  if (isNaN(h)) return '—'
+  const period = h >= 12 ? 'PM' : 'AM'
+  const dispH = h % 12 === 0 ? 12 : h % 12
+  return `${String(dispH).padStart(2, '0')}:${String(m || 0).padStart(2, '0')} ${period}`
+}
 
 export const PH_RESTRICTION_CODES = [
   { code: 'A', label: 'A', desc: 'Motorcycle / Tricycle (with clutch, manual)', isMotorcycle: true },
@@ -235,15 +239,14 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
     setSelectedMotor(motor)
     setError('')
 
-    const today = new Date()
-    const todayStr = today.toISOString().split('T')[0]
-    const nextDay = new Date(today.getTime() + 24 * 60 * 60 * 1000)
-    const nextDayStr = nextDay.toISOString().split('T')[0]
+    const todayStr = getTodayDateString()
+    const nextDay = new Date(Date.now() + 24 * 60 * 60 * 1000)
+    const nextDayStr = `${nextDay.getFullYear()}-${String(nextDay.getMonth() + 1).padStart(2, '0')}-${String(nextDay.getDate()).padStart(2, '0')}`
 
     setStartDate(todayStr)
-    setStartTime('08:00')
+    setStartTime(getCurrentTimeString())
     setReturnDate(nextDayStr)
-    setReturnTime('17:00')
+    setReturnTime(getCurrentTimeString())
     setNotes('')
 
     // Initialize license fields blank with no auto-suggest
@@ -756,62 +759,92 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
               </div>
             </div>
 
-            {/* Rental Duration / Date & Time Pickers with AM/PM */}
+            {/* Rental Duration / Date & Time Pickers matching Pickleball design */}
             <div className="grid sm:grid-cols-2 gap-3">
               <div>
-                <label className="block font-semibold text-neutral-900 dark:text-white uppercase tracking-wider mb-1">Rental Start Date *</label>
+                <label className="block font-semibold text-neutral-900 dark:text-white uppercase tracking-wider mb-1">
+                  Rental Start Date *
+                </label>
                 <input
                   type="date"
                   value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  min={new Date().toISOString().split('T')[0]}
+                  onChange={(e) => {
+                    const newStart = e.target.value
+                    setStartDate(newStart)
+                    if (returnDate && newStart > returnDate) {
+                      setReturnDate(newStart)
+                    }
+                  }}
+                  min={getTodayDateString()}
                   required
-                  className="w-full px-3 py-2.5 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-white dark:bg-[#15181D] text-neutral-900 dark:text-white font-mono text-xs focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
+                  className="w-full px-3 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#15181D] font-mono text-xs font-bold text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
                 />
               </div>
 
               <div>
-                <label className="block font-semibold text-neutral-900 dark:text-white uppercase tracking-wider mb-1">Start Time (AM / PM) *</label>
-                <select
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block font-semibold text-neutral-900 dark:text-white uppercase tracking-wider">
+                    Start Time *
+                  </label>
+                  {startDate === getTodayDateString() && (
+                    <button
+                      type="button"
+                      onClick={() => setStartTime(getCurrentTimeString())}
+                      className="text-[11px] font-semibold text-[#6B7A5E] hover:text-[#4F5D45] hover:underline flex items-center gap-1 cursor-pointer"
+                      title="Snap to current clock time"
+                    >
+                      <Clock className="w-3 h-3" />
+                      <span>Start Now ({formatTime12h(getCurrentTimeString())})</span>
+                    </button>
+                  )}
+                </div>
+                <input
+                  type="time"
+                  required
                   value={startTime}
                   onChange={(e) => setStartTime(e.target.value)}
-                  required
-                  className="w-full px-3 py-2.5 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-white dark:bg-[#15181D] text-neutral-900 dark:text-white font-mono text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
-                >
-                  {TIME_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
+                  className="w-full px-3 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#15181D] font-mono text-xs font-bold text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
+                />
               </div>
 
               <div>
-                <label className="block font-semibold text-neutral-900 dark:text-white uppercase tracking-wider mb-1">Expected Return Date *</label>
+                <label className="block font-semibold text-neutral-900 dark:text-white uppercase tracking-wider mb-1">
+                  Expected Return Date *
+                </label>
                 <input
                   type="date"
                   value={returnDate}
                   onChange={(e) => setReturnDate(e.target.value)}
-                  min={startDate || new Date().toISOString().split('T')[0]}
+                  min={startDate || getTodayDateString()}
                   required
-                  className="w-full px-3 py-2.5 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-white dark:bg-[#15181D] text-neutral-900 dark:text-white font-mono text-xs focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
+                  className="w-full px-3 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#15181D] font-mono text-xs font-bold text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
                 />
               </div>
 
               <div>
-                <label className="block font-semibold text-neutral-900 dark:text-white uppercase tracking-wider mb-1">Expected Return Time (AM / PM) *</label>
-                <select
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block font-semibold text-neutral-900 dark:text-white uppercase tracking-wider">
+                    Expected Return Time *
+                  </label>
+                  {startTime && (
+                    <button
+                      type="button"
+                      onClick={() => setReturnTime(startTime)}
+                      className="text-[11px] font-semibold text-[#6B7A5E] hover:text-[#4F5D45] hover:underline flex items-center gap-1 cursor-pointer"
+                      title="Match pickup start time"
+                    >
+                      <Clock className="w-3 h-3" />
+                      <span>Same as Start ({formatTime12h(startTime)})</span>
+                    </button>
+                  )}
+                </div>
+                <input
+                  type="time"
+                  required
                   value={returnTime}
                   onChange={(e) => setReturnTime(e.target.value)}
-                  required
-                  className="w-full px-3 py-2.5 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-white dark:bg-[#15181D] text-neutral-900 dark:text-white font-mono text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
-                >
-                  {TIME_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
+                  className="w-full px-3 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#15181D] font-mono text-xs font-bold text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
+                />
               </div>
             </div>
 

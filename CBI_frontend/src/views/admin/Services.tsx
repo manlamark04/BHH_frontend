@@ -8,6 +8,9 @@ import {
   Sparkles,
   Clock,
   Pencil,
+  Wrench,
+  Camera,
+  X,
 } from 'lucide-react'
 import { catalogApi } from '../../api/services'
 import { motorcyclesApi, type Motorcycle, type MotorRental } from '../../api/motorcycles'
@@ -42,12 +45,17 @@ export default function AdminServices() {
   const [motorImage, setMotorImage] = useState('')
   const [addingMotor, setAddingMotor] = useState(false)
 
-  // Return Motor form
+  // Return Motor form & Damage Assessment
   const [returnRemarks, setReturnRemarks] = useState('')
   const [maintenanceNeeded, setMaintenanceNeeded] = useState(false)
   const [waiveLateFee, setWaiveLateFee] = useState(false)
   const [waiverReason, setWaiverReason] = useState('')
   const [processingReturn, setProcessingReturn] = useState(false)
+  const [hasDamage, setHasDamage] = useState(false)
+  const [damageSeverity, setDamageSeverity] = useState<'minor' | 'moderate' | 'major' | 'total_loss'>('minor')
+  const [damageDescription, setDamageDescription] = useState('')
+  const [damageRepairCost, setDamageRepairCost] = useState('')
+  const [damagePhotos, setDamagePhotos] = useState<string[]>([])
 
   // Add Activity form
   const [name, setName] = useState('')
@@ -148,22 +156,48 @@ export default function AdminServices() {
   // Handle Return
   const handleProcessReturn = async () => {
     if (!returnRentalModal) return
+    if (hasDamage && !damageDescription.trim()) {
+      alert('Please describe the damage.')
+      return
+    }
+    if (hasDamage && (!damageRepairCost || Number(damageRepairCost) <= 0)) {
+      alert('Please enter a valid estimated repair cost (₱).')
+      return
+    }
     setProcessingReturn(true)
     try {
+      const damagePayload = hasDamage
+        ? {
+            has_damage: true,
+            severity: damageSeverity,
+            description: damageDescription.trim(),
+            estimated_repair_cost: Number(damageRepairCost) || 0,
+            photos: damagePhotos,
+          }
+        : undefined
+
       const res = await motorcyclesApi.processReturn(returnRentalModal.id, {
         remarks: returnRemarks.trim() || undefined,
-        maintenance_needed: maintenanceNeeded,
+        maintenance_needed: hasDamage ? true : maintenanceNeeded,
         waive_late_fee: waiveLateFee,
         waiver_reason: waiveLateFee ? waiverReason.trim() : undefined,
+        damage: damagePayload,
       })
       setReturnRentalModal(null)
       setReturnRemarks('')
       setMaintenanceNeeded(false)
       setWaiveLateFee(false)
       setWaiverReason('')
+      setHasDamage(false)
+      setDamageSeverity('minor')
+      setDamageDescription('')
+      setDamageRepairCost('')
+      setDamagePhotos([])
       const rRes = res as any
       fireToast(
-        rRes.late_fee_waived
+        hasDamage
+          ? `✓ Return processed for ${res.rental.rental_id}! Damage reported (₱${Number(damageRepairCost).toLocaleString()}) & unit marked MAINTENANCE.`
+          : rRes.late_fee_waived
           ? `✓ Return processed for ${res.rental.rental_id}! Late fee waived. Total: ₱${Number(res.final_amount).toLocaleString()}`
           : Number(res.late_fee) > 0
           ? `✓ Return processed for ${res.rental.rental_id}! Late fee: ₱${Number(res.late_fee).toLocaleString()} (${rRes.hours_late || 0} hr(s) × ₱${rRes.hourly_late_rate || 0}/hr), Total: ₱${Number(res.final_amount).toLocaleString()}`
@@ -870,21 +904,138 @@ export default function AdminServices() {
 
           const calculatedFee = isOverdue ? hoursLate * hourlyRate : 0
           const baseAmount = Number(returnRentalModal.total_amount || 0)
-          const finalAmount = waiveLateFee ? baseAmount : baseAmount + calculatedFee
+          const lateAmount = waiveLateFee ? 0 : calculatedFee
+          const damageAmount = hasDamage ? (Number(damageRepairCost) || 0) : 0
+          const finalAmount = baseAmount + lateAmount + damageAmount
 
           return (
-            <div className="space-y-4 text-xs font-sans">
-              <div className="p-3.5 bg-sand/30 border border-stone/20 rounded-2xl space-y-1">
-                <span className="text-ink-muted text-[10px] block">Rental Transaction: <strong className="text-ink">{returnRentalModal.rental_id}</strong></span>
-                <p className="font-semibold text-ink">{returnRentalModal.brand} {returnRentalModal.model} ({returnRentalModal.plate_number})</p>
-                <p className="text-ink-muted">Rented by: <strong>{returnRentalModal.customer_name}</strong></p>
+            <div className="space-y-4 text-xs font-sans max-h-[80vh] overflow-y-auto pr-1">
+              <div className="p-3.5 bg-sand/30 dark:bg-neutral-800/40 border border-stone/20 dark:border-neutral-700 rounded-2xl space-y-1">
+                <span className="text-ink-muted text-[10px] block">Rental Ref: <strong className="text-ink dark:text-white font-mono">{returnRentalModal.rental_id}</strong></span>
+                <p className="font-semibold text-ink dark:text-white">{returnRentalModal.brand} {returnRentalModal.model} ({returnRentalModal.plate_number})</p>
+                <p className="text-ink-muted">Rented by: <strong className="text-ink dark:text-white">{returnRentalModal.customer_name}</strong></p>
               </div>
+
+              {/* Condition Selection */}
+              <div>
+                <label className="block font-semibold text-ink dark:text-white uppercase tracking-wider mb-2 text-[10px]">
+                  Vehicle Return Condition
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setHasDamage(false)
+                      setMaintenanceNeeded(false)
+                    }}
+                    className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-start gap-2.5 ${
+                      !hasDamage
+                        ? 'border-emerald-600 bg-emerald-50/70 dark:bg-emerald-950/40 ring-2 ring-emerald-500/30'
+                        : 'border-stone/20 dark:border-neutral-700 bg-white dark:bg-[#15181D]'
+                    }`}
+                  >
+                    <Check className={`w-4 h-4 shrink-0 mt-0.5 ${!hasDamage ? 'text-emerald-600' : 'text-neutral-400'}`} />
+                    <div>
+                      <p className={`font-bold text-xs ${!hasDamage ? 'text-emerald-900 dark:text-emerald-200' : 'text-ink dark:text-white'}`}>
+                        Clean Return (No Damage)
+                      </p>
+                      <p className="text-[10px] text-ink-muted mt-0.5 leading-tight">
+                        No mechanical or body damage found.
+                      </p>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setHasDamage(true)
+                      setMaintenanceNeeded(true)
+                    }}
+                    className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-start gap-2.5 ${
+                      hasDamage
+                        ? 'border-amber-600 bg-amber-50/80 dark:bg-amber-950/40 ring-2 ring-amber-500/30'
+                        : 'border-stone/20 dark:border-neutral-700 bg-white dark:bg-[#15181D]'
+                    }`}
+                  >
+                    <Wrench className={`w-4 h-4 shrink-0 mt-0.5 ${hasDamage ? 'text-amber-600' : 'text-neutral-400'}`} />
+                    <div>
+                      <p className={`font-bold text-xs ${hasDamage ? 'text-amber-900 dark:text-amber-200' : 'text-ink dark:text-white'}`}>
+                        Report Damage & Charge
+                      </p>
+                      <p className="text-[10px] text-ink-muted mt-0.5 leading-tight">
+                        Damage observed. Add repair charge to folio.
+                      </p>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Damage Details Fields */}
+              {hasDamage && (
+                <div className="p-3.5 bg-amber-50/70 dark:bg-amber-950/20 border-2 border-amber-300 dark:border-amber-900/60 rounded-2xl space-y-3">
+                  <div className="flex items-center justify-between pb-1.5 border-b border-amber-200 dark:border-amber-900/50">
+                    <span className="font-bold text-xs text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
+                      <Wrench className="w-4 h-4 text-amber-600" />
+                      Damage Assessment & Billing
+                    </span>
+                    <span className="text-[10px] font-bold text-amber-800 bg-amber-100 dark:bg-amber-900/50 px-2 py-0.5 rounded">
+                      Locks to MAINTENANCE
+                    </span>
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-amber-950 dark:text-amber-200 uppercase tracking-wider text-[10px] mb-1">
+                      Damage Severity *
+                    </label>
+                    <select
+                      value={damageSeverity}
+                      onChange={(e) => setDamageSeverity(e.target.value as any)}
+                      className="w-full px-3 py-1.5 rounded-xl border border-amber-300 dark:border-amber-900 bg-white dark:bg-[#15181D] text-xs font-semibold"
+                    >
+                      <option value="minor">Minor (Surface scratches, minor scuffs)</option>
+                      <option value="moderate">Moderate (Cracked plastic, broken mirror/lever)</option>
+                      <option value="major">Major (Engine issue, bent frame or forks)</option>
+                      <option value="total_loss">Total Loss (Write-off / structural failure)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-amber-950 dark:text-amber-200 uppercase tracking-wider text-[10px] mb-1">
+                      Damage Description *
+                    </label>
+                    <textarea
+                      required
+                      value={damageDescription}
+                      onChange={(e) => setDamageDescription(e.target.value)}
+                      placeholder="Specify damage observed..."
+                      rows={2}
+                      className="w-full px-3 py-1.5 rounded-xl border border-amber-300 dark:border-amber-900 bg-white dark:bg-[#15181D] text-xs resize-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-amber-950 dark:text-amber-200 uppercase tracking-wider text-[10px] mb-1">
+                      Estimated Repair Cost (₱) *
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="50"
+                      required
+                      value={damageRepairCost}
+                      onChange={(e) => setDamageRepairCost(e.target.value)}
+                      placeholder="0.00"
+                      className="w-full px-3 py-1.5 rounded-xl border border-amber-300 dark:border-amber-900 bg-white dark:bg-[#15181D] font-mono text-xs font-bold"
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Overdue Calculation or On-Time Banner */}
               {isOverdue ? (
-                <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl space-y-2">
+                <div className="p-3.5 bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900 rounded-2xl space-y-2">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 text-rose-800 font-bold text-xs">
+                    <div className="flex items-center gap-1.5 text-rose-800 dark:text-rose-300 font-bold text-xs">
                       <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
                       <span>Overdue Return Detected</span>
                     </div>
@@ -893,20 +1044,16 @@ export default function AdminServices() {
                     </span>
                   </div>
 
-                  <div className="bg-white/80 rounded-xl p-2.5 border border-rose-200/60 space-y-1 text-[11px]">
+                  <div className="bg-white/80 dark:bg-[#15181D] rounded-xl p-2.5 border border-rose-200/60 space-y-1 text-[11px]">
                     <div className="flex justify-between text-ink-muted">
                       <span>Hourly Penalty Rate:</span>
-                      <strong className="font-mono text-ink">₱{hourlyRate.toLocaleString()}/hr</strong>
+                      <strong className="font-mono text-ink dark:text-white">₱{hourlyRate.toLocaleString()}/hr</strong>
                     </div>
                     <div className="flex justify-between text-ink-muted">
                       <span>Calculated Penalty:</span>
                       <strong className={`font-mono ${waiveLateFee ? 'line-through text-ink-muted' : 'text-rose-700'}`}>
                         +₱{calculatedFee.toLocaleString()} ({hoursLate} hr{hoursLate > 1 ? 's' : ''} × ₱{hourlyRate}/hr)
                       </strong>
-                    </div>
-                    <div className="flex justify-between pt-1 border-t border-rose-100 font-bold text-xs">
-                      <span className="text-ink">Final Billable Total:</span>
-                      <span className="font-mono text-[#6B7A5E]">₱{finalAmount.toLocaleString()}</span>
                     </div>
                   </div>
 
@@ -919,7 +1066,7 @@ export default function AdminServices() {
                         onChange={(e) => setWaiveLateFee(e.target.checked)}
                         className="w-4 h-4 text-emerald-600 rounded border-stone focus:ring-emerald-500"
                       />
-                      <span className="text-[11px] font-semibold text-emerald-900">
+                      <span className="text-[11px] font-semibold text-emerald-900 dark:text-emerald-300">
                         Waive / Forgive Late Penalty for this Return
                       </span>
                     </label>
@@ -930,54 +1077,84 @@ export default function AdminServices() {
                         value={waiverReason}
                         onChange={(e) => setWaiverReason(e.target.value)}
                         placeholder="Reason for waiver (e.g. Guest notified reception, mechanical issue) *"
-                        className="mt-2 w-full px-3 py-1.5 rounded-xl border border-emerald-300 bg-white text-xs text-ink placeholder:text-ink-muted/50"
+                        className="mt-2 w-full px-3 py-1.5 rounded-xl border border-emerald-300 bg-white dark:bg-[#15181D] text-xs text-ink placeholder:text-ink-muted/50"
                       />
                     )}
                   </div>
                 </div>
               ) : (
-                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between text-xs text-emerald-900">
+                <div className="p-3 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900 rounded-xl flex items-center justify-between text-xs text-emerald-900 dark:text-emerald-200">
                   <div className="flex items-center gap-1.5 font-semibold">
+                    <Check className="w-4 h-4 text-emerald-600 shrink-0" />
                     <span>On-Time Return (No late penalty applies)</span>
                   </div>
-                  <span className="font-mono font-bold text-emerald-700">₱0.00 late fee</span>
+                  <span className="font-mono font-bold text-emerald-700 dark:text-emerald-400">₱0.00 late fee</span>
                 </div>
               )}
 
               <div>
-                <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Return Remarks / Condition</label>
+                <label className="block font-semibold text-ink dark:text-white uppercase tracking-wider mb-1 text-[10px]">Return Remarks / Condition</label>
                 <input
                   value={returnRemarks}
                   onChange={(e) => setReturnRemarks(e.target.value)}
                   placeholder="Gas level full, helmet returned, etc."
-                  className="w-full px-3 py-2 rounded-xl border border-stone text-xs"
+                  className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#F6F2E8] dark:bg-[#15181D] text-xs"
                 />
               </div>
 
-              <label className="flex items-center gap-2 cursor-pointer select-none text-ink">
+              <label className="flex items-center gap-2 cursor-pointer select-none text-ink dark:text-white">
                 <input
                   type="checkbox"
-                  checked={maintenanceNeeded}
+                  checked={hasDamage ? true : maintenanceNeeded}
+                  disabled={hasDamage}
                   onChange={(e) => setMaintenanceNeeded(e.target.checked)}
-                  className="w-4 h-4 rounded border-stone text-[#6B7A5E]"
+                  className="w-4 h-4 rounded border-stone text-[#6B7A5E] disabled:opacity-70"
                 />
-                <span className="text-xs">Unit requires maintenance / checkup</span>
+                <span className="text-xs">Unit requires maintenance / checkup (locks unit from re-booking)</span>
               </label>
+
+              {/* Total Summary */}
+              <div className="bg-sand/40 dark:bg-neutral-800/60 rounded-xl p-3 border border-stone/20 dark:border-neutral-700 space-y-1 text-xs">
+                <div className="flex justify-between text-ink-muted">
+                  <span>Base Amount:</span>
+                  <span className="font-mono">₱{baseAmount.toLocaleString()}</span>
+                </div>
+                {lateAmount > 0 && (
+                  <div className="flex justify-between text-rose-700">
+                    <span>Late Penalty:</span>
+                    <span className="font-mono">+₱{lateAmount.toLocaleString()}</span>
+                  </div>
+                )}
+                {damageAmount > 0 && (
+                  <div className="flex justify-between text-amber-800 dark:text-amber-300 font-bold">
+                    <span>Damage Fee (Folio Charge):</span>
+                    <span className="font-mono">+₱{damageAmount.toLocaleString()}</span>
+                  </div>
+                )}
+                <div className="flex justify-between pt-1 border-t border-stone/20 font-bold text-sm">
+                  <span>Final Billable Total:</span>
+                  <span className="font-mono text-[#6B7A5E]">₱{finalAmount.toLocaleString()}</span>
+                </div>
+              </div>
 
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => setReturnRentalModal(null)}
-                  className="flex-1 py-2.5 border border-stone rounded-xl font-semibold text-ink-muted hover:bg-sand"
+                  className="flex-1 py-2.5 border border-stone/30 rounded-xl font-semibold text-ink-muted hover:bg-sand cursor-pointer text-xs"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleProcessReturn}
-                  disabled={processingReturn || (waiveLateFee && !waiverReason.trim())}
-                  className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl font-semibold shadow-sm disabled:opacity-50"
+                  disabled={
+                    processingReturn ||
+                    (waiveLateFee && !waiverReason.trim()) ||
+                    (hasDamage && (!damageDescription.trim() || !damageRepairCost || Number(damageRepairCost) <= 0))
+                  }
+                  className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl font-semibold shadow-sm disabled:opacity-50 cursor-pointer text-xs flex items-center justify-center gap-1.5"
                 >
-                  {processingReturn ? 'Processing...' : '✓ Complete Return'}
+                  {processingReturn ? 'Processing...' : hasDamage ? 'Complete Return & Bill Damage' : '✓ Complete Return'}
                 </button>
               </div>
             </div>

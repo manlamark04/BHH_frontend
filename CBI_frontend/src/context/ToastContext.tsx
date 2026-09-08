@@ -1,8 +1,8 @@
-import { createContext, useContext, useState, useCallback, useRef, type ReactNode } from 'react'
+import { createContext, useContext, useState, useCallback, useRef, useEffect, type ReactNode } from 'react'
 import { CheckCircle2, XCircle, AlertTriangle, Info, X } from 'lucide-react'
 
 // ─── Types ──────────────────────────────────────────────────
-type ToastVariant = 'success' | 'error' | 'warning' | 'info'
+export type ToastVariant = 'success' | 'error' | 'warning' | 'info'
 
 interface ToastItem {
   id: string
@@ -11,12 +11,28 @@ interface ToastItem {
   message: string
 }
 
-interface ToastContextValue {
+export interface ToastContextValue {
   success: (message: string, title?: string) => void
   error:   (message: string, title?: string) => void
   warning: (message: string, title?: string) => void
   info:    (message: string, title?: string) => void
 }
+
+/**
+ * Global toast emitter that can be called anywhere (inside or outside React components).
+ */
+export function showToast(variant: ToastVariant, message: string, title?: string): void {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(
+      new CustomEvent('bhh:toast', { detail: { variant, message, title } })
+    )
+  }
+}
+
+showToast.success = (message: string, title?: string) => showToast('success', message, title)
+showToast.error   = (message: string, title?: string) => showToast('error', message, title)
+showToast.warning = (message: string, title?: string) => showToast('warning', message, title)
+showToast.info    = (message: string, title?: string) => showToast('info', message, title)
 
 // ─── Context ────────────────────────────────────────────────
 const ToastContext = createContext<ToastContextValue | null>(null)
@@ -59,6 +75,17 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     },
     [dismiss]
   )
+
+  useEffect(() => {
+    const handleGlobalToast = (e: Event) => {
+      const detail = (e as CustomEvent<{ variant: ToastVariant; message: string; title?: string }>).detail
+      if (detail && detail.variant && detail.message) {
+        push(detail.variant, detail.message, detail.title)
+      }
+    }
+    window.addEventListener('bhh:toast', handleGlobalToast)
+    return () => window.removeEventListener('bhh:toast', handleGlobalToast)
+  }, [push])
 
   const ctx: ToastContextValue = {
     success: (m, t) => push('success', m, t),

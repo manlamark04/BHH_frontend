@@ -10,8 +10,20 @@ import {
   Pencil,
   SlidersHorizontal,
   Globe,
+  Camera,
+  Wrench,
+  X,
+  Eye,
+  ClipboardCheck,
+  Receipt,
 } from 'lucide-react'
-import { motorcyclesApi, type Motorcycle, type MotorRental } from '../../api/motorcycles'
+import {
+  motorcyclesApi,
+  type Motorcycle,
+  type MotorRental,
+  type PickupChecklist,
+  type DamageAssessmentRecord,
+} from '../../api/motorcycles'
 import { usersApi } from '../../api/users'
 import StatusBadge from '../../components/StatusBadge'
 import Modal from '../../components/Modal'
@@ -27,7 +39,7 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
   const [rentals, setRentals] = useState<MotorRental[]>([])
   const [customers, setCustomers] = useState<Record<string, unknown>[]>([])
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState<'rentals' | 'fleet'>('rentals')
+  const [tab, setTab] = useState<'rentals' | 'fleet' | 'damage'>('rentals')
   const [successMsg, setSuccessMsg] = useState('')
   const [editingMotor, setEditingMotor] = useState<Motorcycle | null>(null)
   const [showAddMotorDrawer, setShowAddMotorDrawer] = useState(false)
@@ -117,6 +129,46 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
   const [waiverReason, setWaiverReason] = useState('')
   const [processingReturn, setProcessingReturn] = useState(false)
 
+  // Damage Assessment in Return Modal
+  const [hasDamage, setHasDamage] = useState(false)
+  const [damageSeverity, setDamageSeverity] = useState<'minor' | 'moderate' | 'major' | 'total_loss'>('minor')
+  const [damageDescription, setDamageDescription] = useState('')
+  const [damageRepairCost, setDamageRepairCost] = useState('')
+  const [damagePhotos, setDamagePhotos] = useState<string[]>([])
+
+  // Pickup Inspection Modal
+  const [pickupRentalModal, setPickupRentalModal] = useState<MotorRental | null>(null)
+  const [pickupChecklist, setPickupChecklist] = useState<PickupChecklist>({
+    no_scratches: true,
+    mirrors_intact: true,
+    lights_working: true,
+    brakes_functional: true,
+    tires_good: true,
+    fuel_level: 'Full',
+    helmets_count: 1,
+    notes: '',
+  })
+  const [pickupPhotos, setPickupPhotos] = useState<string[]>([])
+  const [savingPickup, setSavingPickup] = useState(false)
+
+  // View Rental Details & Condition/Damage
+  const [viewRentalDetails, setViewRentalDetails] = useState<MotorRental | null>(null)
+  const [rentalAssessments, setRentalAssessments] = useState<DamageAssessmentRecord[]>([])
+  const [loadingDetails, setLoadingDetails] = useState(false)
+
+  // Damage Waiver Modal
+  const [waiveDamageModal, setWaiveDamageModal] = useState<MotorRental | null>(null)
+  const [damageWaiverReason, setDamageWaiverReason] = useState('')
+  const [damageWaiverAdjustedAmount, setDamageWaiverAdjustedAmount] = useState('')
+  const [waivingDamageFee, setWaivingDamageFee] = useState(false)
+
+  // Damage History Tab
+  const [damageHistory, setDamageHistory] = useState<DamageAssessmentRecord[]>([])
+  const [loadingDamageHistory, setLoadingDamageHistory] = useState(false)
+  const [filterDamageMotorId, setFilterDamageMotorId] = useState('')
+  const [filterDamageSeverity, setFilterDamageSeverity] = useState('')
+  const [previewPhotoUrl, setPreviewPhotoUrl] = useState<string | null>(null)
+
   // Pending Approval Modal State
   const [approvingRental, setApprovingRental] = useState<MotorRental | null>(null)
   const [rejectingRental, setRejectingRental] = useState<MotorRental | null>(null)
@@ -135,6 +187,114 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
       setRentals(rnts)
       setCustomers((custRes as { customers?: Record<string, unknown>[] }).customers || [])
     }).finally(() => setLoading(false))
+  }
+
+  const loadDamageHistory = () => {
+    setLoadingDamageHistory(true)
+    motorcyclesApi
+      .getDamageHistory({
+        motor_id: filterDamageMotorId ? Number(filterDamageMotorId) : undefined,
+        severity: filterDamageSeverity || undefined,
+      })
+      .then((data) => setDamageHistory(data))
+      .catch((err) => console.error('Failed to load damage history', err))
+      .finally(() => setLoadingDamageHistory(false))
+  }
+
+  useEffect(() => {
+    if (tab === 'damage') {
+      loadDamageHistory()
+    }
+  }, [tab, filterDamageMotorId, filterDamageSeverity])
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>, target: 'pickup' | 'damage') => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+    Array.from(files).forEach((file) => {
+      if (!['image/jpeg', 'image/png', 'image/webp', 'image/jpg'].includes(file.type)) {
+        alert('Please select a JPG, PNG, or WebP image.')
+        return
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        alert('File size exceeds 5MB.')
+        return
+      }
+      const reader = new FileReader()
+      reader.onload = (ev) => {
+        const base64 = ev.target?.result as string
+        if (base64) {
+          if (target === 'pickup') {
+            setPickupPhotos((prev) => [...prev, base64])
+          } else {
+            setDamagePhotos((prev) => [...prev, base64])
+          }
+        }
+      }
+      reader.readAsDataURL(file)
+    })
+    e.target.value = ''
+  }
+
+  const handleOpenRentalDetails = async (rentalId: number | string) => {
+    setLoadingDetails(true)
+    try {
+      const res = await motorcyclesApi.getRentalById(rentalId)
+      setViewRentalDetails(res.rental)
+      setRentalAssessments(res.damage_assessments || [])
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to load rental details')
+    } finally {
+      setLoadingDetails(false)
+    }
+  }
+
+  const handleSavePickupInspection = async () => {
+    if (!pickupRentalModal) return
+    setSavingPickup(true)
+    try {
+      await motorcyclesApi.savePickupInspection(pickupRentalModal.id, {
+        checklist: pickupChecklist,
+        photos: pickupPhotos,
+      })
+      setSuccessMsg(`✓ Pickup inspection documented for ${pickupRentalModal.rental_id}! Baseline condition recorded.`)
+      setTimeout(() => setSuccessMsg(''), 5000)
+      setPickupRentalModal(null)
+      loadData()
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to save pickup inspection')
+    } finally {
+      setSavingPickup(false)
+    }
+  }
+
+  const handleWaiveDamageFee = async () => {
+    if (!waiveDamageModal) return
+    if (!damageWaiverReason.trim()) {
+      alert('A reason is required to waive or adjust the damage fee.')
+      return
+    }
+    setWaivingDamageFee(true)
+    try {
+      const adj = damageWaiverAdjustedAmount ? Number(damageWaiverAdjustedAmount) : 0
+      const res = await motorcyclesApi.waiveDamageFee(waiveDamageModal.id, {
+        reason: damageWaiverReason.trim(),
+        adjusted_amount: adj,
+      })
+      setSuccessMsg(res.message || `Damage fee successfully updated for ${waiveDamageModal.rental_id}.`)
+      setTimeout(() => setSuccessMsg(''), 5000)
+      setWaiveDamageModal(null)
+      setDamageWaiverReason('')
+      setDamageWaiverAdjustedAmount('')
+      if (viewRentalDetails && viewRentalDetails.id === waiveDamageModal.id) {
+        handleOpenRentalDetails(waiveDamageModal.id)
+      }
+      loadData()
+      if (tab === 'damage') loadDamageHistory()
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to waive damage fee')
+    } finally {
+      setWaivingDamageFee(false)
+    }
   }
 
   useEffect(() => {
@@ -325,29 +485,59 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
 
   const handleProcessReturn = async () => {
     if (!returnRentalModal) return
+    if (hasDamage && !damageDescription.trim()) {
+      alert('Please describe the observed damage.')
+      return
+    }
+    if (hasDamage && (!damageRepairCost || Number(damageRepairCost) <= 0)) {
+      alert('Please provide a valid estimated repair cost (₱).')
+      return
+    }
     setProcessingReturn(true)
     try {
+      const damagePayload = hasDamage
+        ? {
+            has_damage: true,
+            severity: damageSeverity,
+            description: damageDescription.trim(),
+            estimated_repair_cost: Number(damageRepairCost) || 0,
+            photos: damagePhotos,
+          }
+        : undefined
+
       const res = await motorcyclesApi.processReturn(returnRentalModal.id, {
         remarks: returnRemarks.trim() || undefined,
-        maintenance_needed: maintenanceNeeded,
+        maintenance_needed: hasDamage ? true : maintenanceNeeded,
         waive_late_fee: waiveLateFee,
         waiver_reason: waiveLateFee ? waiverReason.trim() : undefined,
+        damage: damagePayload,
       })
       setReturnRentalModal(null)
       setReturnRemarks('')
       setMaintenanceNeeded(false)
       setWaiveLateFee(false)
       setWaiverReason('')
+      setHasDamage(false)
+      setDamageSeverity('minor')
+      setDamageDescription('')
+      setDamageRepairCost('')
+      setDamagePhotos([])
       const rRes = res as any
-      setSuccessMsg(
-        rRes.late_fee_waived
-          ? `Return completed for ${res.rental.rental_id}! Late fee waived. Total: ₱${Number(res.final_amount).toLocaleString()}`
-          : Number(res.late_fee) > 0
-          ? `Return completed for ${res.rental.rental_id}! Late fee: ₱${Number(res.late_fee).toLocaleString()} (${rRes.hours_late || 0} hr(s) × ₱${rRes.hourly_late_rate || 0}/hr), Total: ₱${Number(res.final_amount).toLocaleString()}`
-          : `Return completed for ${res.rental.rental_id}! Total: ₱${Number(res.final_amount).toLocaleString()}`
-      )
-      setTimeout(() => setSuccessMsg(''), 5500)
+      const parts: string[] = []
+      parts.push(`Return processed for ${res.rental.rental_id}!`)
+      if (hasDamage) {
+        parts.push(`Damage reported (${damageSeverity.toUpperCase()}) — ₱${Number(damageRepairCost).toLocaleString()} added to guest folio. Motor locked in MAINTENANCE.`)
+      }
+      if (rRes.late_fee_waived) {
+        parts.push(`Late fee waived.`)
+      } else if (Number(res.late_fee) > 0) {
+        parts.push(`Late fee: ₱${Number(res.late_fee).toLocaleString()}.`)
+      }
+      parts.push(`Total: ₱${Number(res.final_amount).toLocaleString()}`)
+      setSuccessMsg(parts.join(' '))
+      setTimeout(() => setSuccessMsg(''), 6000)
       loadData()
+      if (tab === 'damage') loadDamageHistory()
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to process return')
     } finally {
@@ -460,6 +650,15 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
         >
           <span>Motor Fleet ({motorcycles.length})</span>
         </button>
+        <button
+          onClick={() => setTab('damage')}
+          className={`px-3 py-1.5 rounded-md font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+            tab === 'damage' ? 'bg-[#6B7A5E] text-white shadow-2xs' : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-white dark:hover:bg-neutral-800'
+          }`}
+        >
+          <Wrench className="w-3.5 h-3.5" />
+          <span>Damage & Repairs ({rentals.filter(r => Boolean(r.has_damage)).length})</span>
+        </button>
       </div>
 
       {/* ─── TAB 1: RENTALS TABLE ─── */}
@@ -482,7 +681,14 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
               <tbody className="divide-y divide-stone/15">
                 {rentals.map((r) => (
                   <tr key={r.id} className="hover:bg-sand/20 transition-colors">
-                    <td className="px-5 py-4 font-mono text-xs text-[#6B7A5E] font-bold">{r.rental_id}</td>
+                    <td className="px-5 py-4 font-mono text-xs text-[#6B7A5E] font-bold">
+                      {r.rental_id}
+                      {Boolean(r.pickup_inspected_at) && (
+                        <span className="block text-[9px] font-sans font-medium text-emerald-700 dark:text-emerald-400 mt-0.5" title="Pre-rental condition verified at pickup">
+                          ✓ Pickup Inspected
+                        </span>
+                      )}
+                    </td>
                     <td className="px-5 py-4">
                       <p className="font-semibold text-ink text-sm">{r.brand} {r.model}</p>
                       <p className="text-xs font-mono text-ink-muted">Plate: {r.plate_number}</p>
@@ -501,15 +707,17 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
                       {(() => {
                         const baseAmt = Number(r.total_amount || 0)
                         const lateAmt = Boolean(r.late_fee_waived) ? 0 : Number(r.late_fee || 0)
-                        const grandTotal = Number(r.final_amount) > 0 ? Number(r.final_amount) : baseAmt + lateAmt
+                        const damageAmt = Boolean(r.damage_fee_waived) ? 0 : Number(r.damage_fee || 0)
+                        const grandTotal = Number(r.final_amount) > 0 ? Number(r.final_amount) : baseAmt + lateAmt + damageAmt
                         const hasLateFee = lateAmt > 0 && !r.late_fee_waived
+                        const hasDamageFee = damageAmt > 0 && !r.damage_fee_waived
 
                         return (
                           <div>
                             <span className="block font-bold text-[#6B7A5E]">
                               ₱{grandTotal.toLocaleString()}
                             </span>
-                            {hasLateFee ? (
+                            {hasLateFee && (
                               <span className="block text-[10px] text-rose-600 font-medium font-sans mt-0.5">
                                 Includes ₱{lateAmt.toLocaleString()} late fee
                                 {Number(r.hours_late) > 0 && Number(r.hourly_late_rate) > 0 ? (
@@ -518,68 +726,167 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
                                   </span>
                                 ) : null}
                               </span>
-                            ) : Boolean(r.late_fee_waived) ? (
+                            )}
+                            {hasDamageFee && (
+                              <span className="block text-[10px] text-amber-700 dark:text-amber-400 font-bold font-sans mt-0.5">
+                                Includes ₱{damageAmt.toLocaleString()} damage fee
+                              </span>
+                            )}
+                            {Boolean(r.damage_fee_waived) && (
+                              <span className="block text-[10px] text-emerald-600 font-medium font-sans mt-0.5" title={r.damage_fee_waiver_reason || 'Waived by staff'}>
+                                Damage fee waived
+                              </span>
+                            )}
+                            {Boolean(r.late_fee_waived) && (
                               <span className="block text-[10px] text-emerald-600 font-medium font-sans mt-0.5" title={r.late_fee_waiver_reason || 'Waived by staff'}>
                                 Late fee waived
                               </span>
-                            ) : null}
+                            )}
                           </div>
                         )
                       })()}
                     </td>
                     <td className="px-5 py-4">
                       <StatusBadge status={r.status} />
+                      {Boolean(r.has_damage) && (
+                        <div className="mt-1">
+                          <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300">
+                            ⚠️ Damaged
+                          </span>
+                        </div>
+                      )}
                       {r.notes && r.notes.includes('Rejection') && (
                         <p className="text-[10px] text-rose-600 mt-1">{r.notes}</p>
                       )}
                     </td>
                     <td className="px-5 py-4 text-right">
-                      {String(r.status) === 'PENDING_APPROVAL' && (
-                        <div className="flex items-center justify-end gap-1.5">
-                          <button
-                            onClick={() => setApprovingRental(r)}
-                            className="px-3 py-1.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-lg text-xs font-semibold shadow-xs transition-all cursor-pointer flex items-center gap-1"
-                          >
-                            <Check className="w-3.5 h-3.5" />
-                            <span>Review & Approve</span>
-                          </button>
-                          <button
-                            onClick={() => setRejectingRental(r)}
-                            className="px-2.5 py-1.5 text-rose-600 hover:bg-rose-50 border border-rose-200 dark:border-rose-900 rounded-lg text-xs font-semibold transition-all cursor-pointer"
-                          >
-                            Reject
-                          </button>
-                        </div>
-                      )}
-                      {String(r.status) === 'PENDING_PAYMENT' && (
-                        <span className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-md font-medium">
-                          Awaiting Payment
-                        </span>
-                      )}
-                      {(r.status === 'ACTIVE' || r.status === 'OVERDUE' || r.status === 'RESERVED') && (
+                      <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                        {/* View Journey & Details Button */}
                         <button
-                          onClick={() => setReturnRentalModal(r)}
-                          className="px-3 py-1.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-lg text-xs font-semibold shadow-xs transition-all cursor-pointer flex items-center gap-1.5 ml-auto"
+                          onClick={() => handleOpenRentalDetails(r.id)}
+                          className="px-2 py-1 border border-stone/25 hover:border-[#6B7A5E] text-ink dark:text-white rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1"
+                          title="View complete condition checklist, damage assessments, and audit trail"
                         >
-                          <RotateCcw className="w-3.5 h-3.5" />
-                          <span>Process Return</span>
+                          <Eye className="w-3 h-3 text-[#6B7A5E]" />
+                          <span>Details</span>
                         </button>
-                      )}
-                      {r.status === 'COMPLETED' && (
-                        <span className="text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-md font-medium">
-                          Returned
-                        </span>
-                      )}
-                      {r.status === 'REJECTED' && (
-                        <span className="text-[11px] text-rose-700 bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-md font-medium">
-                          Rejected
-                        </span>
-                      )}
-                      {r.status === 'CANCELLED' && (
-                        <span className="text-[11px] text-stone/70 bg-sand border border-stone/20 px-2.5 py-1 rounded-md font-medium">
-                          Cancelled
-                        </span>
-                      )}
+
+                        {/* Pickup Inspection Button for active or reserved rentals */}
+                        {(r.status === 'RESERVED' || r.status === 'ACTIVE') && (
+                          <button
+                            onClick={() => {
+                              setPickupRentalModal(r)
+                              if (r.pickup_checklist) {
+                                const cl = typeof r.pickup_checklist === 'string' ? JSON.parse(r.pickup_checklist) : r.pickup_checklist
+                                setPickupChecklist({
+                                  no_scratches: cl.no_scratches ?? true,
+                                  mirrors_intact: cl.mirrors_intact ?? true,
+                                  lights_working: cl.lights_working ?? true,
+                                  brakes_functional: cl.brakes_functional ?? true,
+                                  tires_good: cl.tires_good ?? true,
+                                  fuel_level: cl.fuel_level || 'Full',
+                                  helmets_count: cl.helmets_count ?? 1,
+                                  notes: cl.notes || '',
+                                })
+                              } else {
+                                setPickupChecklist({
+                                  no_scratches: true,
+                                  mirrors_intact: true,
+                                  lights_working: true,
+                                  brakes_functional: true,
+                                  tires_good: true,
+                                  fuel_level: 'Full',
+                                  helmets_count: 1,
+                                  notes: '',
+                                })
+                              }
+                              if (r.pickup_photos) {
+                                const ph = typeof r.pickup_photos === 'string' ? JSON.parse(r.pickup_photos) : r.pickup_photos
+                                setPickupPhotos(Array.isArray(ph) ? ph : [])
+                              } else {
+                                setPickupPhotos([])
+                              }
+                            }}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1 ${
+                              r.pickup_inspected_at
+                                ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300'
+                                : 'bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300'
+                            }`}
+                            title={r.pickup_inspected_at ? 'Pickup condition documented' : 'Record baseline checklist and photos before departure'}
+                          >
+                            <ClipboardCheck className="w-3.5 h-3.5" />
+                            <span>{r.pickup_inspected_at ? 'Pickup ✓' : 'Pickup Check'}</span>
+                          </button>
+                        )}
+
+                        {String(r.status) === 'PENDING_APPROVAL' && (
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => setApprovingRental(r)}
+                              className="px-2.5 py-1 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-lg text-xs font-semibold shadow-xs transition-all cursor-pointer flex items-center gap-1"
+                            >
+                              <Check className="w-3 h-3" />
+                              <span>Approve</span>
+                            </button>
+                            <button
+                              onClick={() => setRejectingRental(r)}
+                              className="px-2 py-1 text-rose-600 hover:bg-rose-50 border border-rose-200 dark:border-rose-900 rounded-lg text-xs font-semibold transition-all cursor-pointer"
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        )}
+                        {String(r.status) === 'PENDING_PAYMENT' && (
+                          <span className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md font-medium">
+                            Awaiting Payment
+                          </span>
+                        )}
+                        {(r.status === 'ACTIVE' || r.status === 'OVERDUE' || r.status === 'RESERVED') && (
+                          <button
+                            onClick={() => {
+                              setReturnRentalModal(r)
+                              setHasDamage(false)
+                              setDamageSeverity('minor')
+                              setDamageDescription('')
+                              setDamageRepairCost('')
+                              setDamagePhotos([])
+                            }}
+                            className="px-2.5 py-1 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-lg text-xs font-semibold shadow-xs transition-all cursor-pointer flex items-center gap-1"
+                          >
+                            <RotateCcw className="w-3 h-3" />
+                            <span>Process Return</span>
+                          </button>
+                        )}
+                        {Boolean(r.has_damage) && !r.damage_fee_waived && (
+                          <button
+                            onClick={() => {
+                              setWaiveDamageModal(r)
+                              setDamageWaiverReason('')
+                              setDamageWaiverAdjustedAmount('')
+                            }}
+                            className="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1"
+                            title="Waive or adjust damage fee"
+                          >
+                            <Wrench className="w-3 h-3" />
+                            <span>Waive Fee</span>
+                          </button>
+                        )}
+                        {r.status === 'COMPLETED' && !r.has_damage && (
+                          <span className="text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md font-medium">
+                            Returned
+                          </span>
+                        )}
+                        {r.status === 'REJECTED' && (
+                          <span className="text-[10px] text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-md font-medium">
+                            Rejected
+                          </span>
+                        )}
+                        {r.status === 'CANCELLED' && (
+                          <span className="text-[10px] text-stone/70 bg-sand border border-stone/20 px-2 py-0.5 rounded-md font-medium">
+                            Cancelled
+                          </span>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -594,6 +901,187 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
               <p className="font-display font-bold text-ink text-sm">No rentals recorded yet.</p>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ─── TAB 3: FLEET DAMAGE & REPAIR ASSESSMENTS ─── */}
+      {tab === 'damage' && (
+        <div className="space-y-4">
+          {/* Filter Bar */}
+          <div className="bg-white dark:bg-[#181B20] p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <div>
+                <label className="block text-[10px] uppercase font-bold text-neutral-500 mb-1">Filter by Motorcycle</label>
+                <select
+                  value={filterDamageMotorId}
+                  onChange={(e) => setFilterDamageMotorId(e.target.value)}
+                  className="px-3 py-1.5 text-xs rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-neutral-50 dark:bg-[#20252E] font-semibold"
+                >
+                  <option value="">All Fleet Units ({motorcycles.length})</option>
+                  {motorcycles.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.brand} {m.model} ({m.plate_number})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[10px] uppercase font-bold text-neutral-500 mb-1">Filter Severity</label>
+                <select
+                  value={filterDamageSeverity}
+                  onChange={(e) => setFilterDamageSeverity(e.target.value)}
+                  className="px-3 py-1.5 text-xs rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-neutral-50 dark:bg-[#20252E] font-semibold"
+                >
+                  <option value="">All Severities</option>
+                  <option value="minor">Minor (Scratches/Scuffs)</option>
+                  <option value="moderate">Moderate (Cracked Panels/Mirrors)</option>
+                  <option value="major">Major (Structural/Engine)</option>
+                  <option value="total_loss">Total Loss (Write-Off)</option>
+                </select>
+              </div>
+            </div>
+
+            <button
+              onClick={loadDamageHistory}
+              className="px-3 py-1.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-lg text-xs font-semibold shadow-2xs transition-all cursor-pointer flex items-center gap-1.5"
+            >
+              <RotateCcw className="w-3 h-3" />
+              <span>Refresh Records</span>
+            </button>
+          </div>
+
+          {/* Damage History Table */}
+          <div className="bg-white dark:bg-[#181B20] rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-stone/20 bg-sand/30 text-[10px] uppercase font-bold text-ink-muted tracking-wider">
+                    <th className="px-5 py-3.5">DATE & ASSESSMENT</th>
+                    <th className="px-5 py-3.5">MOTORCYCLE</th>
+                    <th className="px-5 py-3.5">CUSTOMER</th>
+                    <th className="px-5 py-3.5">SEVERITY</th>
+                    <th className="px-5 py-3.5">DESCRIPTION & PHOTOS</th>
+                    <th className="px-5 py-3.5">EST. REPAIR COST</th>
+                    <th className="px-5 py-3.5">STATUS</th>
+                    <th className="px-5 py-3.5 text-right">ACTIONS</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-stone/15">
+                  {damageHistory.map((d) => (
+                    <tr key={d.id} className="hover:bg-sand/20 transition-colors">
+                      <td className="px-5 py-4">
+                        <span className="font-mono text-xs font-bold text-[#6B7A5E]">DMG-#{d.id}</span>
+                        <span className="block text-[10px] text-ink-muted mt-0.5">
+                          {formatDateTimeWithAmPm(d.created_at)}
+                        </span>
+                        <span className="block text-[10px] font-mono text-ink-muted">Assessed by: {d.assessed_by_name || 'Staff'}</span>
+                      </td>
+                      <td className="px-5 py-4">
+                        <p className="font-semibold text-ink text-sm">{d.brand} {d.model}</p>
+                        <p className="text-xs font-mono text-ink-muted">Plate: {d.plate_number}</p>
+                      </td>
+                      <td className="px-5 py-4">
+                        <p className="font-medium text-ink text-sm">{d.customer_name || 'Guest'}</p>
+                        <p className="text-xs text-ink-muted font-mono">{d.customer_phone}</p>
+                      </td>
+                      <td className="px-5 py-4">
+                        <span
+                          className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                            d.severity === 'minor'
+                              ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
+                              : d.severity === 'moderate'
+                              ? 'bg-orange-100 text-orange-800 dark:bg-orange-950/60 dark:text-orange-300'
+                              : 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300'
+                          }`}
+                        >
+                          {d.severity.replace('_', ' ')}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4 max-w-xs">
+                        <p className="text-ink text-xs font-normal line-clamp-2">{d.description}</p>
+                        {Array.isArray(d.photos) && d.photos.length > 0 && (
+                          <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                            {d.photos.map((photoUrl, pIdx) => (
+                              <button
+                                key={pIdx}
+                                type="button"
+                                onClick={() => setPreviewPhotoUrl(photoUrl)}
+                                className="w-7 h-7 rounded border border-stone/25 overflow-hidden hover:opacity-80 transition-opacity"
+                              >
+                                <img src={photoUrl} alt="Damage" className="w-full h-full object-cover" />
+                              </button>
+                            ))}
+                            <span className="text-[10px] text-ink-muted font-mono">({d.photos.length} photos)</span>
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-5 py-4 font-display text-sm font-bold text-ink">
+                        ₱{Number(d.charge_amount || d.estimated_repair_cost || 0).toLocaleString()}
+                      </td>
+                      <td className="px-5 py-4">
+                        <span
+                          className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                            d.status === 'billed'
+                              ? 'bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300'
+                              : d.status === 'waived'
+                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
+                              : 'bg-neutral-100 text-neutral-800'
+                          }`}
+                        >
+                          {d.status}
+                        </span>
+                        {d.status === 'waived' && d.waiver_reason && (
+                          <p className="text-[10px] text-ink-muted italic mt-0.5" title={d.waiver_reason}>
+                            Reason: {d.waiver_reason}
+                          </p>
+                        )}
+                      </td>
+                      <td className="px-5 py-4 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            onClick={() => handleOpenRentalDetails(d.rental_id)}
+                            className="px-2 py-1 border border-stone/25 hover:border-[#6B7A5E] text-ink dark:text-white rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1"
+                            title="View full rental details"
+                          >
+                            <Eye className="w-3 h-3 text-[#6B7A5E]" />
+                            <span>Details</span>
+                          </button>
+                          {d.status === 'billed' && (
+                            <button
+                              onClick={() => {
+                                const matchedRental = rentals.find(r => r.id === d.rental_id)
+                                if (matchedRental) {
+                                  setWaiveDamageModal(matchedRental)
+                                } else {
+                                  setWaiveDamageModal({ id: d.rental_id, rental_id: `Rental #${d.rental_id}` } as any)
+                                }
+                                setDamageWaiverReason('')
+                                setDamageWaiverAdjustedAmount('')
+                              }}
+                              className="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1"
+                            >
+                              <Wrench className="w-3 h-3" />
+                              <span>Waive</span>
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {damageHistory.length === 0 && !loadingDamageHistory && (
+              <div className="text-center py-16 text-ink-muted text-xs">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center mx-auto mb-3 text-emerald-700">
+                  <Check className="w-6 h-6" strokeWidth={1.5} />
+                </div>
+                <p className="font-display font-bold text-ink text-sm">No motorcycle damages recorded.</p>
+                <p className="text-ink-muted mt-0.5">All returned fleet units have maintained clean condition.</p>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -1163,8 +1651,8 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
         </form>
       </Modal>
 
-      {/* ─── MODAL: PROCESS RETURN ─── */}
-      <Modal isOpen={!!returnRentalModal} onClose={() => setReturnRentalModal(null)} title="Process Motorcycle Return" size="md">
+      {/* ─── MODAL: PROCESS RETURN WITH DAMAGE ASSESSMENT ─── */}
+      <Modal isOpen={!!returnRentalModal} onClose={() => setReturnRentalModal(null)} title="Process Motorcycle Return" size="lg">
         {returnRentalModal && (() => {
           const now = new Date()
           const expected = new Date(returnRentalModal.expected_return_datetime)
@@ -1181,56 +1669,255 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
 
           const calculatedFee = isOverdue ? hoursLate * hourlyRate : 0
           const baseAmount = Number(returnRentalModal.total_amount || 0)
-          const finalAmount = waiveLateFee ? baseAmount : baseAmount + calculatedFee
+          const lateAmount = waiveLateFee ? 0 : calculatedFee
+          const damageAmount = hasDamage ? (Number(damageRepairCost) || 0) : 0
+          const finalAmount = baseAmount + lateAmount + damageAmount
+
+          let pickupData: PickupChecklist | null = null
+          if (returnRentalModal.pickup_checklist) {
+            try {
+              pickupData = typeof returnRentalModal.pickup_checklist === 'string'
+                ? JSON.parse(returnRentalModal.pickup_checklist)
+                : returnRentalModal.pickup_checklist
+            } catch {
+              pickupData = null
+            }
+          }
 
           return (
-            <div className="space-y-4 text-xs font-sans">
-              <div className="bg-[#F6F2E8] border border-stone/20 rounded-2xl p-4 space-y-1">
-                <div className="flex justify-between">
-                  <span className="text-ink-muted">Rental ID:</span>
+            <div className="space-y-4 text-xs font-sans max-h-[80vh] overflow-y-auto pr-1">
+              {/* Rental Summary Card */}
+              <div className="bg-[#F6F2E8] dark:bg-[#1a1e24] border border-stone/20 dark:border-neutral-700 rounded-2xl p-4 space-y-1.5">
+                <div className="flex justify-between items-center">
+                  <span className="text-ink-muted">Rental Ref:</span>
                   <span className="font-mono font-bold text-[#6B7A5E]">{returnRentalModal.rental_id}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-ink-muted">Motorcycle:</span>
-                  <span className="font-bold text-ink">{returnRentalModal.brand} {returnRentalModal.model} ({returnRentalModal.plate_number})</span>
+                  <span className="font-bold text-ink dark:text-white">{returnRentalModal.brand} {returnRentalModal.model} ({returnRentalModal.plate_number})</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-ink-muted">Customer:</span>
-                  <span className="font-semibold text-ink">{returnRentalModal.customer_name}</span>
+                  <span className="text-ink-muted">Guest Name:</span>
+                  <span className="font-semibold text-ink dark:text-white">{returnRentalModal.customer_name}</span>
                 </div>
-                <div className="flex justify-between pt-1 border-t border-stone/15 text-[11px]">
-                  <span className="text-ink-muted">Expected Return:</span>
-                  <span className="font-mono font-semibold text-ink">{formatDateTimeWithAmPm(returnRentalModal.expected_return_datetime)}</span>
+                <div className="flex justify-between pt-1 border-t border-stone/15 dark:border-neutral-700 text-[11px]">
+                  <span className="text-ink-muted">Scheduled Return:</span>
+                  <span className="font-mono font-semibold text-ink dark:text-white">{formatDateTimeWithAmPm(returnRentalModal.expected_return_datetime)}</span>
+                </div>
+                {pickupData && (
+                  <div className="mt-2 pt-2 border-t border-stone/15 dark:border-neutral-700 text-[11px] text-emerald-800 dark:text-emerald-300 bg-emerald-500/10 p-2 rounded-xl flex items-start gap-2">
+                    <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-bold">Baseline condition documented at pickup:</span>
+                      <p className="text-[10px] text-emerald-700 dark:text-emerald-400 mt-0.5">
+                        Fuel: {pickupData.fuel_level || 'Full'} · Helmets: {pickupData.helmets_count ?? 1} · {pickupData.notes || 'No pre-existing defects noted'}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Step: Condition at Return Selector */}
+              <div>
+                <label className="block font-semibold text-ink dark:text-white uppercase tracking-wider mb-2 text-[10px]">
+                  Vehicle Return Condition
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setHasDamage(false)
+                      setMaintenanceNeeded(false)
+                    }}
+                    className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-start gap-2.5 ${
+                      !hasDamage
+                        ? 'border-emerald-600 bg-emerald-50/70 dark:bg-emerald-950/40 ring-2 ring-emerald-500/30'
+                        : 'border-stone/20 dark:border-neutral-700 bg-white dark:bg-[#15181D] hover:border-stone/40'
+                    }`}
+                  >
+                    <Check className={`w-4 h-4 shrink-0 mt-0.5 ${!hasDamage ? 'text-emerald-600' : 'text-neutral-400'}`} />
+                    <div>
+                      <p className={`font-bold text-xs ${!hasDamage ? 'text-emerald-900 dark:text-emerald-200' : 'text-ink dark:text-white'}`}>
+                        Clean Return (No Damage)
+                      </p>
+                      <p className="text-[10px] text-ink-muted mt-0.5 leading-tight">
+                        Unit returned in good condition. Standard return workflow.
+                      </p>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setHasDamage(true)
+                      setMaintenanceNeeded(true)
+                    }}
+                    className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-start gap-2.5 ${
+                      hasDamage
+                        ? 'border-amber-600 bg-amber-50/80 dark:bg-amber-950/40 ring-2 ring-amber-500/30'
+                        : 'border-stone/20 dark:border-neutral-700 bg-white dark:bg-[#15181D] hover:border-stone/40'
+                    }`}
+                  >
+                    <Wrench className={`w-4 h-4 shrink-0 mt-0.5 ${hasDamage ? 'text-amber-600' : 'text-neutral-400'}`} />
+                    <div>
+                      <p className={`font-bold text-xs ${hasDamage ? 'text-amber-900 dark:text-amber-200' : 'text-ink dark:text-white'}`}>
+                        Report Damage & Charge
+                      </p>
+                      <p className="text-[10px] text-ink-muted mt-0.5 leading-tight">
+                        Damage identified. Document severity, photos, and repair bill.
+                      </p>
+                    </div>
+                  </button>
                 </div>
               </div>
 
-              {/* Overdue Calculation or On-Time Banner */}
+              {/* Damage Assessment Section (when active) */}
+              {hasDamage && (
+                <div className="p-4 bg-amber-50/60 dark:bg-amber-950/20 border-2 border-amber-300 dark:border-amber-900/60 rounded-2xl space-y-3.5">
+                  <div className="flex items-center justify-between pb-2 border-b border-amber-200 dark:border-amber-900/50">
+                    <span className="font-bold text-xs text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
+                      <Wrench className="w-4 h-4 text-amber-600" />
+                      Damage Assessment & Billing Step
+                    </span>
+                    <span className="text-[10px] font-bold text-amber-800 bg-amber-100 dark:bg-amber-900/50 px-2 py-0.5 rounded">
+                      Auto-Routes to MAINTENANCE
+                    </span>
+                  </div>
+
+                  {/* Severity Selector */}
+                  <div>
+                    <label className="block font-semibold text-amber-950 dark:text-amber-200 uppercase tracking-wider text-[10px] mb-1.5">
+                      Damage Severity *
+                    </label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {[
+                        { id: 'minor', label: 'Minor', desc: 'Scratches, scuffs' },
+                        { id: 'moderate', label: 'Moderate', desc: 'Cracked fairing, mirror' },
+                        { id: 'major', label: 'Major', desc: 'Engine, frame, forks' },
+                        { id: 'total_loss', label: 'Total Loss', desc: 'Severe write-off' },
+                      ].map((s) => {
+                        const isSelected = damageSeverity === s.id
+                        return (
+                          <button
+                            key={s.id}
+                            type="button"
+                            onClick={() => setDamageSeverity(s.id as any)}
+                            className={`p-2 rounded-xl border text-center transition-all cursor-pointer ${
+                              isSelected
+                                ? 'border-amber-700 bg-amber-600 text-white font-bold shadow-xs'
+                                : 'border-stone/30 bg-white dark:bg-[#15181D] text-ink dark:text-white hover:border-amber-500'
+                            }`}
+                          >
+                            <p className="text-xs font-bold">{s.label}</p>
+                            <p className={`text-[9px] mt-0.5 ${isSelected ? 'text-amber-100' : 'text-ink-muted'}`}>{s.desc}</p>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Description */}
+                  <div>
+                    <label className="block font-semibold text-amber-950 dark:text-amber-200 uppercase tracking-wider text-[10px] mb-1">
+                      Damage Description & Evidence Notes *
+                    </label>
+                    <textarea
+                      required
+                      value={damageDescription}
+                      onChange={(e) => setDamageDescription(e.target.value)}
+                      placeholder="Specify damaged parts (e.g. Scraped left fairing, bent brake lever, cracked headlamp cover from low-speed fall)..."
+                      rows={2}
+                      className="w-full px-3 py-2 rounded-xl border border-amber-300 dark:border-amber-900 bg-white dark:bg-[#15181D] text-xs resize-none"
+                    />
+                  </div>
+
+                  {/* Estimated Repair Cost */}
+                  <div>
+                    <label className="block font-semibold text-amber-950 dark:text-amber-200 uppercase tracking-wider text-[10px] mb-1">
+                      Estimated Repair / Replacement Cost (₱) *
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-neutral-500">₱</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="50"
+                        required
+                        value={damageRepairCost}
+                        onChange={(e) => setDamageRepairCost(e.target.value)}
+                        placeholder="0.00"
+                        className="w-full pl-8 pr-3 py-2 rounded-xl border border-amber-300 dark:border-amber-900 bg-white dark:bg-[#15181D] font-mono text-xs font-bold text-ink dark:text-white"
+                      />
+                    </div>
+                    <p className="text-[10px] text-amber-800 dark:text-amber-300 mt-1">
+                      This amount will be added as an itemized <strong>Damage Fee</strong> line item on the guest's folio.
+                    </p>
+                  </div>
+
+                  {/* Photo Evidence Upload */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="font-semibold text-amber-950 dark:text-amber-200 uppercase tracking-wider text-[10px]">
+                        Damage Photos
+                      </label>
+                      <span className="text-[10px] text-ink-muted">{damagePhotos.length} photo(s) attached</span>
+                    </div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <label className="px-3 py-2 bg-white dark:bg-[#15181D] hover:bg-amber-100/50 border border-amber-300 dark:border-amber-800 rounded-xl font-semibold text-xs cursor-pointer flex items-center gap-1.5 transition-colors text-amber-900 dark:text-amber-200">
+                        <Camera className="w-3.5 h-3.5 text-amber-600" />
+                        <span>Add Damage Photos</span>
+                        <input
+                          type="file"
+                          multiple
+                          accept="image/png,image/jpeg,image/webp"
+                          className="hidden"
+                          onChange={(e) => handlePhotoUpload(e, 'damage')}
+                        />
+                      </label>
+                    </div>
+                    {damagePhotos.length > 0 && (
+                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                        {damagePhotos.map((url, idx) => (
+                          <div key={idx} className="relative group rounded-lg overflow-hidden border border-amber-300 aspect-video bg-black/5">
+                            <img src={url} alt={`Damage photo ${idx + 1}`} className="w-full h-full object-cover" />
+                            <button
+                              type="button"
+                              onClick={() => setDamagePhotos((prev) => prev.filter((_, i) => i !== idx))}
+                              className="absolute top-1 right-1 p-1 bg-black/70 hover:bg-rose-600 text-white rounded-full opacity-80 group-hover:opacity-100 transition-opacity"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Overdue Calculation Banner */}
               {isOverdue ? (
-                <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl space-y-2">
+                <div className="p-3.5 bg-rose-50 dark:bg-rose-950/25 border border-rose-200 dark:border-rose-900 rounded-2xl space-y-2">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 text-rose-800 font-bold text-xs">
+                    <div className="flex items-center gap-1.5 text-rose-800 dark:text-rose-300 font-bold text-xs">
                       <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
                       <span>Overdue Return Detected</span>
                     </div>
-                    <span className="font-mono text-xs font-bold text-rose-700 bg-rose-100 px-2 py-0.5 rounded">
+                    <span className="font-mono text-xs font-bold text-rose-700 bg-rose-100 dark:bg-rose-900/50 px-2 py-0.5 rounded">
                       {hoursLate} hr{hoursLate > 1 ? 's' : ''} late
                     </span>
                   </div>
 
-                  <div className="bg-white/80 rounded-xl p-2.5 border border-rose-200/60 space-y-1 text-[11px]">
+                  <div className="bg-white/80 dark:bg-[#15181D] rounded-xl p-2.5 border border-rose-200/60 dark:border-rose-900/50 space-y-1 text-[11px]">
                     <div className="flex justify-between text-ink-muted">
-                      <span>Hourly Penalty Rate:</span>
-                      <strong className="font-mono text-ink">₱{hourlyRate.toLocaleString()}/hr</strong>
+                      <span>Hourly Late Penalty:</span>
+                      <strong className="font-mono text-ink dark:text-white">₱{hourlyRate.toLocaleString()}/hr</strong>
                     </div>
                     <div className="flex justify-between text-ink-muted">
                       <span>Calculated Penalty:</span>
-                      <strong className={`font-mono ${waiveLateFee ? 'line-through text-ink-muted' : 'text-rose-700'}`}>
+                      <strong className={`font-mono ${waiveLateFee ? 'line-through text-ink-muted' : 'text-rose-700 dark:text-rose-400'}`}>
                         +₱{calculatedFee.toLocaleString()} ({hoursLate} hr{hoursLate > 1 ? 's' : ''} × ₱{hourlyRate}/hr)
                       </strong>
-                    </div>
-                    <div className="flex justify-between pt-1 border-t border-rose-100 font-bold text-xs">
-                      <span className="text-ink">Final Billable Total:</span>
-                      <span className="font-mono text-[#6B7A5E]">₱{finalAmount.toLocaleString()}</span>
                     </div>
                   </div>
 
@@ -1243,7 +1930,7 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
                         onChange={(e) => setWaiveLateFee(e.target.checked)}
                         className="w-4 h-4 text-emerald-600 rounded border-stone focus:ring-emerald-500"
                       />
-                      <span className="text-[11px] font-semibold text-emerald-900">
+                      <span className="text-[11px] font-semibold text-emerald-900 dark:text-emerald-300">
                         Waive / Forgive Late Penalty for this Return
                       </span>
                     </label>
@@ -1253,46 +1940,78 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
                         required
                         value={waiverReason}
                         onChange={(e) => setWaiverReason(e.target.value)}
-                        placeholder="Reason for waiver (e.g. Guest notified reception, mechanical issue) *"
-                        className="mt-2 w-full px-3 py-1.5 rounded-xl border border-emerald-300 bg-white text-xs text-ink placeholder:text-ink-muted/50"
+                        placeholder="Reason for late waiver (e.g. Guest notified reception, mechanical delay) *"
+                        className="mt-2 w-full px-3 py-1.5 rounded-xl border border-emerald-300 bg-white dark:bg-[#15181D] text-xs text-ink placeholder:text-ink-muted/50"
                       />
                     )}
                   </div>
                 </div>
               ) : (
-                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between text-xs text-emerald-900">
+                <div className="p-3 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900 rounded-xl flex items-center justify-between text-xs text-emerald-900 dark:text-emerald-200">
                   <div className="flex items-center gap-1.5 font-semibold">
                     <Check className="w-4 h-4 text-emerald-600 shrink-0" />
                     <span>On-Time Return (No late penalty applies)</span>
                   </div>
-                  <span className="font-mono font-bold text-emerald-700">₱0.00 late fee</span>
+                  <span className="font-mono font-bold text-emerald-700 dark:text-emerald-400">₱0.00 late fee</span>
                 </div>
               )}
 
+              {/* General Return Remarks */}
               <div>
-                <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Inspection & Return Remarks</label>
+                <label className="block font-semibold text-ink dark:text-white uppercase tracking-wider mb-1 text-[10px]">
+                  General Return Remarks
+                </label>
                 <textarea
                   value={returnRemarks}
                   onChange={(e) => setReturnRemarks(e.target.value)}
-                  placeholder="Unit inspected: fuel level OK, helmet returned, condition good."
+                  placeholder="Unit inspected: fuel level OK, helmet returned, condition notes..."
                   rows={2}
-                  className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#F6F2E8] text-xs resize-none"
+                  className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#F6F2E8] dark:bg-[#15181D] text-xs resize-none"
                 />
               </div>
 
+              {/* Maintenance Toggle */}
               <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
                   id="staffMaintCheck"
-                  checked={maintenanceNeeded}
+                  checked={hasDamage ? true : maintenanceNeeded}
+                  disabled={hasDamage}
                   onChange={(e) => setMaintenanceNeeded(e.target.checked)}
-                  className="w-4 h-4 text-[#6B7A5E] rounded border-stone"
+                  className="w-4 h-4 text-[#6B7A5E] rounded border-stone disabled:opacity-75"
                 />
-                <label htmlFor="staffMaintCheck" className="text-xs text-ink font-medium">
-                  Mark motorcycle as <strong>MAINTENANCE</strong> (service/inspection required)
+                <label htmlFor="staffMaintCheck" className="text-xs text-ink dark:text-white font-medium">
+                  Mark motorcycle as <strong>MAINTENANCE</strong> (locks unit from re-booking until cleared)
                 </label>
               </div>
 
+              {/* Itemized Total Calculation Breakdown */}
+              <div className="bg-sand/40 dark:bg-neutral-800/60 rounded-2xl p-4 border border-stone/20 dark:border-neutral-700 space-y-1.5 text-xs">
+                <div className="flex justify-between text-ink-muted">
+                  <span>Base Rental Fee:</span>
+                  <span className="font-mono font-semibold text-ink dark:text-white">₱{baseAmount.toLocaleString()}</span>
+                </div>
+                {lateAmount > 0 && (
+                  <div className="flex justify-between text-rose-700 dark:text-rose-400">
+                    <span>Late Penalty Fee:</span>
+                    <span className="font-mono font-semibold">+₱{lateAmount.toLocaleString()}</span>
+                  </div>
+                )}
+                {damageAmount > 0 && (
+                  <div className="flex justify-between text-amber-800 dark:text-amber-400 font-bold">
+                    <span>Damage Fee (Itemized Line Item):</span>
+                    <span className="font-mono">+₱{damageAmount.toLocaleString()}</span>
+                  </div>
+                )}
+                <div className="flex justify-between pt-2 border-t border-stone/20 dark:border-neutral-700 text-sm font-bold">
+                  <span className="text-ink dark:text-white">Total Folio Charge:</span>
+                  <span className="font-display text-base font-bold text-[#6B7A5E]">
+                    ₱{finalAmount.toLocaleString()}
+                  </span>
+                </div>
+              </div>
+
+              {/* Actions */}
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"
@@ -1304,15 +2023,543 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
                 <button
                   type="button"
                   onClick={handleProcessReturn}
-                  disabled={processingReturn || (waiveLateFee && !waiverReason.trim())}
-                  className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl text-xs font-semibold shadow-sm disabled:opacity-50 transition-all cursor-pointer"
+                  disabled={
+                    processingReturn ||
+                    (waiveLateFee && !waiverReason.trim()) ||
+                    (hasDamage && (!damageDescription.trim() || !damageRepairCost || Number(damageRepairCost) <= 0))
+                  }
+                  className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl text-xs font-semibold shadow-sm disabled:opacity-50 transition-all cursor-pointer flex items-center justify-center gap-1.5"
                 >
-                  {processingReturn ? 'Processing...' : 'Complete Return'}
+                  {processingReturn ? 'Processing...' : hasDamage ? 'Complete Return & Bill Damage' : 'Complete Return'}
                 </button>
               </div>
             </div>
           )
         })()}
+      </Modal>
+
+      {/* ─── MODAL: PICKUP INSPECTION ─── */}
+      <Modal
+        isOpen={Boolean(pickupRentalModal)}
+        onClose={() => setPickupRentalModal(null)}
+        title="Pre-Rental Condition Inspection"
+        size="md"
+      >
+        {pickupRentalModal && (
+          <div className="space-y-4 text-xs font-sans max-h-[80vh] overflow-y-auto pr-1">
+            <div className="p-3 bg-sand/40 dark:bg-neutral-800/50 rounded-xl border border-stone/20 dark:border-neutral-700 flex items-center justify-between">
+              <div>
+                <p className="font-bold text-ink dark:text-white">{pickupRentalModal.brand} {pickupRentalModal.model}</p>
+                <p className="font-mono text-[11px] text-ink-muted">Plate: {pickupRentalModal.plate_number} · Ref: {pickupRentalModal.rental_id}</p>
+              </div>
+              <span className="text-[11px] font-semibold text-[#6B7A5E] bg-sand px-2 py-0.5 rounded">
+                Guest: {pickupRentalModal.customer_name}
+              </span>
+            </div>
+
+            <div className="p-3 bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 rounded-xl text-blue-900 dark:text-blue-200">
+              <p className="font-semibold flex items-center gap-1.5">
+                <ShieldCheck className="w-4 h-4 text-blue-600 shrink-0" />
+                <span>Pre-Rental Baseline Checklist</span>
+              </p>
+              <p className="text-[11px] text-blue-800 dark:text-blue-300 mt-0.5">
+                Inspect and photograph the motorcycle before handing over keys. This establishes the baseline condition to protect both the guest and hostel against disputes upon return.
+              </p>
+            </div>
+
+            {/* Checklist Items */}
+            <div className="space-y-2 bg-white dark:bg-[#15181D] p-3 rounded-xl border border-stone/20 dark:border-neutral-700">
+              <p className="font-bold text-ink dark:text-white uppercase tracking-wider text-[10px]">Vehicle Condition Checklist</p>
+              {[
+                { key: 'no_scratches', label: 'Body panels free of fresh deep scratches or cracks' },
+                { key: 'mirrors_intact', label: 'Rearview mirrors intact, tight, and clear' },
+                { key: 'lights_working', label: 'Headlight, brake lights, and turn signals functioning' },
+                { key: 'brakes_functional', label: 'Front and rear brakes responsive and firm' },
+                { key: 'tires_good', label: 'Tires properly inflated with adequate tread' },
+              ].map(({ key, label }) => (
+                <label key={key} className="flex items-center gap-2 cursor-pointer p-1.5 hover:bg-sand/30 dark:hover:bg-neutral-800 rounded-lg transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={Boolean((pickupChecklist as any)[key])}
+                    onChange={(e) => setPickupChecklist(prev => ({ ...prev, [key]: e.target.checked }))}
+                    className="w-4 h-4 text-[#6B7A5E] rounded border-stone/40 focus:ring-[#6B7A5E]"
+                  />
+                  <span className="text-ink dark:text-white font-medium">{label}</span>
+                </label>
+              ))}
+            </div>
+
+            {/* Fuel & Helmets */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block font-semibold text-ink dark:text-white uppercase tracking-wider text-[10px] mb-1">Fuel Level</label>
+                <select
+                  value={pickupChecklist.fuel_level || 'Full'}
+                  onChange={(e) => setPickupChecklist(prev => ({ ...prev, fuel_level: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-white dark:bg-[#15181D] text-xs font-semibold"
+                >
+                  <option value="Full">Full (100%)</option>
+                  <option value="75%">3/4 Tank (75%)</option>
+                  <option value="50%">Half Tank (50%)</option>
+                  <option value="25%">1/4 Tank (25%)</option>
+                </select>
+              </div>
+              <div>
+                <label className="block font-semibold text-ink dark:text-white uppercase tracking-wider text-[10px] mb-1">Helmets Issued</label>
+                <select
+                  value={pickupChecklist.helmets_count ?? 1}
+                  onChange={(e) => setPickupChecklist(prev => ({ ...prev, helmets_count: Number(e.target.value) }))}
+                  className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-white dark:bg-[#15181D] text-xs font-semibold"
+                >
+                  <option value={0}>0 Helmets</option>
+                  <option value={1}>1 Helmet</option>
+                  <option value={2}>2 Helmets</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Pre-existing Notes */}
+            <div>
+              <label className="block font-semibold text-ink dark:text-white uppercase tracking-wider text-[10px] mb-1">Pre-Existing Flaws / Notes</label>
+              <textarea
+                value={pickupChecklist.notes || ''}
+                onChange={(e) => setPickupChecklist(prev => ({ ...prev, notes: e.target.value }))}
+                rows={2}
+                placeholder="Note any existing minor cosmetic scratches, sticker scuffs, etc."
+                className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-white dark:bg-[#15181D] text-xs resize-none"
+              />
+            </div>
+
+            {/* Baseline Photos */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="font-semibold text-ink dark:text-white uppercase tracking-wider text-[10px]">Baseline Photos</label>
+                <span className="text-[10px] text-ink-muted">{pickupPhotos.length} photo(s) attached</span>
+              </div>
+              <div className="flex items-center gap-2 mb-2">
+                <label className="px-3 py-2 bg-sand/60 hover:bg-sand dark:bg-neutral-800 border border-stone/30 rounded-xl font-semibold text-xs cursor-pointer flex items-center gap-1.5 transition-colors">
+                  <Camera className="w-3.5 h-3.5 text-[#6B7A5E]" />
+                  <span>Attach Photos (Walkaround)</span>
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/png,image/jpeg,image/webp"
+                    className="hidden"
+                    onChange={(e) => handlePhotoUpload(e, 'pickup')}
+                  />
+                </label>
+              </div>
+              {pickupPhotos.length > 0 && (
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                  {pickupPhotos.map((url, idx) => (
+                    <div key={idx} className="relative group rounded-lg overflow-hidden border border-stone/20 aspect-video bg-black/5">
+                      <img src={url} alt={`Pickup photo ${idx + 1}`} className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setPickupPhotos(prev => prev.filter((_, i) => i !== idx))}
+                        className="absolute top-1 right-1 p-1 bg-black/70 hover:bg-rose-600 text-white rounded-full opacity-80 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-2 pt-2 border-t border-stone/15">
+              <button
+                type="button"
+                onClick={() => setPickupRentalModal(null)}
+                className="flex-1 py-2.5 border border-stone/30 rounded-xl font-semibold text-ink-muted hover:bg-sand transition-all text-xs"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSavePickupInspection}
+                disabled={savingPickup}
+                className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl font-semibold shadow-xs disabled:opacity-50 transition-all text-xs flex items-center justify-center gap-1.5"
+              >
+                {savingPickup ? 'Saving...' : 'Save & Confirm Inspection'}
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* ─── MODAL: RENTAL JOURNEY & DAMAGE DETAILS ─── */}
+      <Modal
+        isOpen={Boolean(viewRentalDetails)}
+        onClose={() => setViewRentalDetails(null)}
+        title="Rental Journey & Condition Audit"
+        size="lg"
+      >
+        {viewRentalDetails && (() => {
+          let pChecklist: PickupChecklist | null = null
+          if (viewRentalDetails.pickup_checklist) {
+            try {
+              pChecklist = typeof viewRentalDetails.pickup_checklist === 'string'
+                ? JSON.parse(viewRentalDetails.pickup_checklist)
+                : viewRentalDetails.pickup_checklist
+            } catch {
+              pChecklist = null
+            }
+          }
+
+          let pPhotos: string[] = []
+          if (viewRentalDetails.pickup_photos) {
+            try {
+              const parsed = typeof viewRentalDetails.pickup_photos === 'string'
+                ? JSON.parse(viewRentalDetails.pickup_photos)
+                : viewRentalDetails.pickup_photos
+              pPhotos = Array.isArray(parsed) ? parsed : []
+            } catch {
+              pPhotos = []
+            }
+          }
+
+          return (
+            <div className="space-y-4 text-xs font-sans max-h-[80vh] overflow-y-auto pr-1">
+              {/* Top Overview */}
+              <div className="bg-sand/40 dark:bg-neutral-800/60 p-4 rounded-2xl border border-stone/20 dark:border-neutral-700 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-bold text-[#6B7A5E] text-sm">{viewRentalDetails.rental_id}</span>
+                    <StatusBadge status={viewRentalDetails.status} size="sm" />
+                    {Boolean(viewRentalDetails.has_damage) && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                        ⚠️ Damaged
+                      </span>
+                    )}
+                  </div>
+                  <p className="font-display font-bold text-ink dark:text-white text-base mt-1">
+                    {viewRentalDetails.brand} {viewRentalDetails.model}
+                  </p>
+                  <p className="font-mono text-ink-muted text-xs">
+                    Plate: {viewRentalDetails.plate_number} · Guest: {viewRentalDetails.customer_name} ({viewRentalDetails.customer_phone})
+                  </p>
+                </div>
+
+                <div className="text-right">
+                  <span className="text-[10px] text-ink-muted block uppercase font-bold">Total Folio Charge</span>
+                  <span className="font-display text-lg font-bold text-[#6B7A5E]">
+                    ₱{Number(viewRentalDetails.final_amount || viewRentalDetails.total_amount || 0).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+
+              {/* Pickup Inspection Card */}
+              <div className="bg-white dark:bg-[#15181D] p-4 rounded-2xl border border-stone/20 dark:border-neutral-700 space-y-2.5">
+                <div className="flex items-center justify-between pb-2 border-b border-stone/15 dark:border-neutral-700">
+                  <span className="font-bold text-xs text-ink dark:text-white flex items-center gap-1.5">
+                    <ClipboardCheck className="w-4 h-4 text-[#6B7A5E]" />
+                    Pickup Baseline Condition
+                  </span>
+                  {viewRentalDetails.pickup_inspected_at ? (
+                    <span className="text-[10px] font-mono text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded font-semibold">
+                      ✓ Inspected {formatDateTimeWithAmPm(viewRentalDetails.pickup_inspected_at)}
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-mono text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded font-semibold">
+                      Not Documented at Pickup
+                    </span>
+                  )}
+                </div>
+
+                {pChecklist ? (
+                  <div className="space-y-2 text-[11px]">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      <div className="p-2 bg-neutral-50 dark:bg-neutral-800 rounded-lg">
+                        <span className="text-neutral-500 block text-[10px]">Fuel Level:</span>
+                        <strong className="text-neutral-900 dark:text-white font-semibold">{pChecklist.fuel_level || 'Full'}</strong>
+                      </div>
+                      <div className="p-2 bg-neutral-50 dark:bg-neutral-800 rounded-lg">
+                        <span className="text-neutral-500 block text-[10px]">Helmets Issued:</span>
+                        <strong className="text-neutral-900 dark:text-white font-semibold">{pChecklist.helmets_count ?? 1}</strong>
+                      </div>
+                      <div className="p-2 bg-neutral-50 dark:bg-neutral-800 rounded-lg col-span-2 sm:col-span-1">
+                        <span className="text-neutral-500 block text-[10px]">Pre-existing Notes:</span>
+                        <strong className="text-neutral-900 dark:text-white font-medium">{pChecklist.notes || 'None noted'}</strong>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {[
+                        { key: 'no_scratches', label: 'Body Scratches Free' },
+                        { key: 'mirrors_intact', label: 'Mirrors Intact' },
+                        { key: 'lights_working', label: 'Lights Functional' },
+                        { key: 'brakes_functional', label: 'Brakes Functional' },
+                        { key: 'tires_good', label: 'Tires Good' },
+                      ].map(({ key, label }) => {
+                        const passed = (pChecklist as any)[key]
+                        return (
+                          <span
+                            key={key}
+                            className={`px-2 py-0.5 rounded text-[10px] font-semibold flex items-center gap-1 ${
+                              passed
+                                ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
+                                : 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300'
+                            }`}
+                          >
+                            {passed ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                            <span>{label}</span>
+                          </span>
+                        )
+                      })}
+                    </div>
+
+                    {pPhotos.length > 0 && (
+                      <div className="pt-2">
+                        <span className="text-[10px] uppercase font-bold text-ink-muted block mb-1">Baseline Photos ({pPhotos.length})</span>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {pPhotos.map((url, idx) => (
+                            <button
+                              key={idx}
+                              type="button"
+                              onClick={() => setPreviewPhotoUrl(url)}
+                              className="w-12 h-12 rounded-lg border border-stone/25 overflow-hidden hover:opacity-80 transition-opacity"
+                            >
+                              <img src={url} alt={`Baseline ${idx}`} className="w-full h-full object-cover" />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-ink-muted text-xs italic">
+                    Vehicle was dispatched without a pre-rental digital condition checklist.
+                  </p>
+                )}
+              </div>
+
+              {/* Damage Assessments Card (if recorded) */}
+              {rentalAssessments.length > 0 ? (
+                <div className="space-y-3">
+                  {rentalAssessments.map((a) => (
+                    <div
+                      key={a.id}
+                      className="p-4 bg-amber-50/70 dark:bg-amber-950/20 border border-amber-300 dark:border-amber-900 rounded-2xl space-y-2.5"
+                    >
+                      <div className="flex items-center justify-between pb-2 border-b border-amber-200 dark:border-amber-900/50">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                              a.severity === 'minor'
+                                ? 'bg-amber-200 text-amber-900'
+                                : a.severity === 'moderate'
+                                ? 'bg-orange-200 text-orange-900'
+                                : 'bg-rose-200 text-rose-900'
+                            }`}
+                          >
+                            {a.severity.replace('_', ' ')} Damage
+                          </span>
+                          <span className="font-mono text-[10px] text-ink-muted">
+                            Assessed {formatDateTimeWithAmPm(a.created_at)}
+                          </span>
+                        </div>
+
+                        <span
+                          className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                            a.status === 'billed'
+                              ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300'
+                              : a.status === 'waived'
+                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                              : 'bg-neutral-100 text-neutral-800'
+                          }`}
+                        >
+                          {a.status}
+                        </span>
+                      </div>
+
+                      <p className="text-ink dark:text-white text-xs leading-relaxed font-medium">
+                        {a.description}
+                      </p>
+
+                      {Array.isArray(a.photos) && a.photos.length > 0 && (
+                        <div>
+                          <span className="text-[10px] uppercase font-bold text-ink-muted block mb-1">Damage Evidence Photos</span>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {a.photos.map((url, idx) => (
+                              <button
+                                key={idx}
+                                type="button"
+                                onClick={() => setPreviewPhotoUrl(url)}
+                                className="w-14 h-14 rounded-lg border border-amber-300 overflow-hidden hover:opacity-80 transition-opacity"
+                              >
+                                <img src={url} alt={`Damage evidence ${idx}`} className="w-full h-full object-cover" />
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="pt-2 border-t border-amber-200 dark:border-amber-900/50 flex items-center justify-between">
+                        <div>
+                          <span className="text-[10px] text-ink-muted block uppercase">Repair Charge</span>
+                          <span className="font-display font-bold text-sm text-ink dark:text-white">
+                            ₱{Number(a.charge_amount || a.estimated_repair_cost || 0).toLocaleString()}
+                          </span>
+                        </div>
+
+                        {a.status === 'billed' && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setWaiveDamageModal(viewRentalDetails)
+                              setDamageWaiverReason('')
+                              setDamageWaiverAdjustedAmount('')
+                            }}
+                            className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-semibold shadow-xs flex items-center gap-1 transition-colors cursor-pointer"
+                          >
+                            <Wrench className="w-3.5 h-3.5" />
+                            <span>Waive / Adjust Fee</span>
+                          </button>
+                        )}
+                        {a.status === 'waived' && (
+                          <div className="text-right">
+                            <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold block">Fee Waived</span>
+                            {a.waiver_reason && (
+                              <span className="text-[10px] text-ink-muted italic">Reason: {a.waiver_reason}</span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : Boolean(viewRentalDetails.has_damage) ? (
+                <div className="p-3.5 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900">
+                  <p className="font-bold">Damage Fee Recorded on Rental: ₱{Number(viewRentalDetails.damage_fee || 0).toLocaleString()}</p>
+                  {viewRentalDetails.damage_fee_waived ? (
+                    <p className="text-[11px] text-emerald-700 mt-1">Fee waived: {viewRentalDetails.damage_fee_waiver_reason}</p>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setWaiveDamageModal(viewRentalDetails)
+                        setDamageWaiverReason('')
+                        setDamageWaiverAdjustedAmount('')
+                      }}
+                      className="mt-2 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-semibold shadow-xs flex items-center gap-1 transition-colors cursor-pointer"
+                    >
+                      <Wrench className="w-3.5 h-3.5" />
+                      <span>Waive / Adjust Fee</span>
+                    </button>
+                  )}
+                </div>
+              ) : null}
+
+              <div className="pt-2 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setViewRentalDetails(null)}
+                  className="px-4 py-2 border border-stone/30 rounded-xl font-semibold text-ink-muted hover:bg-sand transition-all text-xs"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          )
+        })()}
+      </Modal>
+
+      {/* ─── MODAL: WAIVE / ADJUST DAMAGE FEE ─── */}
+      <Modal
+        isOpen={Boolean(waiveDamageModal)}
+        onClose={() => setWaiveDamageModal(null)}
+        title="Waive / Adjust Damage Fee"
+        size="sm"
+      >
+        {waiveDamageModal && (
+          <div className="space-y-4 text-xs font-sans">
+            <div className="p-3.5 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-xl space-y-1">
+              <span className="font-bold text-amber-900 dark:text-amber-200">
+                Rental {waiveDamageModal.rental_id}
+              </span>
+              <p className="text-[11px] text-amber-800 dark:text-amber-300">
+                Adjusting or waiving this damage fee will update the guest's folio invoice and permanently record the justification in the audit trail.
+              </p>
+            </div>
+
+            <div>
+              <label className="block font-semibold text-ink dark:text-white uppercase tracking-wider text-[10px] mb-1">
+                New Adjusted Fee (₱)
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="50"
+                value={damageWaiverAdjustedAmount}
+                onChange={(e) => setDamageWaiverAdjustedAmount(e.target.value)}
+                placeholder="0.00 (Leave 0 for 100% full waiver)"
+                className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-white dark:bg-[#15181D] font-mono text-xs text-ink dark:text-white"
+              />
+              <span className="text-[10px] text-ink-muted mt-0.5 block">
+                Enter 0 (or leave empty) to waive the full damage fee.
+              </span>
+            </div>
+
+            <div>
+              <label className="block font-semibold text-ink dark:text-white uppercase tracking-wider text-[10px] mb-1">
+                Justification / Reason *
+              </label>
+              <textarea
+                required
+                value={damageWaiverReason}
+                onChange={(e) => setDamageWaiverReason(e.target.value)}
+                placeholder="e.g. Guest paid shop directly for mirror replacement, cosmetic scratch buffed out on-site..."
+                rows={3}
+                className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-white dark:bg-[#15181D] text-xs resize-none"
+              />
+            </div>
+
+            <div className="flex gap-2 pt-2 border-t border-stone/15">
+              <button
+                type="button"
+                onClick={() => setWaiveDamageModal(null)}
+                className="flex-1 py-2.5 border border-stone/30 rounded-xl font-semibold text-ink-muted hover:bg-sand transition-all text-xs"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={waivingDamageFee || !damageWaiverReason.trim()}
+                onClick={handleWaiveDamageFee}
+                className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl font-semibold shadow-xs disabled:opacity-50 transition-all text-xs flex items-center justify-center gap-1"
+              >
+                {waivingDamageFee ? 'Saving...' : 'Confirm Waiver'}
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* ─── MODAL: PHOTO PREVIEW LIGHTBOX ─── */}
+      <Modal
+        isOpen={Boolean(previewPhotoUrl)}
+        onClose={() => setPreviewPhotoUrl(null)}
+        title="Photo Evidence Preview"
+        size="md"
+      >
+        {previewPhotoUrl && (
+          <div className="space-y-3">
+            <div className="rounded-xl overflow-hidden border border-stone/20 bg-black/10 max-h-[70vh] flex items-center justify-center">
+              <img src={previewPhotoUrl} alt="Preview" className="max-h-[70vh] w-auto object-contain mx-auto" />
+            </div>
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => setPreviewPhotoUrl(null)}
+                className="px-4 py-2 bg-neutral-800 text-white rounded-xl text-xs font-semibold cursor-pointer"
+              >
+                Close Preview
+              </button>
+            </div>
+          </div>
+        )}
       </Modal>
 
       {/* ─── MODAL: UPDATE MOTORCYCLE STATUS (STAFF & ADMIN) ─── */}

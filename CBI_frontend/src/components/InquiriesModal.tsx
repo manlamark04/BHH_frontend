@@ -10,7 +10,8 @@ import {
   Search,
 } from 'lucide-react'
 import Modal from './Modal'
-import { inquiriesApi, type InquiryItem } from '../api/inquiries'
+import { inquiriesApi, type InquiryItem } from '../api'
+import { useToast } from '../context/ToastContext'
 
 interface InquiriesModalProps {
   isOpen: boolean
@@ -18,6 +19,7 @@ interface InquiriesModalProps {
 }
 
 export default function InquiriesModal({ isOpen, onClose }: InquiriesModalProps) {
+  const toast = useToast()
   const [inquiries, setInquiries] = useState<InquiryItem[]>([])
   const [loading, setLoading] = useState(false)
   const [statusFilter, setStatusFilter] = useState<'all' | 'unread' | 'replied' | 'archived'>('all')
@@ -30,6 +32,7 @@ export default function InquiriesModal({ isOpen, onClose }: InquiriesModalProps)
       setInquiries(data)
     } catch (err) {
       console.error('Failed to load inquiries:', err)
+      toast.error('Failed to load inquiries. Please check your connection.', 'Load Error')
     } finally {
       setLoading(false)
     }
@@ -44,9 +47,10 @@ export default function InquiriesModal({ isOpen, onClose }: InquiriesModalProps)
   const handleUpdateStatus = async (id: number, newStatus: 'unread' | 'replied' | 'archived') => {
     try {
       await inquiriesApi.updateStatus(id, newStatus)
+      toast.success(`Inquiry marked as ${newStatus}.`, 'Status Updated')
       fetchInquiries()
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to update inquiry status')
+      toast.error(err instanceof Error ? err.message : 'Failed to update inquiry status', 'Update Failed')
     }
   }
 

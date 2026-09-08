@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react'
 import { Menu, AlertCircle } from 'lucide-react'
 import type { View, Role } from './types'
 import { authApi } from './api/auth'
@@ -7,50 +7,68 @@ import { ThemeProvider } from './context/ThemeContext'
 import { ToastProvider } from './context/ToastContext'
 import ErrorBoundary from './components/ErrorBoundary'
 
-// Views
-import Landing from './views/Landing'
-import Login from './views/Login'
-import Register from './views/Register'
+// Public views (lazy loaded)
+const Landing = lazy(() => import('./views/Landing'))
+const Login = lazy(() => import('./views/Login'))
+const Register = lazy(() => import('./views/Register'))
 
 // Shared layout
 import Sidebar from './components/Sidebar'
 import TopBar from './components/TopBar'
 import NotificationCenter from './components/NotificationCenter'
 
-// Customer views
-import CustomerDashboard from './views/customer/Dashboard'
-import CustomerRooms from './views/customer/Rooms'
-import CustomerActivities from './views/customer/Activities'
-import CustomerMotorcycles from './views/customer/Motorcycles'
-import CustomerPickleball from './views/customer/Pickleball'
-import CustomerTransactions from './views/customer/Transactions'
-import CustomerProfile from './views/customer/Profile'
+// Customer views (lazy loaded)
+const CustomerDashboard = lazy(() => import('./views/customer/Dashboard'))
+const CustomerRooms = lazy(() => import('./views/customer/Rooms'))
+const CustomerActivities = lazy(() => import('./views/customer/Activities'))
+const CustomerMotorcycles = lazy(() => import('./views/customer/Motorcycles'))
+const CustomerPickleball = lazy(() => import('./views/customer/Pickleball'))
+const CustomerTransactions = lazy(() => import('./views/customer/Transactions'))
+const CustomerProfile = lazy(() => import('./views/customer/Profile'))
 
-// Staff views
-import StaffCheckInOut from './views/staff/CheckInOut'
-import StaffDashboard from './views/staff/Dashboard'
-import StaffApprovals from './views/staff/Approvals'
-import StaffBookings from './views/staff/Bookings'
-import StaffRooms from './views/staff/Rooms'
-import StaffWalkIn from './views/staff/WalkIn'
-import StaffMotorcycles from './views/staff/Motorcycles'
-import StaffPickleball from './views/staff/Pickleball'
-import StaffBilling from './views/staff/Billing'
-import StaffCustomers from './views/staff/Customers'
+// Staff views (lazy loaded)
+const StaffCheckInOut = lazy(() => import('./views/staff/CheckInOut'))
+const StaffDashboard = lazy(() => import('./views/staff/Dashboard'))
+const StaffApprovals = lazy(() => import('./views/staff/Approvals'))
+const StaffBookings = lazy(() => import('./views/staff/Bookings'))
+const StaffRooms = lazy(() => import('./views/staff/Rooms'))
+const StaffWalkIn = lazy(() => import('./views/staff/WalkIn'))
+const StaffMotorcycles = lazy(() => import('./views/staff/Motorcycles'))
+const StaffPickleball = lazy(() => import('./views/staff/Pickleball'))
+const StaffBilling = lazy(() => import('./views/staff/Billing'))
+const StaffCustomers = lazy(() => import('./views/staff/Customers'))
+const StaffProfile = lazy(() => import('./views/staff/Profile'))
 
-// Admin views
-import AdminDashboard from './views/admin/Dashboard'
-import AdminBookings from './views/admin/Bookings'
-import AdminUsers from './views/admin/Users'
-import AdminRooms from './views/admin/Rooms'
-import AdminGuests from './views/admin/Guests'
-import AdminServices from './views/admin/Services'
-import AdminReports from './views/admin/Reports'
-import AdminAuditLog from './views/admin/AuditLog'
-import AdminCheckInOut from './views/admin/CheckInOut'
-import AdminPayments from './views/admin/Payments'
-import AdminProfile from './views/admin/Profile'
-import StaffProfile from './views/staff/Profile'
+// Admin views (lazy loaded)
+const AdminDashboard = lazy(() => import('./views/admin/Dashboard'))
+const AdminBookings = lazy(() => import('./views/admin/Bookings'))
+const AdminUsers = lazy(() => import('./views/admin/Users'))
+const AdminRooms = lazy(() => import('./views/admin/Rooms'))
+const AdminGuests = lazy(() => import('./views/admin/Guests'))
+const AdminServices = lazy(() => import('./views/admin/Services'))
+const AdminReports = lazy(() => import('./views/admin/Reports'))
+const AdminAuditLog = lazy(() => import('./views/admin/AuditLog'))
+const AdminCheckInOut = lazy(() => import('./views/admin/CheckInOut'))
+const AdminPayments = lazy(() => import('./views/admin/Payments'))
+const AdminProfile = lazy(() => import('./views/admin/Profile'))
+
+const ViewLoading = () => (
+  <div className="flex items-center justify-center min-h-[50vh] py-16">
+    <div className="flex flex-col items-center gap-3">
+      <div className="w-8 h-8 border-3 border-[#6B7A5E] border-t-transparent rounded-full animate-spin" />
+      <span className="text-xs text-neutral-400 dark:text-neutral-500 font-medium tracking-wide">Loading view...</span>
+    </div>
+  </div>
+)
+
+const PageLoading = () => (
+  <div className="flex items-center justify-center h-screen bg-[#FDFBF7] dark:bg-[#121418]">
+    <div className="flex flex-col items-center gap-3">
+      <div className="w-9 h-9 border-3 border-[#6B7A5E] border-t-transparent rounded-full animate-spin" />
+      <span className="text-xs text-neutral-500 font-medium tracking-wide">Loading Cambacay Breeze Inn...</span>
+    </div>
+  </div>
+)
 
 const VIEW_TITLES: Partial<Record<View, { title: string; subtitle?: string }>> = {
   'customer-dashboard': { title: 'My Dashboard', subtitle: 'Welcome to Cambacay Breeze Inn' },
@@ -182,10 +200,28 @@ export default function App() {
     )
   }
 
-  // Public pages (Rendered outside ThemeProvider in fixed light mode)
-  if (view === 'landing') return <Landing onNavigate={navigate} />
-  if (view === 'login') return <Login onLogin={handleLogin} onNavigate={navigate} />
-  if (view === 'register') return <Register onNavigate={navigate} />
+  // Public pages (Rendered outside ThemeProvider in fixed light mode with Suspense fallback)
+  if (view === 'landing') {
+    return (
+      <Suspense fallback={<PageLoading />}>
+        <Landing onNavigate={navigate} />
+      </Suspense>
+    )
+  }
+  if (view === 'login') {
+    return (
+      <Suspense fallback={<PageLoading />}>
+        <Login onLogin={handleLogin} onNavigate={navigate} />
+      </Suspense>
+    )
+  }
+  if (view === 'register') {
+    return (
+      <Suspense fallback={<PageLoading />}>
+        <Register onNavigate={navigate} />
+      </Suspense>
+    )
+  }
 
   if (!auth) {
     navigate('landing')
@@ -318,7 +354,9 @@ export default function App() {
 
             <main className="flex-1 overflow-y-auto">
               <ErrorBoundary>
-                {renderView()}
+                <Suspense fallback={<ViewLoading />}>
+                  {renderView()}
+                </Suspense>
               </ErrorBoundary>
             </main>
           </div>
