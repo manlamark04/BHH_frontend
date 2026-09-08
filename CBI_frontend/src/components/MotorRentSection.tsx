@@ -16,6 +16,7 @@ import { motorcyclesApi, type Motorcycle, type MotorRental } from '../api/motorc
 import StatusBadge from './StatusBadge'
 import Modal from './Modal'
 import EditMotorDrawer from './EditMotorDrawer'
+import { validateDriverLicense, formatDriverLicense, DRIVER_LICENSE_ERROR_MSG } from '../utils/license.util'
 
 interface Props {
   userRole?: 'customer' | 'staff' | 'admin'
@@ -168,8 +169,11 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
     !isIdpExpired &&
     idpCategoryA
 
+  const isLicenseNumberValid = validateDriverLicense(licenseNumber).isValid
+
   const isPhValid =
     Boolean(licenseNumber.trim()) &&
+    isLicenseNumberValid &&
     Boolean(licenseExpiryDate) &&
     !isLicenseExpired &&
     hasMotorcycleRestriction
@@ -309,6 +313,11 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
     } else {
       if (!licenseNumber.trim()) {
         setError("Driver's license number is required.")
+        return
+      }
+      const licenseVal = validateDriverLicense(licenseNumber)
+      if (!licenseVal.isValid) {
+        setError(licenseVal.error || DRIVER_LICENSE_ERROR_MSG)
         return
       }
       if (!licenseExpiryDate) {
@@ -902,8 +911,9 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
                       <input
                         type="text"
                         value={licenseNumber}
-                        onChange={(e) => setLicenseNumber(e.target.value)}
-                        placeholder="e.g. N01-12-345678"
+                        onChange={(e) => setLicenseNumber(formatDriverLicense(e.target.value))}
+                        placeholder="e.g. A12-34-567890"
+                        maxLength={13}
                         required
                         autoComplete="off"
                         autoCorrect="off"
@@ -911,8 +921,22 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
                         spellCheck={false}
                         name="motor_driver_license_number"
                         id="motor_driver_license_number"
-                        className="w-full px-3 py-2.5 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-white dark:bg-[#15181D] text-neutral-900 dark:text-white font-mono text-xs focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
+                        className={`w-full px-3 py-2.5 rounded-xl border bg-white dark:bg-[#15181D] text-neutral-900 dark:text-white font-mono text-xs focus:outline-none focus:ring-2 ${
+                          licenseNumber && !validateDriverLicense(licenseNumber).isValid
+                            ? 'border-rose-500 dark:border-rose-500/70 focus:ring-rose-500/40 text-rose-600 dark:text-rose-400'
+                            : 'border-black/[0.1] dark:border-neutral-800 focus:ring-[#6B7A5E]/40'
+                        }`}
                       />
+                      {licenseNumber && !validateDriverLicense(licenseNumber).isValid ? (
+                        <p className="text-[11px] text-rose-600 dark:text-rose-400 mt-1 font-medium leading-tight flex items-center gap-1">
+                          <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                          <span>Invalid Driver’s License Number. Please use the format A12-34-567890.</span>
+                        </p>
+                      ) : (
+                        <p className="text-[10px] text-neutral-400 dark:text-neutral-500 mt-1">
+                          Format: <span className="font-mono font-medium text-neutral-600 dark:text-neutral-300">A12-34-567890</span> (1 uppercase letter, 8 digits, with hyphens)
+                        </p>
+                      )}
                     </div>
 
                     <div>

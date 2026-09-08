@@ -29,6 +29,7 @@ import StatusBadge from '../../components/StatusBadge'
 import Modal from '../../components/Modal'
 import EditMotorDrawer from '../../components/EditMotorDrawer'
 import { formatDateTimeWithAmPm, PH_RESTRICTION_CODES, COMMON_COUNTRIES } from '../../components/MotorRentSection'
+import { validateDriverLicense, formatDriverLicense, DRIVER_LICENSE_ERROR_MSG } from '../../utils/license.util'
 
 interface Props {
   userRole?: 'staff' | 'admin' | 'customer'
@@ -113,8 +114,11 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
     !staffIsIdpExpired &&
     staffIdpCategoryA
 
+  const staffIsLicenseNumberValid = validateDriverLicense(staffLicenseNumber).isValid
+
   const staffIsPhValid =
     Boolean(staffLicenseNumber.trim()) &&
+    staffIsLicenseNumberValid &&
     Boolean(staffLicenseExpiry) &&
     !staffIsLicenseExpired &&
     staffHasMotorcycleRestriction
@@ -379,6 +383,11 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
     } else {
       if (!staffLicenseNumber.trim()) {
         setRentError("Driver's license number is required.")
+        return
+      }
+      const licVal = validateDriverLicense(staffLicenseNumber)
+      if (!licVal.isValid) {
+        setRentError(licVal.error || DRIVER_LICENSE_ERROR_MSG)
         return
       }
       if (!staffLicenseExpiry) {
@@ -1339,8 +1348,9 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
                     <input
                       type="text"
                       value={staffLicenseNumber}
-                      onChange={(e) => setStaffLicenseNumber(e.target.value)}
-                      placeholder="e.g. N01-12-345678"
+                      onChange={(e) => setStaffLicenseNumber(formatDriverLicense(e.target.value))}
+                      placeholder="e.g. A12-34-567890"
+                      maxLength={13}
                       required
                       autoComplete="off"
                       autoCorrect="off"
@@ -1348,8 +1358,22 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
                       spellCheck={false}
                       name="staff_motor_license_num"
                       id="staff_motor_license_num"
-                      className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#F6F2E8] text-ink font-mono text-xs focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
+                      className={`w-full px-3 py-2 rounded-xl border bg-[#F6F2E8] text-ink font-mono text-xs focus:outline-none focus:ring-2 ${
+                        staffLicenseNumber && !validateDriverLicense(staffLicenseNumber).isValid
+                          ? 'border-rose-500 text-rose-600 focus:ring-rose-500/40'
+                          : 'border-stone/30 focus:ring-[#6B7A5E]/40'
+                      }`}
                     />
+                    {staffLicenseNumber && !validateDriverLicense(staffLicenseNumber).isValid ? (
+                      <p className="text-[11px] text-rose-600 mt-1 font-medium leading-tight flex items-center gap-1">
+                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                        <span>Invalid Driver’s License Number. Please use the format A12-34-567890.</span>
+                      </p>
+                    ) : (
+                      <p className="text-[10px] text-ink-muted mt-1">
+                        Format: <span className="font-mono font-medium text-ink">A12-34-567890</span> (1 uppercase letter, 8 digits, with hyphens)
+                      </p>
+                    )}
                   </div>
 
                   <div>
