@@ -34,13 +34,13 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md' }:
     >
       <div className="absolute inset-0 bg-ink/40 backdrop-blur-xs" onClick={onClose} />
       <div
-        className={`relative w-full ${widths[size]} bg-white rounded-2xl shadow-[0_24px_48px_rgba(0,0,0,0.12)] border border-stone/20 max-h-[90vh] flex flex-col`}
+        className={`relative w-full ${widths[size]} bg-white dark:bg-[#181B20] rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.12)] border border-black/[0.08] dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 max-h-[90vh] flex flex-col transition-colors`}
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-stone/15">
-          <h2 className="font-display text-xl font-bold text-ink">{title}</h2>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-black/[0.06] dark:border-neutral-800">
+          <h2 className="font-display text-xl font-bold text-neutral-900 dark:text-white">{title}</h2>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-ink-muted hover:bg-sand/60 hover:text-ink transition-colors"
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-white transition-colors cursor-pointer"
             aria-label="Close dialog"
           >
             <X className="w-4 h-4" strokeWidth={1.5} />

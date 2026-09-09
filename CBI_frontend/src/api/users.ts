@@ -77,6 +77,13 @@ export const usersApi = {
   approveUser: (id: number) =>
     api.post<{ message: string; user: Record<string, unknown> }>(`/api/users/approve/${id}`),
 
+  /** POST /api/users/approve-customer/:id — Admin: approve and create account credentials */
+  approveCustomerAccount: (id: number, data?: {
+    username?: string
+    password?: string
+    unique_id?: string
+  }) => api.post<{ message: string; user: Record<string, unknown> }>(`/api/users/approve-customer/${id}`, data),
+
   /** POST /api/users/reject/:id — Admin */
   rejectUser: (id: number, reason?: string) =>
     api.post<{ message: string; user: Record<string, unknown> }>(`/api/users/reject/${id}`, { reason }),
@@ -87,10 +94,17 @@ export const usersApi = {
 
   /** POST /api/users/staff — Admin: create staff account */
   createStaff: (data: {
-    full_name: string
+    first_name?: string
+    middle_name?: string
+    last_name?: string
+    full_name?: string
     email: string
     username: string
     password: string
     phone?: string
+    address?: string
+    dob?: string
+    gender?: string
+    civil_status?: string
   }) => api.post<Record<string, unknown>>('/api/users/staff', data),
 }

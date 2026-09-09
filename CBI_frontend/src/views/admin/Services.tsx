@@ -8,6 +8,9 @@ import {
   Sparkles,
   Clock,
   Pencil,
+  Wrench,
+  Camera,
+  X,
 } from 'lucide-react'
 import { catalogApi } from '../../api/services'
 import { motorcyclesApi, type Motorcycle, type MotorRental } from '../../api/motorcycles'
@@ -42,10 +45,17 @@ export default function AdminServices() {
   const [motorImage, setMotorImage] = useState('')
   const [addingMotor, setAddingMotor] = useState(false)
 
-  // Return Motor form
+  // Return Motor form & Damage Assessment
   const [returnRemarks, setReturnRemarks] = useState('')
   const [maintenanceNeeded, setMaintenanceNeeded] = useState(false)
+  const [waiveLateFee, setWaiveLateFee] = useState(false)
+  const [waiverReason, setWaiverReason] = useState('')
   const [processingReturn, setProcessingReturn] = useState(false)
+  const [hasDamage, setHasDamage] = useState(false)
+  const [damageSeverity, setDamageSeverity] = useState<'minor' | 'moderate' | 'major' | 'total_loss'>('minor')
+  const [damageDescription, setDamageDescription] = useState('')
+  const [damageRepairCost, setDamageRepairCost] = useState('')
+  const [damagePhotos, setDamagePhotos] = useState<string[]>([])
 
   // Add Activity form
   const [name, setName] = useState('')
@@ -146,16 +156,53 @@ export default function AdminServices() {
   // Handle Return
   const handleProcessReturn = async () => {
     if (!returnRentalModal) return
+    if (hasDamage && !damageDescription.trim()) {
+      alert('Please describe the damage.')
+      return
+    }
+    if (hasDamage && (!damageRepairCost || Number(damageRepairCost) <= 0)) {
+      alert('Please enter a valid estimated repair cost (₱).')
+      return
+    }
     setProcessingReturn(true)
     try {
+      const damagePayload = hasDamage
+        ? {
+            has_damage: true,
+            severity: damageSeverity,
+            description: damageDescription.trim(),
+            estimated_repair_cost: Number(damageRepairCost) || 0,
+            photos: damagePhotos,
+          }
+        : undefined
+
       const res = await motorcyclesApi.processReturn(returnRentalModal.id, {
         remarks: returnRemarks.trim() || undefined,
-        maintenance_needed: maintenanceNeeded,
+        maintenance_needed: hasDamage ? true : maintenanceNeeded,
+        waive_late_fee: waiveLateFee,
+        waiver_reason: waiveLateFee ? waiverReason.trim() : undefined,
+        damage: damagePayload,
       })
       setReturnRentalModal(null)
       setReturnRemarks('')
       setMaintenanceNeeded(false)
-      fireToast(`✓ Return processed for ${res.rental.rental_id}! Late fee: ₱${res.late_fee}, Total: ₱${res.final_amount}`)
+      setWaiveLateFee(false)
+      setWaiverReason('')
+      setHasDamage(false)
+      setDamageSeverity('minor')
+      setDamageDescription('')
+      setDamageRepairCost('')
+      setDamagePhotos([])
+      const rRes = res as any
+      fireToast(
+        hasDamage
+          ? `✓ Return processed for ${res.rental.rental_id}! Damage reported (₱${Number(damageRepairCost).toLocaleString()}) & unit marked MAINTENANCE.`
+          : rRes.late_fee_waived
+          ? `✓ Return processed for ${res.rental.rental_id}! Late fee waived. Total: ₱${Number(res.final_amount).toLocaleString()}`
+          : Number(res.late_fee) > 0
+          ? `✓ Return processed for ${res.rental.rental_id}! Late fee: ₱${Number(res.late_fee).toLocaleString()} (${rRes.hours_late || 0} hr(s) × ₱${rRes.hourly_late_rate || 0}/hr), Total: ₱${Number(res.final_amount).toLocaleString()}`
+          : `✓ Return processed for ${res.rental.rental_id}! Total: ₱${Number(res.final_amount).toLocaleString()}`
+      )
       loadData()
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to process return')
@@ -201,7 +248,7 @@ export default function AdminServices() {
   }
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto space-y-6 font-sans">
+    <div className="p-4 sm:p-5 max-w-7xl mx-auto space-y-4 sm:space-y-5 font-sans">
       
       {/* Toast Alert */}
       {toast && (
@@ -212,18 +259,18 @@ export default function AdminServices() {
       )}
 
       {/* ─── PAGE HEADER ─── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-stone/20">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-black/[0.06] dark:border-neutral-800">
         <div>
-          <h1 className="font-display text-3xl sm:text-4xl font-bold text-ink tracking-tight">Services & Facilities</h1>
-          <p className="text-xs sm:text-sm text-ink-muted mt-0.5">Manage motorcycle rentals, pickleball court, and hostel amenities</p>
+          <h1 className="font-display text-lg sm:text-xl font-bold text-neutral-900 dark:text-white tracking-tight">Services & Facilities</h1>
+          <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">Manage motorcycle rentals, pickleball court, and hostel amenities</p>
         </div>
 
         {tab === 'motor' && (
           <button
             onClick={() => setShowAddMotor(true)}
-            className="px-5 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl font-semibold text-xs shadow-sm hover:shadow-md transition-all flex items-center gap-2 self-start sm:self-auto"
+            className="px-3.5 py-1.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-lg font-semibold text-xs shadow-xs hover:shadow-sm transition-all flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
           >
-            <Plus className="w-4 h-4" strokeWidth={2} />
+            <Plus className="w-3.5 h-3.5" strokeWidth={2} />
             <span>Add Motorcycle</span>
           </button>
         )}
@@ -231,43 +278,43 @@ export default function AdminServices() {
         {tab === 'activities' && (
           <button
             onClick={() => setShowAddActivity(true)}
-            className="px-5 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl font-semibold text-xs shadow-sm hover:shadow-md transition-all flex items-center gap-2 self-start sm:self-auto"
+            className="px-3.5 py-1.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-lg font-semibold text-xs shadow-xs hover:shadow-sm transition-all flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
           >
-            <Plus className="w-4 h-4" strokeWidth={2} />
+            <Plus className="w-3.5 h-3.5" strokeWidth={2} />
             <span>Add Facility / Activity</span>
           </button>
         )}
       </div>
 
       {/* ─── NAVIGATION TABS ─── */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex gap-2 p-1 bg-sand/40 rounded-xl border border-stone/20 text-xs">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex gap-1 p-1 bg-neutral-100/70 dark:bg-[#20252E] rounded-lg border border-black/[0.06] dark:border-neutral-700/80 text-xs">
           <button
             onClick={() => setTab('motor')}
-            className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+            className={`px-3 py-1.5 rounded-md font-semibold transition-all cursor-pointer ${
               tab === 'motor'
-                ? 'bg-[#B48454] text-white shadow-sm'
-                : 'text-ink-muted hover:text-ink hover:bg-white/60'
+                ? 'bg-[#6B7A5E] text-white shadow-2xs'
+                : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-white dark:hover:bg-neutral-800'
             }`}
           >
             <span>Motor Rent ({motorcycles.length})</span>
           </button>
           <button
             onClick={() => setTab('activities')}
-            className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+            className={`px-3 py-1.5 rounded-md font-semibold transition-all cursor-pointer ${
               tab === 'activities'
-                ? 'bg-[#B48454] text-white shadow-sm'
-                : 'text-ink-muted hover:text-ink hover:bg-white/60'
+                ? 'bg-[#6B7A5E] text-white shadow-2xs'
+                : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-white dark:hover:bg-neutral-800'
             }`}
           >
             <span>Pickleball Court</span>
           </button>
           <button
             onClick={() => setTab('services')}
-            className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+            className={`px-3 py-1.5 rounded-md font-semibold transition-all cursor-pointer ${
               tab === 'services'
-                ? 'bg-[#B48454] text-white shadow-sm'
-                : 'text-ink-muted hover:text-ink hover:bg-white/60'
+                ? 'bg-[#6B7A5E] text-white shadow-2xs'
+                : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-white dark:hover:bg-neutral-800'
             }`}
           >
             <span>Hotel Services ({services.length})</span>
@@ -276,13 +323,13 @@ export default function AdminServices() {
 
         {/* Quick Search */}
         <div className="relative w-full sm:w-64 text-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted w-3.5 h-3.5" strokeWidth={1.5} />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 w-3.5 h-3.5" strokeWidth={1.5} />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search fleet, plate, ref..."
-            className="w-full pl-8 pr-3 py-2 rounded-xl border border-stone/30 bg-[#FAF8F5] text-ink focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+            className="w-full pl-8.5 pr-3 py-1.5 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-neutral-50/80 dark:bg-[#20252E] text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40 text-xs"
           />
         </div>
       </div>
@@ -291,38 +338,38 @@ export default function AdminServices() {
           1. MOTOR RENT SUITE
          ══════════════════════════════════════════════════════════════ */}
       {tab === 'motor' && (
-        <div className="space-y-6">
+        <div className="space-y-4">
           
           {/* Motor KPI Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="bg-white p-5 rounded-2xl border border-stone/20 shadow-sm">
-              <span className="text-[10px] uppercase font-bold tracking-widest text-[#B48454]">TOTAL FLEET</span>
-              <p className="font-display text-3xl sm:text-4xl font-bold text-ink mt-1">{motorStats.total}</p>
-              <span className="text-[11px] text-ink-faint">Registered motor units</span>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+            <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-[#6B7A5E]">TOTAL FLEET</span>
+              <p className="font-display text-xl sm:text-2xl font-bold text-neutral-900 dark:text-white mt-1 leading-tight">{motorStats.total}</p>
+              <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5 block">Registered motor units</span>
             </div>
 
-            <div className="bg-white p-5 rounded-2xl border border-stone/20 shadow-sm">
-              <span className="text-[10px] uppercase font-bold tracking-widest text-emerald-700">AVAILABLE</span>
-              <p className="font-display text-3xl sm:text-4xl font-bold text-emerald-700 mt-1">{motorStats.available}</p>
-              <span className="text-[11px] text-emerald-600 font-medium">Ready for guest rental</span>
+            <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-600 dark:text-emerald-400">AVAILABLE</span>
+              <p className="font-display text-xl sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1 leading-tight">{motorStats.available}</p>
+              <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium mt-0.5 block">Ready for guest rental</span>
             </div>
 
-            <div className="bg-white p-5 rounded-2xl border border-stone/20 shadow-sm">
-              <span className="text-[10px] uppercase font-bold tracking-widest text-[#B48454]">ACTIVE RENTED</span>
-              <p className="font-display text-3xl sm:text-4xl font-bold text-[#B48454] mt-1">{motorStats.rented}</p>
-              <span className="text-[11px] text-[#B48454] font-medium">Out on the road</span>
+            <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-[#6B7A5E]">ACTIVE RENTED</span>
+              <p className="font-display text-xl sm:text-2xl font-bold text-[#6B7A5E] mt-1 leading-tight">{motorStats.rented}</p>
+              <span className="text-[11px] text-[#6B7A5E] font-medium mt-0.5 block">Out on the road</span>
             </div>
 
-            <div className="bg-white p-5 rounded-2xl border border-stone/20 shadow-sm">
-              <span className="text-[10px] uppercase font-bold tracking-widest text-red-700">OVERDUE</span>
-              <p className="font-display text-3xl sm:text-4xl font-bold text-red-700 mt-1">{motorStats.overdue}</p>
-              <span className="text-[11px] text-red-600 font-medium">Past return timestamp</span>
+            <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-rose-600 dark:text-rose-400">OVERDUE</span>
+              <p className="font-display text-xl sm:text-2xl font-bold text-rose-600 dark:text-rose-400 mt-1 leading-tight">{motorStats.overdue}</p>
+              <span className="text-[11px] text-rose-600 dark:text-rose-400 font-medium mt-0.5 block">Past return timestamp</span>
             </div>
           </div>
 
           {/* Active / Overdue Rentals Action Card */}
           {rentals.filter((r) => r.status === 'ACTIVE' || r.status === 'OVERDUE').length > 0 && (
-            <div className="bg-[#FAF8F5] rounded-2xl border border-[#B48454]/30 shadow-sm p-6 space-y-4">
+            <div className="bg-[#F6F2E8] rounded-2xl border border-[#6B7A5E]/30 shadow-sm p-6 space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-stone/20">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-lg bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-700">
@@ -333,7 +380,7 @@ export default function AdminServices() {
                     <p className="text-xs text-ink-muted">In-circulation units requiring return monitoring</p>
                   </div>
                 </div>
-                <span className="text-xs bg-[#B48454]/15 text-[#B48454] border border-[#B48454]/30 px-3 py-1 rounded-full font-bold">
+                <span className="text-xs bg-[#6B7A5E]/15 text-[#6B7A5E] border border-[#6B7A5E]/30 px-3 py-1 rounded-full font-bold">
                   {rentals.filter((r) => r.status === 'ACTIVE' || r.status === 'OVERDUE').length} active
                 </span>
               </div>
@@ -345,7 +392,7 @@ export default function AdminServices() {
                     <div key={r.id} className="bg-white border border-stone/20 rounded-2xl p-4 shadow-sm flex flex-col justify-between space-y-3">
                       <div>
                         <div className="flex justify-between items-start mb-1">
-                          <span className="font-mono text-xs font-bold text-[#B48454]">{r.rental_id}</span>
+                          <span className="font-mono text-xs font-bold text-[#6B7A5E]">{r.rental_id}</span>
                           <StatusBadge status={r.status} />
                         </div>
                         <p className="font-display font-bold text-ink text-base">{r.brand} {r.model}</p>
@@ -360,7 +407,7 @@ export default function AdminServices() {
 
                       <button
                         onClick={() => setReturnRentalModal(r)}
-                        className="w-full py-2 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl text-xs font-semibold shadow-sm transition-all flex items-center justify-center gap-1.5"
+                        className="w-full py-2 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl text-xs font-semibold shadow-sm transition-all flex items-center justify-center gap-1.5"
                       >
                         <span>✓</span>
                         <span>Process Return</span>
@@ -378,7 +425,7 @@ export default function AdminServices() {
                 <h3 className="font-display text-2xl font-bold text-ink">Motorcycle Fleet</h3>
                 <p className="text-xs text-ink-muted mt-0.5">Available scooters and motorbikes for guest excursions</p>
               </div>
-              <span className="text-xs text-[#B48454] font-bold font-mono">
+              <span className="text-xs text-[#6B7A5E] font-bold font-mono">
                 {filteredMotors.length} units listed
               </span>
             </div>
@@ -387,7 +434,7 @@ export default function AdminServices() {
               {filteredMotors.map((m) => (
                 <div
                   key={m.id}
-                  className="bg-[#FAF8F5] rounded-3xl border border-stone/20 overflow-hidden shadow-sm hover:shadow-md hover:border-[#B48454]/30 transition-all flex flex-col justify-between group"
+                  className="bg-[#F6F2E8] rounded-3xl border border-stone/20 overflow-hidden shadow-sm hover:shadow-md hover:border-[#6B7A5E]/30 transition-all flex flex-col justify-between group"
                 >
                   <div>
                     {/* Vehicle Photo */}
@@ -408,7 +455,7 @@ export default function AdminServices() {
                         <button
                           type="button"
                           onClick={() => setEditingMotor(m)}
-                          className="w-7 h-7 rounded-full bg-white/90 hover:bg-white text-ink hover:text-[#B48454] shadow-md border border-white/60 backdrop-blur-md flex items-center justify-center transition-all hover:scale-110"
+                          className="w-7 h-7 rounded-full bg-white/90 hover:bg-white text-ink hover:text-[#6B7A5E] shadow-md border border-white/60 backdrop-blur-md flex items-center justify-center transition-all hover:scale-110"
                           title="Edit Motorcycle Specifications & Photo"
                           aria-label="Edit Motorcycle"
                         >
@@ -420,11 +467,11 @@ export default function AdminServices() {
                     <div className="p-5 space-y-3">
                       <div className="flex items-start justify-between">
                         <div>
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-[#B48454]">{m.brand} · {m.type}</span>
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-[#6B7A5E]">{m.brand} · {m.type}</span>
                           <h4 className="font-display text-xl font-bold text-ink leading-tight">{m.model}</h4>
                         </div>
                         <div className="text-right">
-                          <span className="font-display text-xl font-bold text-[#B48454]">₱{Number(m.rental_rate).toLocaleString()}</span>
+                          <span className="font-display text-xl font-bold text-[#6B7A5E]">₱{Number(m.rental_rate).toLocaleString()}</span>
                           <span className="text-[10px] text-ink-muted block">/{m.rate_type}</span>
                         </div>
                       </div>
@@ -443,7 +490,7 @@ export default function AdminServices() {
                         <button
                           type="button"
                           onClick={() => setEditingMotor(m)}
-                          className="text-[11px] font-bold text-[#B48454] hover:text-[#9E6E3E] flex items-center gap-1 hover:underline"
+                          className="text-[11px] font-bold text-[#6B7A5E] hover:text-[#4F5D45] flex items-center gap-1 hover:underline"
                         >
                           <Pencil className="w-3 h-3" />
                           <span>Edit Details</span>
@@ -490,12 +537,12 @@ export default function AdminServices() {
 
           {/* All Rentals Full Table */}
           <div className="bg-white rounded-[2rem] border border-stone/20 shadow-sm overflow-hidden">
-            <div className="px-6 py-4 border-b border-stone/15 flex items-center justify-between bg-[#FCFAF7]">
+            <div className="px-6 py-4 border-b border-stone/15 flex items-center justify-between bg-[#F6F2E8]">
               <div>
                 <h3 className="font-display font-bold text-lg text-ink">All Motorcycle Rental Transactions</h3>
                 <p className="text-xs text-ink-muted">Historical and current motor rental contracts</p>
               </div>
-              <span className="text-xs font-mono font-bold text-[#B48454]">{filteredRentals.length} records</span>
+              <span className="text-xs font-mono font-bold text-[#6B7A5E]">{filteredRentals.length} records</span>
             </div>
 
             <div className="overflow-x-auto">
@@ -515,7 +562,7 @@ export default function AdminServices() {
                 <tbody className="divide-y divide-stone/15">
                   {filteredRentals.map((r) => (
                     <tr key={r.id} className="hover:bg-sand/20 transition-colors">
-                      <td className="px-5 py-4 font-mono font-bold text-[#B48454]">{r.rental_id}</td>
+                      <td className="px-5 py-4 font-mono font-bold text-[#6B7A5E]">{r.rental_id}</td>
                       <td className="px-5 py-4">
                         <p className="font-semibold text-ink text-sm">{r.brand} {r.model}</p>
                         <p className="text-[10px] text-ink-muted font-mono">{r.plate_number}</p>
@@ -530,11 +577,35 @@ export default function AdminServices() {
                       <td className="px-5 py-4 font-mono text-ink-muted">
                         {String(r.expected_return_datetime).replace('T', ' ').substring(0, 16)}
                       </td>
-                      <td className="px-5 py-4 font-display font-bold text-[#B48454] text-sm">
-                        ₱{Number(r.final_amount || r.total_amount).toLocaleString()}
-                        {Number(r.late_fee) > 0 && (
-                          <span className="block text-[10px] font-sans font-semibold text-red-600">+₱{Number(r.late_fee)} late</span>
-                        )}
+                      <td className="px-5 py-4 font-display text-sm">
+                        {(() => {
+                          const baseAmt = Number(r.total_amount || 0)
+                          const lateAmt = Boolean(r.late_fee_waived) ? 0 : Number(r.late_fee || 0)
+                          const grandTotal = Number(r.final_amount) > 0 ? Number(r.final_amount) : baseAmt + lateAmt
+                          const hasLateFee = lateAmt > 0 && !r.late_fee_waived
+
+                          return (
+                            <div>
+                              <span className="block font-bold text-[#6B7A5E]">
+                                ₱{grandTotal.toLocaleString()}
+                              </span>
+                              {hasLateFee ? (
+                                <span className="block text-[10px] font-sans font-semibold text-rose-600 mt-0.5">
+                                  Includes ₱{lateAmt.toLocaleString()} late fee
+                                  {Number(r.hours_late) > 0 && Number(r.hourly_late_rate) > 0 ? (
+                                    <span className="text-ink-muted text-[9px] font-normal block font-mono">
+                                      ({r.hours_late} hr{Number(r.hours_late) > 1 ? 's' : ''} late × ₱{Number(r.hourly_late_rate).toLocaleString()}/hr)
+                                    </span>
+                                  ) : null}
+                                </span>
+                              ) : Boolean(r.late_fee_waived) ? (
+                                <span className="block text-[10px] font-sans font-semibold text-emerald-600 mt-0.5" title={r.late_fee_waiver_reason || 'Waived by staff'}>
+                                  Late fee waived
+                                </span>
+                              ) : null}
+                            </div>
+                          )
+                        })()}
                       </td>
                       <td className="px-5 py-4">
                         <StatusBadge status={r.status} />
@@ -543,7 +614,7 @@ export default function AdminServices() {
                         {(r.status === 'ACTIVE' || r.status === 'OVERDUE') && (
                           <button
                             onClick={() => setReturnRentalModal(r)}
-                            className="px-3 py-1.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-lg text-xs font-semibold shadow-sm transition-all"
+                            className="px-2.5 py-1 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-lg text-xs font-semibold shadow-xs transition-all cursor-pointer"
                           >
                             Return
                           </button>
@@ -562,91 +633,91 @@ export default function AdminServices() {
           2. PICKLEBALL COURT SUITE
          ══════════════════════════════════════════════════════════════ */}
       {tab === 'activities' && (
-        <div className="space-y-6">
+        <div className="space-y-4">
           
           {/* 4 KPI Metric Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="bg-white p-5 rounded-2xl border border-stone/20 shadow-sm">
-              <span className="text-[10px] uppercase font-bold tracking-widest text-emerald-700">COURT STATUS</span>
-              <p className="font-display text-3xl font-bold text-emerald-700 mt-1">AVAILABLE</p>
-              <span className="text-[11px] text-emerald-600 font-medium">2 Regulation Courts</span>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+            <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-600 dark:text-emerald-400">COURT STATUS</span>
+              <p className="font-display text-xl sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1 leading-tight">AVAILABLE</p>
+              <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium mt-0.5 block">2 Regulation Courts</span>
             </div>
 
-            <div className="bg-white p-5 rounded-2xl border border-stone/20 shadow-sm">
-              <span className="text-[10px] uppercase font-bold tracking-widest text-[#B48454]">HOURLY RATE</span>
-              <p className="font-display text-3xl font-bold text-[#B48454] mt-1">₱150 <span className="text-xs font-normal text-ink-muted">/ hr</span></p>
-              <span className="text-[11px] text-ink-faint">Paddles & balls included</span>
+            <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-[#6B7A5E]">HOURLY RATE</span>
+              <p className="font-display text-xl sm:text-2xl font-bold text-[#6B7A5E] mt-1 leading-tight">₱150 <span className="text-xs font-normal text-neutral-500">/ hr</span></p>
+              <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5 block">Paddles & balls included</span>
             </div>
 
-            <div className="bg-white p-5 rounded-2xl border border-stone/20 shadow-sm">
-              <span className="text-[10px] uppercase font-bold tracking-widest text-[#B48454]">EQUIPMENT STOCK</span>
-              <p className="font-display text-2xl font-bold text-ink mt-1">8 Paddles · 16 Balls</p>
-              <span className="text-[11px] text-ink-faint">Pro tournament gear</span>
+            <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-[#6B7A5E]">EQUIPMENT STOCK</span>
+              <p className="font-display text-xl sm:text-2xl font-bold text-neutral-900 dark:text-white mt-1 leading-tight">8 Paddles · 16 Balls</p>
+              <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5 block">Pro tournament gear</span>
             </div>
 
-            <div className="bg-white p-5 rounded-2xl border border-stone/20 shadow-sm">
-              <span className="text-[10px] uppercase font-bold tracking-widest text-amber-700">OPERATING HOURS</span>
-              <p className="font-display text-2xl font-bold text-ink mt-1">6 AM – 9 PM</p>
-              <span className="text-[11px] text-amber-600 font-medium">Night floodlights enabled</span>
+            <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-amber-600 dark:text-amber-400">OPERATING HOURS</span>
+              <p className="font-display text-xl sm:text-2xl font-bold text-amber-600 dark:text-amber-400 mt-1 leading-tight">6 AM – 9 PM</p>
+              <span className="text-[11px] text-amber-600 dark:text-amber-400 font-medium mt-0.5 block">Night floodlights enabled</span>
             </div>
           </div>
 
           {/* Court Facility Card */}
-          <div className="bg-white rounded-[2rem] border border-stone/20 shadow-sm overflow-hidden flex flex-col lg:flex-row">
-            <div className="lg:w-2/5 h-64 lg:h-auto bg-sand overflow-hidden relative">
+          <div className="bg-white dark:bg-[#181B20] rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden flex flex-col lg:flex-row">
+            <div className="lg:w-2/5 h-48 lg:h-auto bg-neutral-100 dark:bg-neutral-800 overflow-hidden relative">
               <img
                 src={pickleballCourtImg}
                 alt="Outdoor Pickleball Court"
                 className="w-full h-full object-cover"
               />
-              <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-xs text-white text-xs font-bold px-3 py-1 rounded-full font-mono">
+              <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-xs text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full font-mono">
                 ₱150 / hour
               </div>
             </div>
 
-            <div className="lg:w-3/5 p-6 sm:p-8 space-y-5 flex flex-col justify-between">
+            <div className="lg:w-3/5 p-4 sm:p-5 space-y-3.5 flex flex-col justify-between">
               <div>
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-stone/20">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-black/[0.06] dark:border-neutral-800">
                   <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-bold uppercase tracking-wider text-[#B48454]">Hostel Sports Facility</span>
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#6B7A5E]">Hostel Sports Facility</span>
                       <StatusBadge status="AVAILABLE" />
                     </div>
-                    <h3 className="font-display text-2xl sm:text-3xl font-bold text-ink">Outdoor Pickleball Court</h3>
+                    <h3 className="font-display text-base font-bold text-neutral-900 dark:text-white">Outdoor Pickleball Court</h3>
                   </div>
                   <div className="sm:text-right">
-                    <span className="font-display text-3xl font-bold text-[#B48454]">₱150</span>
-                    <span className="text-xs text-ink-muted ml-1">/ hour</span>
+                    <span className="font-display text-xl font-bold text-[#6B7A5E]">₱150</span>
+                    <span className="text-xs text-neutral-500 ml-1">/ hour</span>
                   </div>
                 </div>
 
-                <p className="text-ink-muted text-xs sm:text-sm leading-relaxed mt-4">
+                <p className="text-neutral-500 dark:text-neutral-400 text-xs leading-relaxed mt-2">
                   Full-sized regulation outdoor hardcourt surrounded by tropical greenery. Every booking includes complimentary use of 4 tournament-grade paddles, outdoor pickleball balls, and night floodlighting for evening matches.
                 </p>
 
                 {/* Features Grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs mt-4">
-                  <div className="p-3 bg-sand/30 rounded-xl border border-stone/20">
-                    <span className="text-ink-muted block text-[10px] uppercase font-bold">Total Courts</span>
-                    <span className="font-display font-bold text-ink text-sm">2 Regulation</span>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs mt-3">
+                  <div className="p-2.5 bg-neutral-50 dark:bg-neutral-800/60 rounded-lg border border-black/[0.05] dark:border-neutral-800">
+                    <span className="text-neutral-400 block text-[10px] uppercase font-bold">Total Courts</span>
+                    <span className="font-display font-bold text-neutral-900 dark:text-white text-xs">2 Regulation</span>
                   </div>
-                  <div className="p-3 bg-sand/30 rounded-xl border border-stone/20">
-                    <span className="text-ink-muted block text-[10px] uppercase font-bold">Surface</span>
-                    <span className="font-display font-bold text-ink text-sm">Acrylic Hardcourt</span>
+                  <div className="p-2.5 bg-neutral-50 dark:bg-neutral-800/60 rounded-lg border border-black/[0.05] dark:border-neutral-800">
+                    <span className="text-neutral-400 block text-[10px] uppercase font-bold">Surface</span>
+                    <span className="font-display font-bold text-neutral-900 dark:text-white text-xs">Acrylic Hardcourt</span>
                   </div>
-                  <div className="p-3 bg-sand/30 rounded-xl border border-stone/20">
-                    <span className="text-ink-muted block text-[10px] uppercase font-bold">Lighting</span>
-                    <span className="font-display font-bold text-ink text-sm">LED Floodlights</span>
+                  <div className="p-2.5 bg-neutral-50 dark:bg-neutral-800/60 rounded-lg border border-black/[0.05] dark:border-neutral-800">
+                    <span className="text-neutral-400 block text-[10px] uppercase font-bold">Lighting</span>
+                    <span className="font-display font-bold text-neutral-900 dark:text-white text-xs">LED Floodlights</span>
                   </div>
-                  <div className="p-3 bg-sand/30 rounded-xl border border-stone/20">
-                    <span className="text-ink-muted block text-[10px] uppercase font-bold">Equipment</span>
-                    <span className="font-display font-bold text-ink text-sm">Included</span>
+                  <div className="p-2.5 bg-neutral-50 dark:bg-neutral-800/60 rounded-lg border border-black/[0.05] dark:border-neutral-800">
+                    <span className="text-neutral-400 block text-[10px] uppercase font-bold">Equipment</span>
+                    <span className="font-display font-bold text-neutral-900 dark:text-white text-xs">Included</span>
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between pt-4 border-t border-stone/20">
-                <span className="text-xs text-emerald-700 font-semibold bg-emerald-50 px-3.5 py-1.5 rounded-full border border-emerald-200">
+              <div className="flex items-center justify-between pt-2.5 border-t border-black/[0.06] dark:border-neutral-800">
+                <span className="text-[11px] text-emerald-700 dark:text-emerald-300 font-semibold bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 rounded-full border border-emerald-200 dark:border-emerald-800/50">
                   ✓ Active for Guest Bookings
                 </span>
               </div>
@@ -670,7 +741,7 @@ export default function AdminServices() {
 
               <div className="pt-3 border-t border-stone/15 flex items-center justify-between">
                 <span className="text-xs text-ink-muted">Service Fee:</span>
-                <span className="font-display font-bold text-[#B48454] text-base">
+                <span className="font-display font-bold text-[#6B7A5E] text-base">
                   {Number(s.price || 0) > 0 ? `₱${Number(s.price).toLocaleString()}` : 'Complimentary'}
                 </span>
               </div>
@@ -752,7 +823,7 @@ export default function AdminServices() {
                 onChange={(e) => setRentalRate(e.target.value)}
                 required
                 min={1}
-                className="w-full px-3 py-2.5 rounded-xl border border-stone font-bold text-[#B48454]"
+                className="w-full px-3 py-2.5 rounded-xl border border-stone font-bold text-[#6B7A5E]"
               />
             </div>
 
@@ -802,7 +873,7 @@ export default function AdminServices() {
             <button
               type="submit"
               disabled={addingMotor || !model || !plateNumber}
-              className="flex-1 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl font-semibold shadow-sm disabled:opacity-50 transition-all"
+              className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl font-semibold shadow-sm disabled:opacity-50 transition-all"
             >
               {addingMotor ? 'Adding...' : 'Add to Fleet'}
             </button>
@@ -815,52 +886,280 @@ export default function AdminServices() {
         isOpen={Boolean(returnRentalModal)}
         onClose={() => setReturnRentalModal(null)}
         title="Process Motorcycle Return"
-        size="sm"
+        size="md"
       >
-        <div className="space-y-4 text-xs font-sans">
-          <div className="p-3.5 bg-sand/30 border border-stone/20 rounded-2xl space-y-1">
-            <span className="text-ink-muted text-[10px] block">Rental Transaction: <strong className="text-ink">{returnRentalModal?.rental_id}</strong></span>
-            <p className="font-semibold text-ink">{returnRentalModal?.brand} {returnRentalModal?.model} ({returnRentalModal?.plate_number})</p>
-            <p className="text-ink-muted">Rented by: <strong>{returnRentalModal?.customer_name}</strong></p>
-          </div>
+        {returnRentalModal && (() => {
+          const now = new Date()
+          const expected = new Date(returnRentalModal.expected_return_datetime)
+          const isOverdue = now > expected
+          const diffMs = isOverdue ? now.getTime() - expected.getTime() : 0
+          const hoursLate = isOverdue ? Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60))) : 0
 
-          <div>
-            <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Return Remarks / Condition</label>
-            <input
-              value={returnRemarks}
-              onChange={(e) => setReturnRemarks(e.target.value)}
-              placeholder="Gas level full, helmet returned, etc."
-              className="w-full px-3 py-2 rounded-xl border border-stone text-xs"
-            />
-          </div>
+          const motor = motorcycles.find((m) => m.id === returnRentalModal.motor_id)
+          const hourlyRate = motor?.late_fee_hourly_rate !== null && motor?.late_fee_hourly_rate !== undefined && Number(motor.late_fee_hourly_rate) > 0
+            ? Number(motor.late_fee_hourly_rate)
+            : motor?.rate_type === 'hourly' && Number(motor.rental_rate) > 0
+            ? Math.round(Number(motor.rental_rate) * 1.5)
+            : Math.max(100, Math.round((Number(motor?.rental_rate || 500) / 24) * 1.5))
 
-          <label className="flex items-center gap-2 cursor-pointer select-none text-ink">
-            <input
-              type="checkbox"
-              checked={maintenanceNeeded}
-              onChange={(e) => setMaintenanceNeeded(e.target.checked)}
-              className="w-4 h-4 rounded border-stone text-[#B48454]"
-            />
-            <span className="text-xs">Unit requires maintenance / checkup</span>
-          </label>
+          const calculatedFee = isOverdue ? hoursLate * hourlyRate : 0
+          const baseAmount = Number(returnRentalModal.total_amount || 0)
+          const lateAmount = waiveLateFee ? 0 : calculatedFee
+          const damageAmount = hasDamage ? (Number(damageRepairCost) || 0) : 0
+          const finalAmount = baseAmount + lateAmount + damageAmount
 
-          <div className="flex gap-3 pt-2">
-            <button
-              type="button"
-              onClick={() => setReturnRentalModal(null)}
-              className="flex-1 py-2.5 border border-stone rounded-xl font-semibold text-ink-muted hover:bg-sand"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleProcessReturn}
-              disabled={processingReturn}
-              className="flex-1 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl font-semibold shadow-sm disabled:opacity-50"
-            >
-              {processingReturn ? 'Processing...' : '✓ Complete Return'}
-            </button>
-          </div>
-        </div>
+          return (
+            <div className="space-y-4 text-xs font-sans max-h-[80vh] overflow-y-auto pr-1">
+              <div className="p-3.5 bg-sand/30 dark:bg-neutral-800/40 border border-stone/20 dark:border-neutral-700 rounded-2xl space-y-1">
+                <span className="text-ink-muted text-[10px] block">Rental Ref: <strong className="text-ink dark:text-white font-mono">{returnRentalModal.rental_id}</strong></span>
+                <p className="font-semibold text-ink dark:text-white">{returnRentalModal.brand} {returnRentalModal.model} ({returnRentalModal.plate_number})</p>
+                <p className="text-ink-muted">Rented by: <strong className="text-ink dark:text-white">{returnRentalModal.customer_name}</strong></p>
+              </div>
+
+              {/* Condition Selection */}
+              <div>
+                <label className="block font-semibold text-ink dark:text-white uppercase tracking-wider mb-2 text-[10px]">
+                  Vehicle Return Condition
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setHasDamage(false)
+                      setMaintenanceNeeded(false)
+                    }}
+                    className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-start gap-2.5 ${
+                      !hasDamage
+                        ? 'border-emerald-600 bg-emerald-50/70 dark:bg-emerald-950/40 ring-2 ring-emerald-500/30'
+                        : 'border-stone/20 dark:border-neutral-700 bg-white dark:bg-[#15181D]'
+                    }`}
+                  >
+                    <Check className={`w-4 h-4 shrink-0 mt-0.5 ${!hasDamage ? 'text-emerald-600' : 'text-neutral-400'}`} />
+                    <div>
+                      <p className={`font-bold text-xs ${!hasDamage ? 'text-emerald-900 dark:text-emerald-200' : 'text-ink dark:text-white'}`}>
+                        Clean Return (No Damage)
+                      </p>
+                      <p className="text-[10px] text-ink-muted mt-0.5 leading-tight">
+                        No mechanical or body damage found.
+                      </p>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setHasDamage(true)
+                      setMaintenanceNeeded(true)
+                    }}
+                    className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-start gap-2.5 ${
+                      hasDamage
+                        ? 'border-amber-600 bg-amber-50/80 dark:bg-amber-950/40 ring-2 ring-amber-500/30'
+                        : 'border-stone/20 dark:border-neutral-700 bg-white dark:bg-[#15181D]'
+                    }`}
+                  >
+                    <Wrench className={`w-4 h-4 shrink-0 mt-0.5 ${hasDamage ? 'text-amber-600' : 'text-neutral-400'}`} />
+                    <div>
+                      <p className={`font-bold text-xs ${hasDamage ? 'text-amber-900 dark:text-amber-200' : 'text-ink dark:text-white'}`}>
+                        Report Damage & Charge
+                      </p>
+                      <p className="text-[10px] text-ink-muted mt-0.5 leading-tight">
+                        Damage observed. Add repair charge to folio.
+                      </p>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Damage Details Fields */}
+              {hasDamage && (
+                <div className="p-3.5 bg-amber-50/70 dark:bg-amber-950/20 border-2 border-amber-300 dark:border-amber-900/60 rounded-2xl space-y-3">
+                  <div className="flex items-center justify-between pb-1.5 border-b border-amber-200 dark:border-amber-900/50">
+                    <span className="font-bold text-xs text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
+                      <Wrench className="w-4 h-4 text-amber-600" />
+                      Damage Assessment & Billing
+                    </span>
+                    <span className="text-[10px] font-bold text-amber-800 bg-amber-100 dark:bg-amber-900/50 px-2 py-0.5 rounded">
+                      Locks to MAINTENANCE
+                    </span>
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-amber-950 dark:text-amber-200 uppercase tracking-wider text-[10px] mb-1">
+                      Damage Severity *
+                    </label>
+                    <select
+                      value={damageSeverity}
+                      onChange={(e) => setDamageSeverity(e.target.value as any)}
+                      className="w-full px-3 py-1.5 rounded-xl border border-amber-300 dark:border-amber-900 bg-white dark:bg-[#15181D] text-xs font-semibold"
+                    >
+                      <option value="minor">Minor (Surface scratches, minor scuffs)</option>
+                      <option value="moderate">Moderate (Cracked plastic, broken mirror/lever)</option>
+                      <option value="major">Major (Engine issue, bent frame or forks)</option>
+                      <option value="total_loss">Total Loss (Write-off / structural failure)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-amber-950 dark:text-amber-200 uppercase tracking-wider text-[10px] mb-1">
+                      Damage Description *
+                    </label>
+                    <textarea
+                      required
+                      value={damageDescription}
+                      onChange={(e) => setDamageDescription(e.target.value)}
+                      placeholder="Specify damage observed..."
+                      rows={2}
+                      className="w-full px-3 py-1.5 rounded-xl border border-amber-300 dark:border-amber-900 bg-white dark:bg-[#15181D] text-xs resize-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-amber-950 dark:text-amber-200 uppercase tracking-wider text-[10px] mb-1">
+                      Estimated Repair Cost (₱) *
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="50"
+                      required
+                      value={damageRepairCost}
+                      onChange={(e) => setDamageRepairCost(e.target.value)}
+                      placeholder="0.00"
+                      className="w-full px-3 py-1.5 rounded-xl border border-amber-300 dark:border-amber-900 bg-white dark:bg-[#15181D] font-mono text-xs font-bold"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Overdue Calculation or On-Time Banner */}
+              {isOverdue ? (
+                <div className="p-3.5 bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900 rounded-2xl space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 text-rose-800 dark:text-rose-300 font-bold text-xs">
+                      <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                      <span>Overdue Return Detected</span>
+                    </div>
+                    <span className="font-mono text-xs font-bold text-rose-700 bg-rose-100 px-2 py-0.5 rounded">
+                      {hoursLate} hr{hoursLate > 1 ? 's' : ''} late
+                    </span>
+                  </div>
+
+                  <div className="bg-white/80 dark:bg-[#15181D] rounded-xl p-2.5 border border-rose-200/60 space-y-1 text-[11px]">
+                    <div className="flex justify-between text-ink-muted">
+                      <span>Hourly Penalty Rate:</span>
+                      <strong className="font-mono text-ink dark:text-white">₱{hourlyRate.toLocaleString()}/hr</strong>
+                    </div>
+                    <div className="flex justify-between text-ink-muted">
+                      <span>Calculated Penalty:</span>
+                      <strong className={`font-mono ${waiveLateFee ? 'line-through text-ink-muted' : 'text-rose-700'}`}>
+                        +₱{calculatedFee.toLocaleString()} ({hoursLate} hr{hoursLate > 1 ? 's' : ''} × ₱{hourlyRate}/hr)
+                      </strong>
+                    </div>
+                  </div>
+
+                  {/* Waive Toggle */}
+                  <div className="pt-1">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={waiveLateFee}
+                        onChange={(e) => setWaiveLateFee(e.target.checked)}
+                        className="w-4 h-4 text-emerald-600 rounded border-stone focus:ring-emerald-500"
+                      />
+                      <span className="text-[11px] font-semibold text-emerald-900 dark:text-emerald-300">
+                        Waive / Forgive Late Penalty for this Return
+                      </span>
+                    </label>
+                    {waiveLateFee && (
+                      <input
+                        type="text"
+                        required
+                        value={waiverReason}
+                        onChange={(e) => setWaiverReason(e.target.value)}
+                        placeholder="Reason for waiver (e.g. Guest notified reception, mechanical issue) *"
+                        className="mt-2 w-full px-3 py-1.5 rounded-xl border border-emerald-300 bg-white dark:bg-[#15181D] text-xs text-ink placeholder:text-ink-muted/50"
+                      />
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="p-3 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900 rounded-xl flex items-center justify-between text-xs text-emerald-900 dark:text-emerald-200">
+                  <div className="flex items-center gap-1.5 font-semibold">
+                    <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>On-Time Return (No late penalty applies)</span>
+                  </div>
+                  <span className="font-mono font-bold text-emerald-700 dark:text-emerald-400">₱0.00 late fee</span>
+                </div>
+              )}
+
+              <div>
+                <label className="block font-semibold text-ink dark:text-white uppercase tracking-wider mb-1 text-[10px]">Return Remarks / Condition</label>
+                <input
+                  value={returnRemarks}
+                  onChange={(e) => setReturnRemarks(e.target.value)}
+                  placeholder="Gas level full, helmet returned, etc."
+                  className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#F6F2E8] dark:bg-[#15181D] text-xs"
+                />
+              </div>
+
+              <label className="flex items-center gap-2 cursor-pointer select-none text-ink dark:text-white">
+                <input
+                  type="checkbox"
+                  checked={hasDamage ? true : maintenanceNeeded}
+                  disabled={hasDamage}
+                  onChange={(e) => setMaintenanceNeeded(e.target.checked)}
+                  className="w-4 h-4 rounded border-stone text-[#6B7A5E] disabled:opacity-70"
+                />
+                <span className="text-xs">Unit requires maintenance / checkup (locks unit from re-booking)</span>
+              </label>
+
+              {/* Total Summary */}
+              <div className="bg-sand/40 dark:bg-neutral-800/60 rounded-xl p-3 border border-stone/20 dark:border-neutral-700 space-y-1 text-xs">
+                <div className="flex justify-between text-ink-muted">
+                  <span>Base Amount:</span>
+                  <span className="font-mono">₱{baseAmount.toLocaleString()}</span>
+                </div>
+                {lateAmount > 0 && (
+                  <div className="flex justify-between text-rose-700">
+                    <span>Late Penalty:</span>
+                    <span className="font-mono">+₱{lateAmount.toLocaleString()}</span>
+                  </div>
+                )}
+                {damageAmount > 0 && (
+                  <div className="flex justify-between text-amber-800 dark:text-amber-300 font-bold">
+                    <span>Damage Fee (Folio Charge):</span>
+                    <span className="font-mono">+₱{damageAmount.toLocaleString()}</span>
+                  </div>
+                )}
+                <div className="flex justify-between pt-1 border-t border-stone/20 font-bold text-sm">
+                  <span>Final Billable Total:</span>
+                  <span className="font-mono text-[#6B7A5E]">₱{finalAmount.toLocaleString()}</span>
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setReturnRentalModal(null)}
+                  className="flex-1 py-2.5 border border-stone/30 rounded-xl font-semibold text-ink-muted hover:bg-sand cursor-pointer text-xs"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleProcessReturn}
+                  disabled={
+                    processingReturn ||
+                    (waiveLateFee && !waiverReason.trim()) ||
+                    (hasDamage && (!damageDescription.trim() || !damageRepairCost || Number(damageRepairCost) <= 0))
+                  }
+                  className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl font-semibold shadow-sm disabled:opacity-50 cursor-pointer text-xs flex items-center justify-center gap-1.5"
+                >
+                  {processingReturn ? 'Processing...' : hasDamage ? 'Complete Return & Bill Damage' : '✓ Complete Return'}
+                </button>
+              </div>
+            </div>
+          )
+        })()}
       </Modal>
 
       {/* ─── SLIDE-OVER DRAWER: EDIT MOTORCYCLE (Admin Only) ─── */}

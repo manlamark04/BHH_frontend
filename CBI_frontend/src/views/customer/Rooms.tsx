@@ -9,9 +9,13 @@ import {
   Building2,
   Sparkles,
   AlertCircle,
+  Clock,
+  Minus,
+  Plus,
 } from 'lucide-react'
 import { roomsApi, type RoomRecord } from '../../api/rooms'
 import { bookingsApi } from '../../api/bookings'
+import { billingApi } from '../../api/billing'
 import StatusBadge from '../../components/StatusBadge'
 import Modal from '../../components/Modal'
 import ConfirmDialog from '../../components/ConfirmDialog'
@@ -32,8 +36,11 @@ export default function CustomerRooms({ customerName }: Props) {
 
   // Booking Flow State
   const [bookingRoom, setBookingRoom] = useState<RoomRecord | null>(null)
+  const [bookingType, setBookingType] = useState<'per_night' | 'short_time'>('per_night')
   const [checkIn, setCheckIn] = useState('')
   const [checkOut, setCheckOut] = useState('')
+  const [checkInTime, setCheckInTime] = useState('14:00')
+  const [durationHours, setDurationHours] = useState(3)
   const [numGuests, setNumGuests] = useState(1)
   const [specialNotes, setSpecialNotes] = useState('')
   const [confirmModal, setConfirmModal] = useState(false)
@@ -48,17 +55,52 @@ export default function CustomerRooms({ customerName }: Props) {
     setTimeout(() => setToast(''), 4500)
   }
 
+  const [myBookings, setMyBookings] = useState<Record<string, unknown>[]>([])
+  const [myBills, setMyBills] = useState<Record<string, unknown>[]>([])
+
   const loadRooms = () => {
     setLoading(true)
-    roomsApi.getRooms()
-      .then((data) => setRooms(data as RoomRecord[]))
-      .catch(() => {})
-      .finally(() => setLoading(false))
+    Promise.all([
+      roomsApi.getRooms().catch(() => []),
+      bookingsApi.getMyBookings().catch(() => []),
+      billingApi.getMyBills().catch(() => []),
+    ]).then(([roomsData, bookingsData, billsData]) => {
+      setRooms(roomsData as RoomRecord[])
+      setMyBookings(Array.isArray(bookingsData) ? bookingsData : [])
+      setMyBills(Array.isArray(billsData) ? billsData : [])
+    }).finally(() => setLoading(false))
   }
 
   useEffect(() => {
     loadRooms()
   }, [])
+
+  // Calculate unpaid outstanding balance (from No-Show fees, penalties, or past due balances)
+  const outstandingBalance = useMemo(() => {
+    return myBills.reduce((s, b) => {
+      const isCancelled = String(b.status || '').toUpperCase() === 'CANCELLED' || String(b.status || '').toUpperCase() === 'VOID' || Boolean(b.is_cancelled)
+      const isNoShow = String(b.booking_status || '').toUpperCase() === 'NO_SHOW' || String(b.status || '').toUpperCase() === 'NO_SHOW'
+      const fee = Number(b.no_show_fee ?? b.cancellation_fee ?? 0)
+      const paid = Number(b.amount_paid || b.paid_amount || 0)
+      if (isNoShow || isCancelled) {
+        return s + (fee > 0 ? Math.max(0, fee - paid) : 0)
+      }
+      const total = Number(b.total_amount || 0)
+      const bStatus = String(b.booking_status || '').toLowerCase()
+      if (['checked_out', 'completed'].includes(bStatus) || (!b.booking_id && String(b.status || '').toUpperCase() !== 'PAID')) {
+        return s + Math.max(0, total - paid)
+      }
+      return s
+    }, 0)
+  }, [myBills])
+
+  // Active stay in progress (Option B)
+  const activeStayReservation = useMemo(() => {
+    return myBookings.find((b) => {
+      const s = String(b.status_raw || b.status || '').toLowerCase()
+      return !['cancelled', 'checked_out', 'rejected', 'completed'].includes(s)
+    })
+  }, [myBookings])
 
   // Filtered rooms
   const filteredRooms = useMemo(() => {
@@ -85,42 +127,111 @@ export default function CustomerRooms({ customerName }: Props) {
     return Math.max(0, Math.round(diff / (1000 * 60 * 60 * 24)))
   }, [checkIn, checkOut])
 
+  // Short-time pricing
+  const SHORT_TIME_MULTIPLIER = 2.0
+
+  const hourlyRate = useMemo(() => {
+    if (!bookingRoom) return 0
+    return (Number(bookingRoom.rate_per_night || 0) / 24) * SHORT_TIME_MULTIPLIER
+  }, [bookingRoom])
+
+  const shortTimeTotal = useMemo(() => {
+    return Math.round(hourlyRate * durationHours * 100) / 100
+  }, [hourlyRate, durationHours])
+
   const totalAmount = useMemo(() => {
-    if (!bookingRoom || nights <= 0) return 0
+    if (!bookingRoom) return 0
+    if (bookingType === 'short_time') return shortTimeTotal
+    if (nights <= 0) return 0
     return Number(bookingRoom.rate_per_night || 0) * nights
-  }, [bookingRoom, nights])
+  }, [bookingRoom, bookingType, nights, shortTimeTotal])
+
+  // Auto-calculated checkout time for short-time bookings
+  const computedCheckout = useMemo(() => {
+    if (bookingType !== 'short_time' || !checkIn || !checkInTime) return null
+    const ciDate = new Date(`${checkIn}T${checkInTime}:00`)
+    if (isNaN(ciDate.getTime())) return null
+    const coDate = new Date(ciDate.getTime() + durationHours * 60 * 60 * 1000)
+    const crossesMidnight = coDate.getDate() !== ciDate.getDate()
+    const timeStr = coDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+    const dateStr = crossesMidnight
+      ? coDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      : null
+    return {
+      time: timeStr,
+      date: dateStr,
+      crossesMidnight,
+      isoCheckout: `${coDate.getFullYear()}-${String(coDate.getMonth() + 1).padStart(2, '0')}-${String(coDate.getDate()).padStart(2, '0')}`,
+    }
+  }, [bookingType, checkIn, checkInTime, durationHours])
 
   const handleStartBooking = (room: RoomRecord) => {
     setBookingRoom(room)
-    setCheckIn(todayStr)
-    const nextDay = new Date()
-    nextDay.setDate(nextDay.getDate() + 1)
-    setCheckOut(nextDay.toISOString().split('T')[0])
+    setBookingType('per_night')
+    if (activeStayReservation && activeStayReservation.check_in && activeStayReservation.check_out) {
+      setCheckIn(String(activeStayReservation.check_in).substring(0, 10))
+      setCheckOut(String(activeStayReservation.check_out).substring(0, 10))
+    } else {
+      setCheckIn(todayStr)
+      const nextDay = new Date()
+      nextDay.setDate(nextDay.getDate() + 1)
+      setCheckOut(nextDay.toISOString().split('T')[0])
+    }
+    setCheckInTime('14:00')
+    setDurationHours(3)
     setNumGuests(Number(room.capacity || 2))
     setSpecialNotes('')
     setError('')
   }
 
+  // Check if chosen booking dates conflict with 1-stay rule (Option B)
+  const hasDateConflictWithExistingStay = useMemo(() => {
+    if (!activeStayReservation) return false
+    if (!checkIn) return false
+    const stayIn = new Date(String(activeStayReservation.check_in).substring(0, 10)).getTime()
+    const stayOut = new Date(String(activeStayReservation.check_out).substring(0, 10)).getTime()
+    const reqIn = new Date(checkIn).getTime()
+    const reqOut = new Date(bookingType === 'short_time' ? checkIn : checkOut).getTime()
+    if (isNaN(stayIn) || isNaN(stayOut) || isNaN(reqIn) || isNaN(reqOut)) return false
+    // Date overlap exists if reqIn < stayOut && reqOut >= stayIn
+    const hasOverlap = reqIn < stayOut && reqOut >= stayIn
+    return !hasOverlap
+  }, [activeStayReservation, checkIn, checkOut, bookingType])
+
   const handleConfirmBooking = async () => {
-    if (!bookingRoom || !checkIn || !checkOut || nights <= 0) return
+    if (!bookingRoom) return
+    if (bookingType === 'per_night' && (!checkIn || !checkOut || nights <= 0)) return
+    if (bookingType === 'short_time' && (!checkIn || !checkInTime)) return
     setSubmitting(true)
     setError('')
     try {
-      await bookingsApi.createBooking({
+      const payload: Parameters<typeof bookingsApi.createBooking>[0] = {
         room_id: Number(bookingRoom.id),
         check_in: checkIn,
-        check_out: checkOut,
         num_guests: numGuests,
         notes: specialNotes.trim() || undefined,
-      })
+        booking_type: bookingType,
+      }
+      if (bookingType === 'short_time') {
+        payload.check_in_time = checkInTime
+        payload.duration_hours = durationHours
+        // Let backend compute check_out, but also send it for overlap checking
+        const ciDt = new Date(`${checkIn}T${checkInTime}:00`)
+        const coDt = new Date(ciDt.getTime() + durationHours * 60 * 60 * 1000)
+        payload.check_out = `${coDt.getFullYear()}-${String(coDt.getMonth() + 1).padStart(2, '0')}-${String(coDt.getDate()).padStart(2, '0')} ${String(coDt.getHours()).padStart(2, '0')}:${String(coDt.getMinutes()).padStart(2, '0')}:00`
+      } else {
+        payload.check_out = checkOut
+      }
 
-      fireToast(`Reservation submitted for Room ${bookingRoom.room_number}! Front desk will confirm shortly.`)
+      await bookingsApi.createBooking(payload)
+
+      fireToast(`Reservation submitted for Room ${bookingRoom.room_number}! Your reservation is now pending approval by staff.`)
       setConfirmModal(false)
       setBookingRoom(null)
       loadRooms()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create reservation')
-      setConfirmModal(false)
+      // Keep confirmModal open so user sees the error and can retry or fix
     } finally {
       setSubmitting(false)
     }
@@ -135,7 +246,7 @@ export default function CustomerRooms({ customerName }: Props) {
   const minRate = rooms.length > 0 ? Math.min(...rooms.map((r) => Number(r.rate_per_night || 9999))) : 0
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto space-y-6 font-sans">
+    <div className="p-4 sm:p-5 max-w-7xl mx-auto space-y-4 font-sans">
       
       {/* Toast Alert */}
       {toast && (
@@ -145,104 +256,150 @@ export default function CustomerRooms({ customerName }: Props) {
         </div>
       )}
 
-      {/* ─── 1. PAGE HEADER ─── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-stone/20">
-        <div>
-          <h1 className="font-display text-3xl sm:text-4xl font-bold text-ink tracking-tight">Browse Accommodations</h1>
-          <p className="text-xs sm:text-sm text-ink-muted mt-0.5">Explore our handcrafted rooms, suites and tropical villas</p>
+      {/* ─── 1. STATISTIC KPI SUMMARY CARDS ─── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+        
+        <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-[#6B7A5E]">TOTAL INVENTORY</span>
+            <div className="w-6 h-6 rounded-lg bg-[#6B7A5E]/10 text-[#6B7A5E] flex items-center justify-center">
+              <Building2 className="w-3.5 h-3.5" strokeWidth={1.5} />
+            </div>
+          </div>
+          <div className="mt-1.5">
+            <p className="font-display text-xl sm:text-2xl font-bold text-neutral-900 dark:text-white leading-tight">{rooms.length}</p>
+            <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5 block">Rooms & suites</span>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-700 dark:text-emerald-400">AVAILABLE NOW</span>
+            <div className="w-6 h-6 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50 flex items-center justify-center">
+              <CheckCircle2 className="w-3.5 h-3.5" strokeWidth={1.5} />
+            </div>
+          </div>
+          <div className="mt-1.5">
+            <p className="font-display text-xl sm:text-2xl font-bold text-emerald-700 dark:text-emerald-400 leading-tight">{availableCount}</p>
+            <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5 block">Ready for booking</span>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-[#6B7A5E]">STARTING FROM</span>
+            <div className="w-6 h-6 rounded-lg bg-[#6B7A5E]/10 text-[#6B7A5E] flex items-center justify-center">
+              <Sparkles className="w-3.5 h-3.5" strokeWidth={1.5} />
+            </div>
+          </div>
+          <div className="mt-1.5">
+            <p className="font-display text-lg sm:text-xl font-bold text-neutral-900 dark:text-white leading-tight">
+              ₱{minRate.toLocaleString()} <span className="text-[10px] font-sans font-normal text-neutral-500 dark:text-neutral-400">/ night</span>
+            </p>
+            <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5 block">Best value available</span>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-blue-700 dark:text-blue-400">FILTERED ROOMS</span>
+            <div className="w-6 h-6 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/50 flex items-center justify-center">
+              <BedDouble className="w-3.5 h-3.5" strokeWidth={1.5} />
+            </div>
+          </div>
+          <div className="mt-1.5">
+            <p className="font-display text-xl sm:text-2xl font-bold text-blue-700 dark:text-blue-400 leading-tight">{filteredRooms.length}</p>
+            <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5 block">Matching current filters</span>
+          </div>
+        </div>
+
+      </div>
+
+      {/* ─── OUTSTANDING BALANCE NOTICE BANNER ─── */}
+      {outstandingBalance > 0 && (
+        <div className="p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800/60 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs animate-fadeIn">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-xl bg-rose-500/15 text-rose-800 dark:text-rose-300 flex items-center justify-center shrink-0 mt-0.5">
+              <AlertCircle className="w-5 h-5" strokeWidth={2} />
+            </div>
+            <div>
+              <h4 className="font-display font-bold text-sm text-rose-950 dark:text-rose-100">
+                Outstanding Balance Required (₱{outstandingBalance.toLocaleString()})
+              </h4>
+              <p className="text-xs text-rose-900/90 dark:text-rose-200/90 mt-0.5 leading-relaxed">
+                You have an unpaid remaining balance of <strong>₱{outstandingBalance.toLocaleString()}</strong> from a previous reservation or No-Show service charge. Please settle your outstanding balance at the front desk before creating new room bookings.
+              </p>
+            </div>
+          </div>
+          <a
+            href="#/customer/transactions"
+            className="px-3.5 py-2 bg-rose-700 hover:bg-rose-800 text-white rounded-xl text-xs font-semibold whitespace-nowrap shadow-xs transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
+          >
+            <Building2 className="w-3.5 h-3.5" />
+            <span>View Bills & Balance</span>
+          </a>
+        </div>
+      )}
+
+      {/* ─── ACTIVE STAY NOTICE BANNER (OPTION B) ─── */}
+      {activeStayReservation && (
+        <div className="p-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800/60 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs animate-fadeIn">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-xl bg-amber-500/15 text-amber-800 dark:text-amber-300 flex items-center justify-center shrink-0 mt-0.5">
+              <AlertCircle className="w-5 h-5" strokeWidth={2} />
+            </div>
+            <div>
+              <h4 className="font-display font-bold text-sm text-amber-950 dark:text-amber-100">
+                Active Room Stay in Progress
+              </h4>
+              <p className="text-xs text-amber-900/90 dark:text-amber-200/90 mt-0.5 leading-relaxed">
+                You have an active stay for <strong>Room {String(activeStayReservation.room_number || '')} · {String(activeStayReservation.room_type || 'Room')}</strong> ({String(activeStayReservation.check_in || '').substring(0, 10)} to {String(activeStayReservation.check_out || '').substring(0, 10)} · <span className="font-semibold uppercase text-amber-950 dark:text-white">{String(activeStayReservation.status_raw || activeStayReservation.status || '').replace('_', ' ')}</span>). Under our 1-stay policy, you may book additional rooms for this same trip dates, but cannot book a separate stay date until completed.
+              </p>
+            </div>
+          </div>
+          <a
+            href="#/customer/transactions"
+            className="px-3.5 py-2 bg-amber-700 hover:bg-amber-800 text-white rounded-xl text-xs font-semibold whitespace-nowrap shadow-xs transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
+          >
+            <Building2 className="w-3.5 h-3.5" />
+            <span>View My Transactions</span>
+          </a>
+        </div>
+      )}
+
+      {/* ─── 2. CONTROLS & FILTER TABS BAR ─── */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        <div className="flex flex-wrap gap-1 p-1 bg-neutral-100/70 dark:bg-[#14171C] rounded-lg border border-black/[0.06] dark:border-neutral-800 text-xs w-fit">
+          {ROOM_TYPES.map((type) => (
+            <button
+              key={type}
+              onClick={() => setActiveType(type)}
+              className={`px-3 py-1.5 rounded-md font-semibold transition-all cursor-pointer ${
+                activeType === type
+                  ? 'bg-[#6B7A5E] text-white shadow-xs'
+                  : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-white dark:hover:bg-neutral-800'
+              }`}
+            >
+              {type === 'All' ? 'All Rooms' : `${type}s`}
+            </button>
+          ))}
         </div>
 
         {/* Search Bar */}
-        <div className="relative w-full sm:w-80 text-xs">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-muted w-3.5 h-3.5" strokeWidth={1.5} />
+        <div className="relative w-full sm:w-72 text-xs">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400 w-3.5 h-3.5" strokeWidth={1.5} />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search room type, number..."
-            className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] text-ink focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+            className="w-full pl-9 pr-4 py-2 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
           />
         </div>
       </div>
 
-      {/* ─── 2. STATISTIC KPI SUMMARY CARDS ─── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        
-        <div className="bg-white p-5 rounded-2xl border border-stone/20 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase font-bold tracking-widest text-[#B48454]">TOTAL INVENTORY</span>
-            <div className="w-7 h-7 rounded-lg bg-[#B48454]/10 text-[#B48454] flex items-center justify-center">
-              <Building2 className="w-4 h-4" strokeWidth={1.5} />
-            </div>
-          </div>
-          <div>
-            <p className="font-display text-3xl font-bold text-ink mt-2">{rooms.length}</p>
-            <span className="text-xs text-ink-muted mt-1 block">Rooms & suites</span>
-          </div>
-        </div>
-
-        <div className="bg-white p-5 rounded-2xl border border-stone/20 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase font-bold tracking-widest text-emerald-700">AVAILABLE NOW</span>
-            <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center">
-              <CheckCircle2 className="w-4 h-4" strokeWidth={1.5} />
-            </div>
-          </div>
-          <div>
-            <p className="font-display text-3xl font-bold text-emerald-700 mt-2">{availableCount}</p>
-            <span className="text-xs text-ink-muted mt-1 block">Ready for instant booking</span>
-          </div>
-        </div>
-
-        <div className="bg-white p-5 rounded-2xl border border-stone/20 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase font-bold tracking-widest text-[#B48454]">STARTING FROM</span>
-            <div className="w-7 h-7 rounded-lg bg-[#B48454]/10 text-[#B48454] flex items-center justify-center">
-              <Sparkles className="w-4 h-4" strokeWidth={1.5} />
-            </div>
-          </div>
-          <div>
-            <p className="font-display text-2xl sm:text-3xl font-bold text-ink mt-2">
-              ₱{minRate.toLocaleString()} <span className="text-xs font-sans font-normal text-ink-muted">/ night</span>
-            </p>
-            <span className="text-xs text-ink-muted mt-1 block">Best value available</span>
-          </div>
-        </div>
-
-        <div className="bg-white p-5 rounded-2xl border border-stone/20 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase font-bold tracking-widest text-blue-700">FILTERED ROOMS</span>
-            <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-700 border border-blue-200 flex items-center justify-center">
-              <BedDouble className="w-4 h-4" strokeWidth={1.5} />
-            </div>
-          </div>
-          <div>
-            <p className="font-display text-3xl font-bold text-blue-800 mt-2">{filteredRooms.length}</p>
-            <span className="text-xs text-ink-muted mt-1 block">Matching current filters</span>
-          </div>
-        </div>
-
-      </div>
-
-      {/* ─── 3. FILTER TABS BAR ─── */}
-      <div className="flex flex-wrap gap-1.5 p-1 bg-sand/40 rounded-xl border border-stone/20 text-xs w-fit">
-        {ROOM_TYPES.map((type) => (
-          <button
-            key={type}
-            onClick={() => setActiveType(type)}
-            className={`px-4 py-2 rounded-lg font-semibold transition-all ${
-              activeType === type
-                ? 'bg-[#B48454] text-white shadow-sm'
-                : 'text-ink-muted hover:text-ink hover:bg-white/60'
-            }`}
-          >
-            {type === 'All' ? 'All Rooms' : `${type}s`}
-          </button>
-        ))}
-      </div>
-
-      {/* ─── 4. ROOMS GRID ─── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* ─── 3. ROOMS GRID ─── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredRooms.map((r) => {
           const isAvail = String(r.status).toLowerCase() === 'available'
           const imgSrc = getPrimaryImage(r)
@@ -250,7 +407,7 @@ export default function CustomerRooms({ customerName }: Props) {
           return (
             <div
               key={r.id}
-              className="bg-white rounded-2xl border border-stone/20 shadow-sm hover:shadow-md hover:border-[#B48454]/40 transition-all overflow-hidden flex flex-col justify-between group"
+              className="bg-white rounded-2xl border border-stone/20 shadow-sm hover:shadow-md hover:border-[#6B7A5E]/40 transition-all overflow-hidden flex flex-col justify-between group"
             >
               {/* Image & Badges */}
               <div className="h-52 overflow-hidden relative bg-sand">
@@ -283,12 +440,12 @@ export default function CustomerRooms({ customerName }: Props) {
                   </p>
 
                   <div className="flex items-center gap-2 mt-3 text-[11px] text-ink-muted">
-                    <span className="bg-[#FAF8F5] border border-stone/20 px-2.5 py-1 rounded-lg flex items-center gap-1">
-                      <Users className="w-3 h-3 text-[#B48454]" />
+                    <span className="bg-[#F6F2E8] border border-stone/20 px-2.5 py-1 rounded-lg flex items-center gap-1">
+                      <Users className="w-3 h-3 text-[#6B7A5E]" />
                       <span>Sleeps {r.capacity || 2}</span>
                     </span>
-                    <span className="bg-[#FAF8F5] border border-stone/20 px-2.5 py-1 rounded-lg flex items-center gap-1">
-                      <Wind className="w-3 h-3 text-[#B48454]" />
+                    <span className="bg-[#F6F2E8] border border-stone/20 px-2.5 py-1 rounded-lg flex items-center gap-1">
+                      <Wind className="w-3 h-3 text-[#6B7A5E]" />
                       <span>Air Conditioned</span>
                     </span>
                   </div>
@@ -298,7 +455,7 @@ export default function CustomerRooms({ customerName }: Props) {
                 <div className="flex gap-2 pt-2 border-t border-stone/15">
                   <button
                     onClick={() => setViewRoom(r)}
-                    className="flex-1 py-2.5 border border-stone/30 hover:bg-[#FAF8F5] text-ink font-semibold rounded-xl text-xs transition-all shadow-xs"
+                    className="flex-1 py-2.5 border border-stone/30 hover:bg-[#F6F2E8] text-ink font-semibold rounded-xl text-xs transition-all shadow-xs"
                   >
                     View Details
                   </button>
@@ -307,11 +464,19 @@ export default function CustomerRooms({ customerName }: Props) {
                     disabled={!isAvail}
                     className={`flex-1 py-2.5 rounded-xl text-xs font-semibold shadow-sm transition-all ${
                       isAvail
-                        ? 'bg-[#B48454] hover:bg-[#9E6E3E] text-white'
+                        ? 'bg-[#6B7A5E] hover:bg-[#4F5D45] text-white'
                         : 'bg-stone-200 text-stone-400 cursor-not-allowed'
                     }`}
                   >
-                    {isAvail ? 'Book Room' : 'Unavailable'}
+                    {isAvail
+                      ? 'Book Room'
+                      : String(r.status).toUpperCase() === 'PENDING_APPROVAL'
+                      ? 'Pending Approval'
+                      : String(r.status).toUpperCase() === 'RESERVED'
+                      ? 'Reserved'
+                      : String(r.status).toUpperCase() === 'OCCUPIED'
+                      ? 'Occupied'
+                      : 'Unavailable'}
                   </button>
                 </div>
 
@@ -352,7 +517,7 @@ export default function CustomerRooms({ customerName }: Props) {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-display font-bold text-xl text-ink">{viewRoom.room_type}</h3>
-                <p className="text-xs text-ink-muted">Room Number: <strong className="font-mono text-[#B48454]">{viewRoom.room_number}</strong></p>
+                <p className="text-xs text-ink-muted">Room Number: <strong className="font-mono text-[#6B7A5E]">{viewRoom.room_number}</strong></p>
               </div>
               <div className="text-right">
                 <p className="font-display font-bold text-2xl text-ink">₱{Number(viewRoom.rate_per_night || 0).toLocaleString()}</p>
@@ -364,7 +529,7 @@ export default function CustomerRooms({ customerName }: Props) {
               {viewRoom.description || 'Spacious, elegant tropical accommodation equipped with high-speed WiFi, premium mattress, private hot shower, and scenic balcony.'}
             </p>
 
-            <div className="p-4 bg-[#FAF8F5] border border-stone/20 rounded-2xl grid grid-cols-2 gap-3">
+            <div className="p-4 bg-[#F6F2E8] border border-stone/20 rounded-2xl grid grid-cols-2 gap-3">
               <div>
                 <span className="text-[10px] uppercase font-bold text-ink-muted block">CAPACITY</span>
                 <strong className="text-ink">Up to {viewRoom.capacity || 2} Persons</strong>
@@ -385,7 +550,7 @@ export default function CustomerRooms({ customerName }: Props) {
               {String(viewRoom.status).toLowerCase() === 'available' && (
                 <button
                   onClick={() => { setViewRoom(null); handleStartBooking(viewRoom); }}
-                  className="flex-1 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl font-semibold shadow-sm transition-all"
+                  className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl font-semibold shadow-sm transition-all"
                 >
                   Reserve Now
                 </button>
@@ -415,9 +580,9 @@ export default function CustomerRooms({ customerName }: Props) {
             )}
 
             {/* Room Summary Header */}
-            <div className="p-4 bg-[#FAF8F5] border border-stone/20 rounded-2xl flex items-center justify-between">
+            <div className="p-4 bg-[#F6F2E8] border border-stone/20 rounded-2xl flex items-center justify-between">
               <div>
-                <span className="text-[10px] uppercase font-bold text-[#B48454]">SELECTED SUITE</span>
+                <span className="text-[10px] uppercase font-bold text-[#6B7A5E]">SELECTED SUITE</span>
                 <h4 className="font-display font-bold text-lg text-ink">{bookingRoom.room_type}</h4>
                 <p className="text-xs text-ink-muted">Room {bookingRoom.room_number} · Max {bookingRoom.capacity || 2} guests</p>
               </div>
@@ -427,31 +592,127 @@ export default function CustomerRooms({ customerName }: Props) {
               </div>
             </div>
 
-            {/* Dates Selection */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Check-In Date *</label>
-                <input
-                  required
-                  type="date"
-                  min={todayStr}
-                  value={checkIn}
-                  onChange={(e) => setCheckIn(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] font-mono text-xs"
-                />
-              </div>
-              <div>
-                <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Check-Out Date *</label>
-                <input
-                  required
-                  type="date"
-                  min={checkIn || todayStr}
-                  value={checkOut}
-                  onChange={(e) => setCheckOut(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] font-mono text-xs"
-                />
-              </div>
+            {/* Booking Type Toggle */}
+            <div className="flex gap-1 p-1 bg-neutral-100/70 rounded-lg border border-black/[0.06] text-xs w-full">
+              {(['per_night', 'short_time'] as const).map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => {
+                    setBookingType(type)
+                    if (type === 'short_time') {
+                      setCheckInTime('14:00')
+                      setDurationHours(3)
+                    }
+                  }}
+                  className={`flex-1 px-3 py-2 rounded-md font-semibold transition-all cursor-pointer ${
+                    bookingType === type
+                      ? 'bg-[#6B7A5E] text-white shadow-xs'
+                      : 'text-neutral-600 hover:text-neutral-900 hover:bg-white'
+                  }`}
+                >
+                  {type === 'per_night' ? '🌙 Per Night' : '⏱ Short Time'}
+                </button>
+              ))}
             </div>
+
+            {/* Dates Selection — Conditional by Booking Type */}
+            {bookingType === 'per_night' ? (
+              /* Per Night: Check-in + Check-out dates */
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Check-In Date *</label>
+                  <input
+                    required
+                    type="date"
+                    min={todayStr}
+                    value={checkIn}
+                    onChange={(e) => setCheckIn(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#F6F2E8] font-mono text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Check-Out Date *</label>
+                  <input
+                    required
+                    type="date"
+                    min={checkIn || todayStr}
+                    value={checkOut}
+                    onChange={(e) => setCheckOut(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#F6F2E8] font-mono text-xs"
+                  />
+                </div>
+              </div>
+            ) : (
+              /* Short Time: Date, Time, Duration stepper, Auto-calculated checkout */
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Check-In Date *</label>
+                    <input
+                      required
+                      type="date"
+                      min={todayStr}
+                      value={checkIn}
+                      onChange={(e) => setCheckIn(e.target.value)}
+                      className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#F6F2E8] font-mono text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Check-In Time *</label>
+                    <input
+                      required
+                      type="time"
+                      value={checkInTime}
+                      onChange={(e) => setCheckInTime(e.target.value)}
+                      className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#F6F2E8] font-mono text-xs"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Duration (Hours) *</label>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setDurationHours((h) => Math.max(1, h - 1))}
+                        disabled={durationHours <= 1}
+                        className="w-9 h-9 flex items-center justify-center rounded-lg border border-stone/30 bg-[#F6F2E8] text-ink hover:bg-[#6B7A5E]/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                      >
+                        <Minus className="w-3.5 h-3.5" />
+                      </button>
+                      <span className="flex-1 text-center font-mono font-bold text-lg text-ink">{durationHours}</span>
+                      <button
+                        type="button"
+                        onClick={() => setDurationHours((h) => Math.min(5, h + 1))}
+                        disabled={durationHours >= 5}
+                        className="w-9 h-9 flex items-center justify-center rounded-lg border border-stone/30 bg-[#F6F2E8] text-ink hover:bg-[#6B7A5E]/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    <span className="text-[10px] text-ink-muted mt-0.5 block">Max 5 hours</span>
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Check-Out Time</label>
+                    <div className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-neutral-100 font-mono text-xs text-ink flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-[#6B7A5E]" />
+                      {computedCheckout ? (
+                        <span>
+                          {computedCheckout.time}
+                          {computedCheckout.crossesMidnight && computedCheckout.date && (
+                            <span className="text-[#6B7A5E] font-semibold ml-1">({computedCheckout.date})</span>
+                          )}
+                        </span>
+                      ) : (
+                        <span className="text-ink-muted">—</span>
+                      )}
+                    </div>
+                    <span className="text-[10px] text-ink-muted mt-0.5 block">Auto-calculated</span>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Number of Guests */}
             <div>
@@ -462,7 +723,7 @@ export default function CustomerRooms({ customerName }: Props) {
                 max={Number(bookingRoom.capacity || 4)}
                 value={numGuests}
                 onChange={(e) => setNumGuests(Number(e.target.value))}
-                className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#FAF8F5] font-mono text-xs font-semibold"
+                className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#F6F2E8] font-mono text-xs font-semibold"
               />
             </div>
 
@@ -474,7 +735,7 @@ export default function CustomerRooms({ customerName }: Props) {
                 value={specialNotes}
                 onChange={(e) => setSpecialNotes(e.target.value)}
                 placeholder="e.g. Late arrival around 8:00 PM, quiet room preference"
-                className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#FAF8F5] text-xs resize-none"
+                className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#F6F2E8] text-xs resize-none"
               />
             </div>
 
@@ -482,35 +743,76 @@ export default function CustomerRooms({ customerName }: Props) {
             <div className="p-4 bg-white border border-stone/20 rounded-2xl space-y-2">
               <div className="flex justify-between text-ink-muted">
                 <span>Stay Duration:</span>
-                <strong className="font-mono text-ink">{nights} {nights === 1 ? 'night' : 'nights'}</strong>
+                <strong className="font-mono text-ink">
+                  {bookingType === 'short_time'
+                    ? `${durationHours} ${durationHours === 1 ? 'hour' : 'hours'}`
+                    : `${nights} ${nights === 1 ? 'night' : 'nights'}`
+                  }
+                </strong>
               </div>
               <div className="flex justify-between text-ink-muted">
-                <span>Rate per Night:</span>
-                <strong className="font-mono text-ink">₱{Number(bookingRoom.rate_per_night || 0).toLocaleString()}</strong>
+                <span>{bookingType === 'short_time' ? 'Rate per Hour:' : 'Rate per Night:'}</span>
+                <strong className="font-mono text-ink">
+                  {bookingType === 'short_time'
+                    ? `₱${hourlyRate.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                    : `₱${Number(bookingRoom.rate_per_night || 0).toLocaleString()}`
+                  }
+                </strong>
               </div>
+              {bookingType === 'short_time' && (
+                <div className="flex justify-between text-ink-muted text-[10px]">
+                  <span className="italic">Includes {SHORT_TIME_MULTIPLIER}x short-stay rate</span>
+                </div>
+              )}
               <div className="pt-2 border-t border-stone/15 flex justify-between items-center text-sm">
                 <span className="font-bold text-ink">Total Estimated Bill:</span>
-                <span className="font-display font-bold text-xl text-[#B48454]">
-                  ₱{totalAmount.toLocaleString()}
+                <span className="font-display font-bold text-xl text-[#6B7A5E]">
+                  ₱{totalAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
                 </span>
               </div>
             </div>
+
+            {/* Outstanding Balance Block Alert */}
+            {outstandingBalance > 0 && (
+              <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs flex items-start gap-2.5">
+                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-bold">Unpaid Remaining Balance (₱{outstandingBalance.toLocaleString()})</p>
+                  <p className="text-[11px] text-rose-700 mt-0.5 leading-relaxed">
+                    You have an outstanding balance from an unpaid No-Show service charge or previous stay. Please settle your balance at the front desk before reserving another room.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* 1-Stay Conflict Alert (Option B) */}
+            {hasDateConflictWithExistingStay && activeStayReservation && (
+              <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs flex items-start gap-2.5">
+                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-bold">Different Stay Period Not Allowed</p>
+                  <p className="text-[11px] text-rose-700 mt-0.5 leading-relaxed">
+                    You already hold an active reservation for <strong>Room {String(activeStayReservation.room_number)}</strong> ({String(activeStayReservation.check_in).substring(0, 10)} – {String(activeStayReservation.check_out).substring(0, 10)}). To book an additional room for your group/family, please select matching stay dates.
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* Actions */}
             <div className="flex gap-3 pt-2">
               <button
                 type="button"
                 onClick={() => setBookingRoom(null)}
-                className="flex-1 py-2.5 border border-stone/30 rounded-xl font-semibold text-ink-muted hover:bg-sand"
+                className="flex-1 py-2.5 border border-stone/30 rounded-xl font-semibold text-ink-muted hover:bg-sand transition-all"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                disabled={nights <= 0}
-                className="flex-1 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl font-semibold shadow-sm disabled:opacity-50 transition-all"
+                disabled={outstandingBalance > 0 || hasDateConflictWithExistingStay || (bookingType === 'per_night' ? nights <= 0 : !checkInTime)}
+                className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl font-semibold shadow-sm disabled:opacity-50 transition-all cursor-pointer"
               >
-                Proceed to Confirmation
+                {outstandingBalance > 0 ? `Settle Balance (₱${outstandingBalance.toLocaleString()}) to Book` : 'Proceed to Confirmation'}
               </button>
             </div>
           </form>
@@ -520,12 +822,18 @@ export default function CustomerRooms({ customerName }: Props) {
       {/* ─── CONFIRMATION DIALOG ─── */}
       <ConfirmDialog
         isOpen={confirmModal}
-        onCancel={() => setConfirmModal(false)}
+        onCancel={() => { setConfirmModal(false); setError('') }}
         onConfirm={handleConfirmBooking}
         title="Confirm Room Reservation"
-        message={`Submit reservation for Room ${bookingRoom?.room_number} (${bookingRoom?.room_type}) for ${nights} nights (${checkIn} → ${checkOut}) under ${customerName}? Estimated total: ₱${totalAmount.toLocaleString()}.`}
+        message={
+          bookingType === 'short_time'
+            ? `Submit short-time reservation for Room ${bookingRoom?.room_number} (${bookingRoom?.room_type}) for ${durationHours} hour(s) on ${checkIn} (${checkInTime}${computedCheckout ? ` → ${computedCheckout.time}${computedCheckout.crossesMidnight && computedCheckout.date ? `, ${computedCheckout.date}` : ''}` : ''}) under ${customerName}? Estimated total: ₱${totalAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}.`
+            : `Submit reservation for Room ${bookingRoom?.room_number} (${bookingRoom?.room_type}) for ${nights} nights (${checkIn} → ${checkOut}) under ${customerName}? Estimated total: ₱${totalAmount.toLocaleString()}.`
+        }
         confirmLabel={submitting ? 'Submitting...' : 'Confirm & Reserve'}
         variant="success"
+        errorMessage={error}
+        loading={submitting}
       />
 
     </div>

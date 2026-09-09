@@ -10,6 +10,7 @@ export interface PaymentTransaction {
   staff_name?: string
   notes?: string
   paid_at: string
+  receipt_number?: string
   txn_number?: string
   is_refunded?: boolean
 }
@@ -27,19 +28,74 @@ export interface InvoiceItem {
   booking_id?: number
   booking_ref?: string
   booking_status?: string
+  booking_type?: 'per_night' | 'short_time' | string
+  check_in_time?: string
+  duration_hours?: number
   room_number?: string
   room_type?: string
   check_in?: string
   check_out?: string
   activity_rental_id?: number
+  activity_name?: string
+  service_type?: string
+  service_name?: string
+  service_details?: string
+  line_items_summary?: string
   total_amount: number
   paid_amount: number
   remaining_balance: number
-  status: 'PAID' | 'PARTIALLY PAID' | 'PENDING' | 'REFUNDED' | 'FAILED' | 'VOID' | string
+  balance?: number
+  payment_status?: string
+  status: 'PAID' | 'PARTIALLY PAID' | 'PENDING' | 'PENDING_APPROVAL' | 'REFUNDED' | 'FAILED' | 'VOID' | string
+  is_pending_approval?: boolean
+  approval_gated?: boolean
+  can_pay?: boolean
   method: string
+  receipt_number?: string
   issued_by_name?: string
   issued_at: string
   payments: PaymentTransaction[]
+  driver_license_number?: string
+  driver_license_expiry?: string
+  driver_license_restrictions?: string
+  designated_driver_name?: string
+  license_type?: 'PH' | 'FOREIGN' | string
+  passport_number?: string
+  country_of_issuance?: string
+  foreign_license_number?: string
+  foreign_license_expiry?: string
+  idp_number?: string
+  idp_expiry?: string
+  idp_category_a?: boolean
+  license_verification_status?: 'UNVERIFIED' | 'VERIFIED' | 'FLAGGED' | string
+  license_verified_staff_name?: string
+  license_verified_at?: string
+  license_flag_reason?: string
+  motor_rental_id?: number
+  motor_rental_code?: string
+}
+
+export interface OfficialReceiptData {
+  receipt_number: string
+  invoice_number: string
+  bill_id: number
+  payment_id: number
+  customer_name: string
+  customer_email?: string
+  customer_phone?: string
+  service_name?: string
+  service_details?: string
+  service_type?: string
+  total_amount: number
+  previous_paid: number
+  amount_paid: number
+  remaining_balance: number
+  status: string
+  method: string
+  ref_number?: string
+  notes?: string
+  staff_name: string
+  paid_at: string
 }
 
 export const billingApi = {
@@ -65,7 +121,7 @@ export const billingApi = {
     api.get<PaymentTransaction[]>(`/api/bills/${id}/payments`),
 
   /** POST /api/bills — Staff/Admin: generate bill */
-  generateBill: (data: {
+  generateBill: async (data: {
     customer_id: number
     booking_id?: number
     line_items: Array<{
@@ -73,31 +129,106 @@ export const billingApi = {
       quantity: number
       unit_price: number
     }>
-  }) => api.post<{ id: number; bill_number: string; total_amount: number }>('/api/bills', data),
+  }) => {
+    const res = await api.post<{ id: number; bill_number: string; total_amount: number }>('/api/bills', data)
+    if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('billing-updated'))
+    return res
+  },
 
   /** POST /api/bills/payments — Staff/Admin: record payment */
-  recordPayment: (data: {
+  recordPayment: async (data: {
     bill_id?: number
     booking_id?: number
     amount: number
     method: string
     notes?: string
     ref_number?: string
-  }) => api.post<{
-    message: string
-    payment_id: number
-    txn_number: string
-    total_paid: number
-    remaining_balance: number
-    status: string
-  }>('/api/bills/payments', data),
+  }) => {
+    const res = await api.post<{
+      message: string
+      payment_id: number
+      receipt_number: string
+      txn_number?: string
+      total_paid: number
+      remaining_balance: number
+      status: string
+      receipt_data?: OfficialReceiptData
+    }>('/api/bills/payments', data)
+    if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('billing-updated'))
+    return res
+  },
 
   /** POST /api/bills/payments/:id/refund — Admin: refund payment */
-  refundPayment: (payment_id: number, reason: string) =>
-    api.post<{
+  refundPayment: async (payment_id: number, reason: string) => {
+    const res = await api.post<{
       message: string
       refunded_amount: number
       new_total_paid: number
       bill_status: string
-    }>(`/api/bills/payments/${payment_id}/refund`, { reason }),
+    }>(`/api/bills/payments/${payment_id}/refund`, { reason })
+    if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('billing-updated'))
+    return res
+  },
+
+  /** POST /api/bills/:id/cancel — Staff/Admin: cancel unpaid bill */
+  cancelBill: async (bill_id: number, reason?: string) => {
+    const res = await api.post<{ message: string }>(`/api/bills/${bill_id}/cancel`, { reason })
+    if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('billing-updated'))
+    return res
+  },
+
+  /** POST /api/bills/:id/verify-license — Staff/Admin: verify physical driver's license */
+  verifyLicense: async (bill_id: number) => {
+    const res = await api.post<{ success: boolean; message: string; verification: { status: string; staff_name: string; verified_at: string } }>(
+      `/api/bills/${bill_id}/verify-license`,
+      {}
+    )
+    if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('billing-updated'))
+    return res
+  },
+
+  /** POST /api/bills/:id/flag-license — Staff/Admin: flag driver's license mismatch or issue */
+  flagLicense: async (bill_id: number, reason: string) => {
+    const res = await api.post<{ success: boolean; message: string; verification: { status: string; staff_name: string; verified_at: string; reason: string } }>(
+      `/api/bills/${bill_id}/flag-license`,
+      { reason }
+    )
+    if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('billing-updated'))
+    return res
+  },
+
+  /** GET /api/bills/eod-report — Staff/Admin: daily cashier shift reconciliation */
+  getEODReport: (date?: string) =>
+    api.get<EODReportData>(`/api/bills/eod-report${date ? `?date=${date}` : ''}`),
 }
+
+export interface EODReportData {
+  reportDate: string
+  generatedAt: string
+  generatedBy: string
+  metrics: {
+    grossTotal: number
+    netTotal: number
+    cashTotal: number
+    gcashTotal: number
+    cardTotal: number
+    bankTotal: number
+    otherTotal: number
+    refundsTotal: number
+    transactionCount: number
+  }
+  transactions: Array<{
+    payment_id: number
+    bill_id: number
+    amount: number
+    method: string
+    receipt_number?: string
+    notes?: string
+    paid_at: string
+    invoice_number: string
+    bill_description?: string
+    customer_name?: string
+    cashier_name?: string
+  }>
+}
+

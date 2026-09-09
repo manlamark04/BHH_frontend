@@ -8,6 +8,7 @@ import {
   Check,
   RotateCcw,
   Sparkles,
+  Plus,
 } from 'lucide-react'
 import { motorcyclesApi, type Motorcycle } from '../api/motorcycles'
 import ConfirmDialog from './ConfirmDialog'
@@ -37,11 +38,12 @@ export default function EditMotorDrawer({
   onSuccess,
 }: EditMotorDrawerProps) {
   // Form State
-  const [brand, setBrand] = useState('')
+  const [brand, setBrand] = useState('Honda')
   const [model, setModel] = useState('')
   const [type, setType] = useState('Scooter')
   const [plateNumber, setPlateNumber] = useState('')
   const [rentalRate, setRentalRate] = useState('500')
+  const [lateFeeHourlyRate, setLateFeeHourlyRate] = useState('')
   const [rateType, setRateType] = useState<'daily' | 'hourly'>('daily')
   const [status, setStatus] = useState<Motorcycle['status']>('AVAILABLE')
   const [description, setDescription] = useState('')
@@ -67,6 +69,7 @@ export default function EditMotorDrawer({
       setType(motor.type || 'Scooter')
       setPlateNumber(motor.plate_number || '')
       setRentalRate(String(motor.rental_rate || '500'))
+      setLateFeeHourlyRate(motor.late_fee_hourly_rate !== null && motor.late_fee_hourly_rate !== undefined ? String(motor.late_fee_hourly_rate) : '')
       setRateType(motor.rate_type || 'daily')
       setStatus(motor.status || 'AVAILABLE')
       setDescription(motor.description || '')
@@ -75,12 +78,39 @@ export default function EditMotorDrawer({
       setPreviewUrl(motor.image_url || '')
       setError('')
       setFieldErrors({})
+    } else if (!motor && isOpen) {
+      setBrand('Honda')
+      setModel('')
+      setType('Scooter')
+      setPlateNumber('')
+      setRentalRate('500')
+      setLateFeeHourlyRate('')
+      setRateType('daily')
+      setStatus('AVAILABLE')
+      setDescription('')
+      setImageUrl('')
+      setSelectedFile(null)
+      setPreviewUrl('')
+      setError('')
+      setFieldErrors({})
     }
   }, [motor, isOpen])
 
   // Track if any field was modified
   const isDirty = useMemo(() => {
-    if (!motor) return false
+    if (!motor) {
+      return Boolean(
+        model.trim() ||
+        plateNumber.trim() ||
+        description.trim() ||
+        previewUrl ||
+        rentalRate !== '500' ||
+        brand !== 'Honda' ||
+        type !== 'Scooter' ||
+        status !== 'AVAILABLE' ||
+        rateType !== 'daily'
+      )
+    }
     return (
       brand !== (motor.brand || '') ||
       model !== (motor.model || '') ||
@@ -111,7 +141,7 @@ export default function EditMotorDrawer({
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [isOpen, isDirty, onClose])
 
-  if (!isOpen || !motor) return null
+  if (!isOpen) return null
 
   // Photo selection & validation (Max 5MB)
   const handleFileChange = (file: File) => {
@@ -205,7 +235,7 @@ export default function EditMotorDrawer({
 
   const handleRevertPhoto = () => {
     setSelectedFile(null)
-    setPreviewUrl(motor.image_url || '')
+    setPreviewUrl(motor?.image_url || '')
     setFieldErrors((prev) => ({ ...prev, photo: '' }))
   }
 
@@ -246,17 +276,23 @@ export default function EditMotorDrawer({
         type: type.trim(),
         plate_number: plateNumber.trim().toUpperCase(),
         rental_rate: parsedRate,
+        late_fee_hourly_rate: lateFeeHourlyRate ? parseFloat(lateFeeHourlyRate) : null,
         rate_type: rateType,
         status: status,
         description: description.trim() || undefined,
         image_url: previewUrl || undefined,
       }
 
-      const res = await motorcyclesApi.updateMotorcycle(motor.id, payload)
-      onSuccess(res.motorcycle)
+      if (motor) {
+        const res = await motorcyclesApi.updateMotorcycle(motor.id, payload)
+        onSuccess(res.motorcycle)
+      } else {
+        const res = await motorcyclesApi.createMotorcycle(payload)
+        onSuccess(res.motorcycle)
+      }
       onClose()
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to update motorcycle listing.'
+      const msg = err instanceof Error ? err.message : 'Failed to save motorcycle.'
       setError(msg)
     } finally {
       setSaving(false)
@@ -274,24 +310,28 @@ export default function EditMotorDrawer({
       {/* ─── Slide-Over Drawer Panel ─── */}
       <aside
         className="fixed inset-y-0 right-0 z-50 w-full max-w-lg bg-white shadow-2xl border-l border-stone/20 flex flex-col transform transition-transform duration-300 ease-out font-sans"
-        aria-label="Edit Motorcycle Panel"
+        aria-label={motor ? 'Edit Motorcycle Panel' : 'Add Motorcycle Panel'}
       >
         {/* ─── Drawer Header ─── */}
-        <header className="px-6 py-4.5 border-b border-stone/15 bg-[#FAF8F5] flex items-center justify-between gap-3 shrink-0">
+        <header className="px-6 py-4.5 border-b border-stone/15 bg-[#F6F2E8] flex items-center justify-between gap-3 shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-[#B48454]/10 text-[#B48454] flex items-center justify-center shrink-0 shadow-xs border border-[#B48454]/20">
+            <div className="w-8 h-8 rounded-xl bg-[#6B7A5E]/10 text-[#6B7A5E] flex items-center justify-center shrink-0 shadow-xs border border-[#6B7A5E]/20">
               <Bike className="w-4 h-4" strokeWidth={1.5} />
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="font-display text-lg font-bold text-ink leading-tight">
-                  Edit Motorcycle
+                  {motor ? 'Edit Motorcycle' : 'Add Motorcycle'}
                 </h2>
-                <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded-full bg-sand/60 text-ink-muted border border-stone/20">
-                  {motor.motor_id}
-                </span>
+                {motor && (
+                  <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded-full bg-sand/60 text-ink-muted border border-stone/20">
+                    {motor.motor_id}
+                  </span>
+                )}
               </div>
-              <p className="text-xs text-ink-muted mt-0.5">Update fleet specifications, rate, and photo</p>
+              <p className="text-xs text-ink-muted mt-0.5">
+                {motor ? 'Update fleet specifications, rate, and photo' : 'Register a new motorcycle to the fleet'}
+              </p>
             </div>
           </div>
 
@@ -306,7 +346,7 @@ export default function EditMotorDrawer({
         </header>
 
         {/* ─── Scrollable Form Body ─── */}
-        <form id="edit-motor-form" onSubmit={handleSave} className="flex-1 overflow-y-auto p-6 space-y-6">
+        <form id="edit-motor-form" onSubmit={handleSave} noValidate className="flex-1 overflow-y-auto p-6 space-y-6">
           
           {/* General Error Banner */}
           {error && (
@@ -329,7 +369,7 @@ export default function EditMotorDrawer({
                 <button
                   type="button"
                   onClick={handleRevertPhoto}
-                  className="text-[11px] text-[#B48454] hover:text-[#8E6135] font-semibold flex items-center gap-1 hover:underline"
+                  className="text-[11px] text-[#6B7A5E] hover:text-[#4F5D45] font-semibold flex items-center gap-1 hover:underline"
                 >
                   <RotateCcw className="w-3 h-3" />
                   <span>Revert to Original</span>
@@ -345,8 +385,8 @@ export default function EditMotorDrawer({
               onClick={() => fileInputRef.current?.click()}
               className={`relative aspect-[4/3] rounded-2xl overflow-hidden border-2 transition-all cursor-pointer group bg-sand/40 flex flex-col items-center justify-center ${
                 isDragging
-                  ? 'border-[#B48454] bg-[#B48454]/10 shadow-inner'
-                  : 'border-stone/25 hover:border-[#B48454]/60'
+                  ? 'border-[#6B7A5E] bg-[#6B7A5E]/10 shadow-inner'
+                  : 'border-stone/25 hover:border-[#6B7A5E]/60'
               }`}
             >
               {previewUrl ? (
@@ -364,7 +404,7 @@ export default function EditMotorDrawer({
                 </>
               ) : (
                 <div className="text-center p-6 space-y-2">
-                  <div className="w-12 h-12 rounded-2xl bg-white/80 border border-stone/20 text-[#B48454] flex items-center justify-center mx-auto shadow-xs">
+                  <div className="w-12 h-12 rounded-2xl bg-white/80 border border-stone/20 text-[#6B7A5E] flex items-center justify-center mx-auto shadow-xs">
                     <Upload className="w-5 h-5" strokeWidth={1.5} />
                   </div>
                   <div>
@@ -378,7 +418,7 @@ export default function EditMotorDrawer({
               {/* Status pill badge on top of image */}
               <div className="absolute top-3 left-3">
                 <span className="px-2.5 py-1 rounded-full text-[10px] font-bold font-mono bg-black/60 backdrop-blur-md text-white shadow-xs">
-                  {plateNumber || motor.plate_number}
+                  {plateNumber || (motor ? motor.plate_number : 'NEW')}
                 </span>
               </div>
             </div>
@@ -415,7 +455,7 @@ export default function EditMotorDrawer({
                 <select
                   value={brand}
                   onChange={(e) => setBrand(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-white text-xs text-ink font-semibold focus:outline-none focus:ring-2 focus:ring-[#B48454]/40 focus:border-[#B48454] transition-all"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-white text-xs text-ink font-semibold focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40 focus:border-[#6B7A5E] transition-all"
                 >
                   {BRAND_OPTIONS.map((b) => (
                     <option key={b} value={b}>{b}</option>
@@ -436,7 +476,7 @@ export default function EditMotorDrawer({
                   value={model}
                   onChange={(e) => setModel(e.target.value)}
                   placeholder="e.g. Click 125i, NMAX"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-white text-xs text-ink font-semibold focus:outline-none focus:ring-2 focus:ring-[#B48454]/40 focus:border-[#B48454] transition-all placeholder:text-ink-faint"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-white text-xs text-ink font-semibold focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40 focus:border-[#6B7A5E] transition-all placeholder:text-ink-faint"
                 />
                 {fieldErrors.model && (
                   <p className="text-[10px] text-red-600 font-medium mt-1">{fieldErrors.model}</p>
@@ -453,7 +493,7 @@ export default function EditMotorDrawer({
                 <select
                   value={type}
                   onChange={(e) => setType(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-white text-xs text-ink font-semibold focus:outline-none focus:ring-2 focus:ring-[#B48454]/40 focus:border-[#B48454] transition-all"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-white text-xs text-ink font-semibold focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40 focus:border-[#6B7A5E] transition-all"
                 >
                   {TYPE_OPTIONS.map((t) => (
                     <option key={t} value={t}>{t}</option>
@@ -471,7 +511,7 @@ export default function EditMotorDrawer({
                   value={plateNumber}
                   onChange={(e) => setPlateNumber(e.target.value.toUpperCase())}
                   placeholder="e.g. BHL-8821"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-white text-xs text-ink font-mono font-bold focus:outline-none focus:ring-2 focus:ring-[#B48454]/40 focus:border-[#B48454] transition-all uppercase placeholder:text-ink-faint"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-white text-xs text-ink font-mono font-bold focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40 focus:border-[#6B7A5E] transition-all uppercase placeholder:text-ink-faint"
                 />
                 {fieldErrors.plateNumber && (
                   <p className="text-[10px] text-red-600 font-medium mt-1">{fieldErrors.plateNumber}</p>
@@ -489,14 +529,14 @@ export default function EditMotorDrawer({
                   Rental Rate <span className="text-red-500">*</span>
                 </label>
                 <div className="relative flex items-center">
-                  <span className="absolute left-3.5 text-xs font-bold text-[#B48454]">₱</span>
+                  <span className="absolute left-3.5 text-xs font-bold text-[#6B7A5E]">₱</span>
                   <input
                     type="number"
-                    min="1"
-                    step="10"
+                    min="0"
+                    step="any"
                     value={rentalRate}
                     onChange={(e) => setRentalRate(e.target.value)}
-                    className="w-full pl-8 pr-3.5 py-2.5 rounded-xl border border-stone/30 bg-white text-xs text-ink font-mono font-bold focus:outline-none focus:ring-2 focus:ring-[#B48454]/40 focus:border-[#B48454] transition-all"
+                    className="w-full pl-8 pr-3.5 py-2.5 rounded-xl border border-stone/30 bg-white text-xs text-ink font-mono font-bold focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40 focus:border-[#6B7A5E] transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
                 </div>
                 {fieldErrors.rentalRate && (
@@ -509,13 +549,13 @@ export default function EditMotorDrawer({
                 <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block mb-1.5">
                   Rate Billing Period
                 </label>
-                <div className="grid grid-cols-2 gap-1.5 p-1 bg-[#FAF8F5] rounded-xl border border-stone/25">
+                <div className="grid grid-cols-2 gap-1.5 p-1 bg-[#F6F2E8] rounded-xl border border-stone/25">
                   <button
                     type="button"
                     onClick={() => setRateType('daily')}
                     className={`py-1.5 rounded-lg text-xs font-semibold transition-all ${
                       rateType === 'daily'
-                        ? 'bg-[#B48454] text-white shadow-xs'
+                        ? 'bg-[#6B7A5E] text-white shadow-xs'
                         : 'text-ink-muted hover:text-ink'
                     }`}
                   >
@@ -526,7 +566,7 @@ export default function EditMotorDrawer({
                     onClick={() => setRateType('hourly')}
                     className={`py-1.5 rounded-lg text-xs font-semibold transition-all ${
                       rateType === 'hourly'
-                        ? 'bg-[#B48454] text-white shadow-xs'
+                        ? 'bg-[#6B7A5E] text-white shadow-xs'
                         : 'text-ink-muted hover:text-ink'
                     }`}
                   >
@@ -534,6 +574,33 @@ export default function EditMotorDrawer({
                   </button>
                 </div>
               </div>
+            </div>
+
+            {/* Overdue Hourly Late Penalty Rate */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block">
+                  Overdue Hourly Penalty Rate (₱/hr)
+                </label>
+                <span className="text-[10px] text-ink-muted font-medium bg-sand/60 px-2 py-0.5 rounded-md border border-stone/20">
+                  Optional Override
+                </span>
+              </div>
+              <div className="relative flex items-center">
+                <span className="absolute left-3.5 text-xs font-bold text-[#6B7A5E]">₱</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="any"
+                  placeholder="System Fallback Default (₱100.00/hr)"
+                  value={lateFeeHourlyRate}
+                  onChange={(e) => setLateFeeHourlyRate(e.target.value)}
+                  className="w-full pl-8 pr-3.5 py-2.5 rounded-xl border border-stone/30 bg-white text-xs text-ink font-mono font-bold focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40 focus:border-[#6B7A5E] transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none placeholder:text-ink-muted/50"
+                />
+              </div>
+              <p className="text-[10px] text-ink-muted mt-1 leading-relaxed">
+                Charged per hour late (rounded up) upon check-in return. Leave blank to use system standard rate.
+              </p>
             </div>
 
             {/* ─── 4. AVAILABILITY STATUS ─── */}
@@ -547,7 +614,7 @@ export default function EditMotorDrawer({
                     key={opt.value}
                     className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${
                       status === opt.value
-                        ? 'border-[#B48454] bg-[#B48454]/5 shadow-xs'
+                        ? 'border-[#6B7A5E] bg-[#6B7A5E]/5 shadow-xs'
                         : 'border-stone/20 hover:border-stone/40 bg-white'
                     }`}
                   >
@@ -561,7 +628,7 @@ export default function EditMotorDrawer({
                       value={opt.value}
                       checked={status === opt.value}
                       onChange={() => setStatus(opt.value)}
-                      className="w-4 h-4 text-[#B48454] focus:ring-[#B48454]/30"
+                      className="w-4 h-4 text-[#6B7A5E] focus:ring-[#6B7A5E]/30"
                     />
                   </label>
                 ))}
@@ -578,7 +645,7 @@ export default function EditMotorDrawer({
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Include details about engine condition, included helmets, luggage box, or driving recommendations..."
-                className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-white text-xs text-ink leading-relaxed focus:outline-none focus:ring-2 focus:ring-[#B48454]/40 focus:border-[#B48454] transition-all placeholder:text-ink-faint resize-none shadow-inner"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-white text-xs text-ink leading-relaxed focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40 focus:border-[#6B7A5E] transition-all placeholder:text-ink-faint resize-none shadow-inner"
               />
             </div>
           </div>
@@ -586,7 +653,7 @@ export default function EditMotorDrawer({
         </form>
 
         {/* ─── Drawer Footer Actions ─── */}
-        <footer className="px-6 py-4 border-t border-stone/15 bg-[#FAF8F5] flex items-center justify-between gap-3 shrink-0">
+        <footer className="px-6 py-4 border-t border-stone/15 bg-[#F6F2E8] flex items-center justify-between gap-3 shrink-0">
           <button
             type="button"
             onClick={handleRequestClose}
@@ -597,7 +664,7 @@ export default function EditMotorDrawer({
           </button>
 
           <div className="flex items-center gap-2">
-            {!isDirty && !error && (
+            {motor && !isDirty && !error && (
               <span className="text-[11px] text-ink-faint hidden sm:inline-block">
                 No changes made
               </span>
@@ -605,18 +672,18 @@ export default function EditMotorDrawer({
             <button
               type="submit"
               form="edit-motor-form"
-              disabled={saving || !isDirty}
-              className="px-6 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl text-xs font-semibold shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              disabled={saving || (motor ? !isDirty : !model.trim() || !plateNumber.trim())}
+              className="px-6 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl text-xs font-semibold shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {saving ? (
                 <>
                   <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  <span>Saving Changes...</span>
+                  <span>{motor ? 'Saving Changes...' : 'Adding Motorcycle...'}</span>
                 </>
               ) : (
                 <>
-                  <Check className="w-4 h-4" strokeWidth={2} />
-                  <span>Save Changes</span>
+                  {motor ? <Check className="w-4 h-4" strokeWidth={2} /> : <Plus className="w-4 h-4" strokeWidth={2} />}
+                  <span>{motor ? 'Save Changes' : 'Add Motorcycle'}</span>
                 </>
               )}
             </button>

@@ -4,11 +4,13 @@ import type { View, Role } from '../types'
 import { authApi } from '../api/auth'
 import { ApiError } from '../api/client'
 import logo from '../imports/logo.png'
+import signinImg from '../imports/signin.jpg'
+import InteractiveLogoMark from '../components/InteractiveLogoMark'
 import AuthLoadingScreen from '../components/AuthLoadingScreen'
 import Modal from '../components/Modal'
 
 interface LoginProps {
-  onLogin: (role: Role, name: string, userId: string, dbId: number) => void
+  onLogin: (role: Role, name: string, userId: string, dbId: number, mustChangePassword?: boolean) => void
   onNavigate: (view: View) => void
 }
 
@@ -30,6 +32,9 @@ export default function Login({ onLogin, onNavigate }: LoginProps) {
     name: string
     userId: string
     dbId: number
+    gender?: string | null
+    civilStatus?: string | null
+    mustChangePassword?: boolean
   } | null>(null)
   const [authRole, setAuthRole] = useState<Role | undefined>(undefined)
   const [loadingError, setLoadingError] = useState('')
@@ -45,7 +50,6 @@ export default function Login({ onLogin, onNavigate }: LoginProps) {
   const [regCivilStatus, setRegCivilStatus] = useState('Single')
   const [regPhone, setRegPhone] = useState('')
   const [regEmail, setRegEmail] = useState('')
-  const [regUsername, setRegUsername] = useState('')
   const [regSubmitting, setRegSubmitting] = useState(false)
   const [regError, setRegError] = useState('')
   const [regSuccess, setRegSuccess] = useState<{ message: string; unique_id: string; username?: string } | null>(null)
@@ -91,7 +95,6 @@ export default function Login({ onLogin, onNavigate }: LoginProps) {
         dob: regDob.trim(),
         gender: regGender,
         civil_status: regCivilStatus,
-        username: regUsername.trim().toLowerCase() || undefined,
       })
       setRegSuccess(res)
     } catch (err: unknown) {
@@ -132,11 +135,14 @@ export default function Login({ onLogin, onNavigate }: LoginProps) {
         name: res.user.full_name,
         userId: res.user.unique_id,
         dbId: res.user.id,
+        gender: res.user.gender,
+        civilStatus: res.user.civil_status,
+        mustChangePassword: Boolean(res.user.must_change_password),
       })
 
-      // Ensure the loading ripple plays calmly for ~2.5s before the 500ms exit (3.0s total)
+      // Maintain loading screen for 4 seconds
       const elapsed = Date.now() - startTime
-      const remainingDelay = Math.max(0, 2500 - elapsed)
+      const remainingDelay = Math.max(0, 4000 - elapsed)
 
       setTimeout(() => {
         setLoadingPhase('success')
@@ -160,7 +166,7 @@ export default function Login({ onLogin, onNavigate }: LoginProps) {
     if (loadingPhase === 'success' && authResult) {
       // Success: hand off to App.tsx which mounts the dashboard
       setShowLoadingScreen(false)
-      onLogin(authResult.role, authResult.name, authResult.userId, authResult.dbId)
+      onLogin(authResult.role, authResult.name, authResult.userId, authResult.dbId, authResult.mustChangePassword)
     } else if (loadingPhase === 'error') {
       // Error: fade back to login form with error shown
       setShowLoadingScreen(false)
@@ -179,6 +185,9 @@ export default function Login({ onLogin, onNavigate }: LoginProps) {
         <AuthLoadingScreen
           phase={effectivePhase}
           role={authRole}
+          fullName={authResult?.name}
+          gender={authResult?.gender}
+          civilStatus={authResult?.civilStatus}
           errorMessage={loadingError}
           onExitComplete={handleLoadingExitComplete}
         />
@@ -186,28 +195,26 @@ export default function Login({ onLogin, onNavigate }: LoginProps) {
 
       {/* ─── Login Form ─── */}
       <div className="relative min-h-screen w-full flex items-center justify-center p-4 sm:p-6 md:p-8 overflow-x-hidden font-sans">
-        <div 
+        <div
           className="fixed inset-0 bg-cover bg-center bg-no-repeat z-0 scale-105 transform transition-transform duration-1000"
           style={{
-            backgroundImage: `url('https://images.unsplash.com/photo-1540541338537-1220059169af?w=1920&q=85&auto=format&fit=crop')`,
+            backgroundImage: `url(${signinImg})`,
           }}
         />
 
         <div className="fixed inset-0 bg-black/55 backdrop-blur-md z-0" />
 
         <div className="relative z-10 w-full max-w-5xl bg-white/95 backdrop-blur-xl rounded-[2rem] shadow-2xl border border-white/20 overflow-hidden grid lg:grid-cols-12 min-h-[640px]">
-          
-          <div className="lg:col-span-6 p-6 sm:p-10 md:p-12 flex flex-col justify-between bg-[#FCFAF7]/95">
+
+          <div className="lg:col-span-6 p-6 sm:p-10 md:p-12 flex flex-col justify-between bg-[#F6F2E8]/95">
             <div>
-              <div className="flex items-center gap-3 mb-6 sm:mb-8 cursor-pointer" onClick={() => onNavigate('landing')}>
-                <div className="w-10 h-10 rounded-xl bg-forest/10 p-1 border border-forest/20 flex items-center justify-center shadow-sm">
-                  <img src={logo} alt="Logo" className="w-full h-full object-contain" />
-                </div>
+              <div className="flex items-center gap-3 mb-6 sm:mb-8 cursor-pointer group" onClick={() => onNavigate('landing')}>
+                <InteractiveLogoMark />
                 <div>
-                  <h2 className="font-display text-base font-bold text-ink tracking-tight leading-none">
+                  <h2 className="font-display text-base font-bold text-ink tracking-tight leading-none group-hover:text-[#6B7A5E] transition-colors">
                     Cambacay Breeze Inn
                   </h2>
-                  <span className="text-[10px] uppercase font-bold tracking-widest text-[#B48454] mt-0.5 block">
+                  <span className="text-[10px] uppercase font-bold tracking-widest text-[#6B7A5E] mt-0.5 block">
                     Batuan · Bohol
                   </span>
                 </div>
@@ -253,7 +260,7 @@ export default function Login({ onLogin, onNavigate }: LoginProps) {
                       onChange={(e) => setIdentifier(e.target.value)}
                       placeholder="Enter your email"
                       onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-                      className="w-full pl-10 pr-4 py-3 rounded-xl border border-stone/30 bg-white text-sm text-ink focus:outline-none focus:ring-2 focus:ring-[#B48454]/40 focus:border-[#B48454] transition-all placeholder:text-ink-faint shadow-inner"
+                      className="w-full pl-10 pr-4 py-3 rounded-xl border border-stone/30 bg-white text-sm text-ink focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40 focus:border-[#6B7A5E] transition-all placeholder:text-ink-faint shadow-inner"
                     />
                   </div>
                 </div>
@@ -275,7 +282,7 @@ export default function Login({ onLogin, onNavigate }: LoginProps) {
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Enter your password"
                       onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-                      className="w-full pl-10 pr-11 py-3 rounded-xl border border-stone/30 bg-white text-sm text-ink focus:outline-none focus:ring-2 focus:ring-[#B48454]/40 focus:border-[#B48454] transition-all placeholder:text-ink-faint shadow-inner"
+                      className="w-full pl-10 pr-11 py-3 rounded-xl border border-stone/30 bg-white text-sm text-ink focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40 focus:border-[#6B7A5E] transition-all placeholder:text-ink-faint shadow-inner"
                     />
                     <button
                       type="button"
@@ -304,14 +311,14 @@ export default function Login({ onLogin, onNavigate }: LoginProps) {
                       type="checkbox"
                       checked={rememberMe}
                       onChange={(e) => setRememberMe(e.target.checked)}
-                      className="w-4 h-4 rounded border-stone text-[#B48454] focus:ring-[#B48454]/30"
+                      className="w-4 h-4 rounded border-stone text-[#6B7A5E] focus:ring-[#6B7A5E]/30"
                     />
                     <span>Remember me</span>
                   </label>
                   <button
                     type="button"
                     onClick={() => setForgotMsg(true)}
-                    className="text-[#B48454] hover:text-[#8E6135] font-semibold hover:underline"
+                    className="text-[#6B7A5E] hover:text-[#4F5D45] font-semibold hover:underline"
                   >
                     Forgot password?
                   </button>
@@ -321,7 +328,7 @@ export default function Login({ onLogin, onNavigate }: LoginProps) {
                 <button
                   type="submit"
                   disabled={showLoadingScreen}
-                  className="w-full bg-[#B48454] hover:bg-[#9E6E3E] text-white py-3.5 rounded-xl font-semibold text-sm tracking-wide shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="w-full bg-[#6B7A5E] hover:bg-[#4F5D45] text-white py-3.5 rounded-xl font-semibold text-sm tracking-wide shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   <span>Sign In</span>
                 </button>
@@ -333,7 +340,7 @@ export default function Login({ onLogin, onNavigate }: LoginProps) {
                       <div className="w-full border-t border-stone/20" />
                     </div>
                     <div className="relative flex justify-center text-xs">
-                      <span className="bg-[#FCFAF7] px-3 text-ink-muted">New to Cambacay Breeze Inn?</span>
+                      <span className="bg-[#F6F2E8] px-3 text-ink-muted">New to Cambacay Breeze Inn?</span>
                     </div>
                   </div>
 
@@ -344,9 +351,9 @@ export default function Login({ onLogin, onNavigate }: LoginProps) {
                       setRegError('')
                       setRegSuccess(null)
                     }}
-                    className="w-full py-3 px-4 border border-[#B48454]/40 hover:border-[#B48454] bg-white hover:bg-sand/40 text-ink font-semibold rounded-xl text-xs sm:text-sm transition-all shadow-xs flex items-center justify-center gap-2 group"
+                    className="w-full py-3 px-4 border border-[#6B7A5E]/40 hover:border-[#6B7A5E] bg-white hover:bg-sand/40 text-ink font-semibold rounded-xl text-xs sm:text-sm transition-all shadow-xs flex items-center justify-center gap-2 group"
                   >
-                    <UserPlus className="w-4 h-4 text-[#B48454] group-hover:scale-110 transition-transform" strokeWidth={1.75} />
+                    <UserPlus className="w-4 h-4 text-[#6B7A5E] group-hover:scale-110 transition-transform" strokeWidth={1.75} />
                     <span>Register as a Guest</span>
                   </button>
                 </div>
@@ -365,7 +372,7 @@ export default function Login({ onLogin, onNavigate }: LoginProps) {
             <div
               className="absolute inset-0 bg-cover bg-center transition-transform duration-700 hover:scale-105"
               style={{
-                backgroundImage: `url('https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1200&q=85&auto=format&fit=crop')`,
+                backgroundImage: `url(${signinImg})`,
               }}
             />
 
@@ -435,11 +442,11 @@ export default function Login({ onLogin, onNavigate }: LoginProps) {
             <div>
               <h3 className="font-display font-bold text-ink text-lg">Registration Submitted!</h3>
               <p className="text-xs text-ink-muted mt-1 leading-relaxed">
-                Your guest profile has been created with Customer ID <strong className="font-mono text-[#B48454]">{regSuccess.unique_id}</strong>.
+                Your guest profile has been created with Customer ID <strong className="font-mono text-[#6B7A5E]">{regSuccess.unique_id}</strong>.
               </p>
             </div>
 
-            <div className="p-4 bg-[#FAF8F5] border border-stone/20 rounded-2xl text-xs text-ink-muted leading-relaxed text-left space-y-1">
+            <div className="p-4 bg-[#F6F2E8] border border-stone/20 rounded-2xl text-xs text-ink-muted leading-relaxed text-left space-y-1">
               <p className="font-semibold text-ink">Awaiting Administrator Approval:</p>
               <p>
                 Your registration is currently pending review. Once approved by the resort administrator, your account will be activated and login credentials will be provided.
@@ -449,10 +456,10 @@ export default function Login({ onLogin, onNavigate }: LoginProps) {
             <button
               onClick={() => {
                 setShowRegisterModal(false)
-                setIdentifier(regSuccess.username || regUsername || regEmail)
+                setIdentifier(regSuccess.username || regEmail)
                 setRegSuccess(null)
               }}
-              className="w-full py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl font-semibold text-xs transition-all shadow-sm"
+              className="w-full py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl font-semibold text-xs transition-all shadow-sm"
             >
               Back to Sign In
             </button>
@@ -479,19 +486,19 @@ export default function Login({ onLogin, onNavigate }: LoginProps) {
                   value={regFirstName}
                   onChange={(e) => setRegFirstName(e.target.value)}
                   placeholder="e.g. Juan"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] text-ink focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-[#F6F2E8] text-ink focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
                 />
               </div>
 
               <div>
                 <label className="block font-semibold text-ink uppercase tracking-wider mb-1">
-                  Middle Name <span className="text-ink-faint font-normal">(Optional)</span>
+                  Middle Name
                 </label>
                 <input
                   value={regMiddleName}
                   onChange={(e) => setRegMiddleName(e.target.value)}
                   placeholder="e.g. Santos"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] text-ink focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-[#F6F2E8] text-ink focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
                 />
               </div>
 
@@ -502,7 +509,7 @@ export default function Login({ onLogin, onNavigate }: LoginProps) {
                   value={regLastName}
                   onChange={(e) => setRegLastName(e.target.value)}
                   placeholder="e.g. Dela Cruz"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] text-ink focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-[#F6F2E8] text-ink focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
                 />
               </div>
             </div>
@@ -517,7 +524,7 @@ export default function Login({ onLogin, onNavigate }: LoginProps) {
                   value={regEmail}
                   onChange={(e) => setRegEmail(e.target.value)}
                   placeholder="e.g. juan@example.com"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] text-ink focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-[#F6F2E8] text-ink focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
                 />
               </div>
 
@@ -538,11 +545,10 @@ export default function Login({ onLogin, onNavigate }: LoginProps) {
                     setRegPhone(digits)
                   }}
                   placeholder="09XXXXXXXXX"
-                  className={`w-full px-3.5 py-2.5 rounded-xl border bg-[#FAF8F5] text-ink font-mono focus:outline-none focus:ring-2 transition-all ${
-                    regPhone && (regPhone.length !== 11 || !regPhone.startsWith('09'))
+                  className={`w-full px-3.5 py-2.5 rounded-xl border bg-[#F6F2E8] text-ink font-mono focus:outline-none focus:ring-2 transition-all ${regPhone && (regPhone.length !== 11 || !regPhone.startsWith('09'))
                       ? 'border-amber-400 focus:ring-amber-400/40'
-                      : 'border-stone/30 focus:ring-[#B48454]/40'
-                  }`}
+                      : 'border-stone/30 focus:ring-[#6B7A5E]/40'
+                    }`}
                 />
                 {regPhone && (!regPhone.startsWith('09') || regPhone.length !== 11) && (
                   <p className="text-[10px] text-amber-700 mt-1">
@@ -561,7 +567,7 @@ export default function Login({ onLogin, onNavigate }: LoginProps) {
                   type="date"
                   value={regDob}
                   onChange={(e) => setRegDob(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] text-ink focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-[#F6F2E8] text-ink focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
                 />
               </div>
 
@@ -570,7 +576,7 @@ export default function Login({ onLogin, onNavigate }: LoginProps) {
                 <select
                   value={regGender}
                   onChange={(e) => setRegGender(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] text-ink font-medium focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-[#F6F2E8] text-ink font-medium focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
                 >
                   <option value="Male">Male</option>
                   <option value="Female">Female</option>
@@ -583,7 +589,7 @@ export default function Login({ onLogin, onNavigate }: LoginProps) {
                 <select
                   value={regCivilStatus}
                   onChange={(e) => setRegCivilStatus(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] text-ink font-medium focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-[#F6F2E8] text-ink font-medium focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
                 >
                   <option value="Single">Single</option>
                   <option value="Married">Married</option>
@@ -602,20 +608,7 @@ export default function Login({ onLogin, onNavigate }: LoginProps) {
                 value={regAddress}
                 onChange={(e) => setRegAddress(e.target.value)}
                 placeholder="e.g. Brgy. Poblacion, Batuan, Bohol, Philippines"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] text-ink focus:outline-none focus:ring-2 focus:ring-[#B48454]/40 resize-none"
-              />
-            </div>
-
-            {/* 5. Desired Username */}
-            <div>
-              <label className="block font-semibold text-ink uppercase tracking-wider mb-1">
-                Desired Username <span className="text-ink-faint font-normal">(Optional — auto-generated if left empty)</span>
-              </label>
-              <input
-                value={regUsername}
-                onChange={(e) => setRegUsername(e.target.value)}
-                placeholder="e.g. juandelacruz"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] text-ink font-mono focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-[#F6F2E8] text-ink focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40 resize-none"
               />
             </div>
 
@@ -634,7 +627,7 @@ export default function Login({ onLogin, onNavigate }: LoginProps) {
               <button
                 type="submit"
                 disabled={regSubmitting}
-                className="flex-1 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white font-semibold rounded-xl shadow-sm hover:shadow-md transition-all text-xs disabled:opacity-50"
+                className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white font-semibold rounded-xl shadow-sm hover:shadow-md transition-all text-xs disabled:opacity-50"
               >
                 {regSubmitting ? 'Registering...' : 'Submit Registration'}
               </button>

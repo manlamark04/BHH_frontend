@@ -6,128 +6,219 @@ interface StatusBadgeProps {
 interface StatusConfig {
   badge: string
   dot: string
+  label?: string
 }
 
 const STATUS_CONFIGS: Record<string, StatusConfig> = {
-  // Account statuses
-  PENDING: {
-    badge: 'bg-amber-500/10 text-amber-800 border-amber-500/20',
-    dot: 'bg-amber-500',
+  // Request Lifecycle States
+  PENDING_PAYMENT: {
+    badge: 'bg-amber-500 text-white border-amber-400 font-bold shadow-xs',
+    dot: 'bg-amber-100 animate-pulse',
+    label: 'Pending Payment',
   },
-  ACTIVE: {
-    badge: 'bg-emerald-500/10 text-emerald-800 border-emerald-500/20',
-    dot: 'bg-emerald-500',
+  'PENDING PAYMENT': {
+    badge: 'bg-amber-500 text-white border-amber-400 font-bold shadow-xs',
+    dot: 'bg-amber-100 animate-pulse',
+    label: 'Pending Payment',
   },
-  DISABLED: {
-    badge: 'bg-stone-500/10 text-stone-700 border-stone-500/20',
-    dot: 'bg-stone-400',
+  PENDING_APPROVAL: {
+    badge: 'bg-indigo-600 text-white border-indigo-500 font-bold shadow-xs',
+    dot: 'bg-indigo-200 animate-pulse',
+    label: 'Pending Approval',
   },
-  SUSPENDED: {
-    badge: 'bg-rose-500/10 text-rose-800 border-rose-500/20',
-    dot: 'bg-rose-500',
+  'PENDING APPROVAL': {
+    badge: 'bg-indigo-600 text-white border-indigo-500 font-bold shadow-xs',
+    dot: 'bg-indigo-200 animate-pulse',
+    label: 'Pending Approval',
+  },
+  CONFIRMED: {
+    badge: 'bg-emerald-600 text-white border-emerald-500 font-bold shadow-xs',
+    dot: 'bg-emerald-200',
+    label: 'Confirmed',
   },
   REJECTED: {
-    badge: 'bg-rose-500/10 text-rose-800 border-rose-500/20',
-    dot: 'bg-rose-500',
+    badge: 'bg-rose-600 text-white border-rose-500 font-bold shadow-xs',
+    dot: 'bg-rose-200',
+    label: 'Rejected',
   },
-  // Booking statuses
-  CONFIRMED: {
-    badge: 'bg-blue-500/10 text-blue-800 border-blue-500/20',
-    dot: 'bg-blue-500',
+
+  // Account statuses
+  PENDING: {
+    badge: 'bg-amber-500 text-white border-amber-400 font-bold shadow-xs',
+    dot: 'bg-amber-100',
+    label: 'Pending',
   },
+  ACTIVE: {
+    badge: 'bg-emerald-600 text-white border-emerald-500 font-bold shadow-xs',
+    dot: 'bg-emerald-200',
+    label: 'Active',
+  },
+  DISABLED: {
+    badge: 'bg-stone-500 text-white border-stone-400 font-bold shadow-xs',
+    dot: 'bg-stone-200',
+    label: 'Disabled',
+  },
+  SUSPENDED: {
+    badge: 'bg-rose-600 text-white border-rose-500 font-bold shadow-xs',
+    dot: 'bg-rose-200',
+    label: 'Suspended',
+  },
+
+  // Booking / Rental statuses
   REQUESTED: {
-    badge: 'bg-amber-500/10 text-amber-800 border-amber-500/20',
-    dot: 'bg-amber-500',
+    badge: 'bg-amber-500 text-white border-amber-400 font-bold shadow-xs',
+    dot: 'bg-amber-100',
+    label: 'Requested',
   },
   'CHECKED-IN': {
-    badge: 'bg-emerald-500/10 text-emerald-800 border-emerald-500/20',
-    dot: 'bg-emerald-500',
+    badge: 'bg-teal-600 text-white border-teal-500 font-bold shadow-xs',
+    dot: 'bg-teal-200',
+    label: 'Checked-In',
   },
   'CHECKED-OUT': {
-    badge: 'bg-stone-500/10 text-stone-700 border-stone-500/20',
-    dot: 'bg-stone-400',
+    badge: 'bg-stone-600 text-white border-stone-500 font-bold shadow-xs',
+    dot: 'bg-stone-300',
+    label: 'Checked-Out',
   },
   CHECKED_IN: {
-    badge: 'bg-emerald-500/10 text-emerald-800 border-emerald-500/20',
-    dot: 'bg-emerald-500',
+    badge: 'bg-teal-600 text-white border-teal-500 font-bold shadow-xs',
+    dot: 'bg-teal-200',
+    label: 'Checked-In',
   },
   CHECKED_OUT: {
-    badge: 'bg-stone-500/10 text-stone-700 border-stone-500/20',
-    dot: 'bg-stone-400',
+    badge: 'bg-stone-600 text-white border-stone-500 font-bold shadow-xs',
+    dot: 'bg-stone-300',
+    label: 'Checked-Out',
   },
   CANCELLED: {
-    badge: 'bg-rose-500/10 text-rose-800 border-rose-500/20',
-    dot: 'bg-rose-500',
+    badge: 'bg-stone-600 text-white border-stone-500 font-bold shadow-xs',
+    dot: 'bg-stone-300',
+    label: 'Cancelled',
   },
   COMPLETED: {
-    badge: 'bg-[#B48454]/10 text-[#9E6E3E] border-[#B48454]/25',
-    dot: 'bg-[#B48454]',
+    badge: 'bg-teal-600 text-white border-teal-500 font-bold shadow-xs',
+    dot: 'bg-teal-100',
+    label: 'Completed',
   },
-  // Room statuses
+  OVERDUE: {
+    badge: 'bg-rose-600 text-white border-rose-500 font-bold shadow-xs',
+    dot: 'bg-rose-200 animate-ping',
+    label: 'Overdue',
+  },
+  NO_SHOW: {
+    badge: 'bg-purple-700 text-white border-purple-600 font-bold shadow-xs',
+    dot: 'bg-purple-200',
+    label: 'No-Show',
+  },
+  'NO-SHOW': {
+    badge: 'bg-purple-700 text-white border-purple-600 font-bold shadow-xs',
+    dot: 'bg-purple-200',
+    label: 'No-Show',
+  },
+  'NO SHOW': {
+    badge: 'bg-purple-700 text-white border-purple-600 font-bold shadow-xs',
+    dot: 'bg-purple-200',
+    label: 'No-Show',
+  },
+
+  // Room / Motorcycle statuses
   AVAILABLE: {
-    badge: 'bg-emerald-500/10 text-emerald-800 border-emerald-500/20',
-    dot: 'bg-emerald-500',
+    badge: 'bg-emerald-600 text-white border-emerald-500 font-bold shadow-xs',
+    dot: 'bg-emerald-200',
+    label: 'Available',
   },
   OCCUPIED: {
-    badge: 'bg-[#B48454]/10 text-[#9E6E3E] border-[#B48454]/25',
-    dot: 'bg-[#B48454]',
+    badge: 'bg-amber-700 text-white border-amber-600 font-bold shadow-xs',
+    dot: 'bg-amber-200',
+    label: 'Occupied',
   },
   RESERVED: {
-    badge: 'bg-blue-500/10 text-blue-800 border-blue-500/20',
-    dot: 'bg-blue-500',
+    badge: 'bg-blue-600 text-white border-blue-500 font-bold shadow-xs',
+    dot: 'bg-blue-200',
+    label: 'Reserved',
+  },
+  RENTED: {
+    badge: 'bg-blue-600 text-white border-blue-500 font-bold shadow-xs',
+    dot: 'bg-blue-200',
+    label: 'Rented',
   },
   CLEANING: {
-    badge: 'bg-amber-500/10 text-amber-800 border-amber-500/20',
-    dot: 'bg-amber-500',
+    badge: 'bg-amber-500 text-white border-amber-400 font-bold shadow-xs',
+    dot: 'bg-amber-100',
+    label: 'Cleaning',
   },
   MAINTENANCE: {
-    badge: 'bg-rose-500/10 text-rose-800 border-rose-500/20',
-    dot: 'bg-rose-500',
+    badge: 'bg-rose-600 text-white border-rose-500 font-bold shadow-xs',
+    dot: 'bg-rose-200',
+    label: 'Maintenance',
   },
   UNAVAILABLE: {
-    badge: 'bg-stone-500/10 text-stone-600 border-stone-500/20',
-    dot: 'bg-stone-400',
+    badge: 'bg-stone-600 text-white border-stone-500 font-bold shadow-xs',
+    dot: 'bg-stone-300',
+    label: 'Unavailable',
   },
+
   // Payment statuses
   PAID: {
-    badge: 'bg-emerald-500/10 text-emerald-800 border-emerald-500/20',
-    dot: 'bg-emerald-500',
+    badge: 'bg-emerald-600 text-white border-emerald-500 font-bold shadow-xs',
+    dot: 'bg-emerald-200',
+    label: 'Paid',
   },
   'PARTIALLY PAID': {
-    badge: 'bg-amber-500/10 text-amber-800 border-amber-500/20',
-    dot: 'bg-amber-500',
+    badge: 'bg-amber-500 text-white border-amber-400 font-bold shadow-xs',
+    dot: 'bg-amber-100',
+    label: 'Partially Paid',
+  },
+  PARTIALLY_PAID: {
+    badge: 'bg-amber-500 text-white border-amber-400 font-bold shadow-xs',
+    dot: 'bg-amber-100',
+    label: 'Partially Paid',
   },
   UNPAID: {
-    badge: 'bg-rose-500/10 text-rose-800 border-rose-500/20',
-    dot: 'bg-rose-500',
+    badge: 'bg-rose-600 text-white border-rose-500 font-bold shadow-xs',
+    dot: 'bg-rose-200',
+    label: 'Unpaid',
   },
   REFUNDED: {
-    badge: 'bg-blue-500/10 text-blue-800 border-blue-500/20',
-    dot: 'bg-blue-500',
+    badge: 'bg-purple-600 text-white border-purple-500 font-bold shadow-xs',
+    dot: 'bg-purple-200',
+    label: 'Refunded',
   },
-  // Activity rental
-  APPROVED: {
-    badge: 'bg-blue-500/10 text-blue-800 border-blue-500/20',
-    dot: 'bg-blue-500',
+  REFUND_PENDING: {
+    badge: 'bg-purple-600 text-white border-purple-500 font-bold shadow-xs',
+    dot: 'bg-purple-200 animate-pulse',
+    label: 'Refund Pending',
+  },
+  'REFUND PENDING': {
+    badge: 'bg-purple-600 text-white border-purple-500 font-bold shadow-xs',
+    dot: 'bg-purple-200 animate-pulse',
+    label: 'Refund Pending',
   },
 }
 
 export default function StatusBadge({ status, size = 'sm' }: StatusBadgeProps) {
-  const normalizedKey = status.toUpperCase().replace(/\s+/g, ' ').trim()
-  const config = STATUS_CONFIGS[normalizedKey] || {
-    badge: 'bg-stone-500/10 text-stone-700 border-stone-500/20',
-    dot: 'bg-stone-400',
+  if (!status) return null
+
+  const rawKey = String(status).toUpperCase().trim()
+  const normalizedKey = rawKey.replace(/-/g, '_').replace(/\s+/g, '_')
+  
+  const config = STATUS_CONFIGS[normalizedKey] || STATUS_CONFIGS[rawKey] || {
+    badge: 'bg-stone-600 text-white border-stone-500 font-bold shadow-xs',
+    dot: 'bg-stone-300',
+    label: status,
   }
+
+  const displayText = config.label || status.replace(/_/g, ' ')
 
   const sizeClass =
     size === 'sm' ? 'text-[11px] px-2.5 py-0.5 gap-1.5' : 'text-xs px-3 py-1 gap-2'
 
   return (
     <span
-      className={`inline-flex items-center rounded-md font-mono font-medium tracking-wide border shadow-xs ${sizeClass} ${config.badge}`}
+      className={`inline-flex items-center rounded-md font-sans font-bold tracking-wide border shadow-2xs whitespace-nowrap select-none ${sizeClass} ${config.badge}`}
     >
       <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${config.dot}`} />
-      <span>{status}</span>
+      <span>{displayText}</span>
     </span>
   )
 }

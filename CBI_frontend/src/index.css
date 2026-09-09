@@ -2,30 +2,32 @@
 
 @import 'tailwindcss';
 
-@theme {
-  --color-cream: #F8F5EE;
-  --color-cream-dark: #EDE9DF;
-  --color-forest: #2D5016;
-  --color-forest-hover: #3A6620;
-  --color-forest-muted: #5A8A30;
-  --color-leaf: #7AAD48;
-  --color-amber: #C47B2B;
-  --color-amber-light: #E8A94D;
-  --color-bark: #5C3D1E;
-  --color-sand: #EDE9E0;
-  --color-stone: #D4CEC3;
-  --color-stone-light: #E8E4DC;
-  --color-ink: #1C1A16;
-  --color-ink-muted: #7A7166;
-  --color-ink-faint: #A8A29C;
-  --color-white: #FFFFFF;
-  --color-red-soft: #C0392B;
-  --color-blue-soft: #2874A6;
-  --color-teal-soft: #1A7F6E;
+@custom-variant dark (&:where(.dark, .dark *));
 
-  --font-display: 'Cormorant Garamond', 'Fraunces', serif;
-  --font-body: 'Inter', sans-serif;
-  --font-sans: 'Inter', sans-serif;
+@theme {
+  --color-cream: #F6F2E8;
+  --color-cream-dark: #EDE7D8;
+  --color-forest: #3B4534;
+  --color-forest-hover: #2A3126;
+  --color-forest-muted: #55624B;
+  --color-leaf: #22A66B;
+  --color-amber: #6B7A5E;
+  --color-amber-light: #C9A66B;
+  --color-bark: #2A3126;
+  --color-sand: #EDE7D8;
+  --color-stone: #E2DCD0;
+  --color-stone-light: #EDE7D8;
+  --color-ink: #2A2822;
+  --color-ink-muted: #7C7A6C;
+  --color-ink-faint: #A8A698;
+  --color-white: #FFFFFF;
+  --color-red-soft: #EF4444;
+  --color-blue-soft: #3B82F6;
+  --color-teal-soft: #22A66B;
+
+  --font-display: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 }
 
@@ -33,15 +35,121 @@
   box-sizing: border-box;
 }
 
+/* Remove number input spin buttons */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
 html {
   scroll-behavior: smooth;
 }
 
 body {
-  font-family: 'Outfit', sans-serif;
-  background-color: #F8F5EE;
-  color: #1C1A16;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: #F6F2E8;
+  color: #2A2822;
   -webkit-font-smoothing: antialiased;
+}
+
+html.dark body {
+  background-color: #141713;
+  color: #F6F2E8;
+}
+
+html.dark {
+  --color-cream: #141713;
+  --color-cream-dark: #1C221A;
+  --color-sand: #222920;
+  --color-stone: #2F382C;
+  --color-stone-light: #1E251C;
+  --color-ink: #F6F2E8;
+  --color-ink-muted: #A8A698;
+  --color-ink-faint: #7C7A6C;
+}
+
+/* ─── Global Enterprise Dark Mode Surfaces & Contrast ─── */
+html.dark {
+  color-scheme: dark;
+}
+
+html.dark .bg-white {
+  background-color: #1C221A;
+}
+
+html.dark .bg-\[\#FCFAF7\],
+html.dark .bg-\[\#FAF8F5\],
+html.dark .bg-\[\#FBF9F6\],
+html.dark .bg-\[\#F6F2E8\],
+html.dark .bg-sand\/40,
+html.dark .bg-sand\/30,
+html.dark .bg-sand\/20,
+html.dark .bg-neutral-50,
+html.dark .bg-neutral-50\/60,
+html.dark .bg-neutral-50\/70,
+html.dark .bg-neutral-50\/80 {
+  background-color: #161B14;
+}
+
+html.dark tr.bg-sand\/30,
+html.dark tr.bg-neutral-50\/80,
+html.dark thead tr {
+  background-color: #161B14;
+  color: #A8A698;
+}
+
+html.dark tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.035);
+}
+
+html.dark input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]),
+html.dark select,
+html.dark textarea {
+  background-color: #1E251C;
+  color: #F6F2E8;
+  border-color: #2F382C;
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: #7C7A6C;
+}
+
+html.dark .border-stone\/15,
+html.dark .border-stone\/20,
+html.dark .border-stone\/30,
+html.dark .border-stone,
+html.dark .border-black\/\[0\.04\],
+html.dark .border-black\/\[0\.05\],
+html.dark .border-black\/\[0\.06\],
+html.dark .border-black\/\[0\.07\],
+html.dark .border-black\/\[0\.08\],
+html.dark .border-black\/\[0\.1\] {
+  border-color: #283124;
+}
+
+html.dark .divide-stone\/15,
+html.dark .divide-stone\/20,
+html.dark .divide-black\/\[0\.04\] {
+  border-color: #283124;
+}
+
+html.dark .text-ink {
+  color: #F6F2E8;
+}
+
+html.dark .text-ink-muted {
+  color: #A8A698;
+}
+
+html.dark .text-forest {
+  color: #F6F2E8;
 }
 
 /* Custom scrollbar */
@@ -53,11 +161,18 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #D4CEC3;
+  background: #E2DCD0;
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #A8A29C;
+  background: #D4CDBC;
+}
+
+html.dark ::-webkit-scrollbar-thumb {
+  background: #283124;
+}
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: #3B4534;
 }
 
 /* Hide scrollbar when not hovering */
@@ -67,10 +182,23 @@ body {
 
 /* Utility for display font */
 .font-display {
-  font-family: 'Fraunces', serif;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+.font-serif-brand {
+  font-family: 'Fraunces', 'Cormorant Garamond', serif;
 }
 .font-mono {
   font-family: 'JetBrains Mono', monospace;
+}
+
+/* ─── Compact Card Container Standards ─── */
+.card-compact {
+  padding: 1rem;
+  border-radius: 0.75rem;
+}
+.stat-card-compact {
+  padding: 0.875rem 1rem;
+  border-radius: 0.75rem;
 }
 
 /* ─── Landing page: scroll-reveal ─── */
@@ -104,4 +232,149 @@ body {
 .nav-scrolled {
   box-shadow: 0 1px 12px rgba(0, 0, 0, 0.06);
   border-bottom-color: rgba(212, 206, 195, 0.35) !important;
+}
+
+/* ─── 3D Interactive Automatic Logo Flip Loop (8s Cycle: 1s flip, 3s rest, 1s flip, 3s rest) ─── */
+.logo-flip-container {
+  perspective: 800px;
+  -webkit-perspective: 800px;
+}
+
+.logo-flip-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
+  animation: coin-flip-loop 8s ease-in-out infinite;
+  will-change: transform;
+}
+
+.logo-flip-container:hover .logo-flip-inner,
+.logo-flip-container:focus-within .logo-flip-inner {
+  animation-play-state: paused;
+}
+
+@keyframes coin-flip-loop {
+  0% {
+    transform: rotateY(0deg);
+  }
+  12.5% {
+    transform: rotateY(180deg);
+  }
+  50% {
+    transform: rotateY(180deg);
+  }
+  62.5% {
+    transform: rotateY(360deg);
+  }
+  100% {
+    transform: rotateY(360deg);
+  }
+}
+
+.logo-face {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logo-face-front {
+  transform: rotateY(0deg);
+}
+
+.logo-face-back {
+  transform: rotateY(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .logo-flip-inner {
+    animation: none !important;
+    transform: rotateY(0deg) !important;
+  }
+}
+
+/* ─── Toast Animations ─────────────────────────────────────── */
+@keyframes bhh-toast-in {
+  from { opacity: 0; transform: translateX(100%) scale(0.95); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+@keyframes bhh-toast-bar {
+  from { width: 100%; }
+  to   { width: 0%; }
+}
+
+/* ─── Skeleton Pulse Animation ─────────────────────────────── */
+@keyframes bhh-skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+.bhh-skeleton {
+  background: linear-gradient(90deg, #e9e5dd 25%, #f0ece3 50%, #e9e5dd 75%);
+  background-size: 200% 100%;
+  animation: bhh-skeleton-shimmer 1.6s ease-in-out infinite;
+  border-radius: 0.5rem;
+}
+
+html.dark .bhh-skeleton {
+  background: linear-gradient(90deg, #1E251C 25%, #252D22 50%, #1E251C 75%);
+  background-size: 200% 100%;
+}
+
+@keyframes bhh-skeleton-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ─── Official Receipt Print Styles ───────────────────────── */
+@media print {
+  /* Hide everything except the receipt */
+  body > *:not(#print-root),
+  .fixed,
+  aside,
+  nav,
+  header,
+  footer {
+    display: none !important;
+  }
+
+  /* Show receipt, voucher, and EOD shift report */
+  #bhh-receipt-print,
+  #official-receipt-print-area,
+  #booking-voucher-print-area,
+  #cashier-eod-print-area {
+    display: block !important;
+    position: static !important;
+    overflow: visible !important;
+    background: white !important;
+    color: black !important;
+  }
+
+  #bhh-receipt-print *,
+  #official-receipt-print-area *,
+  #booking-voucher-print-area *,
+  #cashier-eod-print-area * {
+    color: black !important;
+    background: white !important;
+    border-color: #ccc !important;
+    box-shadow: none !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+
+  @page {
+    margin: 1.5cm;
+    size: A5 portrait;
+  }
 }

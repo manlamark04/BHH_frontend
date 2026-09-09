@@ -14,6 +14,7 @@ import { billingApi, type InvoiceItem } from '../../api/billing'
 import { bookingsApi, type BookingItem } from '../../api/bookings'
 import { roomsApi, type RoomRecord } from '../../api/rooms'
 import { usersApi } from '../../api/users'
+import { useToast } from '../../context/ToastContext'
 import {
   BarChart,
   Bar,
@@ -31,7 +32,7 @@ import {
 type PeriodOption = 'this_month' | 'last_month' | 'last_3_months' | 'last_6_months' | 'this_year' | 'last_year' | 'custom'
 type GroupByOption = 'daily' | 'monthly' | 'yearly'
 
-const DONUT_COLORS = ['#B48454', '#8C6239', '#5B3E25', '#D4A373', '#A5A58D', '#6B705C', '#3D405B', '#E07A5F']
+const DONUT_COLORS = ['#6B7A5E', '#8C6239', '#5B3E25', '#D4A373', '#A5A58D', '#6B705C', '#3D405B', '#E07A5F']
 const STATUS_COLORS: Record<string, string> = {
   'COMPLETED': '#2E7D32',
   'CONFIRMED': '#0284C7',
@@ -59,11 +60,56 @@ export default function AdminReports() {
   const [paymentMethodFilter, setPaymentMethodFilter] = useState('All')
   const [searchQuery, setSearchQuery] = useState('')
   const [showAllTopGuests, setShowAllTopGuests] = useState(false)
-  const [toast, setToast] = useState('')
+  const toast = useToast()
 
-  const fireToast = (msg: string) => {
-    setToast(msg)
-    setTimeout(() => setToast(''), 4500)
+  // ─── CSV Export Helper ───
+  const downloadCSV = (rows: Record<string, unknown>[], filename: string) => {
+    if (!rows.length) { toast.warning('No data to export.'); return }
+    const headers = Object.keys(rows[0])
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row =>
+        headers.map(h => {
+          const val = String(row[h] ?? '').replace(/"/g, '""')
+          return `"${val}"`
+        }).join(',')
+      )
+    ].join('\n')
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    a.click()
+    URL.revokeObjectURL(url)
+    toast.success(`${filename} downloaded successfully.`, 'Export Complete')
+  }
+
+  const handleExportInvoices = () => {
+    const rows = filteredInvoices.map((inv: InvoiceItem) => ({
+      'Invoice #': inv.invoice_number || inv.id,
+      'Guest': inv.customer_name || '',
+      'Status': inv.status || '',
+      'Total': inv.total_amount || 0,
+      'Paid': inv.amount_paid || 0,
+      'Balance': inv.remaining_balance ?? inv.balance ?? 0,
+      'Date': inv.created_at ? String(inv.created_at).substring(0, 10) : '',
+    }))
+    downloadCSV(rows, `invoices-${new Date().toISOString().substring(0, 10)}.csv`)
+  }
+
+  const handleExportBookings = () => {
+    const rows = filteredBookings.map((b: BookingItem) => ({
+      'Booking Ref': b.booking_ref || b.id,
+      'Guest': b.customer_name || '',
+      'Room': b.room_number || '',
+      'Check-In': b.check_in ? String(b.check_in).substring(0, 10) : '',
+      'Check-Out': b.check_out ? String(b.check_out).substring(0, 10) : '',
+      'Nights': b.nights || '',
+      'Status': b.status || '',
+      'Amount': b.total_price || 0,
+    }))
+    downloadCSV(rows, `bookings-${new Date().toISOString().substring(0, 10)}.csv`)
   }
 
   const loadData = () => {
@@ -406,7 +452,7 @@ export default function AdminReports() {
     link.click()
     document.body.removeChild(link)
 
-    fireToast('✓ Report data exported successfully as CSV file.')
+    toast.success('Report data exported successfully as CSV file.', 'Export Complete')
   }
 
   // Get Avatar Initials
@@ -420,57 +466,50 @@ export default function AdminReports() {
   const displayedTopGuests = showAllTopGuests ? topGuestsData : topGuestsData.slice(0, 5)
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto space-y-6 font-sans">
-      
-      {/* Toast Alert */}
-      {toast && (
-        <div className="fixed top-6 right-6 z-50 px-5 py-3.5 bg-emerald-700 text-white font-medium text-xs rounded-2xl shadow-xl border border-emerald-500 animate-slideDown flex items-center gap-2">
-          <Check className="w-4 h-4 text-emerald-200" strokeWidth={2} />
-          <span>{toast}</span>
-        </div>
-      )}
+    <div className="p-4 sm:p-5 max-w-7xl mx-auto space-y-4 sm:space-y-5 font-sans">
+
 
       {/* ─── 1. PAGE HEADER ─── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-stone/20">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-black/[0.06] dark:border-neutral-800">
         <div>
-          <h1 className="font-display text-3xl sm:text-4xl font-bold text-ink tracking-tight">Reports</h1>
-          <p className="text-xs sm:text-sm text-ink-muted mt-0.5">Revenue & occupancy analytics</p>
+          <h1 className="font-display text-lg sm:text-xl font-bold text-neutral-900 dark:text-white tracking-tight">Reports</h1>
+          <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">Revenue & occupancy analytics</p>
         </div>
 
         {/* Global Search Bar */}
-        <div className="relative w-full sm:w-72 text-xs">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-muted w-3.5 h-3.5" strokeWidth={1.5} />
+        <div className="relative w-full sm:w-64 text-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 w-3.5 h-3.5" strokeWidth={1.5} />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search report records..."
-            className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] text-ink focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+            className="w-full pl-8.5 pr-3.5 py-1.5 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40 text-xs"
           />
         </div>
       </div>
 
       {/* ─── 2. ANALYTICS & REPORTS HEADER CARD ─── */}
-      <div className="bg-white rounded-2xl border border-stone/20 shadow-sm p-6 space-y-5">
+      <div className="bg-white dark:bg-[#181B20] rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-3.5 sm:p-4 space-y-3.5">
         
         {/* Title & Export Action */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-stone/15">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-black/[0.06] dark:border-neutral-800">
           <div>
-            <h2 className="font-display text-2xl font-bold text-ink">Analytics & Reports</h2>
-            <p className="text-xs text-ink-muted mt-0.5">Revenue, occupancy and booking performance</p>
+            <h2 className="font-display text-base font-bold text-neutral-900 dark:text-white">Analytics & Reports</h2>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">Revenue, occupancy and booking performance</p>
           </div>
 
           <button
             onClick={handleExportCSV}
-            className="px-5 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl text-xs font-semibold shadow-sm hover:shadow-md transition-all flex items-center gap-2 self-start sm:self-auto"
+            className="px-3.5 py-1.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-lg text-xs font-semibold shadow-xs hover:shadow-sm transition-all flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
           >
-            <Download className="w-4 h-4" strokeWidth={1.5} />
+            <Download className="w-3.5 h-3.5" strokeWidth={1.5} />
             <span>Export CSV</span>
           </button>
         </div>
 
         {/* Filters & Range Controls */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 text-xs">
           
           {/* Report Period Selector */}
           <div>
@@ -478,7 +517,7 @@ export default function AdminReports() {
             <select
               value={period}
               onChange={(e) => setPeriod(e.target.value as PeriodOption)}
-              className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#FAF8F5] text-ink font-semibold focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+              className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#F6F2E8] text-ink font-semibold focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
             >
               <option value="this_month">This Month</option>
               <option value="last_month">Last Month</option>
@@ -496,7 +535,7 @@ export default function AdminReports() {
             <select
               value={groupBy}
               onChange={(e) => setGroupBy(e.target.value as GroupByOption)}
-              className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#FAF8F5] text-ink font-semibold focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+              className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#F6F2E8] text-ink font-semibold focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
             >
               <option value="daily">Daily View</option>
               <option value="monthly">Monthly Aggregate</option>
@@ -510,7 +549,7 @@ export default function AdminReports() {
             <select
               value={roomTypeFilter}
               onChange={(e) => setRoomTypeFilter(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#FAF8F5] text-ink font-semibold focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+              className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#F6F2E8] text-ink font-semibold focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
             >
               <option value="All">All Room Types</option>
               {uniqueRoomTypes.map((rt) => (
@@ -525,7 +564,7 @@ export default function AdminReports() {
             <select
               value={paymentMethodFilter}
               onChange={(e) => setPaymentMethodFilter(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#FAF8F5] text-ink font-semibold focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+              className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#F6F2E8] text-ink font-semibold focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
             >
               <option value="All">All Payment Methods</option>
               <option value="cash">Cash</option>
@@ -561,44 +600,43 @@ export default function AdminReports() {
       </div>
 
       {/* ─── 3. STATISTIC KPI CARDS ─── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
         
         {/* Net Revenue */}
-        <div className="bg-white p-5 rounded-2xl border border-stone/20 shadow-sm flex flex-col justify-between">
-          <span className="text-[10px] uppercase font-bold tracking-widest text-[#B48454]">TOTAL REVENUE (NET)</span>
-          <p className="font-display text-2xl sm:text-3xl font-bold text-ink mt-2">
+        <div className="bg-white p-4 sm:p-4.5 rounded-xl border border-black/[0.07] shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.04)] transition-all flex flex-col justify-between">
+          <span className="text-[10px] uppercase font-bold tracking-wider text-[#6B7A5E]">TOTAL REVENUE (NET)</span>
+          <p className="font-display text-2xl font-bold text-neutral-900 mt-1 leading-tight">
             ₱{netRevenue.toLocaleString()}
           </p>
-          <span className="text-[11px] text-ink-muted mt-1">Collected revenue in selected period</span>
+          <span className="text-[11px] text-neutral-500 mt-0.5">Collected revenue</span>
         </div>
 
         {/* Occupancy Rate */}
-        <div className="bg-white p-5 rounded-2xl border border-stone/20 shadow-sm flex flex-col justify-between">
-          <span className="text-[10px] uppercase font-bold tracking-widest text-emerald-700">OCCUPANCY RATE</span>
-          <p className="font-display text-2xl sm:text-3xl font-bold text-emerald-700 mt-2">
+        <div className="bg-white p-4 sm:p-4.5 rounded-xl border border-black/[0.07] shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.04)] transition-all flex flex-col justify-between">
+          <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-700">OCCUPANCY RATE</span>
+          <p className="font-display text-2xl font-bold text-emerald-700 mt-1 leading-tight">
             {occupancyRate}%
           </p>
-          <span className="text-[11px] text-ink-muted mt-1">Current occupied vs available capacity</span>
+          <span className="text-[11px] text-emerald-600 font-medium mt-0.5">Occupied capacity</span>
         </div>
 
         {/* Total Bookings */}
-        <div className="bg-white p-5 rounded-2xl border border-stone/20 shadow-sm flex flex-col justify-between">
-          <span className="text-[10px] uppercase font-bold tracking-widest text-blue-700">TOTAL RESERVATIONS</span>
-          <p className="font-display text-2xl sm:text-3xl font-bold text-blue-800 mt-2">
+        <div className="bg-white p-4 sm:p-4.5 rounded-xl border border-black/[0.07] shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.04)] transition-all flex flex-col justify-between">
+          <span className="text-[10px] uppercase font-bold tracking-wider text-blue-700">TOTAL RESERVATIONS</span>
+          <p className="font-display text-2xl font-bold text-blue-800 mt-1 leading-tight">
             {totalBookingsCount}
           </p>
-          <span className="text-[11px] text-ink-muted mt-1">{completedStaysCount} completed stays</span>
+          <span className="text-[11px] text-neutral-500 mt-0.5">{completedStaysCount} completed stays</span>
         </div>
 
         {/* Average Stay Duration */}
-        <div className="bg-white p-5 rounded-2xl border border-stone/20 shadow-sm flex flex-col justify-between">
-          <span className="text-[10px] uppercase font-bold tracking-widest text-amber-700">AVG STAY DURATION</span>
-          <p className="font-display text-2xl sm:text-3xl font-bold text-amber-800 mt-2">
-            {avgStayDuration} <span className="text-sm font-sans font-normal text-ink-muted">nights</span>
+        <div className="bg-white p-4 sm:p-4.5 rounded-xl border border-black/[0.07] shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.04)] transition-all flex flex-col justify-between">
+          <span className="text-[10px] uppercase font-bold tracking-wider text-amber-700">AVG STAY DURATION</span>
+          <p className="font-display text-2xl font-bold text-amber-800 mt-1 leading-tight">
+            {avgStayDuration} <span className="text-xs font-sans font-normal text-neutral-500">nights</span>
           </p>
-          <span className="text-[11px] text-ink-muted mt-1">Average guest duration per stay</span>
+          <span className="text-[11px] text-neutral-500 mt-0.5">Average stay length</span>
         </div>
-
       </div>
 
       {/* ─── 4. TWO-COLUMN LAYOUT: ROW 1 ─── */}
@@ -611,7 +649,7 @@ export default function AdminReports() {
               <h3 className="font-display text-xl font-bold text-ink">Monthly Revenue</h3>
               <p className="text-xs text-ink-muted mt-0.5">Collected payments — {period.replace(/_/g, ' ')}</p>
             </div>
-            <span className="font-mono text-xs font-bold text-[#B48454] bg-[#B48454]/10 px-2.5 py-1 rounded-full">
+            <span className="font-mono text-xs font-bold text-[#6B7A5E] bg-[#6B7A5E]/10 px-2.5 py-1 rounded-full">
               ₱{netRevenue.toLocaleString()} Total
             </span>
           </div>
@@ -630,9 +668,9 @@ export default function AdminReports() {
                   />
                   <Tooltip
                     formatter={(v) => [`₱${Number(v).toLocaleString()}`, 'Collected Revenue']}
-                    contentStyle={{ backgroundColor: '#FAF8F5', borderRadius: '12px', border: '1px solid #D6CEBE', fontSize: '12px' }}
+                    contentStyle={{ backgroundColor: '#F6F2E8', borderRadius: '12px', border: '1px solid #D6CEBE', fontSize: '12px' }}
                   />
-                  <Bar dataKey="revenue" fill="#B48454" radius={[6, 6, 0, 0]} maxBarSize={48} />
+                  <Bar dataKey="revenue" fill="#6B7A5E" radius={[6, 6, 0, 0]} maxBarSize={48} />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
@@ -674,7 +712,7 @@ export default function AdminReports() {
                       const item = roomTypeRevenueData.find((d) => d.name === name)
                       return [`₱${Number(value).toLocaleString()} (${item?.percentage || 0}%)`, String(name)]
                     }}
-                    contentStyle={{ backgroundColor: '#FAF8F5', borderRadius: '12px', border: '1px solid #D6CEBE', fontSize: '12px' }}
+                    contentStyle={{ backgroundColor: '#F6F2E8', borderRadius: '12px', border: '1px solid #D6CEBE', fontSize: '12px' }}
                   />
                   <Legend
                     verticalAlign="bottom"
@@ -735,7 +773,7 @@ export default function AdminReports() {
                       const item = bookingStatusMixData.find((d) => d.name === name)
                       return [`${value} bookings (${item?.percentage || 0}%)`, String(name)]
                     }}
-                    contentStyle={{ backgroundColor: '#FAF8F5', borderRadius: '12px', border: '1px solid #D6CEBE', fontSize: '12px' }}
+                    contentStyle={{ backgroundColor: '#F6F2E8', borderRadius: '12px', border: '1px solid #D6CEBE', fontSize: '12px' }}
                   />
                   <Legend
                     verticalAlign="bottom"
@@ -763,7 +801,7 @@ export default function AdminReports() {
             {topGuestsData.length > 5 && (
               <button
                 onClick={() => setShowAllTopGuests(!showAllTopGuests)}
-                className="text-xs font-semibold text-[#B48454] hover:underline"
+                className="text-xs font-semibold text-[#6B7A5E] hover:underline"
               >
                 {showAllTopGuests ? 'Show Top 5' : `View All (${topGuestsData.length})`}
               </button>
@@ -774,16 +812,16 @@ export default function AdminReports() {
             {displayedTopGuests.map((guest, idx) => (
               <div
                 key={guest.id}
-                className="p-3 bg-[#FAF8F5] border border-stone/20 rounded-xl flex items-center justify-between gap-3 shadow-xs hover:border-[#B48454]/40 transition-all"
+                className="p-3 bg-[#F6F2E8] border border-stone/20 rounded-xl flex items-center justify-between gap-3 shadow-xs hover:border-[#6B7A5E]/40 transition-all"
               >
                 <div className="flex items-center gap-3">
                   <span className={`w-6 h-6 rounded-full flex items-center justify-center font-mono font-bold text-xs ${
-                    idx === 0 ? 'bg-[#B48454] text-white' : idx === 1 ? 'bg-amber-600 text-white' : idx === 2 ? 'bg-stone-500 text-white' : 'bg-sand text-ink-muted'
+                    idx === 0 ? 'bg-[#6B7A5E] text-white' : idx === 1 ? 'bg-amber-600 text-white' : idx === 2 ? 'bg-stone-500 text-white' : 'bg-sand text-ink-muted'
                   }`}>
                     {idx + 1}
                   </span>
 
-                  <div className="w-9 h-9 rounded-full bg-[#B48454]/15 text-[#B48454] font-display font-bold text-sm flex items-center justify-center shrink-0">
+                  <div className="w-9 h-9 rounded-full bg-[#6B7A5E]/15 text-[#6B7A5E] font-display font-bold text-sm flex items-center justify-center shrink-0">
                     {getInitials(guest.name)}
                   </div>
 
@@ -817,14 +855,14 @@ export default function AdminReports() {
             <h3 className="font-display text-xl font-bold text-ink">Payment Method Analytics</h3>
             <p className="text-xs text-ink-muted mt-0.5">Distribution of settled transactions across payment channels</p>
           </div>
-          <span className="text-xs font-mono font-bold text-[#B48454]">
+          <span className="text-xs font-mono font-bold text-[#6B7A5E]">
             {paymentMethodData.reduce((sum, d) => sum + d.count, 0)} Total Transactions
           </span>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           {paymentMethodData.map((item) => (
-            <div key={item.method} className="p-3.5 bg-[#FAF8F5] border border-stone/20 rounded-2xl space-y-1">
+            <div key={item.method} className="p-3.5 bg-[#F6F2E8] border border-stone/20 rounded-2xl space-y-1">
               <span className="text-[10px] uppercase font-bold tracking-wider text-ink-muted block truncate">{item.method}</span>
               <p className="font-display font-bold text-ink text-base">₱{item.total.toLocaleString()}</p>
               <p className="text-[10px] font-mono text-ink-muted">{item.count} {item.count === 1 ? 'transaction' : 'transactions'}</p>

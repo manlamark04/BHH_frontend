@@ -2,16 +2,17 @@ import { useState, useEffect, useRef, useCallback, useMemo, type ReactNode } fro
 import type { View } from '../types'
 import { roomsApi } from '../api/rooms'
 import { catalogApi } from '../api/services'
+import { inquiriesApi } from '../api/inquiries'
 import logo from '../imports/logo.png'
+import InteractiveLogoMark from '../components/InteractiveLogoMark'
 import pickleballCourtImg from '../imports/pickleball_court.jpg'
 import hondaClickImg from '../imports/Honda Vario_Click 125 Blue.jpg'
+import landingImg from '../imports/landing.jpg'
 import {
   ConciergeBell,
   SprayCan,
   UtensilsCrossed,
   Shirt,
-  Car,
-  Waves,
   Leaf,
   Home,
   MapPin,
@@ -23,15 +24,17 @@ import {
   Clock,
   ArrowRight,
   Star,
+  Menu,
+  X,
 } from 'lucide-react'
 
 /* ─────────────────────────────────────────────
    Design tokens — single source of truth
    ─────────────────────────────────────────── */
-const ACCENT        = '#B48454'
-const ACCENT_HOVER  = '#9E6E3E'
-const CHARCOAL      = '#1C231F'
-const CHARCOAL_DEEP = '#141A17'
+const ACCENT = '#6B7A5E'
+const ACCENT_HOVER = '#4F5D45'
+const CHARCOAL = '#3B4534'
+const CHARCOAL_DEEP = '#2A3126'
 
 /* ─────────────────────────────────────────────
    Icon container — replaces every emoji
@@ -41,7 +44,7 @@ function IconBox({ children, dark = false }: { children: ReactNode; dark?: boole
     <div
       className="w-11 h-11 rounded-[10px] flex items-center justify-center shrink-0"
       style={{
-        backgroundColor: dark ? 'rgba(180,132,84,0.12)' : 'rgba(180,132,84,0.08)',
+        backgroundColor: dark ? 'rgba(107,122,94,0.12)' : 'rgba(107,122,94,0.08)',
       }}
     >
       {children}
@@ -89,37 +92,44 @@ function Reveal({ children, className = '', delay = 0 }: { children: ReactNode; 
    ─────────────────────────────────────────── */
 const SERVICES = [
   { Icon: ConciergeBell, name: 'Room Service', description: 'In-room dining and refreshments delivered to your door with utmost care.' },
-  { Icon: SprayCan,      name: 'Housekeeping', description: 'Daily cleaning and fresh linen service to keep your stay pristine and restful.' },
+  { Icon: SprayCan, name: 'Housekeeping', description: 'Daily cleaning and fresh linen service to keep your stay pristine and restful.' },
   { Icon: UtensilsCrossed, name: 'Food & Dining', description: 'Authentic Boholano and Filipino cuisine prepared with fresh local harvest.' },
-  { Icon: Shirt,         name: 'Laundry Service', description: 'Same-day laundry and press services with gentle fabric care.' },
-  { Icon: Car,           name: 'Airport Transfer', description: 'Panglao Airport and Tagbilaran Port transfers in air-conditioned comfort.' },
-  { Icon: Waves,         name: 'Swimming Pool', description: 'Scenic open-air swimming pool surrounded by tropical flora and mountain breeze.' },
+  { Icon: Shirt, name: 'Laundry Service', description: 'Same-day laundry and press services with gentle fabric care.' },
 ]
 
 const WHY_CHOOSE = [
-  { Icon: Leaf,        title: 'Nature-Immersed Retreat', desc: 'Every corner of Cambacay Breeze Inn is crafted to connect you with the lush green beauty of Bohol.' },
-  { Icon: Home,        title: 'Visayan Warmth', desc: 'Experience genuine Filipino hospitality — warm, intuitive, and always welcoming from the heart.' },
-  { Icon: MapPin,      title: 'Prime Batuan Location', desc: 'Nestled in Cambacay, Batuan — minutes away from the Chocolate Hills and Bohol eco-tourism destinations.' },
-  { Icon: Target,      title: 'Curated Activities', desc: 'Enjoy outdoor pickleball courts and motorcycle rentals ready for your scenic road trips.' },
+  { Icon: Leaf, title: 'Nature-Immersed Retreat', desc: 'Every corner of Cambacay Breeze Inn is crafted to connect you with the lush green beauty of Bohol.' },
+  { Icon: Home, title: 'Visayan Warmth', desc: 'Experience genuine Filipino hospitality — warm, intuitive, and always welcoming from the heart.' },
+  { Icon: MapPin, title: 'Prime Batuan Location', desc: 'Nestled in Cambacay, Batuan — minutes away from the Chocolate Hills and Bohol eco-tourism destinations.' },
+  { Icon: Target, title: 'Curated Activities', desc: 'Enjoy outdoor pickleball courts and motorcycle rentals ready for your scenic road trips.' },
   { Icon: ShieldCheck, title: 'Safe & Peaceful', desc: '24/7 front desk security and a dedicated hospitality team ensuring complete peace of mind.' },
-  { Icon: Sparkles,    title: 'Modern Comforts', desc: 'Contemporary suite conveniences and high-speed Wi-Fi woven effortlessly into a tranquil setting.' },
+  { Icon: Sparkles, title: 'Modern Comforts', desc: 'Contemporary suite conveniences and high-speed Wi-Fi woven effortlessly into a tranquil setting.' },
 ]
 
 const CONTACT_ROWS: { Icon: typeof Phone; label: string; value: string }[] = [
-  { Icon: MapPin, label: 'Address',   value: 'Cambacay, Batuan, Bohol, Philippines' },
-  { Icon: Phone,  label: 'Phone',     value: '+63 917 123 4567 / (038) 500 1234' },
-  { Icon: Mail,   label: 'Email',     value: 'reservations@cambacaybreezeinn.com' },
-  { Icon: Clock,  label: 'Check-In',  value: '2:00 PM onwards' },
-  { Icon: Clock,  label: 'Check-Out', value: '12:00 PM NN' },
+  { Icon: MapPin, label: 'Address', value: 'Cambacay, Batuan, Bohol, Philippines' },
+  { Icon: Phone, label: 'Phone', value: '+63 917 123 4567 / (038) 500 1234' },
+  { Icon: Mail, label: 'Email', value: 'reservations@cambacaybreezeinn.com' },
+  { Icon: Clock, label: 'Check-In', value: '2:00 PM onwards' },
+  { Icon: Clock, label: 'Check-Out', value: '12:00 PM NN' },
 ]
 
 /* ─────────────────────────────────────────────
    Buttons — consistent heights & radii
    ─────────────────────────────────────────── */
-const btnBase      = 'inline-flex items-center justify-center font-sans font-medium transition-all duration-250'
-const btnPrimary   = `${btnBase} bg-[${ACCENT}] hover:bg-[${ACCENT_HOVER}] text-white rounded-[10px] shadow-[0_2px_8px_rgba(180,132,84,0.25)] hover:shadow-[0_4px_16px_rgba(180,132,84,0.30)] hover:-translate-y-px`
-const btnOutline   = `${btnBase} border border-white/30 text-white rounded-[10px] hover:bg-white/8`
+const btnBase = 'inline-flex items-center justify-center font-sans font-medium transition-all duration-250'
+const btnPrimary = `${btnBase} bg-[${ACCENT}] hover:bg-[${ACCENT_HOVER}] text-white rounded-[10px] shadow-[0_2px_8px_rgba(107,122,94,0.25)] hover:shadow-[0_4px_16px_rgba(107,122,94,0.30)] hover:-translate-y-px`
+const btnOutline = `${btnBase} border border-white/30 text-white rounded-[10px] hover:bg-white/8`
 const btnOutlineInk = `${btnBase} border border-stone/30 text-ink hover:border-[${ACCENT}] hover:text-[${ACCENT}] rounded-[10px]`
+
+const NAV_LINKS = [
+  { label: 'About', href: '#about', id: 'about' },
+  { label: 'Rooms', href: '#rooms', id: 'rooms' },
+  { label: 'Services', href: '#services', id: 'services' },
+  { label: 'Activities', href: '#activities', id: 'activities' },
+  { label: 'Why Us', href: '#why', id: 'why' },
+  { label: 'Contact', href: '#contact', id: 'contact' },
+]
 
 /* ─────────────────────────────────────────────
    Landing component
@@ -127,34 +137,88 @@ const btnOutlineInk = `${btnBase} border border-stone/30 text-ink hover:border-[
 interface LandingProps { onNavigate: (view: View) => void }
 
 export default function Landing({ onNavigate }: LandingProps) {
-  const [rooms, setRooms]           = useState<Record<string, unknown>[]>([])
+  const [rooms, setRooms] = useState<Record<string, unknown>[]>([])
   const [activities, setActivities] = useState<Record<string, unknown>[]>([])
   const [navScrolled, setNavScrolled] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [activeSection, setActiveSection] = useState('')
+
+  // Inquiry Form State
+  const [inqName, setInqName] = useState('')
+  const [inqEmail, setInqEmail] = useState('')
+  const [inqPhone, setInqPhone] = useState('')
+  const [inqSubject, setInqSubject] = useState('Room Reservation Inquiry')
+  const [inqMessage, setInqMessage] = useState('')
+  const [inqSending, setInqSending] = useState(false)
+  const [inqSuccess, setInqSuccess] = useState('')
+  const [inqError, setInqError] = useState('')
+
+  const handleSendInquiry = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!inqName.trim() || !inqEmail.trim() || !inqMessage.trim()) {
+      setInqError('Please fill out your name, email, and message.')
+      return
+    }
+    setInqSending(true)
+    setInqError('')
+    setInqSuccess('')
+    try {
+      const res = await inquiriesApi.submitInquiry({
+        full_name: inqName.trim(),
+        email: inqEmail.trim(),
+        phone: inqPhone.trim() || undefined,
+        subject: inqSubject,
+        message: inqMessage.trim(),
+      })
+      setInqSuccess(res.message || 'Thank you! Your message has been sent.')
+      setInqName('')
+      setInqEmail('')
+      setInqPhone('')
+      setInqMessage('')
+    } catch (err) {
+      setInqError(err instanceof Error ? err.message : 'Failed to send inquiry. Please try again.')
+    } finally {
+      setInqSending(false)
+    }
+  }
 
   useEffect(() => {
-    roomsApi.getRooms().then(setRooms).catch(() => {})
-    catalogApi.getActivities().then(setActivities).catch(() => {})
+    roomsApi.getRooms().then(setRooms).catch(() => { })
+    catalogApi.getActivities().then(setActivities).catch(() => { })
   }, [])
 
-  /* Navbar shadow on scroll */
+  /* Navbar shadow and scrollspy on scroll */
   const handleScroll = useCallback(() => {
-    setNavScrolled(window.scrollY > 48)
+    setNavScrolled(window.scrollY > 30)
+
+    const sectionIds = ['about', 'rooms', 'services', 'activities', 'why', 'contact']
+    const scrollPos = window.scrollY + 160
+    let current = ''
+    for (const id of sectionIds) {
+      const el = document.getElementById(id)
+      if (el && el.offsetTop <= scrollPos) {
+        current = id
+      }
+    }
+    setActiveSection(current)
   }, [])
+
   useEffect(() => {
     window.addEventListener('scroll', handleScroll, { passive: true })
+    handleScroll()
     return () => window.removeEventListener('scroll', handleScroll)
   }, [handleScroll])
 
-interface ActivityItem {
-  id: string | number
-  name: string
-  description?: string
-  price_per_unit?: number
-  price?: number
-  unit?: string
-  image_url?: string
-  image?: string
-}
+  interface ActivityItem {
+    id: string | number
+    name: string
+    description?: string
+    price_per_unit?: number
+    price?: number
+    unit?: string
+    image_url?: string
+    image?: string
+  }
 
   const displayRooms = rooms.slice(0, 3)
 
@@ -228,54 +292,133 @@ interface ActivityItem {
 
   /* ───────────── render ───────────── */
   return (
-    <div className="min-h-screen bg-[#FBF9F5] font-sans text-ink antialiased">
+    <div className="min-h-screen bg-[#F6F2E8] font-sans text-ink antialiased">
 
       {/* ═══════════════════════════════════════
-          1 · NAVIGATION
+          1 · NAVIGATION HEADER
           ═══════════════════════════════════════ */}
-      <nav
-        className={`fixed inset-x-0 top-0 z-50 bg-[#FBF9F5]/92 backdrop-blur-lg border-b border-stone/15 transition-shadow duration-300 ${navScrolled ? 'nav-scrolled' : ''}`}
+      <header
+        className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${navScrolled
+            ? 'bg-[#F6F2E8]/95 backdrop-blur-xl shadow-[0_4px_24px_rgba(0,0,0,0.06)] border-b border-stone/20 py-2.5'
+            : 'bg-[#F6F2E8]/85 backdrop-blur-md border-b border-stone/15 py-3.5'
+          }`}
       >
-        <div className="max-w-[1280px] mx-auto px-8 h-16 flex items-center justify-between">
-          {/* Logo */}
-          <a href="#" className="flex items-center gap-3 group">
-            <img src={logo} alt="Cambacay Breeze Inn" className="w-9 h-9 object-contain rounded-lg" />
-            <div className="leading-none">
-              <span className="font-display text-[15px] font-semibold text-ink tracking-[-0.01em] block">Cambacay</span>
-              <span className="text-[10px] text-ink-muted font-medium uppercase tracking-[0.14em] block mt-px">Breeze Inn</span>
+        <div className="max-w-[1320px] mx-auto px-6 sm:px-8 flex items-center justify-between">
+          {/* Logo & Brand Identity */}
+          <a
+            href="#"
+            className="flex items-center gap-3.5 group"
+            onClick={(e) => {
+              e.preventDefault()
+              window.scrollTo({ top: 0, behavior: 'smooth' })
+            }}
+          >
+            <InteractiveLogoMark />
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2">
+                <span className="font-serif-brand text-[17px] font-bold text-ink tracking-[-0.01em] group-hover:text-[#6B7A5E] transition-colors duration-200">
+                  Cambacay
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-[#6B7A5E]/12 text-[#4F5D45] uppercase tracking-wider hidden sm:inline-flex">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#22A66B] animate-pulse" />
+                  Nature Retreat
+                </span>
+              </div>
+              <span className="text-[10px] text-ink-muted font-medium uppercase tracking-[0.16em] -mt-0.5">
+                Breeze Inn · Batuan, Bohol
+              </span>
             </div>
           </a>
 
-          {/* Desktop links */}
-          <div className="hidden md:flex items-center gap-10">
-            {['About', 'Rooms', 'Services', 'Activities', 'Contact'].map((item) => (
-              <a
-                key={item}
-                href={`#${item.toLowerCase()}`}
-                className="text-[13px] font-medium text-ink-muted hover:text-ink transition-colors duration-200"
-              >
-                {item}
-              </a>
-            ))}
+          {/* Desktop Navigation Center Pill */}
+          <div className="hidden md:flex items-center bg-stone/20 p-1 rounded-full border border-stone/25 backdrop-blur-sm shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)]">
+            {NAV_LINKS.map((link) => {
+              const isActive = activeSection === link.id
+              return (
+                <a
+                  key={link.id}
+                  href={link.href}
+                  className={`px-4 py-1.5 rounded-full text-[13px] font-medium transition-all duration-200 ${isActive
+                      ? 'bg-white text-[#4F5D45] shadow-[0_1px_4px_rgba(0,0,0,0.06)] font-semibold'
+                      : 'text-ink-muted hover:text-ink hover:bg-white/60'
+                    }`}
+                >
+                  {link.label}
+                </a>
+              )
+            })}
           </div>
 
-          {/* CTA cluster */}
-          <div className="flex items-center gap-3">
+          {/* Action Cluster & Mobile Trigger */}
+          <div className="flex items-center gap-2.5">
             <button
               onClick={() => onNavigate('login')}
-              className={`${btnOutlineInk} h-9 px-4 text-[13px]`}
+              className="hidden sm:inline-flex items-center justify-center font-sans font-medium text-[13px] text-ink hover:text-[#4F5D45] px-5 py-2 rounded-xl bg-stone/20 hover:bg-stone/30 border border-stone/25 backdrop-blur-sm shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)] hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
             >
               Sign In
             </button>
+
             <button
               onClick={() => onNavigate('register')}
-              className={`${btnPrimary} h-9 px-5 text-[13px] hidden sm:inline-flex`}
+              className="inline-flex items-center justify-center font-sans font-medium text-[13px] text-white bg-gradient-to-r from-[#6B7A5E] to-[#4F5D45] hover:from-[#4F5D45] hover:to-[#3B4534] px-5 py-2 rounded-xl shadow-[0_2px_10px_rgba(107,122,94,0.25)] hover:shadow-[0_4px_16px_rgba(107,122,94,0.35)] hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
             >
               Register
             </button>
+
+            {/* Mobile Menu Toggle */}
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="md:hidden p-2 rounded-xl text-ink hover:bg-stone/20 transition-colors focus:outline-none"
+              aria-label="Toggle navigation menu"
+            >
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
           </div>
         </div>
-      </nav>
+
+        {/* Mobile Dropdown Drawer */}
+        {mobileMenuOpen && (
+          <div className="md:hidden border-t border-stone/15 bg-[#F6F2E8]/98 backdrop-blur-xl px-6 py-5 shadow-xl transition-all">
+            <div className="flex flex-col space-y-1">
+              {NAV_LINKS.map((link) => (
+                <a
+                  key={link.id}
+                  href={link.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`px-4 py-2.5 rounded-xl text-[14px] font-medium transition-colors ${activeSection === link.id
+                      ? 'bg-[#6B7A5E]/12 text-[#4F5D45] font-semibold'
+                      : 'text-ink-muted hover:text-ink hover:bg-stone/15'
+                    }`}
+                >
+                  {link.label}
+                </a>
+              ))}
+            </div>
+
+            <div className="pt-4 mt-3 border-t border-stone/15 flex flex-col gap-2.5">
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false)
+                  onNavigate('login')
+                }}
+                className="w-full h-10 rounded-xl border border-stone/30 font-medium text-[13px] text-ink hover:bg-stone/15 flex items-center justify-center transition-colors"
+              >
+                Sign In to Account
+              </button>
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false)
+                  onNavigate('register')
+                }}
+                className="w-full h-10 rounded-xl bg-[#6B7A5E] text-white font-medium text-[13px] shadow-[0_2px_8px_rgba(107,122,94,0.25)] flex items-center justify-center"
+              >
+                Register
+              </button>
+            </div>
+          </div>
+        )}
+      </header>
 
       {/* ═══════════════════════════════════════
           2 · HERO
@@ -284,8 +427,8 @@ interface ActivityItem {
         {/* Background image + overlay */}
         <div className="absolute inset-0">
           <img
-            src="https://images.unsplash.com/photo-1582719508461-905c673771fd?w=1920&h=1080&fit=crop&auto=format&q=85"
-            alt="Tropical resort garden"
+            src={landingImg}
+            alt="Cambacay Breeze Inn"
             className="w-full h-full object-cover"
             style={{ filter: 'saturate(0.9) brightness(0.95)' }}
           />
@@ -296,7 +439,7 @@ interface ActivityItem {
             }}
           />
           {/* extra bottom gradient for text safety */}
-          <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-[#1C231F]/60 to-transparent" />
+          <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-[#2A3126]/60 to-transparent" />
         </div>
 
         <div className="relative max-w-[1280px] mx-auto px-8 py-32 md:py-40 w-full">
@@ -310,7 +453,7 @@ interface ActivityItem {
             <h1 className="font-display text-[clamp(3rem,7vw,5.5rem)] font-bold leading-[1.02] tracking-[-0.025em] text-white mb-6">
               Cambacay
               <br />
-              <span style={{ color: '#D4A373' }}>Breeze</span> Inn
+              <span style={{ color: '#6B7A5E' }}>Breeze</span> Inn
             </h1>
 
             <p className="font-display text-[clamp(1.1rem,2.2vw,1.5rem)] font-normal italic text-white/85 leading-snug mb-4">
@@ -332,19 +475,19 @@ interface ActivityItem {
       {/* ═══════════════════════════════════════
           3 · STATS STRIP
           ═══════════════════════════════════════ */}
-      <section className="bg-[#1C231F] text-white py-10 border-y border-white/[0.06]">
+      <section className="bg-[#2A3126] text-white py-10 border-y border-white/[0.06]">
         <div className="max-w-[1280px] mx-auto px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             {[
-              { value: '7+',   label: 'Luxury Room Types' },
-              { value: '12',   label: 'Rental Motorcycles' },
-              { value: '4.9',  label: 'Guest Satisfaction', hasStar: true },
+              { value: '7+', label: 'Luxury Room Types' },
+              { value: '12', label: 'Rental Motorcycles' },
+              { value: '4.9', label: 'Guest Satisfaction', hasStar: true },
               { value: '24/7', label: 'Front Desk Service' },
             ].map((stat) => (
               <div key={stat.label}>
                 <p className="font-display text-[2rem] sm:text-[2.5rem] font-bold tracking-[-0.02em]" style={{ color: ACCENT }}>
                   {stat.value}
-                  {stat.hasStar && <Star className="inline w-5 h-5 ml-1 -mt-1 fill-current" strokeWidth={0} />}
+                  {stat.hasStar && <Star className="inline w-5 h-5 ml-1 -mt-1 fill-current text-[#C9A66B]" strokeWidth={0} />}
                 </p>
                 <p className="text-white/50 text-[12px] mt-1.5 font-medium tracking-[0.03em]">{stat.label}</p>
               </div>
@@ -356,7 +499,7 @@ interface ActivityItem {
       {/* ═══════════════════════════════════════
           4 · ABOUT / OUR STORY
           ═══════════════════════════════════════ */}
-      <section id="about" className="py-24 md:py-32 bg-[#FBF9F5]">
+      <section id="about" className="py-24 md:py-32 bg-[#F6F2E8]">
         <div className="max-w-[1280px] mx-auto px-8">
           <div className="grid lg:grid-cols-2 gap-16 lg:gap-24 items-center">
             <Reveal>
@@ -386,8 +529,8 @@ interface ActivityItem {
             <Reveal delay={1}>
               <div className="relative">
                 <img
-                  src="https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=800&h=600&fit=crop&auto=format&q=85"
-                  alt="Resort garden grounds"
+                  src="/kubokubo.jpg"
+                  alt="Cambacay Breeze Inn Cottages and Grounds"
                   className="w-full rounded-2xl object-cover aspect-[4/3] shadow-[0_8px_32px_rgba(0,0,0,0.08)]"
                   style={{ filter: 'saturate(0.92) brightness(0.98)' }}
                 />
@@ -395,7 +538,7 @@ interface ActivityItem {
                 <div className="absolute -bottom-6 -left-4 lg:-left-8 bg-white rounded-2xl p-5 shadow-[0_8px_24px_rgba(0,0,0,0.08)] border border-stone/10 max-w-[200px]">
                   <div className="flex items-baseline gap-1">
                     <span className="font-display text-[2rem] font-bold tracking-[-0.02em]" style={{ color: ACCENT }}>4.9</span>
-                    <Star className="w-4 h-4 fill-current" style={{ color: ACCENT }} strokeWidth={0} />
+                    <Star className="w-4 h-4 fill-current text-[#C9A66B]" style={{ color: '#C9A66B' }} strokeWidth={0} />
                   </div>
                   <p className="text-[13px] font-semibold text-ink mt-1">Average Guest Review</p>
                   <p className="text-[11px] text-ink-muted mt-0.5">Verified direct feedback</p>
@@ -409,7 +552,7 @@ interface ActivityItem {
       {/* ═══════════════════════════════════════
           5 · ROOMS
           ═══════════════════════════════════════ */}
-      <section id="rooms" className="py-24 md:py-32 bg-[#F5F1EB]">
+      <section id="rooms" className="py-24 md:py-32 bg-[#EDE7D8]">
         <div className="max-w-[1280px] mx-auto px-8">
           <Reveal>
             <div className="text-center mb-16">
@@ -425,25 +568,25 @@ interface ActivityItem {
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {displayRooms.map((room, idx) => {
-              const name        = (room.name || room.room_type || 'Room') as string
-              const roomType    = (room.room_type || room.roomType || '') as string
+              const name = (room.name || room.room_type || 'Room') as string
+              const roomType = (room.room_type || room.roomType || '') as string
               const description = (room.description || '') as string
-              const image       = (room.image_urls ? (Array.isArray(room.image_urls) ? (room.image_urls as string[])[0] : '') : (room.image || '')) as string
-              const price       = Number(room.rate_per_night || room.price || 0)
-              const id          = room.id || room.roomId || room.room_id
+              const image = (room.image_urls ? (Array.isArray(room.image_urls) ? (room.image_urls as string[])[0] : '') : (room.image || '')) as string
+              const price = Number(room.rate_per_night || room.price || 0)
+              const id = room.id || room.roomId || room.room_id
 
               return (
                 <Reveal key={String(id)} delay={idx + 1}>
                   <div className="bg-white rounded-2xl overflow-hidden border border-stone/10 shadow-[0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_32px_rgba(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-300 flex flex-col group">
                     {/* Image — fixed 4:3 ratio */}
-                    <div className="relative aspect-[4/3] overflow-hidden bg-[#EDE9E0]">
+                    <div className="relative aspect-[4/3] overflow-hidden bg-[#E2DCD0]">
                       <img
                         src={image || 'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=800&auto=format&fit=crop&q=80'}
                         alt={name}
                         className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-[600ms] ease-out"
                         style={{ filter: 'saturate(0.92)' }}
                       />
-                      <span className="absolute top-4 right-4 bg-[#1C231F]/70 backdrop-blur-sm text-white text-[11px] font-medium px-3 py-1 rounded-lg tracking-wide">
+                      <span className="absolute top-4 right-4 bg-[#2A3126]/70 backdrop-blur-sm text-white text-[11px] font-medium px-3 py-1 rounded-lg tracking-wide">
                         {roomType}
                       </span>
                     </div>
@@ -507,10 +650,10 @@ interface ActivityItem {
             </div>
           </Reveal>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {SERVICES.map((svc, idx) => (
               <Reveal key={svc.name} delay={Math.min(idx + 1, 5)}>
-                <div className="bg-[#FBF9F5] rounded-2xl p-6 border border-stone/10 hover:border-stone/25 hover:shadow-[0_4px_16px_rgba(0,0,0,0.04)] transition-all duration-250 h-full">
+                <div className="bg-[#F6F2E8] rounded-2xl p-6 border border-stone/10 hover:border-stone/25 hover:shadow-[0_4px_16px_rgba(0,0,0,0.04)] transition-all duration-250 h-full">
                   <IconBox>
                     <svc.Icon className="w-5 h-5" style={{ color: ACCENT }} strokeWidth={1.5} />
                   </IconBox>
@@ -526,7 +669,7 @@ interface ActivityItem {
       {/* ═══════════════════════════════════════
           7 · ACTIVITIES (dark section)
           ═══════════════════════════════════════ */}
-      <section id="activities" className="py-24 md:py-32 bg-[#1C231F] text-white">
+      <section id="activities" className="py-24 md:py-32 bg-[#2A3126] text-white">
         <div className="max-w-[1280px] mx-auto px-8">
           <Reveal>
             <div className="text-center mb-16">
@@ -542,12 +685,12 @@ interface ActivityItem {
 
           <div className={`grid gap-8 ${displayActivities.length >= 3 ? 'md:grid-cols-2 lg:grid-cols-3' : displayActivities.length === 2 ? 'md:grid-cols-2 max-w-3xl mx-auto' : 'max-w-lg mx-auto'}`}>
             {displayActivities.map((activity, idx) => {
-              const aName  = activity.name
-              const aDesc  = activity.description || ''
+              const aName = activity.name
+              const aDesc = activity.description || ''
               const aImage = activity.image_url || activity.image || ''
               const aPrice = Number(activity.price_per_unit || activity.price || 0)
-              const aUnit  = activity.unit || 'hour'
-              const aId    = activity.id
+              const aUnit = activity.unit || 'hour'
+              const aId = activity.id
 
               return (
                 <Reveal key={String(aId)} delay={Math.min(idx + 1, 5)}>
@@ -567,7 +710,7 @@ interface ActivityItem {
                         className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-[600ms] ease-out"
                         style={{ filter: 'saturate(0.95) brightness(0.98)' }}
                       />
-                      <span className="absolute top-4 right-4 bg-[#1C231F]/80 backdrop-blur-sm text-white text-[11px] font-medium px-3 py-1 rounded-lg">
+                      <span className="absolute top-4 right-4 bg-[#2A3126]/80 backdrop-blur-sm text-white text-[11px] font-medium px-3 py-1 rounded-lg">
                         ₱{aPrice.toLocaleString()} / {aUnit}
                       </span>
                     </div>
@@ -602,7 +745,7 @@ interface ActivityItem {
       {/* ═══════════════════════════════════════
           8 · WHY CHOOSE US
           ═══════════════════════════════════════ */}
-      <section id="why" className="py-24 md:py-32 bg-[#FBF9F5]">
+      <section id="why" className="py-24 md:py-32 bg-[#F6F2E8]">
         <div className="max-w-[1280px] mx-auto px-8">
           <Reveal>
             <div className="text-center mb-16">
@@ -657,7 +800,7 @@ interface ActivityItem {
       {/* ═══════════════════════════════════════
           10 · CONTACT
           ═══════════════════════════════════════ */}
-      <section id="contact" className="py-24 md:py-32 bg-[#1C231F] text-white">
+      <section id="contact" className="py-24 md:py-32 bg-[#2A3126] text-white">
         <div className="max-w-[1280px] mx-auto px-8">
           <div className="grid lg:grid-cols-2 gap-16 lg:gap-24 items-center">
             <Reveal>
@@ -687,13 +830,101 @@ interface ActivityItem {
             </Reveal>
 
             <Reveal delay={1}>
-              <div className="rounded-2xl overflow-hidden aspect-[4/3] bg-white/[0.03] border border-white/[0.06]">
-                <img
-                  src="https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?w=800&h=600&fit=crop&auto=format&q=85"
-                  alt="Cambacay Breeze Inn front desk"
-                  className="w-full h-full object-cover"
-                  style={{ filter: 'saturate(0.85) brightness(0.88)' }}
-                />
+              <div className="bg-white/[0.04] p-6 sm:p-8 rounded-3xl border border-white/[0.08] backdrop-blur-md space-y-4">
+                <div>
+                  <p className="text-[11px] font-medium uppercase tracking-[0.15em] text-[#6B7A5E]">Direct Front Desk Message</p>
+                  <h3 className="font-display text-xl sm:text-2xl font-bold text-white mt-1">Send Us an Inquiry</h3>
+                  <p className="text-white/60 text-xs mt-1">
+                    Have questions regarding availability, group events, or court reservations? Drop us a note!
+                  </p>
+                </div>
+
+                {inqSuccess && (
+                  <div className="p-3 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-xs font-semibold">
+                    ✓ {inqSuccess}
+                  </div>
+                )}
+
+                {inqError && (
+                  <div className="p-3 bg-rose-500/20 border border-rose-500/40 rounded-xl text-rose-300 text-xs font-semibold">
+                    ⚠ {inqError}
+                  </div>
+                )}
+
+                <form onSubmit={handleSendInquiry} className="space-y-3 text-xs">
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-white/70 text-[11px] font-semibold mb-1">Your Full Name *</label>
+                      <input
+                        type="text"
+                        value={inqName}
+                        onChange={(e) => setInqName(e.target.value)}
+                        placeholder="e.g. Maria Santos"
+                        className="w-full px-3.5 py-2 rounded-xl bg-white/[0.06] border border-white/[0.12] text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-white/70 text-[11px] font-semibold mb-1">Email Address *</label>
+                      <input
+                        type="email"
+                        value={inqEmail}
+                        onChange={(e) => setInqEmail(e.target.value)}
+                        placeholder="maria@example.com"
+                        className="w-full px-3.5 py-2 rounded-xl bg-white/[0.06] border border-white/[0.12] text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-white/70 text-[11px] font-semibold mb-1">Contact Phone (Optional)</label>
+                      <input
+                        type="tel"
+                        value={inqPhone}
+                        onChange={(e) => setInqPhone(e.target.value)}
+                        placeholder="0917 123 4567"
+                        className="w-full px-3.5 py-2 rounded-xl bg-white/[0.06] border border-white/[0.12] text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-white/70 text-[11px] font-semibold mb-1">Inquiry Subject</label>
+                      <select
+                        value={inqSubject}
+                        onChange={(e) => setInqSubject(e.target.value)}
+                        className="w-full px-3.5 py-2 rounded-xl bg-[#2A3126] border border-white/[0.12] text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]"
+                      >
+                        <option value="Room Reservation Inquiry">Room Reservation Inquiry</option>
+                        <option value="Pickleball Court Booking">Pickleball Court Booking</option>
+                        <option value="Motorcycle Rental Question">Motorcycle Rental Question</option>
+                        <option value="Event or Gathering Package">Event or Gathering Package</option>
+                        <option value="General Question">General Question</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-white/70 text-[11px] font-semibold mb-1">Your Message *</label>
+                    <textarea
+                      rows={3}
+                      value={inqMessage}
+                      onChange={(e) => setInqMessage(e.target.value)}
+                      placeholder="Tell us your desired dates, number of guests, or questions..."
+                      className="w-full px-3.5 py-2 rounded-xl bg-white/[0.06] border border-white/[0.12] text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-[#6B7A5E] resize-none"
+                      required
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={inqSending}
+                    className="w-full py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white font-semibold rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    <span>{inqSending ? 'Sending Message...' : 'Submit Inquiry'}</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </form>
               </div>
             </Reveal>
           </div>
@@ -703,7 +934,7 @@ interface ActivityItem {
       {/* ═══════════════════════════════════════
           11 · FOOTER
           ═══════════════════════════════════════ */}
-      <footer className="bg-[#141A17] border-t border-white/[0.06] py-10">
+      <footer className="bg-[#1C221A] border-t border-white/[0.06] py-10">
         <div className="max-w-[1280px] mx-auto px-8">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-3">

@@ -9,6 +9,8 @@ import {
   Clock,
   Check,
   AlertCircle,
+  Eye,
+  Banknote,
 } from 'lucide-react'
 import { bookingsApi, type BookingItem } from '../../api/bookings'
 import { roomsApi, type RoomRecord } from '../../api/rooms'
@@ -17,6 +19,19 @@ import Modal from '../../components/Modal'
 import ConfirmDialog from '../../components/ConfirmDialog'
 
 type FilterOption = 'all' | 'arrivals' | 'inhouse' | 'departures' | 'upcoming' | 'overdue'
+
+const PRE_CHECKIN_STATUSES = ['confirmed', 'reserved', 'pending', 'pending_approval', 'pending_payment', 'requested']
+
+const toLocalDateStr = (val?: string | Date | null) => {
+  if (!val) return ''
+  try {
+    const d = new Date(val)
+    if (isNaN(d.getTime())) return String(val).split('T')[0]
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  } catch (_) {
+    return String(val).split('T')[0]
+  }
+}
 
 export default function AdminCheckInOut() {
   const [bookings, setBookings] = useState<BookingItem[]>([])
@@ -30,6 +45,9 @@ export default function AdminCheckInOut() {
   const [checkInTarget, setCheckInTarget] = useState<BookingItem | null>(null)
   const [processingCheckIn, setProcessingCheckIn] = useState(false)
 
+  // View Arrival Details Modal
+  const [viewArrivalTarget, setViewArrivalTarget] = useState<BookingItem | null>(null)
+
   // Check-Out Modal (with payment calculation)
   const [checkOutTarget, setCheckOutTarget] = useState<BookingItem | null>(null)
   const [additionalCharges, setAdditionalCharges] = useState('0')
@@ -37,7 +55,7 @@ export default function AdminCheckInOut() {
   const [payMethod, setPayMethod] = useState<'cash' | 'card' | 'ewallet'>('cash')
   const [processingCheckOut, setProcessingCheckOut] = useState(false)
 
-  const todayStr = useMemo(() => new Date().toISOString().split('T')[0], [])
+  const todayStr = useMemo(() => toLocalDateStr(new Date()), [])
 
   const fireToast = (msg: string) => {
     setToast(msg)
@@ -62,20 +80,23 @@ export default function AdminCheckInOut() {
   // 1. Categorized booking sets
   const todaysArrivals = useMemo(() => {
     return bookings.filter((b) => {
-      const cIn = String(b.check_in || '').split('T')[0]
-      const st = String(b.status || '').toLowerCase()
-      return cIn === todayStr && ['confirmed', 'requested', 'pending'].includes(st)
+      const cIn = toLocalDateStr(b.check_in)
+      const st = String(b.status || '').toLowerCase().replace('-', '_').replace(' ', '_')
+      return cIn === todayStr && PRE_CHECKIN_STATUSES.includes(st)
     })
   }, [bookings, todayStr])
 
   const inHouseGuests = useMemo(() => {
-    return bookings.filter((b) => String(b.status || '').toLowerCase() === 'checked_in')
+    return bookings.filter((b) => {
+      const st = String(b.status || '').toLowerCase().replace('-', '_').replace(' ', '_')
+      return st === 'checked_in'
+    })
   }, [bookings])
 
   const todaysDepartures = useMemo(() => {
     return bookings.filter((b) => {
-      const cOut = String(b.check_out || '').split('T')[0]
-      const st = String(b.status || '').toLowerCase()
+      const cOut = toLocalDateStr(b.check_out)
+      const st = String(b.status || '').toLowerCase().replace('-', '_').replace(' ', '_')
       return cOut === todayStr && st === 'checked_in'
     })
   }, [bookings, todayStr])
@@ -83,16 +104,16 @@ export default function AdminCheckInOut() {
   const upcomingArrivals = useMemo(() => {
     return bookings
       .filter((b) => {
-        const cIn = String(b.check_in || '').split('T')[0]
-        const st = String(b.status || '').toLowerCase()
-        return cIn > todayStr && ['confirmed', 'requested', 'pending'].includes(st)
+        const cIn = toLocalDateStr(b.check_in)
+        const st = String(b.status || '').toLowerCase().replace('-', '_').replace(' ', '_')
+        return cIn > todayStr && PRE_CHECKIN_STATUSES.includes(st)
       })
-      .sort((a, b) => String(a.check_in).localeCompare(String(b.check_in)))
+      .sort((a, b) => new Date(a.check_in || 0).getTime() - new Date(b.check_in || 0).getTime())
   }, [bookings, todayStr])
 
   const overdueGuests = useMemo(() => {
     return inHouseGuests.filter((b) => {
-      const cOut = String(b.check_out || '').split('T')[0]
+      const cOut = toLocalDateStr(b.check_out)
       return cOut < todayStr
     })
   }, [inHouseGuests, todayStr])
@@ -204,67 +225,67 @@ export default function AdminCheckInOut() {
       )}
 
       {/* ─── 1. PAGE HEADER ─── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-stone/20">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-black/[0.06] dark:border-neutral-800">
         <div>
-          <h1 className="font-display text-3xl sm:text-4xl font-bold text-ink tracking-tight">Check-In / Out</h1>
-          <p className="text-xs sm:text-sm text-ink-muted mt-0.5">Arrivals, in-house guests & departures</p>
+          <h1 className="font-display text-lg sm:text-xl font-bold text-neutral-900 dark:text-white tracking-tight">Check-In / Out</h1>
+          <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">Arrivals, in-house guests & departures</p>
         </div>
 
         {/* Global Search Bar */}
-        <div className="relative w-full sm:w-72 text-xs">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-muted w-3.5 h-3.5" strokeWidth={1.5} />
+        <div className="relative w-full sm:w-64 text-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 dark:text-neutral-500 w-3.5 h-3.5" strokeWidth={1.5} />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search guest, room 101, BK-ref..."
-            className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-stone/30 bg-[#FAF8F5] text-ink focus:outline-none focus:ring-2 focus:ring-[#B48454]/40"
+            className="w-full pl-8.5 pr-3.5 py-2 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
           />
         </div>
       </div>
 
       {/* ─── 2. SUMMARY STATISTIC CARDS (3 CARDS) ─── */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
         
         {/* Card 1: Arrivals Today */}
-        <div className="bg-white p-5 sm:p-6 rounded-2xl border border-stone/20 shadow-sm flex flex-col justify-between">
+        <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase font-bold tracking-widest text-[#B48454]">ARRIVALS TODAY</span>
-            <div className="w-7 h-7 rounded-lg bg-[#B48454]/10 text-[#B48454] flex items-center justify-center">
-              <Luggage className="w-4 h-4" strokeWidth={1.5} />
+            <span className="text-[10px] uppercase font-bold tracking-widest text-[#6B7A5E]">ARRIVALS TODAY</span>
+            <div className="w-6 h-6 rounded-lg bg-[#6B7A5E]/10 text-[#6B7A5E] flex items-center justify-center">
+              <Luggage className="w-3.5 h-3.5" strokeWidth={1.5} />
             </div>
           </div>
           <div>
-            <p className="font-display text-3xl sm:text-4xl font-bold text-ink mt-2">{todaysArrivals.length}</p>
-            <span className="text-xs text-ink-muted mt-1 block">Confirmed guest arrivals scheduled today</span>
+            <p className="font-display text-xl sm:text-2xl font-bold text-neutral-900 dark:text-white mt-1.5">{todaysArrivals.length}</p>
+            <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5 block">Confirmed guest arrivals scheduled today</span>
           </div>
         </div>
 
         {/* Card 2: Guests In-House */}
-        <div className="bg-white p-5 sm:p-6 rounded-2xl border border-stone/20 shadow-sm flex flex-col justify-between">
+        <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase font-bold tracking-widest text-emerald-700">GUESTS IN-HOUSE</span>
-            <span className="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 rounded-full font-semibold">
+            <span className="text-[10px] uppercase font-bold tracking-widest text-emerald-700 dark:text-emerald-400">GUESTS IN-HOUSE</span>
+            <span className="text-[10px] bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50 px-2 py-0.5 rounded-full font-semibold">
               {occupiedRoomsCount} rooms
             </span>
           </div>
           <div>
-            <p className="font-display text-3xl sm:text-4xl font-bold text-emerald-700 mt-2">{inHouseGuests.length}</p>
-            <span className="text-xs text-ink-muted mt-1 block">Currently checked-in occupants</span>
+            <p className="font-display text-xl sm:text-2xl font-bold text-emerald-700 dark:text-emerald-400 mt-1.5">{inHouseGuests.length}</p>
+            <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5 block">Currently checked-in occupants</span>
           </div>
         </div>
 
         {/* Card 3: Departures Today */}
-        <div className="bg-white p-5 sm:p-6 rounded-2xl border border-stone/20 shadow-sm flex flex-col justify-between">
+        <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase font-bold tracking-widest text-amber-700">DEPARTURES TODAY</span>
-            <div className="w-7 h-7 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 flex items-center justify-center">
-              <PlaneTakeoff className="w-4 h-4" strokeWidth={1.5} />
+            <span className="text-[10px] uppercase font-bold tracking-widest text-amber-700 dark:text-amber-400">DEPARTURES TODAY</span>
+            <div className="w-6 h-6 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50 flex items-center justify-center">
+              <PlaneTakeoff className="w-3.5 h-3.5" strokeWidth={1.5} />
             </div>
           </div>
           <div>
-            <p className="font-display text-3xl sm:text-4xl font-bold text-amber-700 mt-2">{todaysDepartures.length}</p>
-            <span className="text-xs text-ink-muted mt-1 block">Guests scheduled for check-out today</span>
+            <p className="font-display text-xl sm:text-2xl font-bold text-amber-700 dark:text-amber-400 mt-1.5">{todaysDepartures.length}</p>
+            <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5 block">Guests scheduled for check-out today</span>
           </div>
         </div>
 
@@ -287,7 +308,7 @@ export default function AdminCheckInOut() {
             onClick={() => setActiveFilter(tab.id)}
             className={`px-3.5 py-1.5 rounded-lg font-semibold transition-all ${
               activeFilter === tab.id
-                ? 'bg-[#B48454] text-white shadow-sm'
+                ? 'bg-[#6B7A5E] text-white shadow-sm'
                 : 'text-ink-muted hover:text-ink hover:bg-white/60'
             }`}
           >
@@ -297,21 +318,21 @@ export default function AdminCheckInOut() {
       </div>
 
       {/* ─── 3. MAIN THREE-COLUMN LAYOUT ─── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3.5">
 
         {/* ══════════════════════════════════════════════════════════════
             COLUMN 1: TODAY'S ARRIVALS
            ══════════════════════════════════════════════════════════════ */}
         {showArrivals && (
-          <div className="bg-white rounded-2xl border border-stone/20 shadow-sm p-5 sm:p-6 flex flex-col justify-between space-y-4">
+          <div className="bg-white dark:bg-[#181B20] rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-3.5 sm:p-4 flex flex-col justify-between space-y-3">
             
             {/* Column Header */}
-            <div className="pb-3 border-b border-stone/15 flex items-center justify-between">
+            <div className="pb-2.5 border-b border-black/[0.06] dark:border-neutral-800 flex items-center justify-between">
               <div>
-                <h2 className="font-display text-xl font-bold text-ink">Today's Arrivals</h2>
-                <p className="text-xs text-ink-muted mt-0.5">Check-in from 3:00 PM</p>
+                <h2 className="font-display text-base font-bold text-neutral-900 dark:text-white">Today's Arrivals</h2>
+                <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">Check-in from 3:00 PM</p>
               </div>
-              <span className="text-xs bg-[#B48454]/10 text-[#B48454] font-bold px-2.5 py-1 rounded-full">
+              <span className="text-[10px] bg-[#6B7A5E]/10 text-[#6B7A5E] font-bold px-2 py-0.5 rounded-full">
                 {displayArrivals.length} scheduled
               </span>
             </div>
@@ -321,11 +342,11 @@ export default function AdminCheckInOut() {
               {displayArrivals.map((b) => (
                 <div
                   key={b.id}
-                  className="p-4 rounded-xl bg-[#FAF8F5] border border-stone/20 hover:border-[#B48454]/40 transition-all space-y-2.5 shadow-xs"
+                  className="p-4 rounded-xl bg-[#F6F2E8] border border-stone/20 hover:border-[#6B7A5E]/40 transition-all space-y-2.5 shadow-xs"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-[#B48454]/15 text-[#B48454] font-display font-bold text-sm flex items-center justify-center shrink-0">
+                      <div className="w-10 h-10 rounded-full bg-[#6B7A5E]/15 text-[#6B7A5E] font-display font-bold text-sm flex items-center justify-center shrink-0">
                         {getInitials(b.customer_name)}
                       </div>
                       <div>
@@ -340,19 +361,54 @@ export default function AdminCheckInOut() {
                   </div>
 
                   <p className="text-[11px] font-mono text-ink-muted">
-                    {formatDate(b.check_in)} → {formatDate(b.check_out)} · <strong className="text-[#B48454]">{b.booking_ref || `#BK-${b.id}`}</strong>
+                    {formatDate(b.check_in)} → {formatDate(b.check_out)} · <strong className="text-[#6B7A5E]">{b.booking_ref || `#BK-${b.id}`}</strong>
                   </p>
 
                   <div className="flex items-center justify-between pt-1 border-t border-stone/15">
-                    <span className="font-display font-bold text-ink text-xs">
-                      ₱{Number(b.total_price || 0).toLocaleString()}
-                    </span>
-                    <button
-                      onClick={() => setCheckInTarget(b)}
-                      className="px-4 py-2 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl text-xs font-semibold shadow-sm transition-all flex items-center gap-1.5"
-                    >
-                      <span>Check In</span>
-                    </button>
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-display font-bold text-ink text-xs">
+                          ₱{Number(b.total_price || 0).toLocaleString()}
+                        </span>
+                        {(() => {
+                          const isPaid = String(b.payment_status || '').toUpperCase() === 'PAID' || Number(b.remaining_balance || 0) === 0
+                          const isPartiallyPaid = String(b.payment_status || '').toUpperCase() === 'PARTIALLY PAID'
+                          const rem = Number(b.remaining_balance || 0)
+                          if (isPaid) {
+                            return <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50">Fully Paid</span>
+                          }
+                          if (isPartiallyPaid) {
+                            return <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50">Bal: ₱{rem.toLocaleString()}</span>
+                          }
+                          return <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/50">Due: ₱{rem > 0 ? rem.toLocaleString() : Number(b.total_price || 0).toLocaleString()}</span>
+                        })()}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => setViewArrivalTarget(b)}
+                        className="px-3 py-1.5 bg-sand dark:bg-[#20252E] hover:bg-stone/30 dark:hover:bg-neutral-700 text-ink dark:text-white rounded-xl text-xs font-semibold border border-stone/30 dark:border-neutral-700 shadow-2xs transition-all flex items-center gap-1 cursor-pointer"
+                      >
+                        <Eye className="w-3.5 h-3.5 text-ink-muted dark:text-neutral-400" />
+                        <span>View</span>
+                      </button>
+
+                      {(() => {
+                        const isPaid = String(b.payment_status || '').toUpperCase() === 'PAID' || Number(b.remaining_balance || 0) === 0
+                        if (isPaid) {
+                          return (
+                            <button
+                              onClick={() => setCheckInTarget(b)}
+                              className="px-3 py-1.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl text-xs font-semibold shadow-2xs transition-all flex items-center gap-1 cursor-pointer"
+                            >
+                              <span>Check In</span>
+                            </button>
+                          )
+                        }
+                        return null
+                      })()}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -375,15 +431,15 @@ export default function AdminCheckInOut() {
             COLUMN 2: IN-HOUSE GUESTS
            ══════════════════════════════════════════════════════════════ */}
         {showInHouse && (
-          <div className="bg-white rounded-2xl border border-stone/20 shadow-sm p-5 sm:p-6 flex flex-col justify-between space-y-4">
+          <div className="bg-white dark:bg-[#181B20] rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-3.5 sm:p-4 flex flex-col justify-between space-y-3">
             
             {/* Column Header */}
-            <div className="pb-3 border-b border-stone/15 flex items-center justify-between">
+            <div className="pb-2.5 border-b border-black/[0.06] dark:border-neutral-800 flex items-center justify-between">
               <div>
-                <h2 className="font-display text-xl font-bold text-ink">In-House Guests</h2>
-                <p className="text-xs text-ink-muted mt-0.5">Check-out by 12:00 PM</p>
+                <h2 className="font-display text-base font-bold text-neutral-900 dark:text-white">In-House Guests</h2>
+                <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">Check-out by 12:00 PM</p>
               </div>
-              <span className="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold px-2.5 py-1 rounded-full">
+              <span className="text-[10px] bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50 font-bold px-2 py-0.5 rounded-full">
                 {displayInHouse.length} in-house
               </span>
             </div>
@@ -403,7 +459,7 @@ export default function AdminCheckInOut() {
                         ? 'bg-rose-50/40 border-rose-200'
                         : isDueToday
                         ? 'bg-amber-50/40 border-amber-200'
-                        : 'bg-[#FAF8F5] border-stone/20'
+                        : 'bg-[#F6F2E8] border-stone/20'
                     }`}
                   >
                     <div className="flex items-start justify-between gap-3">
@@ -423,7 +479,7 @@ export default function AdminCheckInOut() {
                     </div>
 
                     <p className="text-[11px] font-mono text-ink-muted">
-                      {formatDate(b.check_in)} → <strong className={isDueToday ? 'text-amber-800 font-bold' : isOverdue ? 'text-rose-700 font-bold' : 'text-ink'}>{formatDate(b.check_out)}</strong> · <strong className="text-[#B48454]">{b.booking_ref || `#BK-${b.id}`}</strong>
+                      {formatDate(b.check_in)} → <strong className={isDueToday ? 'text-amber-800 font-bold' : isOverdue ? 'text-rose-700 font-bold' : 'text-ink'}>{formatDate(b.check_out)}</strong> · <strong className="text-[#6B7A5E]">{b.booking_ref || `#BK-${b.id}`}</strong>
                     </p>
 
                     {/* Balance & Action */}
@@ -468,15 +524,15 @@ export default function AdminCheckInOut() {
             COLUMN 3: UPCOMING ARRIVALS
            ══════════════════════════════════════════════════════════════ */}
         {showUpcoming && (
-          <div className="bg-white rounded-2xl border border-stone/20 shadow-sm p-5 sm:p-6 flex flex-col justify-between space-y-4">
+          <div className="bg-white dark:bg-[#181B20] rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-3.5 sm:p-4 flex flex-col justify-between space-y-3">
             
             {/* Column Header */}
-            <div className="pb-3 border-b border-stone/15 flex items-center justify-between">
+            <div className="pb-2.5 border-b border-black/[0.06] dark:border-neutral-800 flex items-center justify-between">
               <div>
-                <h2 className="font-display text-xl font-bold text-ink">Upcoming Arrivals</h2>
-                <p className="text-xs text-ink-muted mt-0.5">Next confirmed reservations</p>
+                <h2 className="font-display text-base font-bold text-neutral-900 dark:text-white">Upcoming Arrivals</h2>
+                <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">Next confirmed reservations</p>
               </div>
-              <span className="text-xs bg-[#B48454]/10 text-[#B48454] font-bold px-2.5 py-1 rounded-full">
+              <span className="text-[10px] bg-[#6B7A5E]/10 text-[#6B7A5E] font-bold px-2 py-0.5 rounded-full">
                 {displayUpcoming.length} future
               </span>
             </div>
@@ -486,7 +542,7 @@ export default function AdminCheckInOut() {
               {displayUpcoming.map((b) => (
                 <div
                   key={b.id}
-                  className="p-4 rounded-xl bg-[#FAF8F5] border border-stone/20 hover:border-[#B48454]/40 transition-all space-y-2.5 shadow-xs"
+                  className="p-4 rounded-xl bg-[#F6F2E8] border border-stone/20 hover:border-[#6B7A5E]/40 transition-all space-y-2.5 shadow-xs"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3">
@@ -505,7 +561,7 @@ export default function AdminCheckInOut() {
                   </div>
 
                   <p className="text-[11px] font-mono text-ink-muted">
-                    {formatDate(b.check_in)} → {formatDate(b.check_out)} · <strong className="text-[#B48454]">{b.booking_ref || `#BK-${b.id}`}</strong>
+                    {formatDate(b.check_in)} → {formatDate(b.check_out)} · <strong className="text-[#6B7A5E]">{b.booking_ref || `#BK-${b.id}`}</strong>
                   </p>
 
                   <div className="flex items-center justify-between pt-1 border-t border-stone/15">
@@ -532,6 +588,113 @@ export default function AdminCheckInOut() {
         )}
 
       </div>
+
+      {/* ─── MODAL: VIEW ARRIVAL DETAILS ─── */}
+      <Modal
+        isOpen={Boolean(viewArrivalTarget)}
+        onClose={() => setViewArrivalTarget(null)}
+        title={viewArrivalTarget ? `Arrival Details — ${viewArrivalTarget.booking_ref || `#BK-${viewArrivalTarget.id}`}` : 'Arrival Details'}
+        size="md"
+      >
+        {viewArrivalTarget && (() => {
+          const dueAmount = Number(viewArrivalTarget.remaining_balance || 0)
+          const isPaid = String(viewArrivalTarget.payment_status || '').toUpperCase() === 'PAID' || dueAmount === 0
+
+          return (
+            <div className="space-y-4 text-xs font-sans">
+              
+              {/* Guest & Room Summary Banner */}
+              <div className="p-4 bg-sand/40 dark:bg-[#1f242d] border border-stone/20 dark:border-neutral-700/80 rounded-2xl space-y-2.5">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-ink-muted dark:text-neutral-400 block">Arrival Summary</span>
+                    <h4 className="font-display font-bold text-ink dark:text-white text-lg">{viewArrivalTarget.customer_name}</h4>
+                    <p className="text-xs text-ink-muted dark:text-neutral-300">
+                      Room {viewArrivalTarget.room_number} · {viewArrivalTarget.room_type}
+                    </p>
+                  </div>
+                  <div className="text-right space-y-1">
+                    <span className="font-mono text-xs font-bold text-[#6B7A5E] block">{viewArrivalTarget.booking_ref}</span>
+                    <StatusBadge status={viewArrivalTarget.status} />
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-stone/20 dark:border-neutral-700 grid grid-cols-2 gap-2 text-ink-muted text-[11px]">
+                  <div>
+                    <span className="block text-[10px] uppercase font-bold text-ink-muted">STAY TYPE:</span>
+                    <strong className="text-ink dark:text-white font-medium">
+                      {viewArrivalTarget.booking_type === 'short_time'
+                        ? `⏱ Short Time (${viewArrivalTarget.duration_hours || 3} Hours)`
+                        : `🌙 Per Night (${viewArrivalTarget.nights || 1} Nights)`}
+                    </strong>
+                  </div>
+                  <div>
+                    <span className="block text-[10px] uppercase font-bold text-ink-muted">SCHEDULE:</span>
+                    <strong className="text-ink dark:text-white font-medium font-mono">
+                      {formatDate(viewArrivalTarget.check_in)} → {formatDate(viewArrivalTarget.check_out)}
+                    </strong>
+                  </div>
+                </div>
+              </div>
+
+              {/* Financial Breakdown Card */}
+              <div className="p-3.5 bg-white dark:bg-[#181B20] border border-stone/20 dark:border-neutral-800 rounded-2xl grid grid-cols-3 gap-2 text-center font-mono text-[11px]">
+                <div className="p-2 bg-sand/30 dark:bg-neutral-800/50 rounded-xl">
+                  <span className="text-[10px] uppercase font-bold text-ink-muted block">TOTAL BILL</span>
+                  <strong className="text-ink dark:text-white text-sm">₱{Number(viewArrivalTarget.total_price || 0).toLocaleString()}</strong>
+                </div>
+                <div className="p-2 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl">
+                  <span className="text-[10px] uppercase font-bold text-emerald-800 dark:text-emerald-300 block">PAID</span>
+                  <strong className="text-emerald-700 dark:text-emerald-400 text-sm">₱{Number(viewArrivalTarget.amount_paid || 0).toLocaleString()}</strong>
+                </div>
+                <div className="p-2 bg-amber-50 dark:bg-amber-950/40 rounded-xl">
+                  <span className="text-[10px] uppercase font-bold text-amber-800 dark:text-amber-300 block">DUE</span>
+                  <strong className="text-amber-800 dark:text-amber-300 text-sm">₱{dueAmount.toLocaleString()}</strong>
+                </div>
+              </div>
+
+              {/* Notice Banner */}
+              {isPaid ? (
+                <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 rounded-xl flex items-center gap-2 text-xs text-emerald-900 dark:text-emerald-200">
+                  <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <span>Reservation is fully settled. Guest is verified and ready for room check-in.</span>
+                </div>
+              ) : (
+                <div className="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-xl flex items-center gap-2 text-xs text-amber-900 dark:text-amber-200">
+                  <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                  <span><strong>Payment Required:</strong> Outstanding balance of ₱{dueAmount.toLocaleString()} must be settled in the <strong>Billing & Payments</strong> module before check-in.</span>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setViewArrivalTarget(null)}
+                  className="flex-1 py-2.5 border border-stone/30 rounded-xl font-semibold text-ink-muted hover:bg-sand transition-all cursor-pointer text-xs"
+                >
+                  Close
+                </button>
+
+                {isPaid && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const tgt = viewArrivalTarget
+                      setViewArrivalTarget(null)
+                      setCheckInTarget(tgt)
+                    }}
+                    className="flex-1 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl font-semibold shadow-sm transition-all cursor-pointer text-xs"
+                  >
+                    Check In Guest
+                  </button>
+                )}
+              </div>
+
+            </div>
+          )
+        })()}
+      </Modal>
 
       {/* ─── MODAL: CHECK-IN CONFIRMATION ─── */}
       <ConfirmDialog
@@ -562,7 +725,7 @@ export default function AdminCheckInOut() {
                   <h4 className="font-display font-bold text-ink text-lg">{checkOutTarget.customer_name}</h4>
                   <p className="text-xs text-ink-muted">Room {checkOutTarget.room_number} · {checkOutTarget.room_type}</p>
                 </div>
-                <span className="font-mono text-xs font-bold text-[#B48454]">{checkOutTarget.booking_ref}</span>
+                <span className="font-mono text-xs font-bold text-[#6B7A5E]">{checkOutTarget.booking_ref}</span>
               </div>
               <div className="pt-2 border-t border-stone/20 flex justify-between text-ink-muted">
                 <span>Stay Duration:</span>
@@ -634,9 +797,7 @@ export default function AdminCheckInOut() {
                       onChange={(e) => setPayMethod(e.target.value as 'cash' | 'card' | 'ewallet')}
                       className="w-full px-3 py-2 rounded-xl border border-stone font-semibold text-xs bg-cream"
                     >
-                      <option value="cash">Cash Settlement</option>
-                      <option value="ewallet">GCash / Maya (eWallet)</option>
-                      <option value="card">Credit / Debit Card</option>
+                      <option value="cash">Cash</option>
                     </select>
                   </div>
                 )
@@ -662,7 +823,7 @@ export default function AdminCheckInOut() {
                 type="button"
                 onClick={handleConfirmCheckOut}
                 disabled={processingCheckOut}
-                className="flex-1 py-2.5 bg-[#B48454] hover:bg-[#9E6E3E] text-white rounded-xl font-semibold text-xs shadow-sm disabled:opacity-50 transition-all"
+                className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl font-semibold text-xs shadow-sm disabled:opacity-50 transition-all"
               >
                 {processingCheckOut ? 'Processing...' : 'Complete Check-Out'}
               </button>
