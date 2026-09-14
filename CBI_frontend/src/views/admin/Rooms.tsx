@@ -312,11 +312,11 @@ export default function AdminRooms({ userRole = 'admin' }: AdminRoomsProps) {
   // Open Edit Modal
   const openEditModal = (r: RoomRecord) => {
     setEditRoom(r)
-    setEditNumber(String(r.room_number))
-    setEditType(String(r.room_type || r.type || 'Standard Queen'))
-    setEditFloor(String(r.room_number.charAt(0) || '1'))
+    setEditNumber(String(r.room_number || ''))
+    setEditType(String(r.room_type || r.type || 'Standard Twin'))
+    setEditFloor(String(String(r.room_number || '1').charAt(0) || '1'))
     setEditCapacity(String(r.capacity || r.max_guests || '2'))
-    setEditBedType('1 Queen Bed')
+    setEditBedType(String(r.bed_type || (r.capacity && Number(r.capacity) > 4 ? '4 Bunk Beds' : '1 Queen Bed')))
     setEditRate(String(r.rate_per_night || r.price_per_night || ''))
     setEditStatus(String(r.status || 'available').toLowerCase())
     setEditDescription(String(r.description || ''))
@@ -337,17 +337,44 @@ export default function AdminRooms({ userRole = 'admin' }: AdminRoomsProps) {
     setSavingEdit(true)
     setEditError('')
     try {
+      const updatedCapacity = Number(editCapacity) || 2
+      const updatedType = editType.trim() || 'Standard Twin'
+      const updatedRate = Number(editRate) || 0
+
       await roomsApi.updateRoom(editRoom.id, {
         room_number: editNumber.trim(),
-        room_type: editType,
-        capacity: Number(editCapacity) || 2,
-        rate_per_night: Number(editRate) || 0,
+        room_type: updatedType,
+        capacity: updatedCapacity,
+        rate_per_night: updatedRate,
         status: editStatus,
         description: editDescription.trim() || undefined,
         image_urls: editImageUrl.trim() ? [editImageUrl.trim()] : undefined,
       })
+
+      // Optimistic update for instant UI feedback
+      setRooms((prev) =>
+        prev.map((rm) =>
+          rm.id === editRoom.id
+            ? {
+                ...rm,
+                room_number: editNumber.trim(),
+                room_type: updatedType,
+                type: updatedType,
+                capacity: updatedCapacity,
+                max_guests: updatedCapacity,
+                rate_per_night: updatedRate,
+                price_per_night: updatedRate,
+                status: editStatus,
+                description: editDescription.trim(),
+                image: editImageUrl.trim() || rm.image,
+                image_urls: editImageUrl.trim() ? [editImageUrl.trim()] : rm.image_urls,
+              }
+            : rm
+        )
+      )
+
       setEditRoom(null)
-      fireToast(`✓ Room ${editNumber.trim()} updated successfully!`)
+      fireToast(`✓ Room ${editNumber.trim()} (${updatedType}) updated! Sleeps ${updatedCapacity}.`)
       loadRooms()
     } catch (err) {
       setEditError(err instanceof Error ? err.message : 'Failed to update room.')
@@ -916,15 +943,19 @@ export default function AdminRooms({ userRole = 'admin' }: AdminRoomsProps) {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Room Type *</label>
-              <select
+              <input
+                type="text"
+                list="add-room-types-list"
                 value={addType}
                 onChange={(e) => setAddType(e.target.value)}
+                placeholder="e.g. Standard Twin, Deluxe King"
                 className="w-full px-3 py-2.5 rounded-xl border border-stone focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40 bg-cream"
-              >
+              />
+              <datalist id="add-room-types-list">
                 {ROOM_TYPES.map((t) => (
-                  <option key={t} value={t}>{t}</option>
+                  <option key={t} value={t} />
                 ))}
-              </select>
+              </datalist>
             </div>
 
             <div>
@@ -1119,28 +1150,86 @@ export default function AdminRooms({ userRole = 'admin' }: AdminRoomsProps) {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Room Type</label>
-              <select
+              <label className="block font-semibold text-ink uppercase tracking-wider mb-0.5">
+                Room Type / Subtitle *
+              </label>
+              <span className="text-[10px] text-ink-muted block mb-1">
+                Appears below Room Number (e.g. Standard Twin)
+              </span>
+              <input
+                type="text"
+                list="edit-room-types-list"
                 value={editType}
                 onChange={(e) => setEditType(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-xl border border-stone bg-cream"
-              >
+                placeholder="e.g. Standard Twin"
+                required
+                className="w-full px-3 py-2.5 rounded-xl border border-stone font-medium text-ink bg-cream focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
+              />
+              <datalist id="edit-room-types-list">
                 {ROOM_TYPES.map((t) => (
-                  <option key={t} value={t}>{t}</option>
+                  <option key={t} value={t} />
                 ))}
-              </select>
+              </datalist>
             </div>
 
             <div>
-              <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Rate Per Night (₱) *</label>
+              <label className="block font-semibold text-ink uppercase tracking-wider mb-0.5">
+                Rate Per Night (₱) *
+              </label>
+              <span className="text-[10px] text-ink-muted block mb-1">
+                Base nightly rate
+              </span>
               <input
                 type="number"
                 value={editRate}
                 onChange={(e) => setEditRate(e.target.value)}
                 min={0}
                 required
-                className="w-full px-3 py-2.5 rounded-xl border border-stone font-bold text-[#6B7A5E] bg-cream"
+                className="w-full px-3 py-2.5 rounded-xl border border-stone font-bold text-[#6B7A5E] bg-cream focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
               />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block font-semibold text-ink uppercase tracking-wider mb-0.5 flex items-center gap-1.5">
+                <Users className="w-3.5 h-3.5 text-[#6B7A5E]" />
+                <span>Sleeps / Guest Capacity *</span>
+              </label>
+              <span className="text-[10px] text-ink-muted block mb-1">
+                How many guests can sleep (e.g. 2, 4, 8)
+              </span>
+              <input
+                type="number"
+                value={editCapacity}
+                onChange={(e) => setEditCapacity(e.target.value)}
+                min={1}
+                max={50}
+                required
+                className="w-full px-3 py-2.5 rounded-xl border border-stone font-bold text-ink bg-cream focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
+              />
+            </div>
+
+            <div>
+              <label className="block font-semibold text-ink uppercase tracking-wider mb-0.5">
+                Bed Configuration
+              </label>
+              <span className="text-[10px] text-ink-muted block mb-1">
+                Beds in room (e.g. 2 Twin Beds)
+              </span>
+              <input
+                type="text"
+                list="edit-bed-types-list"
+                value={editBedType}
+                onChange={(e) => setEditBedType(e.target.value)}
+                placeholder="e.g. 2 Twin Beds"
+                className="w-full px-3 py-2.5 rounded-xl border border-stone text-ink bg-cream focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
+              />
+              <datalist id="edit-bed-types-list">
+                {BED_TYPES.map((b) => (
+                  <option key={b} value={b} />
+                ))}
+              </datalist>
             </div>
           </div>
 
@@ -1318,10 +1407,22 @@ export default function AdminRooms({ userRole = 'admin' }: AdminRoomsProps) {
             <div className="flex justify-end gap-2 pt-2">
               <button
                 onClick={() => setViewRoom(null)}
-                className="px-5 py-2.5 bg-sand hover:bg-stone/20 text-ink rounded-xl font-semibold text-xs"
+                className="px-5 py-2.5 bg-sand hover:bg-stone/20 text-ink rounded-xl font-semibold text-xs transition-colors cursor-pointer"
               >
                 Close
               </button>
+              {!isStaff && (
+                <button
+                  onClick={() => {
+                    const r = viewRoom
+                    setViewRoom(null)
+                    openEditModal(r)
+                  }}
+                  className="px-5 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl font-semibold text-xs transition-all shadow-xs cursor-pointer"
+                >
+                  Edit Room
+                </button>
+              )}
             </div>
           </div>
         )}

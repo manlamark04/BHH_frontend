@@ -5,9 +5,11 @@ import { catalogApi } from '../api/services'
 import { inquiriesApi } from '../api/inquiries'
 import logo from '../imports/logo.png'
 import InteractiveLogoMark from '../components/InteractiveLogoMark'
+import Modal from '../components/Modal'
 import pickleballCourtImg from '../imports/pickleball_court.jpg'
 import hondaClickImg from '../imports/Honda Vario_Click 125 Blue.jpg'
 import landingImg from '../imports/landing.jpg'
+import signinImg from '../imports/signin.jpg'
 import {
   ConciergeBell,
   SprayCan,
@@ -26,6 +28,19 @@ import {
   Star,
   Menu,
   X,
+  Moon,
+  BedDouble,
+  Users,
+  DoorClosed,
+  Wifi,
+  Wind,
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  Heart,
+  Droplets,
+  Tv,
+  Coffee,
 } from 'lucide-react'
 
 /* ─────────────────────────────────────────────
@@ -132,16 +147,148 @@ const NAV_LINKS = [
 ]
 
 /* ─────────────────────────────────────────────
+   Hero Featured Rooms Structure & Catalog
+   ─────────────────────────────────────────── */
+interface HeroRoom {
+  id: string | number
+  name: string
+  category: string
+  badgeLabel: string
+  price: number
+  roomCount: string
+  capacity: string
+  bedType: string
+  description: string
+  amenities: { icon: typeof Wind; label: string }[]
+  image: string
+  thumbnail?: string
+}
+
+const DEFAULT_HERO_ROOMS: HeroRoom[] = [
+  {
+    id: 'garden-villa',
+    name: 'Garden Villa Suite',
+    category: 'VILLA',
+    badgeLabel: '◈ VILLA',
+    price: 3200,
+    roomCount: '1 villa',
+    capacity: 'Up to 4 guests',
+    bedType: 'King bed',
+    description: 'Good for 4 Persons · Private wooden veranda & lush tropical garden views.',
+    amenities: [
+      { icon: Wind, label: 'Aircon' },
+      { icon: Wifi, label: 'Fast WiFi' },
+      { icon: Droplets, label: 'Hot Shower' },
+      { icon: UtensilsCrossed, label: 'Breakfast' },
+    ],
+    image: landingImg,
+  },
+  {
+    id: 'bamboo-cottage',
+    name: 'Native Bamboo Cottage',
+    category: 'COTTAGES',
+    badgeLabel: '◈ COTTAGES',
+    price: 1800,
+    roomCount: '1 cottage',
+    capacity: 'Up to 3 guests',
+    bedType: 'Queen bed',
+    description: 'Good for 3 Persons · Traditional Boholano kubo architecture overlooking Batuan valley.',
+    amenities: [
+      { icon: Wind, label: 'Mountain Breeze' },
+      { icon: Wifi, label: 'WiFi' },
+      { icon: Home, label: 'Veranda' },
+      { icon: Leaf, label: 'Garden Path' },
+    ],
+    image: '/kubokubo.jpg',
+  },
+  {
+    id: 'family-deluxe',
+    name: 'Family Deluxe Suite',
+    category: 'ROOM',
+    badgeLabel: '◈ ROOM',
+    price: 4500,
+    roomCount: '2 rooms',
+    capacity: 'Up to 7 guests',
+    bedType: '2 Queen beds',
+    description: 'Good for 7 Persons · Spacious group accommodation with complimentary resort entrance.',
+    amenities: [
+      { icon: Wind, label: 'Dual Aircon' },
+      { icon: Wifi, label: 'Fast WiFi' },
+      { icon: Tv, label: 'Smart TV' },
+      { icon: Droplets, label: 'Hot Shower' },
+    ],
+    image: 'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=1600&auto=format&fit=crop&q=85',
+  },
+  {
+    id: 'hammock-villa',
+    name: 'Hammock Breeze Villa',
+    category: 'VILLA',
+    badgeLabel: '◈ VILLA',
+    price: 2700,
+    roomCount: '1 villa',
+    capacity: 'Up to 4 guests',
+    bedType: 'Queen bed',
+    description: 'Good for 4 Persons · Shaded palm terrace with private outdoor relaxing hammock.',
+    amenities: [
+      { icon: Wind, label: 'Aircon' },
+      { icon: Wifi, label: 'WiFi' },
+      { icon: Coffee, label: 'Coffee Bar' },
+      { icon: Leaf, label: 'Scenic View' },
+    ],
+    image: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=1600&auto=format&fit=crop&q=85',
+  },
+  {
+    id: 'native-loft',
+    name: 'A-Frame Native Loft',
+    category: 'COTTAGES',
+    badgeLabel: '◈ COTTAGES',
+    price: 2200,
+    roomCount: '1 loft',
+    capacity: 'Up to 4 guests',
+    bedType: 'Queen + Twin bed',
+    description: 'Good for 4 Persons · Two-level bamboo retreat tucked peacefully in nature.',
+    amenities: [
+      { icon: Wind, label: 'Natural Breeze' },
+      { icon: Wifi, label: 'WiFi' },
+      { icon: Home, label: 'Private Porch' },
+      { icon: Leaf, label: 'Batuan Trail' },
+    ],
+    image: signinImg,
+  },
+  {
+    id: 'mahogany-suite',
+    name: 'Mahogany Executive Suite',
+    category: 'ROOM',
+    badgeLabel: '◈ ROOM',
+    price: 3500,
+    roomCount: '1 room',
+    capacity: 'Up to 5 guests',
+    bedType: '1 King bed',
+    description: 'Good for 5 Persons · Rich hardwood craftsmanship with panoramic countryside vistas.',
+    amenities: [
+      { icon: Wind, label: 'Aircon' },
+      { icon: Wifi, label: 'Fast WiFi' },
+      { icon: Droplets, label: 'Hot Shower' },
+      { icon: Sparkles, label: 'Luxury Linens' },
+    ],
+    image: 'https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=1600&auto=format&fit=crop&q=85',
+  },
+]
+
+/* ─────────────────────────────────────────────
    Landing component
    ─────────────────────────────────────────── */
 interface LandingProps { onNavigate: (view: View) => void }
 
 export default function Landing({ onNavigate }: LandingProps) {
+  const [viewRoom, setViewRoom] = useState<any>(null)
   const [rooms, setRooms] = useState<Record<string, unknown>[]>([])
   const [activities, setActivities] = useState<Record<string, unknown>[]>([])
   const [navScrolled, setNavScrolled] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [activeSection, setActiveSection] = useState('')
+  const [activeHeroIndex, setActiveHeroIndex] = useState(0)
+  const thumbnailRowRef = useRef<HTMLDivElement>(null)
 
   // Inquiry Form State
   const [inqName, setInqName] = useState('')
@@ -208,6 +355,67 @@ export default function Landing({ onNavigate }: LandingProps) {
     handleScroll()
     return () => window.removeEventListener('scroll', handleScroll)
   }, [handleScroll])
+
+  // Build hero rooms list with API fallback
+  const heroRooms = useMemo<HeroRoom[]>(() => {
+    if (!rooms || rooms.length === 0) return DEFAULT_HERO_ROOMS
+
+    const apiHeroRooms: HeroRoom[] = rooms.slice(0, 6).map((r, idx) => {
+      const name = String(r.name || r.room_type || `Room ${r.room_number || idx + 1}`)
+      const rawCat = String(r.room_type || r.type || 'ROOM').toUpperCase()
+      const badgeLabel = `◈ ${rawCat}`
+      const price = Number(r.rate_per_night || r.price || 2500)
+      const roomCount = r.room_number ? `Room ${r.room_number}` : '1 room'
+      const cap = Number(r.capacity || r.max_guests || 4)
+      const capacity = `Up to ${cap} guests`
+      const bedType = cap > 4 ? '2 Queen beds' : 'Queen bed'
+      const description = String(r.description || `Good for ${cap} Persons · Serene sanctuary with refreshing tropical breeze.`)
+      const img = Array.isArray(r.image_urls) && r.image_urls[0] ? r.image_urls[0] : (r.image as string) || DEFAULT_HERO_ROOMS[idx % DEFAULT_HERO_ROOMS.length].image
+
+      return {
+        id: (r.id || r.roomId || `api-room-${idx}`) as string | number,
+        name,
+        category: rawCat,
+        badgeLabel,
+        price,
+        roomCount,
+        capacity,
+        bedType,
+        description,
+        amenities: [
+          { icon: Wind, label: 'Aircon' },
+          { icon: Wifi, label: 'Fast WiFi' },
+          { icon: Droplets, label: 'Hot Shower' },
+          { icon: Sparkles, label: 'Modern Comfort' },
+        ],
+        image: img,
+      }
+    })
+
+    return apiHeroRooms.length > 0 ? apiHeroRooms : DEFAULT_HERO_ROOMS
+  }, [rooms])
+
+  const activeRoom = heroRooms[activeHeroIndex] || heroRooms[0]
+
+  const handleSelectRoom = (idx: number) => {
+    setActiveHeroIndex(idx)
+    if (thumbnailRowRef.current) {
+      const el = thumbnailRowRef.current.children[idx] as HTMLElement
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
+      }
+    }
+  }
+
+  const handlePrevRoom = () => {
+    const nextIdx = activeHeroIndex > 0 ? activeHeroIndex - 1 : heroRooms.length - 1
+    handleSelectRoom(nextIdx)
+  }
+
+  const handleNextRoom = () => {
+    const nextIdx = activeHeroIndex < heroRooms.length - 1 ? activeHeroIndex + 1 : 0
+    handleSelectRoom(nextIdx)
+  }
 
   interface ActivityItem {
     id: string | number
@@ -299,49 +507,78 @@ export default function Landing({ onNavigate }: LandingProps) {
           ═══════════════════════════════════════ */}
       <header
         className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${navScrolled
-            ? 'bg-[#F6F2E8]/95 backdrop-blur-xl shadow-[0_4px_24px_rgba(0,0,0,0.06)] border-b border-stone/20 py-2.5'
-            : 'bg-[#F6F2E8]/85 backdrop-blur-md border-b border-stone/15 py-3.5'
+            ? 'bg-[#F6F2E8]/95 backdrop-blur-xl shadow-[0_4px_24px_rgba(0,0,0,0.08)] border-b border-stone/20 py-2.5'
+            : 'bg-transparent border-b border-transparent py-4 sm:py-5'
           }`}
       >
         <div className="max-w-[1320px] mx-auto px-6 sm:px-8 flex items-center justify-between">
-          {/* Logo & Brand Identity */}
+          {/* Logo & Brand Identity — Compact Single-Line Treatment */}
           <a
             href="#"
-            className="flex items-center gap-3.5 group"
+            className="flex items-center gap-3 group"
             onClick={(e) => {
               e.preventDefault()
               window.scrollTo({ top: 0, behavior: 'smooth' })
             }}
           >
             <InteractiveLogoMark />
-            <div className="flex flex-col">
-              <div className="flex items-center gap-2">
-                <span className="font-serif-brand text-[17px] font-bold text-ink tracking-[-0.01em] group-hover:text-[#6B7A5E] transition-colors duration-200">
-                  Cambacay
-                </span>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-[#6B7A5E]/12 text-[#4F5D45] uppercase tracking-wider hidden sm:inline-flex">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#22A66B] animate-pulse" />
-                  Nature Retreat
-                </span>
-              </div>
-              <span className="text-[10px] text-ink-muted font-medium uppercase tracking-[0.16em] -mt-0.5">
-                Breeze Inn · Batuan, Bohol
+            <div className="flex flex-col justify-center gap-1">
+              <span
+                className={`font-sans text-[16px] sm:text-[17px] font-bold tracking-tight leading-none transition-colors duration-200 ${
+                  navScrolled
+                    ? 'text-ink group-hover:text-[#6B7A5E]'
+                    : 'text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]'
+                }`}
+              >
+                Cambacay Breeze Inn
+              </span>
+              <span
+                className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] font-medium uppercase tracking-wider hidden lg:inline-flex transition-colors duration-200 self-start ${
+                  navScrolled
+                    ? 'bg-[#6B7A5E]/12 text-[#4F5D45]'
+                    : 'bg-white/15 text-white/90 backdrop-blur-xs border border-white/20 drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)]'
+                }`}
+              >
+                <span className="w-1 h-1 rounded-full bg-[#22A66B] animate-pulse" />
+                Nature Retreat
               </span>
             </div>
           </a>
 
-          {/* Desktop Navigation Center Pill */}
-          <div className="hidden md:flex items-center bg-stone/20 p-1 rounded-full border border-stone/25 backdrop-blur-sm shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)]">
+          {/* Desktop Navigation Center: Plain text when over hero, pill when scrolled */}
+          <div
+            className={`hidden md:flex items-center transition-all duration-300 ${
+              navScrolled
+                ? 'bg-stone/20 p-1 rounded-full border border-stone/25 backdrop-blur-sm shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)]'
+                : 'bg-transparent p-0 rounded-none border-0 shadow-none gap-1.5 lg:gap-3'
+            }`}
+          >
             {NAV_LINKS.map((link) => {
               const isActive = activeSection === link.id
+              if (navScrolled) {
+                return (
+                  <a
+                    key={link.id}
+                    href={link.href}
+                    className={`px-4 py-1.5 rounded-full text-[13px] font-medium transition-all duration-200 ${
+                      isActive
+                        ? 'bg-white text-[#4F5D45] shadow-[0_1px_4px_rgba(0,0,0,0.06)] font-semibold'
+                        : 'text-ink-muted hover:text-ink hover:bg-white/60'
+                    }`}
+                  >
+                    {link.label}
+                  </a>
+                )
+              }
               return (
                 <a
                   key={link.id}
                   href={link.href}
-                  className={`px-4 py-1.5 rounded-full text-[13px] font-medium transition-all duration-200 ${isActive
-                      ? 'bg-white text-[#4F5D45] shadow-[0_1px_4px_rgba(0,0,0,0.06)] font-semibold'
-                      : 'text-ink-muted hover:text-ink hover:bg-white/60'
-                    }`}
+                  className={`px-3.5 py-1.5 text-[13px] font-medium transition-all duration-200 drop-shadow-[0_1px_4px_rgba(0,0,0,0.6)] ${
+                    isActive
+                      ? 'text-white font-semibold border-b-2 border-[#C9A66B] pb-1'
+                      : 'text-white/80 hover:text-white hover:drop-shadow-[0_1px_6px_rgba(0,0,0,0.8)]'
+                  }`}
                 >
                   {link.label}
                 </a>
@@ -351,16 +588,26 @@ export default function Landing({ onNavigate }: LandingProps) {
 
           {/* Action Cluster & Mobile Trigger */}
           <div className="flex items-center gap-2.5">
+            {/* Sign In Button */}
             <button
               onClick={() => onNavigate('login')}
-              className="hidden sm:inline-flex items-center justify-center font-sans font-medium text-[13px] text-ink hover:text-[#4F5D45] px-5 py-2 rounded-xl bg-stone/20 hover:bg-stone/30 border border-stone/25 backdrop-blur-sm shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)] hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
+              className={`hidden sm:inline-flex items-center justify-center font-sans font-medium text-[13px] px-4.5 py-2 rounded-xl transition-all duration-200 ${
+                navScrolled
+                  ? 'text-ink hover:text-[#4F5D45] bg-stone/20 hover:bg-stone/30 border border-stone/25 backdrop-blur-sm shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)] hover:-translate-y-0.5 active:translate-y-0'
+                  : 'text-white hover:text-white bg-white/10 hover:bg-white/20 border border-white/40 hover:border-white/70 backdrop-blur-xs shadow-[0_2px_8px_rgba(0,0,0,0.3)] hover:-translate-y-0.5 active:translate-y-0 drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)]'
+              }`}
             >
               Sign In
             </button>
 
+            {/* Register Button */}
             <button
               onClick={() => onNavigate('register')}
-              className="inline-flex items-center justify-center font-sans font-medium text-[13px] text-white bg-gradient-to-r from-[#6B7A5E] to-[#4F5D45] hover:from-[#4F5D45] hover:to-[#3B4534] px-5 py-2 rounded-xl shadow-[0_2px_10px_rgba(107,122,94,0.25)] hover:shadow-[0_4px_16px_rgba(107,122,94,0.35)] hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
+              className={`inline-flex items-center justify-center font-sans font-medium text-[13px] text-white px-5 py-2 rounded-xl shadow-[0_2px_10px_rgba(107,122,94,0.25)] hover:shadow-[0_4px_16px_rgba(107,122,94,0.35)] hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 ${
+                navScrolled
+                  ? 'bg-gradient-to-r from-[#6B7A5E] to-[#4F5D45] hover:from-[#4F5D45] hover:to-[#3B4534]'
+                  : 'bg-[#6B7A5E] hover:bg-[#55624B] border border-white/20'
+              }`}
             >
               Register
             </button>
@@ -369,7 +616,11 @@ export default function Landing({ onNavigate }: LandingProps) {
             <button
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 rounded-xl text-ink hover:bg-stone/20 transition-colors focus:outline-none"
+              className={`md:hidden p-2 rounded-xl transition-colors focus:outline-none ${
+                navScrolled
+                  ? 'text-ink hover:bg-stone/20'
+                  : 'text-white hover:bg-white/15 drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)]'
+              }`}
               aria-label="Toggle navigation menu"
             >
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -379,30 +630,49 @@ export default function Landing({ onNavigate }: LandingProps) {
 
         {/* Mobile Dropdown Drawer */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t border-stone/15 bg-[#F6F2E8]/98 backdrop-blur-xl px-6 py-5 shadow-xl transition-all">
+          <div
+            className={`md:hidden border-t px-6 py-5 shadow-2xl transition-all ${
+              navScrolled
+                ? 'border-stone/15 bg-[#F6F2E8]/98 backdrop-blur-xl text-ink'
+                : 'border-white/15 bg-[#1C221A]/95 backdrop-blur-2xl text-white'
+            }`}
+          >
             <div className="flex flex-col space-y-1">
               {NAV_LINKS.map((link) => (
                 <a
                   key={link.id}
                   href={link.href}
                   onClick={() => setMobileMenuOpen(false)}
-                  className={`px-4 py-2.5 rounded-xl text-[14px] font-medium transition-colors ${activeSection === link.id
-                      ? 'bg-[#6B7A5E]/12 text-[#4F5D45] font-semibold'
-                      : 'text-ink-muted hover:text-ink hover:bg-stone/15'
-                    }`}
+                  className={`px-4 py-2.5 rounded-xl text-[14px] font-medium transition-colors ${
+                    activeSection === link.id
+                      ? navScrolled
+                        ? 'bg-[#6B7A5E]/12 text-[#4F5D45] font-semibold'
+                        : 'bg-white/15 text-white font-semibold'
+                      : navScrolled
+                        ? 'text-ink-muted hover:text-ink hover:bg-stone/15'
+                        : 'text-white/80 hover:text-white hover:bg-white/10'
+                  }`}
                 >
                   {link.label}
                 </a>
               ))}
             </div>
 
-            <div className="pt-4 mt-3 border-t border-stone/15 flex flex-col gap-2.5">
+            <div
+              className={`pt-4 mt-3 border-t flex flex-col gap-2.5 ${
+                navScrolled ? 'border-stone/15' : 'border-white/15'
+              }`}
+            >
               <button
                 onClick={() => {
                   setMobileMenuOpen(false)
                   onNavigate('login')
                 }}
-                className="w-full h-10 rounded-xl border border-stone/30 font-medium text-[13px] text-ink hover:bg-stone/15 flex items-center justify-center transition-colors"
+                className={`w-full h-10 rounded-xl border font-medium text-[13px] flex items-center justify-center transition-colors ${
+                  navScrolled
+                    ? 'border-stone/30 text-ink hover:bg-stone/15'
+                    : 'border-white/30 text-white hover:bg-white/10'
+                }`}
               >
                 Sign In to Account
               </button>
@@ -421,75 +691,196 @@ export default function Landing({ onNavigate }: LandingProps) {
       </header>
 
       {/* ═══════════════════════════════════════
-          2 · HERO
+          2 · HERO — "LET'S RESORT" FEATURED ROOM SPOTLIGHT
           ═══════════════════════════════════════ */}
-      <section className="relative min-h-screen flex items-center overflow-hidden">
-        {/* Background image + overlay */}
-        <div className="absolute inset-0">
-          <img
-            src={landingImg}
-            alt="Cambacay Breeze Inn"
-            className="w-full h-full object-cover"
-            style={{ filter: 'saturate(0.9) brightness(0.95)' }}
-          />
+      <section className="relative min-h-screen flex flex-col justify-between pt-28 sm:pt-32 pb-8 sm:pb-10 overflow-hidden">
+        {/* Full-bleed background images with crossfade */}
+        <div className="absolute inset-0 overflow-hidden">
+          {heroRooms.map((room, idx) => (
+            <img
+              key={room.id}
+              src={room.image}
+              alt={room.name}
+              className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ease-in-out ${
+                idx === activeHeroIndex ? 'opacity-100 scale-100' : 'opacity-0 scale-105 pointer-events-none'
+              }`}
+              style={{ filter: 'saturate(0.92) brightness(0.90)' }}
+            />
+          ))}
+
+          {/* Dark overlay gradient: darker at edges/bottom, slightly lighter in upper-middle */}
           <div
             className="absolute inset-0"
             style={{
-              background: `linear-gradient(to right, ${CHARCOAL}ee ${0}%, ${CHARCOAL}99 40%, transparent 75%)`,
+              background: `
+                radial-gradient(ellipse at 50% 45%, rgba(20, 24, 18, 0.35) 0%, rgba(20, 24, 18, 0.72) 70%, rgba(12, 15, 11, 0.90) 100%),
+                linear-gradient(to bottom, rgba(12, 15, 11, 0.70) 0%, rgba(12, 15, 11, 0.20) 25%, rgba(12, 15, 11, 0.30) 65%, rgba(12, 15, 11, 0.92) 100%)
+              `,
             }}
           />
-          {/* extra bottom gradient for text safety */}
-          <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-[#2A3126]/60 to-transparent" />
         </div>
 
-        <div className="relative max-w-[1280px] mx-auto px-8 py-32 md:py-40 w-full">
-          <div className="max-w-[560px]">
-            <p
-              className="text-[11px] font-medium uppercase tracking-[0.2em] mb-6 text-white/50"
+        {/* Spacer for top header clearance */}
+        <div className="h-4 sm:h-6" />
+
+        {/* Centered Hero Content */}
+        <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 w-full flex flex-col items-center text-center my-auto">
+          {/* Pill Badge */}
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/45 backdrop-blur-md border border-[#C9A66B]/50 shadow-[0_2px_10px_rgba(0,0,0,0.3)] mb-3 sm:mb-3.5">
+            <span className="w-4 h-4 rounded-full border border-[#C9A66B]/80 flex items-center justify-center text-[#C9A66B]">
+              <Heart className="w-2 h-2 fill-current text-[#C9A66B]" />
+            </span>
+            <span className="font-sans text-[10px] font-semibold tracking-[0.18em] uppercase text-white/95">
+              {activeRoom.badgeLabel}
+            </span>
+          </div>
+
+          {/* Large Room Title */}
+          <h1 className="font-sans text-[clamp(1.75rem,4vw,2.75rem)] font-bold text-white tracking-[-0.02em] leading-[1.08] mb-3.5 sm:mb-4 drop-shadow-[0_3px_20px_rgba(0,0,0,0.7)]">
+            {activeRoom.name}
+          </h1>
+
+          {/* Horizontal Info Row (Price, Rooms, Guests, Bed Type) */}
+          <div className="flex flex-wrap items-center justify-center gap-x-5 sm:gap-x-8 md:gap-x-10 gap-y-2 text-white/95 font-sans text-[12px] sm:text-[13px] md:text-[13.5px] font-medium mb-3 sm:mb-3.5 drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]">
+            <div className="inline-flex items-center gap-1.5">
+              <Moon className="w-3.5 h-3.5 text-[#C9A66B]" strokeWidth={2} />
+              <span>₱{activeRoom.price.toLocaleString()}/night</span>
+            </div>
+            <div className="inline-flex items-center gap-1.5">
+              <DoorClosed className="w-3.5 h-3.5 text-[#C9A66B]" strokeWidth={2} />
+              <span>{activeRoom.roomCount}</span>
+            </div>
+            <div className="inline-flex items-center gap-1.5">
+              <Users className="w-3.5 h-3.5 text-[#C9A66B]" strokeWidth={2} />
+              <span>{activeRoom.capacity}</span>
+            </div>
+            <div className="inline-flex items-center gap-1.5">
+              <BedDouble className="w-3.5 h-3.5 text-[#C9A66B]" strokeWidth={2} />
+              <span>{activeRoom.bedType}</span>
+            </div>
+          </div>
+
+          {/* One-line Description */}
+          <p className="font-sans text-[12px] sm:text-[13px] md:text-[13.5px] text-white/80 font-normal leading-relaxed max-w-lg mb-4.5 sm:mb-5 drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)]">
+            {activeRoom.description}
+          </p>
+
+          {/* AMENITIES row */}
+          <div className="flex flex-col items-center gap-1.5 mb-5 sm:mb-6">
+            <span className="font-sans text-[9px] sm:text-[9.5px] font-semibold tracking-[0.22em] text-white/50 uppercase">
+              AMENITIES
+            </span>
+            <div className="flex items-center justify-center gap-3.5 sm:gap-5 flex-wrap font-sans text-white/85 text-[11.5px] sm:text-[12px] font-medium drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)]">
+              {activeRoom.amenities.map((item, idx) => {
+                const Icon = item.icon
+                return (
+                  <span key={idx} className="inline-flex items-center gap-1.5">
+                    <Icon className="w-3 h-3 text-[#C9A66B]" strokeWidth={2} />
+                    <span>{item.label}</span>
+                  </span>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* CTA Buttons */}
+          <div className="flex items-center justify-center gap-3 sm:gap-3.5 flex-wrap">
+            <button
+              onClick={() => onNavigate('register')}
+              className="inline-flex items-center justify-center gap-2 px-5.5 sm:px-6 py-2.5 rounded-xl sm:rounded-2xl font-sans font-medium text-[12.5px] sm:text-[13px] text-white bg-[#6B7A5E] hover:bg-[#4F5D45] shadow-[0_4px_16px_rgba(107,122,94,0.45)] hover:shadow-[0_6px_22px_rgba(107,122,94,0.55)] hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
             >
-              Batuan, Bohol · Hospitality Sanctuary
-            </p>
+              <Calendar className="w-3.5 h-3.5 text-white/95" strokeWidth={2} />
+              <span>Reserve Now</span>
+            </button>
 
-            <h1 className="font-display text-[clamp(3rem,7vw,5.5rem)] font-bold leading-[1.02] tracking-[-0.025em] text-white mb-6">
-              Cambacay
-              <br />
-              <span style={{ color: '#6B7A5E' }}>Breeze</span> Inn
-            </h1>
-
-            <p className="font-display text-[clamp(1.1rem,2.2vw,1.5rem)] font-normal italic text-white/85 leading-snug mb-4">
-              Relax. Stay. Experience the Tropical Breeze.
-            </p>
-
-            <p className="text-[15px] leading-[1.7] text-white/65 max-w-[460px]">
-              Nestled in the tranquil heart of Cambacay, our resort inn offers the quintessential Bohol escape — where nature-inspired comfort meets Visayan hospitality.
-            </p>
+            <button
+              onClick={() => {
+                const el = document.getElementById('rooms')
+                if (el) el.scrollIntoView({ behavior: 'smooth' })
+              }}
+              className="inline-flex items-center justify-center gap-2 px-5.5 sm:px-6 py-2.5 rounded-xl sm:rounded-2xl font-sans font-medium text-[12.5px] sm:text-[13px] text-white bg-black/40 hover:bg-black/60 backdrop-blur-md border border-white/35 hover:border-white/70 shadow-[0_4px_16px_rgba(0,0,0,0.25)] hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
+            >
+              <Home className="w-3.5 h-3.5 text-white/95" strokeWidth={2} />
+              <span>View Rooms</span>
+            </button>
           </div>
         </div>
 
-        {/* Scroll indicator — minimal animated line, no text */}
-        <div className="absolute bottom-8 left-1/2 scroll-indicator">
-          <div className="w-px h-10 bg-gradient-to-b from-white/50 to-transparent" />
+        {/* Bottom Thumbnail Carousel */}
+        <div className="relative z-10 w-full max-w-4xl mx-auto px-4 sm:px-8 mt-6 flex items-center justify-center gap-2 sm:gap-3.5">
+          {/* Left Arrow Button */}
+          <button
+            onClick={handlePrevRoom}
+            aria-label="Previous room photo"
+            className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-black/40 hover:bg-black/75 text-white/80 hover:text-white border border-white/25 backdrop-blur-md flex items-center justify-center transition-all shrink-0 hover:scale-105 active:scale-95 shadow-lg"
+          >
+            <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={2} />
+          </button>
+
+          {/* Thumbnails row */}
+          <div
+            ref={thumbnailRowRef}
+            className="flex items-center gap-2 sm:gap-3 overflow-x-auto py-2 px-1 scrollbar-none scroll-smooth max-w-[85vw] sm:max-w-none"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          >
+            {heroRooms.map((room, idx) => {
+              const isActive = idx === activeHeroIndex
+              return (
+                <button
+                  key={room.id}
+                  onClick={() => handleSelectRoom(idx)}
+                  className={`relative w-16 h-12 sm:w-20 sm:h-14 md:w-24 md:h-16 rounded-xl overflow-hidden shrink-0 transition-all duration-300 focus:outline-none ${
+                    isActive
+                      ? 'ring-2 ring-[#C9A66B] ring-offset-2 ring-offset-[#141812] scale-105 opacity-100 shadow-[0_0_16px_rgba(201,166,107,0.5)]'
+                      : 'opacity-55 hover:opacity-90 border border-white/20 hover:scale-102'
+                  }`}
+                  title={room.name}
+                >
+                  <img
+                    src={room.thumbnail || room.image}
+                    alt={room.name}
+                    className="w-full h-full object-cover"
+                  />
+                  {isActive && (
+                    <span className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
+                  )}
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Right Arrow Button */}
+          <button
+            onClick={handleNextRoom}
+            aria-label="Next room photo"
+            className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-black/40 hover:bg-black/75 text-white/80 hover:text-white border border-white/25 backdrop-blur-md flex items-center justify-center transition-all shrink-0 hover:scale-105 active:scale-95 shadow-lg"
+          >
+            <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={2} />
+          </button>
         </div>
       </section>
 
       {/* ═══════════════════════════════════════
           3 · STATS STRIP
           ═══════════════════════════════════════ */}
-      <section className="bg-[#2A3126] text-white py-10 border-y border-white/[0.06]">
-        <div className="max-w-[1280px] mx-auto px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+      <section className="bg-[#2A3126] text-white py-12 md:py-16 border-y border-white/[0.06]">
+        <div className="max-w-[1280px] mx-auto px-6 sm:px-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8 text-center">
             {[
               { value: '7+', label: 'Luxury Room Types' },
               { value: '12', label: 'Rental Motorcycles' },
               { value: '4.9', label: 'Guest Satisfaction', hasStar: true },
               { value: '24/7', label: 'Front Desk Service' },
             ].map((stat) => (
-              <div key={stat.label}>
-                <p className="font-display text-[2rem] sm:text-[2.5rem] font-bold tracking-[-0.02em]" style={{ color: ACCENT }}>
+              <div 
+                key={stat.label}
+                className="bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.08] hover:border-white/[0.15] rounded-2xl py-8 px-4 shadow-sm hover:shadow-[0_8px_24px_rgba(0,0,0,0.2)] hover:-translate-y-1 transition-all duration-300 flex flex-col items-center justify-center backdrop-blur-sm"
+              >
+                <p className="font-display text-[2.25rem] sm:text-[2.5rem] font-bold tracking-[-0.02em] leading-none mb-2.5" style={{ color: ACCENT }}>
                   {stat.value}
-                  {stat.hasStar && <Star className="inline w-5 h-5 ml-1 -mt-1 fill-current text-[#C9A66B]" strokeWidth={0} />}
+                  {stat.hasStar && <Star className="inline w-5 h-5 sm:w-6 sm:h-6 ml-1 -mt-1.5 fill-current text-[#C9A66B]" strokeWidth={0} />}
                 </p>
-                <p className="text-white/50 text-[12px] mt-1.5 font-medium tracking-[0.03em]">{stat.label}</p>
+                <p className="text-white/60 text-[11px] sm:text-[12px] font-semibold tracking-[0.05em] uppercase">{stat.label}</p>
               </div>
             ))}
           </div>
@@ -600,17 +991,33 @@ export default function Landing({ onNavigate }: LandingProps) {
                         </p>
                       </div>
 
-                      <div className="flex items-end justify-between mt-6 pt-4 border-t border-stone/12">
+                      <div className="flex items-center gap-1.5 mt-4 text-[11px] font-medium text-ink-muted">
+                        <Users className="w-3.5 h-3.5 text-[#6B7A5E]" />
+                        <span>Sleeps {room.capacity || (room as any).max_guests || 2} Guests</span>
+                        <span className="mx-1 text-stone/30">•</span>
+                        <BedDouble className="w-3.5 h-3.5 text-[#6B7A5E]" />
+                        <span>{room.bed_type || (room as any).bedType || '1 Queen Bed'}</span>
+                      </div>
+
+                      <div className="flex items-end justify-between mt-4 pt-4 border-t border-stone/12">
                         <div>
                           <span className="font-display text-[1.25rem] font-bold text-ink tracking-[-0.01em]">₱{price.toLocaleString()}</span>
                           <span className="text-[11px] text-ink-muted ml-1">/night</span>
                         </div>
-                        <button
-                          onClick={() => onNavigate('login')}
-                          className={`${btnPrimary} h-9 px-5 text-[12px]`}
-                        >
-                          Reserve
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setViewRoom(room)}
+                            className={`${btnOutlineInk} h-9 px-4 text-[12px]`}
+                          >
+                            Details
+                          </button>
+                          <button
+                            onClick={() => onNavigate('login')}
+                            className={`${btnPrimary} h-9 px-5 text-[12px]`}
+                          >
+                            Reserve
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -969,6 +1376,60 @@ export default function Landing({ onNavigate }: LandingProps) {
           </div>
         </div>
       </footer>
+
+      {/* ─── ROOM DETAILS MODAL ─── */}
+      <Modal isOpen={Boolean(viewRoom)} onClose={() => setViewRoom(null)} title={(viewRoom?.name || viewRoom?.room_type || 'Room Details') as string}>
+        {viewRoom && (
+          <div className="space-y-6 text-sm text-ink font-sans">
+            <img 
+              src={(viewRoom.image_urls ? (Array.isArray(viewRoom.image_urls) ? viewRoom.image_urls[0] : '') : (viewRoom.image || 'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=800&auto=format&fit=crop&q=80')) as string} 
+              alt={(viewRoom.name || 'Room') as string} 
+              className="w-full h-48 sm:h-56 object-cover rounded-xl shadow-xs"
+            />
+            
+            <div>
+              <h3 className="font-display text-lg font-bold">About This Room</h3>
+              <p className="text-ink-muted mt-1.5 leading-relaxed">
+                {(viewRoom.description || 'Comfortable accommodation equipped with modern amenities and serene garden views.') as string}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 bg-stone/10 rounded-xl border border-stone/20">
+                <div className="flex items-center gap-2 mb-1">
+                  <Users className="w-4 h-4 text-[#6B7A5E]" />
+                  <span className="font-semibold text-[10px] uppercase tracking-wider text-ink-muted">Capacity</span>
+                </div>
+                <p className="font-bold">Sleeps {viewRoom.capacity || viewRoom.max_guests || 2} Guests</p>
+              </div>
+              <div className="p-4 bg-stone/10 rounded-xl border border-stone/20">
+                <div className="flex items-center gap-2 mb-1">
+                  <BedDouble className="w-4 h-4 text-[#6B7A5E]" />
+                  <span className="font-semibold text-[10px] uppercase tracking-wider text-ink-muted">Bed Type</span>
+                </div>
+                <p className="font-bold">{(viewRoom.bed_type || viewRoom.bedType || '1 Queen Bed') as string}</p>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-stone/12">
+              <div className="flex items-end justify-between">
+                <div>
+                  <span className="font-display text-[1.5rem] font-bold text-ink tracking-[-0.01em]">
+                    ₱{Number(viewRoom.rate_per_night || viewRoom.price || 0).toLocaleString()}
+                  </span>
+                  <span className="text-[12px] text-ink-muted ml-1">/night</span>
+                </div>
+                <button
+                  onClick={() => onNavigate('login')}
+                  className={`${btnPrimary} h-11 px-6 text-[13px] font-bold`}
+                >
+                  Reserve Now
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }
