@@ -441,12 +441,16 @@ export default function Landing({ onNavigate }: LandingProps) {
     return () => clearInterval(timer)
   }, [prefersReducedMotion, isHeroPaused, heroRooms.length, activeHeroIndex])
 
-  // Sync active thumbnail position into view
+  // Sync active thumbnail position into view without scrolling the main window
   useEffect(() => {
     if (thumbnailRowRef.current) {
-      const el = thumbnailRowRef.current.children[activeHeroIndex] as HTMLElement
+      const container = thumbnailRowRef.current
+      const el = container.children[activeHeroIndex] as HTMLElement
       if (el) {
-        el.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
+        const containerRect = container.getBoundingClientRect()
+        const elRect = el.getBoundingClientRect()
+        const scrollLeft = elRect.left - containerRect.left + container.scrollLeft - container.clientWidth / 2 + el.clientWidth / 2
+        container.scrollTo({ left: scrollLeft, behavior: 'smooth' })
       }
     }
   }, [activeHeroIndex])
