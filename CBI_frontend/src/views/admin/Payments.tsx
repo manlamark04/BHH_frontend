@@ -248,8 +248,8 @@ export default function AdminPayments() {
         if (activeFilter === 'Paid') return s === 'PAID'
         if (activeFilter === 'Partially Paid') return s === 'PARTIALLY_PAID' || s === 'PARTIALLY PAID'
         if (activeFilter === 'Pending') {
-          // Include pending/unpaid and any unpaid No-Show / penalty fee balances
-          return (s === 'PENDING' || s === 'UNPAID' || (s === 'NO_SHOW' && rem > 0) || (s === 'CANCELLED' && rem > 0) || rem > 0) && s !== 'PAID' && s !== 'REFUNDED'
+          // Include pending/unpaid and any unpaid cancellation penalty fee balances
+          return (s === 'PENDING' || s === 'UNPAID' || (s === 'CANCELLED' && rem > 0) || rem > 0) && s !== 'PAID' && s !== 'REFUNDED'
         }
         if (activeFilter === 'Refunded') return s === 'REFUNDED'
         return true
@@ -808,17 +808,9 @@ export default function AdminPayments() {
                     <td className="px-4 py-4">
                       <div className="font-mono">
                         <p className="font-display font-bold text-ink text-sm">
-                          {inv.is_no_show || String(inv.status).toUpperCase() === 'NO_SHOW' ? (
-                            `₱${Number(inv.no_show_fee ?? inv.cancellation_fee ?? inv.remaining_balance ?? 0).toLocaleString()}`
-                          ) : (
-                            `₱${Number(inv.paid_amount || inv.total_amount || 0).toLocaleString()}`
-                          )}
+                          {`₱${Number(inv.paid_amount || inv.total_amount || 0).toLocaleString()}`}
                         </p>
-                        {inv.is_no_show || String(inv.status).toUpperCase() === 'NO_SHOW' ? (
-                          <p className="text-[10px] text-purple-700 dark:text-purple-300 font-semibold font-sans">
-                            No-Show Fee {Number(inv.remaining_balance) > 0 ? `(₱${Number(inv.remaining_balance).toLocaleString()} balance)` : '(Paid)'}
-                          </p>
-                        ) : isPartiallyPaid ? (
+                        {isPartiallyPaid ? (
                           <p className="text-[10px] text-amber-800 font-semibold font-sans">
                             Bal: ₱{Number(inv.remaining_balance).toLocaleString()} of ₱{Number(inv.total_amount).toLocaleString()}
                           </p>

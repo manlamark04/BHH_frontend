@@ -372,15 +372,9 @@ export default function CustomerTransactions() {
                         <span>Reservation Flagged as No-Show</span>
                       </div>
                       <div className="pl-6 text-[11px] text-purple-800 dark:text-purple-300">
-                        {cancellationFee > 0 ? (
-                          <p>
-                            No-Show service fee: <strong className="font-mono font-bold">₱{cancellationFee.toLocaleString()}</strong>. Unclaimed room was automatically released back to inventory.
-                          </p>
-                        ) : (
-                          <p>
-                            No-Show logged. Service fee was waived (₱0.00). Room was released back to inventory.
-                          </p>
-                        )}
+                        <p>
+                          No-Show logged. Room was released back to inventory. No penalty fee will be charged.
+                        </p>
                       </div>
                     </div>
                   )}

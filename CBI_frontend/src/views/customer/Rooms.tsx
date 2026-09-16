@@ -75,14 +75,13 @@ export default function CustomerRooms({ customerName }: Props) {
     loadRooms()
   }, [])
 
-  // Calculate unpaid outstanding balance (from No-Show fees, penalties, or past due balances)
+  // Calculate unpaid outstanding balance (from penalties, or past due balances)
   const outstandingBalance = useMemo(() => {
     return myBills.reduce((s, b) => {
       const isCancelled = String(b.status || '').toUpperCase() === 'CANCELLED' || String(b.status || '').toUpperCase() === 'VOID' || Boolean(b.is_cancelled)
-      const isNoShow = String(b.booking_status || '').toUpperCase() === 'NO_SHOW' || String(b.status || '').toUpperCase() === 'NO_SHOW'
-      const fee = Number(b.no_show_fee ?? b.cancellation_fee ?? 0)
+      const fee = Number(b.cancellation_fee ?? 0)
       const paid = Number(b.amount_paid || b.paid_amount || 0)
-      if (isNoShow || isCancelled) {
+      if (isCancelled) {
         return s + (fee > 0 ? Math.max(0, fee - paid) : 0)
       }
       const total = Number(b.total_amount || 0)
@@ -327,7 +326,7 @@ export default function CustomerRooms({ customerName }: Props) {
                 Outstanding Balance Required (₱{outstandingBalance.toLocaleString()})
               </h4>
               <p className="text-xs text-rose-900/90 dark:text-rose-200/90 mt-0.5 leading-relaxed">
-                You have an unpaid remaining balance of <strong>₱{outstandingBalance.toLocaleString()}</strong> from a previous reservation or No-Show service charge. Please settle your outstanding balance at the front desk before creating new room bookings.
+                You have an unpaid remaining balance of <strong>₱{outstandingBalance.toLocaleString()}</strong> from a previous reservation or cancellation charge. Please settle your outstanding balance at the front desk before creating new room bookings.
               </p>
             </div>
           </div>
@@ -778,7 +777,7 @@ export default function CustomerRooms({ customerName }: Props) {
                 <div>
                   <p className="font-bold">Unpaid Remaining Balance (₱{outstandingBalance.toLocaleString()})</p>
                   <p className="text-[11px] text-rose-700 mt-0.5 leading-relaxed">
-                    You have an outstanding balance from an unpaid No-Show service charge or previous stay. Please settle your balance at the front desk before reserving another room.
+                    You have an outstanding balance from an unpaid cancellation charge or previous stay. Please settle your balance at the front desk before reserving another room.
                   </p>
                 </div>
               </div>
