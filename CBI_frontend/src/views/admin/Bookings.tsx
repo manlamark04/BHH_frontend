@@ -19,7 +19,7 @@ import Modal from '../../components/Modal'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import BookingVoucherModal, { type BookingVoucherData } from '../../components/BookingVoucherModal'
 
-type FilterTab = 'all' | 'pending_approval' | 'pending_payment' | 'confirmed' | 'checked_in' | 'completed' | 'rejected' | 'cancelled'
+type FilterTab = 'all' | 'pending_payment' | 'confirmed' | 'checked_in' | 'completed' | 'rejected' | 'cancelled'
 type SortField = 'newest' | 'oldest' | 'checkin' | 'checkout' | 'amount' | 'status'
 
 export default function AdminBookings() {
@@ -104,7 +104,7 @@ export default function AdminBookings() {
     if (activeFilter !== 'all') {
       result = result.filter((b) => {
         const s = String(b.status || '').toLowerCase().replace('-', '_').replace(' ', '_')
-        if (activeFilter === 'pending_approval') return s === 'pending_approval'
+
         if (activeFilter === 'pending_payment') return s === 'pending_payment' || s === 'pending' || s === 'requested'
         if (activeFilter === 'confirmed') return s === 'confirmed'
         if (activeFilter === 'checked_in') return s === 'checked_in'
@@ -326,7 +326,7 @@ export default function AdminBookings() {
             {(
               [
                 { id: 'all', label: 'All' },
-                { id: 'pending_approval', label: 'Pending Approval' },
+
                 { id: 'pending_payment', label: 'Awaiting Payment' },
                 { id: 'confirmed', label: 'Confirmed' },
                 { id: 'checked_in', label: 'Checked In' },

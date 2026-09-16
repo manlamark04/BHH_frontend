@@ -21,16 +21,7 @@ const STATUS_CONFIGS: Record<string, StatusConfig> = {
     dot: 'bg-amber-100 animate-pulse',
     label: 'Pending Payment',
   },
-  PENDING_APPROVAL: {
-    badge: 'bg-indigo-600 text-white border-indigo-500 font-bold shadow-xs',
-    dot: 'bg-indigo-200 animate-pulse',
-    label: 'Pending Approval',
-  },
-  'PENDING APPROVAL': {
-    badge: 'bg-indigo-600 text-white border-indigo-500 font-bold shadow-xs',
-    dot: 'bg-indigo-200 animate-pulse',
-    label: 'Pending Approval',
-  },
+
   CONFIRMED: {
     badge: 'bg-emerald-600 text-white border-emerald-500 font-bold shadow-xs',
     dot: 'bg-emerald-200',

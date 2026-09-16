@@ -18,7 +18,7 @@ import StatusBadge from '../../components/StatusBadge'
 import Modal from '../../components/Modal'
 import ConfirmDialog from '../../components/ConfirmDialog'
 
-const PRE_CHECKIN_STATUSES = ['confirmed', 'reserved', 'pending', 'pending_approval', 'pending_payment', 'requested']
+const PRE_CHECKIN_STATUSES = ['confirmed', 'reserved', 'pending', 'pending_payment', 'requested']
 
 const toLocalDateStr = (val?: string | Date | null | unknown) => {
   if (!val) return ''

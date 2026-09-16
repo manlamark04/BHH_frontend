@@ -257,7 +257,7 @@ export default function CustomerPickleball({ customerId, customerName }: Props) 
   // Find user's active court reservation (pending payment, pending approval, confirmed, active, etc.)
   const myActiveReservation = courtBookings.find((r) => {
     const s = String(r.status_raw || r.status || '').toLowerCase()
-    return ['pending_payment', 'pending_approval', 'pending', 'confirmed', 'approved', 'active'].includes(s)
+    return ['pending_payment', 'pending', 'confirmed', 'approved', 'active'].includes(s)
   })
 
   // Dynamic continuous availability evaluation

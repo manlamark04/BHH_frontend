@@ -29,7 +29,7 @@ const CustomerProfile = lazy(() => import('./views/customer/Profile'))
 // Staff views (lazy loaded)
 const StaffCheckInOut = lazy(() => import('./views/staff/CheckInOut'))
 const StaffDashboard = lazy(() => import('./views/staff/Dashboard'))
-const StaffApprovals = lazy(() => import('./views/staff/Approvals'))
+
 const StaffBookings = lazy(() => import('./views/staff/Bookings'))
 const StaffRooms = lazy(() => import('./views/staff/Rooms'))
 const StaffWalkIn = lazy(() => import('./views/staff/WalkIn'))
@@ -252,8 +252,7 @@ export default function App() {
       // Staff
       case 'staff-dashboard':
         return <StaffDashboard onNavigate={navigate} userName={name} userId={userId} />
-      case 'staff-approvals':
-        return <StaffApprovals />
+
       case 'staff-rooms':
         return <StaffRooms />
       case 'staff-checkinout':

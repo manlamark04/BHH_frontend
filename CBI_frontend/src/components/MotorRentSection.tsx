@@ -225,8 +225,8 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
   const { duration, total, unit } = calculateCost()
 
   // Active rental in progress for the customer
-  // Rule: PENDING_PAYMENT, PENDING_APPROVAL, ACTIVE, RESERVED, OVERDUE
-  const activeStatuses = ['PENDING_PAYMENT', 'PENDING_APPROVAL', 'ACTIVE', 'RESERVED', 'OVERDUE']
+  // Rule: PENDING_PAYMENT, ACTIVE, RESERVED, OVERDUE
+  const activeStatuses = ['PENDING_PAYMENT', 'ACTIVE', 'RESERVED', 'OVERDUE']
   const activeRentalInProgress = userRole === 'customer'
     ? rentals.find((r) => {
         const s = String(r.status || '').toUpperCase()
@@ -1311,7 +1311,7 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
               <span className="text-[10px] font-bold uppercase tracking-widest text-[#6B7A5E]">Rental Transaction ID</span>
               <p className="font-mono text-2xl font-bold text-neutral-900 dark:text-white mt-0.5">{successRental.rental_id}</p>
               <div className="mt-1.5 flex justify-center">
-                <StatusBadge status={String(successRental.status || 'PENDING_APPROVAL').toUpperCase()} size="sm" />
+                <StatusBadge status={String(successRental.status || 'PENDING_PAYMENT').toUpperCase()} size="sm" />
               </div>
             </div>
 

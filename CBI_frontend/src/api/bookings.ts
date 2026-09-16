@@ -26,7 +26,7 @@ export interface BookingItem {
   remaining_balance: number
   payment_status: 'PAID' | 'PARTIALLY PAID' | 'PENDING' | 'REFUNDED' | string
   status_raw?: string
-  status: 'PENDING_PAYMENT' | 'PENDING_APPROVAL' | 'CONFIRMED' | 'CHECKED_IN' | 'CHECKED_OUT' | 'CANCELLED' | 'REJECTED' | string
+  status: 'PENDING_PAYMENT' | 'CONFIRMED' | 'CHECKED_IN' | 'CHECKED_OUT' | 'CANCELLED' | 'REJECTED' | string
   notes?: string
   rejection_reason?: string
   rejected_at?: string
@@ -73,7 +73,7 @@ export interface ActivityRentalItem {
   remaining_balance?: number
   payment_status?: string
   status_raw?: string
-  status: 'PENDING_PAYMENT' | 'PENDING_APPROVAL' | 'CONFIRMED' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED' | 'REJECTED' | string
+  status: 'PENDING_PAYMENT' | 'CONFIRMED' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED' | 'REJECTED' | string
   notes?: string
   rejection_reason?: string
   rejected_at?: string

@@ -335,7 +335,7 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
     ? rentals.find(
         (r) =>
           Number(r.customer_id) === Number(selectedCustomerId) &&
-          ['PENDING_PAYMENT', 'PENDING_APPROVAL', 'ACTIVE', 'RESERVED', 'OVERDUE'].includes(
+          ['PENDING_PAYMENT', 'ACTIVE', 'RESERVED', 'OVERDUE'].includes(
             String(r.status || '').toUpperCase()
           )
       )
@@ -828,23 +828,7 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
                           </button>
                         )}
 
-                        {String(r.status) === 'PENDING_APPROVAL' && (
-                          <div className="flex items-center gap-1">
-                            <button
-                              onClick={() => setApprovingRental(r)}
-                              className="px-2.5 py-1 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-lg text-xs font-semibold shadow-xs transition-all cursor-pointer flex items-center gap-1"
-                            >
-                              <Check className="w-3 h-3" />
-                              <span>Approve</span>
-                            </button>
-                            <button
-                              onClick={() => setRejectingRental(r)}
-                              className="px-2 py-1 text-rose-600 hover:bg-rose-50 border border-rose-200 dark:border-rose-900 rounded-lg text-xs font-semibold transition-all cursor-pointer"
-                            >
-                              Reject
-                            </button>
-                          </div>
-                        )}
+
                         {String(r.status) === 'PENDING_PAYMENT' && (
                           <span className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md font-medium">
                             Awaiting Payment
@@ -1209,7 +1193,7 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
               ? rentals.find(
                   (r) =>
                     Number(r.customer_id) === Number(selectedCustomerId) &&
-                    ['PENDING_PAYMENT', 'PENDING_APPROVAL', 'ACTIVE', 'RESERVED', 'OVERDUE'].includes(
+                    ['PENDING_PAYMENT', 'ACTIVE', 'RESERVED', 'OVERDUE'].includes(
                       String(r.status || '').toUpperCase()
                     )
                 )

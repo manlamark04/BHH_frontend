@@ -109,7 +109,7 @@ export default function CustomerActivities({ customerId, customerName }: Props) 
   // Find user's active court reservation
   const myActiveReservation = courtBookings.find((r) => {
     const s = String(r.status_raw || r.status || '').toLowerCase()
-    return ['pending_payment', 'pending_approval', 'pending', 'confirmed', 'approved', 'active'].includes(s)
+    return ['pending_payment', 'pending', 'confirmed', 'approved', 'active'].includes(s)
   })
 
   // Check if slot is booked across all guests

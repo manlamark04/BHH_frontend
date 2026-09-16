@@ -470,8 +470,7 @@ export default function CustomerRooms({ customerName }: Props) {
                   >
                     {isAvail
                       ? 'Book Room'
-                      : String(r.status).toUpperCase() === 'PENDING_APPROVAL'
-                      ? 'Pending Approval'
+
                       : String(r.status).toUpperCase() === 'RESERVED'
                       ? 'Reserved'
                       : String(r.status).toUpperCase() === 'OCCUPIED'

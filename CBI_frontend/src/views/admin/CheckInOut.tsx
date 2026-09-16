@@ -20,7 +20,7 @@ import ConfirmDialog from '../../components/ConfirmDialog'
 
 type FilterOption = 'all' | 'arrivals' | 'inhouse' | 'departures' | 'upcoming' | 'overdue'
 
-const PRE_CHECKIN_STATUSES = ['confirmed', 'reserved', 'pending', 'pending_approval', 'pending_payment', 'requested']
+const PRE_CHECKIN_STATUSES = ['confirmed', 'reserved', 'pending', 'pending_payment', 'requested']
 
 const toLocalDateStr = (val?: string | Date | null) => {
   if (!val) return ''

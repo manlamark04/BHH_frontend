@@ -204,7 +204,7 @@ export default function CustomerTransactions() {
             {filteredBookings.map((b) => {
               const status = String(b.status || '').toUpperCase()
               const isPendingPay = status === 'PENDING_PAYMENT' || status === 'REQUESTED' || status === 'PENDING'
-              const isPendingApprove = status === 'PENDING_APPROVAL'
+              const isPendingApprove = false
               const isConfirmed = status === 'CONFIRMED' || status === 'CHECKED_IN' || status === 'CHECKED_OUT'
               const isRejected = status === 'REJECTED'
               const isCancelled = status === 'CANCELLED'

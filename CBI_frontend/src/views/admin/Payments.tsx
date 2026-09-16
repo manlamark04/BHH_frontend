@@ -217,13 +217,10 @@ export default function AdminPayments() {
       collected += Number(inv.paid_amount || 0)
       const rem = Number(inv.remaining_balance || 0)
       const s = String(inv.status || '').toUpperCase().replace('-', '_').replace(' ', '_')
-      const isPendingApproval = Boolean(inv.is_pending_approval || s === 'PENDING_APPROVAL')
-
       // Count actionable unpaid balances (including No-Show / cancellation penalty fees)
       if (
         s !== 'PAID' &&
         s !== 'REFUNDED' &&
-        !isPendingApproval &&
         rem > 0
       ) {
         outstanding += rem
@@ -248,12 +245,11 @@ export default function AdminPayments() {
       list = list.filter((inv) => {
         const s = String(inv.status || '').toUpperCase().replace('-', '_').replace(' ', '_')
         const rem = Number(inv.remaining_balance || 0)
-        const isPendingApproval = Boolean(inv.is_pending_approval || s === 'PENDING_APPROVAL')
         if (activeFilter === 'Paid') return s === 'PAID'
         if (activeFilter === 'Partially Paid') return s === 'PARTIALLY_PAID' || s === 'PARTIALLY PAID'
         if (activeFilter === 'Pending') {
           // Include pending/unpaid and any unpaid No-Show / penalty fee balances
-          return (s === 'PENDING' || s === 'UNPAID' || (s === 'NO_SHOW' && rem > 0) || (s === 'CANCELLED' && rem > 0) || rem > 0) && s !== 'PAID' && s !== 'REFUNDED' && !isPendingApproval
+          return (s === 'PENDING' || s === 'UNPAID' || (s === 'NO_SHOW' && rem > 0) || (s === 'CANCELLED' && rem > 0) || rem > 0) && s !== 'PAID' && s !== 'REFUNDED'
         }
         if (activeFilter === 'Refunded') return s === 'REFUNDED'
         return true
@@ -832,17 +828,7 @@ export default function AdminPayments() {
 
                     {/* STATUS */}
                     <td className="px-4 py-4">
-                      {inv.is_pending_approval || String(inv.status).toUpperCase() === 'PENDING_APPROVAL' ? (
-                        <span
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 shadow-2xs"
-                          title="Reservation is currently pending staff approval"
-                        >
-                          <Clock className="w-3 h-3 text-amber-500" />
-                          <span>Awaiting reservation approval</span>
-                        </span>
-                      ) : (
-                        <StatusBadge status={inv.status} />
-                      )}
+                      <StatusBadge status={inv.status} />
                     </td>
 
                     {/* ACTIONS */}
@@ -894,15 +880,6 @@ export default function AdminPayments() {
 
                         {/* 3. PAY (Active whenever there is an unpaid remaining balance) */}
                         {Number(inv.remaining_balance || 0) > 0 && String(inv.status).toUpperCase() !== 'PAID' && (
-                          inv.is_pending_approval || String(inv.status).toUpperCase() === 'PENDING_APPROVAL' ? (
-                            <span
-                              className="px-2.5 py-1 text-[11px] text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/50 rounded-lg font-medium shadow-2xs shrink-0 flex items-center gap-1 cursor-not-allowed opacity-85"
-                              title="Reservation must be approved in Pending Approvals before payment can be collected"
-                            >
-                              <Clock className="w-3 h-3 text-amber-500" />
-                              <span>Awaiting approval</span>
-                            </span>
-                          ) : (
                             <button
                               onClick={() => {
                                 setSelectedBillId(inv.id)
@@ -916,7 +893,6 @@ export default function AdminPayments() {
                               <CreditCard className="w-3 h-3" />
                               <span>Pay</span>
                             </button>
-                          )
                         )}
 
                         {/* 4. CANCEL */}
@@ -1013,10 +989,10 @@ export default function AdminPayments() {
               onChange={(e) => handleInvoiceSelect(e.target.value ? Number(e.target.value) : '')}
               className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#F6F2E8] font-semibold text-xs text-ink focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
             >
-              <option value="">-- Choose from Invoices ({invoices.filter(i => String(i.status).toUpperCase() !== 'PAID' && !i.is_pending_approval && String(i.status).toUpperCase() !== 'PENDING_APPROVAL').length} Actionable) --</option>
+              <option value="">-- Choose from Invoices ({invoices.filter(i => String(i.status).toUpperCase() !== 'PAID').length} Actionable) --</option>
               {invoices.map((i) => {
                 const isPaid = String(i.status).toUpperCase() === 'PAID'
-                const isAwaitingApproval = Boolean(i.is_pending_approval || String(i.status).toUpperCase() === 'PENDING_APPROVAL')
+                const isAwaitingApproval = false
                 const bal = Number(i.remaining_balance) > 0 ? Number(i.remaining_balance) : Number(i.total_amount || 0)
                 const matchingBk = i.booking_id ? bookings.find((b) => b.id === i.booking_id) : null
                 const avail = getAvailmentType(i, matchingBk)

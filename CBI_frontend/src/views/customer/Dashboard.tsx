@@ -47,7 +47,7 @@ export default function CustomerDashboard({ onNavigate, userName, userId }: Cust
   }, [])
 
   const activeBooking = bookings.find((b) => String(b.status).toLowerCase() === 'checked_in')
-  const upcomingBookings = bookings.filter((b) => ['confirmed', 'requested', 'pending', 'pending_approval', 'pending_payment'].includes(String(b.status).toLowerCase()))
+  const upcomingBookings = bookings.filter((b) => ['confirmed', 'requested', 'pending', 'pending_payment'].includes(String(b.status).toLowerCase()))
   const totalPaid = bills.reduce((s, b) => s + Number(b.amount_paid || b.paid_amount || 0), 0)
   const totalOutstanding = bills.reduce((s, b) => {
     const isCancelled = String(b.status || '').toUpperCase() === 'CANCELLED' || String(b.status || '').toUpperCase() === 'VOID' || Boolean(b.is_cancelled)

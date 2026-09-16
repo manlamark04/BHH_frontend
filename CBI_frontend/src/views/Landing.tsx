@@ -288,6 +288,8 @@ export default function Landing({ onNavigate }: LandingProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [activeSection, setActiveSection] = useState('')
   const [activeHeroIndex, setActiveHeroIndex] = useState(0)
+  const [isHeroPaused, setIsHeroPaused] = useState(false)
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false)
   const thumbnailRowRef = useRef<HTMLDivElement>(null)
 
   // Inquiry Form State
@@ -332,6 +334,16 @@ export default function Landing({ onNavigate }: LandingProps) {
   useEffect(() => {
     roomsApi.getRooms().then(setRooms).catch(() => { })
     catalogApi.getActivities().then(setActivities).catch(() => { })
+  }, [])
+
+  /* Detect prefers-reduced-motion setting */
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
+    setPrefersReducedMotion(mq.matches)
+    const listener = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches)
+    mq.addEventListener('change', listener)
+    return () => mq.removeEventListener('change', listener)
   }, [])
 
   /* Navbar shadow and scrollspy on scroll */
@@ -397,14 +409,50 @@ export default function Landing({ onNavigate }: LandingProps) {
 
   const activeRoom = heroRooms[activeHeroIndex] || heroRooms[0]
 
-  const handleSelectRoom = (idx: number) => {
-    setActiveHeroIndex(idx)
+  // Preload upcoming hero room background image to avoid flicker
+  useEffect(() => {
+    if (heroRooms.length <= 1) return
+    const nextIdx = (activeHeroIndex + 1) % heroRooms.length
+    const nextImg = heroRooms[nextIdx]?.image
+    if (nextImg) {
+      const img = new Image()
+      img.src = nextImg
+    }
+  }, [activeHeroIndex, heroRooms])
+
+  // Warm up all hero room images in the browser cache
+  useEffect(() => {
+    heroRooms.forEach((room) => {
+      if (room.image) {
+        const img = new Image()
+        img.src = room.image
+      }
+    })
+  }, [heroRooms])
+
+  // Auto-advance hero slideshow every 5000ms, paused on hover/focus and respecting reduced motion
+  useEffect(() => {
+    if (prefersReducedMotion || isHeroPaused || heroRooms.length <= 1) return
+
+    const timer = setInterval(() => {
+      setActiveHeroIndex((prev) => (prev + 1) % heroRooms.length)
+    }, 5000)
+
+    return () => clearInterval(timer)
+  }, [prefersReducedMotion, isHeroPaused, heroRooms.length, activeHeroIndex])
+
+  // Sync active thumbnail position into view
+  useEffect(() => {
     if (thumbnailRowRef.current) {
-      const el = thumbnailRowRef.current.children[idx] as HTMLElement
+      const el = thumbnailRowRef.current.children[activeHeroIndex] as HTMLElement
       if (el) {
         el.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
       }
     }
+  }, [activeHeroIndex])
+
+  const handleSelectRoom = (idx: number) => {
+    setActiveHeroIndex(idx)
   }
 
   const handlePrevRoom = () => {
@@ -693,24 +741,39 @@ export default function Landing({ onNavigate }: LandingProps) {
       {/* ═══════════════════════════════════════
           2 · HERO — "LET'S RESORT" FEATURED ROOM SPOTLIGHT
           ═══════════════════════════════════════ */}
-      <section className="relative min-h-screen flex flex-col justify-between pt-28 sm:pt-32 pb-8 sm:pb-10 overflow-hidden">
-        {/* Full-bleed background images with crossfade */}
+      <section
+        aria-label="Featured Room Showcase"
+        className="relative min-h-screen flex flex-col justify-between pt-28 sm:pt-32 pb-8 sm:pb-10 overflow-hidden"
+      >
+        {/* Full-bleed background images with crossfade & Ken Burns effect */}
         <div className="absolute inset-0 overflow-hidden">
-          {heroRooms.map((room, idx) => (
-            <img
-              key={room.id}
-              src={room.image}
-              alt={room.name}
-              className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ease-in-out ${
-                idx === activeHeroIndex ? 'opacity-100 scale-100' : 'opacity-0 scale-105 pointer-events-none'
-              }`}
-              style={{ filter: 'saturate(0.92) brightness(0.90)' }}
-            />
-          ))}
+          {heroRooms.map((room, idx) => {
+            const isActive = idx === activeHeroIndex
+            return (
+              <img
+                key={room.id}
+                src={room.image}
+                alt={room.name}
+                className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ease-in-out ${
+                  isActive ? 'opacity-100 z-[1]' : 'opacity-0 z-0 pointer-events-none'
+                }`}
+                style={{
+                  filter: 'saturate(0.92) brightness(0.90)',
+                  transitionProperty: 'opacity',
+                  transitionDuration: '700ms',
+                  transitionTimingFunction: 'cubic-bezier(0.4, 0.2, 0.2, 1)',
+                  animation: !prefersReducedMotion && isActive
+                    ? 'bhhKenBurns 5200ms cubic-bezier(0.25, 1, 0.5, 1) forwards'
+                    : 'none',
+
+                }}
+              />
+            )
+          })}
 
           {/* Dark overlay gradient: darker at edges/bottom, slightly lighter in upper-middle */}
           <div
-            className="absolute inset-0"
+            className="absolute inset-0 z-[2]"
             style={{
               background: `
                 radial-gradient(ellipse at 50% 45%, rgba(20, 24, 18, 0.35) 0%, rgba(20, 24, 18, 0.72) 70%, rgba(12, 15, 11, 0.90) 100%),
@@ -725,62 +788,118 @@ export default function Landing({ onNavigate }: LandingProps) {
 
         {/* Centered Hero Content */}
         <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 w-full flex flex-col items-center text-center my-auto">
-          {/* Pill Badge */}
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/45 backdrop-blur-md border border-[#C9A66B]/50 shadow-[0_2px_10px_rgba(0,0,0,0.3)] mb-3 sm:mb-3.5">
-            <span className="w-4 h-4 rounded-full border border-[#C9A66B]/80 flex items-center justify-center text-[#C9A66B]">
-              <Heart className="w-2 h-2 fill-current text-[#C9A66B]" />
-            </span>
-            <span className="font-sans text-[10px] font-semibold tracking-[0.18em] uppercase text-white/95">
-              {activeRoom.badgeLabel}
-            </span>
-          </div>
+          {/* Staggered Cross-fading Room Content Grid */}
+          <div className="w-full grid grid-cols-1 grid-rows-1 place-items-center">
+            {heroRooms.map((room, idx) => {
+              const isActive = idx === activeHeroIndex
+              return (
+                <div
+                  key={room.id}
+                  aria-hidden={!isActive}
+                  className={`col-start-1 row-start-1 w-full flex flex-col items-center text-center transition-opacity duration-500 ease-in-out ${
+                    isActive ? 'opacity-100 z-10 pointer-events-auto' : 'opacity-0 z-0 pointer-events-none'
+                  }`}
+                >
+                  {/* Pill Badge */}
+                  <div
+                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/45 backdrop-blur-md border border-[#C9A66B]/50 shadow-[0_2px_10px_rgba(0,0,0,0.3)] mb-3 sm:mb-3.5 transition-all duration-500 ${
+                      prefersReducedMotion ? '' : isActive ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2.5'
+                    }`}
+                    style={{
+                      transitionTimingFunction: 'cubic-bezier(0.4, 0.2, 0.2, 1)',
+                      transitionDelay: prefersReducedMotion ? '0ms' : isActive ? '0ms' : '0ms',
+                    }}
+                  >
+                    <span className="w-4 h-4 rounded-full border border-[#C9A66B]/80 flex items-center justify-center text-[#C9A66B]">
+                      <Heart className="w-2 h-2 fill-current text-[#C9A66B]" />
+                    </span>
+                    <span className="font-sans text-[10px] font-semibold tracking-[0.18em] uppercase text-white/95">
+                      {room.badgeLabel}
+                    </span>
+                  </div>
 
-          {/* Large Room Title */}
-          <h1 className="font-sans text-[clamp(1.75rem,4vw,2.75rem)] font-bold text-white tracking-[-0.02em] leading-[1.08] mb-3.5 sm:mb-4 drop-shadow-[0_3px_20px_rgba(0,0,0,0.7)]">
-            {activeRoom.name}
-          </h1>
+                  {/* Large Room Title */}
+                  <h1
+                    className={`font-sans text-[clamp(1.75rem,4vw,2.75rem)] font-bold text-white tracking-[-0.02em] leading-[1.08] mb-3.5 sm:mb-4 drop-shadow-[0_3px_20px_rgba(0,0,0,0.7)] transition-all duration-500 ${
+                      prefersReducedMotion ? '' : isActive ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2.5'
+                    }`}
+                    style={{
+                      transitionTimingFunction: 'cubic-bezier(0.4, 0.2, 0.2, 1)',
+                      transitionDelay: prefersReducedMotion ? '0ms' : isActive ? '60ms' : '0ms',
+                    }}
+                  >
+                    {room.name}
+                  </h1>
 
-          {/* Horizontal Info Row (Price, Rooms, Guests, Bed Type) */}
-          <div className="flex flex-wrap items-center justify-center gap-x-5 sm:gap-x-8 md:gap-x-10 gap-y-2 text-white/95 font-sans text-[12px] sm:text-[13px] md:text-[13.5px] font-medium mb-3 sm:mb-3.5 drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]">
-            <div className="inline-flex items-center gap-1.5">
-              <Moon className="w-3.5 h-3.5 text-[#C9A66B]" strokeWidth={2} />
-              <span>₱{activeRoom.price.toLocaleString()}/night</span>
-            </div>
-            <div className="inline-flex items-center gap-1.5">
-              <DoorClosed className="w-3.5 h-3.5 text-[#C9A66B]" strokeWidth={2} />
-              <span>{activeRoom.roomCount}</span>
-            </div>
-            <div className="inline-flex items-center gap-1.5">
-              <Users className="w-3.5 h-3.5 text-[#C9A66B]" strokeWidth={2} />
-              <span>{activeRoom.capacity}</span>
-            </div>
-            <div className="inline-flex items-center gap-1.5">
-              <BedDouble className="w-3.5 h-3.5 text-[#C9A66B]" strokeWidth={2} />
-              <span>{activeRoom.bedType}</span>
-            </div>
-          </div>
+                  {/* Horizontal Info Row (Price, Rooms, Guests, Bed Type) */}
+                  <div
+                    className={`flex flex-wrap items-center justify-center gap-x-5 sm:gap-x-8 md:gap-x-10 gap-y-2 text-white/95 font-sans text-[12px] sm:text-[13px] md:text-[13.5px] font-medium mb-3 sm:mb-3.5 drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)] transition-all duration-500 ${
+                      prefersReducedMotion ? '' : isActive ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2.5'
+                    }`}
+                    style={{
+                      transitionTimingFunction: 'cubic-bezier(0.4, 0.2, 0.2, 1)',
+                      transitionDelay: prefersReducedMotion ? '0ms' : isActive ? '120ms' : '0ms',
+                    }}
+                  >
+                    <div className="inline-flex items-center gap-1.5">
+                      <Moon className="w-3.5 h-3.5 text-[#C9A66B]" strokeWidth={2} />
+                      <span>₱{room.price.toLocaleString()}/night</span>
+                    </div>
+                    <div className="inline-flex items-center gap-1.5">
+                      <DoorClosed className="w-3.5 h-3.5 text-[#C9A66B]" strokeWidth={2} />
+                      <span>{room.roomCount}</span>
+                    </div>
+                    <div className="inline-flex items-center gap-1.5">
+                      <Users className="w-3.5 h-3.5 text-[#C9A66B]" strokeWidth={2} />
+                      <span>{room.capacity}</span>
+                    </div>
+                    <div className="inline-flex items-center gap-1.5">
+                      <BedDouble className="w-3.5 h-3.5 text-[#C9A66B]" strokeWidth={2} />
+                      <span>{room.bedType}</span>
+                    </div>
+                  </div>
 
-          {/* One-line Description */}
-          <p className="font-sans text-[12px] sm:text-[13px] md:text-[13.5px] text-white/80 font-normal leading-relaxed max-w-lg mb-4.5 sm:mb-5 drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)]">
-            {activeRoom.description}
-          </p>
+                  {/* One-line Description */}
+                  <p
+                    className={`font-sans text-[12px] sm:text-[13px] md:text-[13.5px] text-white/80 font-normal leading-relaxed max-w-lg mb-4.5 sm:mb-5 drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)] transition-all duration-500 ${
+                      prefersReducedMotion ? '' : isActive ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2.5'
+                    }`}
+                    style={{
+                      transitionTimingFunction: 'cubic-bezier(0.4, 0.2, 0.2, 1)',
+                      transitionDelay: prefersReducedMotion ? '0ms' : isActive ? '180ms' : '0ms',
+                    }}
+                  >
+                    {room.description}
+                  </p>
 
-          {/* AMENITIES row */}
-          <div className="flex flex-col items-center gap-1.5 mb-5 sm:mb-6">
-            <span className="font-sans text-[9px] sm:text-[9.5px] font-semibold tracking-[0.22em] text-white/50 uppercase">
-              AMENITIES
-            </span>
-            <div className="flex items-center justify-center gap-3.5 sm:gap-5 flex-wrap font-sans text-white/85 text-[11.5px] sm:text-[12px] font-medium drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)]">
-              {activeRoom.amenities.map((item, idx) => {
-                const Icon = item.icon
-                return (
-                  <span key={idx} className="inline-flex items-center gap-1.5">
-                    <Icon className="w-3 h-3 text-[#C9A66B]" strokeWidth={2} />
-                    <span>{item.label}</span>
-                  </span>
-                )
-              })}
-            </div>
+                  {/* AMENITIES row */}
+                  <div
+                    className={`flex flex-col items-center gap-1.5 mb-5 sm:mb-6 transition-all duration-500 ${
+                      prefersReducedMotion ? '' : isActive ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2.5'
+                    }`}
+                    style={{
+                      transitionTimingFunction: 'cubic-bezier(0.4, 0.2, 0.2, 1)',
+                      transitionDelay: prefersReducedMotion ? '0ms' : isActive ? '240ms' : '0ms',
+                    }}
+                  >
+                    <span className="font-sans text-[9px] sm:text-[9.5px] font-semibold tracking-[0.22em] text-white/50 uppercase">
+                      AMENITIES
+                    </span>
+                    <div className="flex items-center justify-center gap-3.5 sm:gap-5 flex-wrap font-sans text-white/85 text-[11.5px] sm:text-[12px] font-medium drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)]">
+                      {room.amenities.map((item, aIdx) => {
+                        const Icon = item.icon
+                        return (
+                          <span key={aIdx} className="inline-flex items-center gap-1.5">
+                            <Icon className="w-3 h-3 text-[#C9A66B]" strokeWidth={2} />
+                            <span>{item.label}</span>
+                          </span>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
           </div>
 
           {/* CTA Buttons */}

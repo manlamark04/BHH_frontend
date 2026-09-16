@@ -61,7 +61,7 @@ const ADMIN_NAV: NavItem[] = [
 
 const STAFF_NAV: NavItem[] = [
   { label: 'Dashboard', view: 'staff-dashboard', icon: LayoutDashboard },
-  { label: 'Pending Approvals', view: 'staff-approvals', icon: ClipboardCheck, badgeKey: 'pending-approvals', badgeVariant: 'amber' },
+
   { label: 'Bookings', view: 'staff-bookings', icon: CalendarDays },
   { label: 'Rooms', view: 'staff-rooms', icon: BedDouble },
   { label: 'Check-In / Out', view: 'staff-checkinout', icon: ArrowLeftRight },
@@ -164,14 +164,11 @@ export default function Sidebar({
       for (const inv of bills) {
         const s = String(inv.status || '').toUpperCase().replace('-', '_').replace(' ', '_')
         const rem = Number(inv.remaining_balance ?? inv.balance ?? 0)
-        const isPendingApproval = Boolean(inv.is_pending_approval || s === 'PENDING_APPROVAL')
-        // Enforce "approve first, then bill": do NOT count invoices linked to reservations awaiting approval
         if (
           s !== 'PAID' &&
           s !== 'CANCELLED' &&
           s !== 'VOID' &&
           s !== 'REFUNDED' &&
-          !isPendingApproval &&
           (s === 'PENDING' || s === 'UNPAID' || s === 'PARTIALLY_PAID' || rem > 0)
         ) {
           outCount += 1
@@ -180,25 +177,10 @@ export default function Sidebar({
 
       const pendingUsersCount = Array.isArray(pendingUsers) ? pendingUsers.length : 0
 
-      let pendingApprovalsCount = 0
-      for (const b of (Array.isArray(bookings) ? bookings : [])) {
-        const s = String(b.status_raw || b.status || '').toUpperCase()
-        if (s === 'PENDING_APPROVAL' || s === 'REQUESTED' || s === 'PENDING') {
-          pendingApprovalsCount += 1
-        }
-      }
-      for (const r of (Array.isArray(motorRentals) ? motorRentals : [])) {
-        const s = String(r.status || '').toUpperCase()
-        if (s === 'PENDING_APPROVAL' || s === 'PENDING') {
-          pendingApprovalsCount += 1
-        }
-      }
-
       setBadgeCounts((prev) => {
         if (
           prev['outstanding-bills'] === outCount &&
-          prev['pending-users'] === pendingUsersCount &&
-          prev['pending-approvals'] === pendingApprovalsCount
+          prev['pending-users'] === pendingUsersCount
         ) {
           return prev
         }
@@ -206,7 +188,6 @@ export default function Sidebar({
           ...prev,
           'outstanding-bills': outCount,
           'pending-users': pendingUsersCount,
-          'pending-approvals': pendingApprovalsCount,
         }
       })
     } catch {

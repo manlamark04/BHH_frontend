@@ -44,7 +44,7 @@ export default function StaffDashboard({ onNavigate, userName, userId }: StaffDa
   const pendingBookings = useMemo(() => {
     return bookings.filter((b) => {
       const s = String(b.status_raw || b.status || '').toLowerCase().replace(/[\s-]/g, '_')
-      return s === 'pending' || s === 'requested' || s === 'pending_approval' || s === 'pending_payment' || s === 'reserved' || s === 'unpaid'
+      return s === 'pending' || s === 'requested' || s === 'pending_payment' || s === 'reserved' || s === 'unpaid'
     })
   }, [bookings])
 
@@ -59,7 +59,7 @@ export default function StaffDashboard({ onNavigate, userName, userId }: StaffDa
     const todayStr = new Date().toISOString().split('T')[0]
     return bookings.filter((b) => {
       const s = String(b.status_raw || b.status || '').toLowerCase().replace(/[\s-]/g, '_')
-      const isEligible = ['confirmed', 'requested', 'pending', 'pending_approval', 'pending_payment', 'reserved'].includes(s)
+      const isEligible = ['confirmed', 'requested', 'pending', 'pending_payment', 'reserved'].includes(s)
       const checkInDate = String(b.check_in || '').split('T')[0]
       return isEligible && checkInDate <= todayStr
     })
