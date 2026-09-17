@@ -10,7 +10,7 @@ import AuthLoadingScreen from '../components/AuthLoadingScreen'
 import Modal from '../components/Modal'
 
 interface LoginProps {
-  onLogin: (role: Role, name: string, userId: string, dbId: number, mustChangePassword?: boolean) => void
+  onLogin: (role: Role, name: string, userId: string, dbId: number, mustChangePassword?: boolean, photoUrl?: string | null) => void
   onNavigate: (view: View) => void
 }
 
@@ -138,6 +138,7 @@ export default function Login({ onLogin, onNavigate }: LoginProps) {
         gender: res.user.gender,
         civilStatus: res.user.civil_status,
         mustChangePassword: Boolean(res.user.must_change_password),
+        photoUrl: res.user.profile_photo_url,
       })
 
       // Maintain loading screen for 4 seconds

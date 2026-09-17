@@ -10,6 +10,7 @@ import {
 import { usersApi } from '../../api/users'
 import StatusBadge from '../../components/StatusBadge'
 import Modal from '../../components/Modal'
+import Avatar from '../../components/Avatar'
 
 export default function StaffCustomers() {
   const [customers, setCustomers] = useState<Record<string, unknown>[]>([])
@@ -195,9 +196,7 @@ export default function StaffCustomers() {
                     <td className="px-5 py-4 font-mono font-bold text-[#6B7A5E]">{uniqueId}</td>
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-[#6B7A5E]/15 text-[#6B7A5E] font-display font-bold text-xs flex items-center justify-center shrink-0">
-                          {getInitials(fullName)}
-                        </div>
+                        <Avatar name={fullName} photoUrl={(c as any).profile_photo_url} size="md" />
                         <div>
                           <p className="font-semibold text-ink">{fullName}</p>
                           <p className="text-[10px] text-ink-muted">{String(c.city || c.address || 'Guest')}</p>
@@ -247,10 +246,17 @@ export default function StaffCustomers() {
             
             {/* Header Banner */}
             <div className="bg-[#F6F2E8] border border-stone/20 rounded-2xl p-5 flex items-center justify-between">
-              <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#6B7A5E]">CUSTOMER ID</span>
-                <p className="font-mono text-xl font-bold text-ink">{String(viewCustomer.unique_id || viewCustomer.id)}</p>
-                <p className="text-xs text-ink-muted mt-0.5">{String(viewCustomer.email || '')}</p>
+              <div className="flex items-center gap-4">
+                <Avatar 
+                  name={String(viewCustomer.full_name || viewCustomer.first_name || 'Guest')} 
+                  photoUrl={(viewCustomer as any).profile_photo_url} 
+                  size="xl" 
+                />
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#6B7A5E]">CUSTOMER ID</span>
+                  <p className="font-mono text-xl font-bold text-ink">{String(viewCustomer.unique_id || viewCustomer.id)}</p>
+                  <p className="text-xs text-ink-muted mt-0.5">{String(viewCustomer.email || '')}</p>
+                </div>
               </div>
               <StatusBadge status={String(viewCustomer.status || 'ACTIVE').toUpperCase()} />
             </div>

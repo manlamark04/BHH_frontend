@@ -38,12 +38,14 @@ import {
   Users,
 } from 'lucide-react'
 import StatusBadge from '../../components/StatusBadge'
+import Avatar from '../../components/Avatar'
 import Modal from '../../components/Modal'
 import NotificationCenter from '../../components/NotificationCenter'
 
 interface AdminDashboardProps {
   onNavigate: (view: View) => void
   userName?: string
+  photoUrl?: string | null
 }
 
 interface DashboardData {
@@ -74,7 +76,7 @@ const ROOM_STATUS_COLORS: Record<string, string> = {
   Maintenance: '#EF4444', // red
 }
 
-export default function AdminDashboard({ onNavigate, userName = 'Alexandra Reyes' }: AdminDashboardProps) {
+export default function AdminDashboard({ onNavigate, userName = 'Alexandra Reyes', photoUrl }: AdminDashboardProps) {
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
@@ -275,9 +277,7 @@ export default function AdminDashboard({ onNavigate, userName = 'Alexandra Reyes
                 onClick={() => setShowProfileMenu(!showProfileMenu)}
                 className="flex items-center gap-2.5 p-1 pr-3 rounded-xl border border-black/[0.08] hover:border-[#6B7A5E]/40 bg-white transition-all text-left shadow-xs"
               >
-                <div className="w-7 h-7 rounded-lg bg-[#6B7A5E] text-white font-bold text-xs flex items-center justify-center shadow-xs">
-                  {userName.charAt(0)}
-                </div>
+                <Avatar name={userName} photoUrl={photoUrl} size="sm" />
                 <div className="hidden md:block">
                   <p className="text-xs font-semibold leading-tight truncate max-w-[100px] text-neutral-900">{userName}</p>
                   <p className="text-[10px] text-neutral-400 leading-none">General Manager</p>
@@ -558,9 +558,7 @@ export default function AdminDashboard({ onNavigate, userName = 'Alexandra Reyes
                     className="p-2.5 rounded-xl bg-neutral-50/70 dark:bg-[#14171C] border border-black/[0.04] dark:border-slate-800 flex items-center justify-between gap-2 text-xs hover:bg-neutral-100/60 dark:hover:bg-[#1A1E24] transition-colors"
                   >
                     <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-7 h-7 rounded-full bg-[#6B7A5E] text-white flex items-center justify-center font-bold text-[11px] shrink-0 shadow-2xs">
-                        {String(a.customer_name || 'G').charAt(0)}
-                      </div>
+                      <Avatar name={a.customer_name || 'G'} photoUrl={(a as any).profile_photo_url} size="sm" />
                       <div className="min-w-0">
                         <p className="font-semibold truncate text-neutral-900 dark:text-white text-xs">{String(a.customer_name)}</p>
                         <p className="text-[11px] text-neutral-500 dark:text-neutral-400 truncate font-mono">
@@ -616,9 +614,7 @@ export default function AdminDashboard({ onNavigate, userName = 'Alexandra Reyes
                     className="p-2.5 rounded-xl bg-neutral-50/70 dark:bg-[#14171C] border border-black/[0.04] dark:border-slate-800 flex items-center justify-between gap-2 text-xs hover:bg-neutral-100/60 dark:hover:bg-[#1A1E24] transition-colors"
                   >
                     <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-7 h-7 rounded-full bg-[#6B7A5E] text-white flex items-center justify-center font-bold text-[11px] shrink-0 shadow-2xs">
-                        {String(d.customer_name || 'G').charAt(0)}
-                      </div>
+                      <Avatar name={d.customer_name || 'G'} photoUrl={(d as any).profile_photo_url} size="sm" />
                       <div className="min-w-0">
                         <p className="font-semibold truncate text-neutral-900 dark:text-white text-xs">{String(d.customer_name)}</p>
                         <p className="text-[11px] text-neutral-500 dark:text-neutral-400 truncate font-mono">

@@ -17,15 +17,17 @@ import type { View } from '../../types'
 import { bookingsApi } from '../../api/bookings'
 import { roomsApi, type RoomRecord } from '../../api/rooms'
 import StatusBadge from '../../components/StatusBadge'
+import Avatar from '../../components/Avatar'
 import NotificationCenter from '../../components/NotificationCenter'
 
 interface StaffDashboardProps {
   onNavigate: (view: View) => void
   userName: string
   userId: string
+  photoUrl?: string | null
 }
 
-export default function StaffDashboard({ onNavigate, userName, userId }: StaffDashboardProps) {
+export default function StaffDashboard({ onNavigate, userName, userId, photoUrl }: StaffDashboardProps) {
   const [bookings, setBookings] = useState<Record<string, unknown>[]>([])
   const [rooms, setRooms] = useState<RoomRecord[]>([])
   const [loading, setLoading] = useState(true)
@@ -98,9 +100,7 @@ export default function StaffDashboard({ onNavigate, userName, userId }: StaffDa
       {/* ─── 2. STAFF DUTY BADGE CARD ─── */}
       <div className="bg-white dark:bg-[#181B20] rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-[#6B7A5E] text-white font-display text-base font-bold flex items-center justify-center shadow-xs shrink-0">
-            {userName.charAt(0).toUpperCase()}
-          </div>
+          <Avatar name={userName} photoUrl={photoUrl} size="lg" />
           <div>
             <div className="flex items-center gap-2">
               <h2 className="font-display text-base sm:text-lg font-bold text-neutral-900 dark:text-white">{userName}</h2>

@@ -21,6 +21,7 @@ import {
 import { usersApi } from '../../api/users'
 import StatusBadge from '../../components/StatusBadge'
 import Modal from '../../components/Modal'
+import Avatar from '../../components/Avatar'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import EmptyState from '../../components/EmptyState'
 import { SkeletonTable } from '../../components/SkeletonLoader'
@@ -399,9 +400,7 @@ export default function AdminUsers() {
                   <tr key={String(u.id)} className="hover:bg-sand/20 transition-colors">
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-[#6B7A5E]/15 text-[#6B7A5E] font-display font-bold text-sm flex items-center justify-center shrink-0">
-                          {getInitials(name)}
-                        </div>
+                        <Avatar name={name} photoUrl={(u as any).profile_photo_url} size="md" />
                         <div>
                           <p className="font-semibold text-ink text-sm">{name}</p>
                           <p className="text-xs text-ink-muted">{email}</p>
@@ -497,9 +496,7 @@ export default function AdminUsers() {
           <div className="space-y-5 max-h-[75vh] overflow-y-auto pr-1 text-xs font-sans">
             <div className="bg-[#F6F2E8] border border-stone/20 rounded-2xl p-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-[#6B7A5E] text-white font-display text-lg font-bold flex items-center justify-center shadow-sm">
-                  {getInitials(String(viewUser.full_name || viewUser.name || ''))}
-                </div>
+                <Avatar name={String(viewUser.full_name || viewUser.name || '')} photoUrl={(viewUser as any).profile_photo_url} size="xl" />
                 <div>
                   <p className="font-display font-bold text-ink text-lg leading-tight">{String(viewUser.full_name || viewUser.name)}</p>
                   <p className="font-mono text-xs font-bold text-[#6B7A5E]">{String(viewUser.unique_id || viewUser.userId)}</p>

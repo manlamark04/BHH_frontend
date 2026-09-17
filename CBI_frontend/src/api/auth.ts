@@ -74,4 +74,14 @@ export const authApi = {
   logout: () => {
     clearToken()
   },
+
+  async uploadProfilePhoto(file: File): Promise<{ message: string; profile_photo_url: string }> {
+    const formData = new FormData()
+    formData.append('photo', file)
+    return api.post<{ message: string; profile_photo_url: string }>('/api/users/profile-photo', formData)
+  },
+
+  async removeProfilePhoto(): Promise<{ message: string }> {
+    return api.delete<{ message: string }>('/api/users/profile-photo')
+  },
 }

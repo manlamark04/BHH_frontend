@@ -16,6 +16,7 @@ import {
   UserCheck,
   Copy,
 } from 'lucide-react'
+import AvatarUpload from '../../components/AvatarUpload'
 import { authApi } from '../../api/auth'
 import { ApiError } from '../../api/client'
 import { useToast } from '../../context/ToastContext'
@@ -39,6 +40,7 @@ export default function CustomerProfile({ userName, userId, onPasswordChanged }:
   const [address, setAddress] = useState('')
   const [status, setStatus] = useState('ACTIVE')
   const [createdAt, setCreatedAt] = useState('')
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null)
   const [changingPassword, setChangingPassword] = useState(false)
   const [copiedId, setCopiedId] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -66,6 +68,7 @@ export default function CustomerProfile({ userName, userId, onPasswordChanged }:
       setAddress(user.address || '')
       setStatus(user.status || 'ACTIVE')
       setCreatedAt(String(user.created_at || '').substring(0, 10))
+      setPhotoUrl(user.profile_photo_url || null)
     }).catch(() => {})
   }, [userName])
 
@@ -149,10 +152,14 @@ export default function CustomerProfile({ userName, userId, onPasswordChanged }:
 
       {/* ─── 1. MEMBER OVERVIEW BANNER CARD ─── */}
       <div className="bg-white dark:bg-[#181B20] rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-[#6B7A5E] text-white font-display text-lg font-bold flex items-center justify-center shadow-xs shrink-0">
-            {(firstName || fullNameDisplay).charAt(0).toUpperCase()}
-          </div>
+        <div className="flex items-center gap-4">
+          <AvatarUpload
+            name={firstName || fullNameDisplay}
+            photoUrl={photoUrl}
+            size="xl"
+            onUploadSuccess={(url) => setPhotoUrl(url)}
+            onRemoveSuccess={() => setPhotoUrl(null)}
+          />
           <div>
             <div className="flex items-center gap-2">
               <h2 className="font-display text-lg sm:text-xl font-bold text-neutral-900 dark:text-white leading-tight">

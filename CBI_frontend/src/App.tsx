@@ -112,6 +112,7 @@ interface AuthState {
   userId: string
   dbId: number
   mustChangePassword: boolean
+  photoUrl?: string | null
 }
 
 export default function App() {
@@ -136,6 +137,7 @@ export default function App() {
           userId: user.unique_id,
           dbId: user.id,
           mustChangePassword: Boolean(user.must_change_password),
+          photoUrl: user.profile_photo_url,
         })
         setView(DEFAULT_VIEW[user.role])
       })
@@ -157,8 +159,8 @@ export default function App() {
     return () => window.removeEventListener('auth:expired', handleExpired)
   }, [])
 
-  const handleLogin = useCallback((role: Role, name: string, userId: string, dbId: number, mustChangePassword = false) => {
-    setAuth({ role, name, userId, dbId, mustChangePassword })
+  const handleLogin = useCallback((role: Role, name: string, userId: string, dbId: number, mustChangePassword = false, photoUrl?: string | null) => {
+    setAuth({ role, name, userId, dbId, mustChangePassword, photoUrl })
     setView(DEFAULT_VIEW[role])
   }, [])
 
@@ -235,7 +237,7 @@ export default function App() {
     switch (view) {
       // Customer
       case 'customer-dashboard':
-        return <CustomerDashboard onNavigate={navigate} userName={name} userId={userId} />
+        return <CustomerDashboard onNavigate={navigate} userName={name} userId={userId} photoUrl={auth.photoUrl} />
       case 'customer-rooms':
         return <CustomerRooms customerId={String(dbId)} customerName={name} />
       case 'customer-activities':
@@ -251,7 +253,7 @@ export default function App() {
 
       // Staff
       case 'staff-dashboard':
-        return <StaffDashboard onNavigate={navigate} userName={name} userId={userId} />
+        return <StaffDashboard onNavigate={navigate} userName={name} userId={userId} photoUrl={auth.photoUrl} />
 
       case 'staff-rooms':
         return <StaffRooms />
@@ -274,7 +276,7 @@ export default function App() {
 
       // Admin
       case 'admin-dashboard':
-        return <AdminDashboard onNavigate={navigate} userName={name} />
+        return <AdminDashboard onNavigate={navigate} userName={name} photoUrl={auth.photoUrl} />
       case 'admin-bookings':
         return <AdminBookings />
       case 'admin-checkinout':
@@ -315,6 +317,7 @@ export default function App() {
             role={role}
             userName={name}
             userId={userId}
+            photoUrl={auth.photoUrl}
             notifCount={0}
             onLogout={handleLogout}
             isMobileOpen={mobileMenuOpen}

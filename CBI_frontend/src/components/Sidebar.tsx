@@ -3,6 +3,7 @@ import type { View, Role } from '../types'
 import logo from '../imports/logo.png'
 import ConfirmDialog from './ConfirmDialog'
 import SidebarBadge from './SidebarBadge'
+import Avatar from './Avatar'
 import { useTheme } from '../context/ThemeContext'
 import { billingApi } from '../api/billing'
 import { usersApi } from '../api/users'
@@ -106,6 +107,7 @@ interface SidebarProps {
   role: Role
   userName: string
   userId: string
+  photoUrl?: string | null
   notifCount: number
   onLogout: () => void
   isMobileOpen: boolean
@@ -127,6 +129,7 @@ export default function Sidebar({
   role,
   userName,
   userId,
+  photoUrl,
   notifCount: _notifCount,
   onLogout,
   isMobileOpen,
@@ -467,12 +470,7 @@ export default function Sidebar({
             collapsed ? 'justify-center px-0' : ''
           }`}
         >
-          <div
-            style={{ backgroundColor: '#6B7A5E' }}
-            className="w-7 h-7 rounded-full text-white font-display font-bold text-xs flex items-center justify-center shrink-0"
-          >
-            {userName.charAt(0).toUpperCase()}
-          </div>
+          <Avatar name={userName} photoUrl={photoUrl} size="sm" />
           {!collapsed && (
             <div className="min-w-0 flex-1">
               <p style={{ color: '#F5F1EC' }} className="text-xs font-semibold truncate leading-tight">
