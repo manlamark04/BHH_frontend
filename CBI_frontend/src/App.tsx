@@ -109,7 +109,7 @@ const VIEW_TITLES: Partial<Record<View, { title: string; subtitle?: string }>> =
   'admin-audit': { title: 'Audit Log', subtitle: 'System activity history' },
   'admin-reviews': { title: 'Guest Reviews', subtitle: 'Manage and moderate guest feedback' },
   'customer-reviews': { title: 'My Reviews', subtitle: 'Your experience and feedback' },
-  'customer-store': { title: 'Snacks & Beverages', subtitle: 'Store catalog' },
+  'customer-store': { title: 'Convenience Store', subtitle: 'Store catalog' },
 }
 
 const DEFAULT_VIEW: Record<Role, View> = {

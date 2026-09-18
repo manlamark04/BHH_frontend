@@ -86,6 +86,13 @@ export interface OfficialReceiptData {
   service_name?: string
   service_details?: string
   service_type?: string
+  items?: {
+    name: string;
+    variant?: string;
+    quantity: number;
+    price: number;
+    total: number;
+  }[];
   total_amount: number
   previous_paid: number
   amount_paid: number

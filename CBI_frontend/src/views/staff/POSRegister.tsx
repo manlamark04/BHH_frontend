@@ -9,7 +9,8 @@ import {
   Banknote,
   Smartphone,
   User,
-  Coffee
+  Coffee,
+  X
 } from 'lucide-react'
 import { posApi, type POSProduct, type POSCategory, type CartItem } from '../../api/pos'
 import { usersApi, type User as Customer } from '../../api/users'
@@ -38,6 +39,33 @@ export default function POSRegister({ staffName = 'Staff' }: { staffName?: strin
   const [paymentNotes, setPaymentNotes] = useState('')
   const [receiptData, setReceiptData] = useState<OfficialReceiptData | null>(null)
   
+  // Variant selection states
+  const [variantSelectionProduct, setVariantSelectionProduct] = useState<POSProduct | null>(null)
+  const [productVariants, setProductVariants] = useState<any[]>([])
+  const [currentVariantGroupIndex, setCurrentVariantGroupIndex] = useState(0)
+  
+  const groupedVariants = useMemo(() => {
+    if (!productVariants || productVariants.length === 0) return []
+    const groups = new Map<string, any[]>()
+    productVariants.forEach(v => {
+      const key = v.image || 'no-image'
+      if (!groups.has(key)) groups.set(key, [])
+      groups.get(key)!.push(v)
+    })
+    return Array.from(groups.entries())
+  }, [productVariants])
+
+  // Keyboard navigation for variant modal
+  useEffect(() => {
+    if (!variantSelectionProduct || groupedVariants.length <= 1) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') setCurrentVariantGroupIndex(prev => prev === 0 ? groupedVariants.length - 1 : prev - 1)
+      if (e.key === 'ArrowRight') setCurrentVariantGroupIndex(prev => (prev + 1) % groupedVariants.length)
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [variantSelectionProduct, groupedVariants.length])
+
   useEffect(() => {
     fetchData()
   }, [])
@@ -76,39 +104,64 @@ export default function POSRegister({ staffName = 'Staff' }: { staffName?: strin
     return cart.reduce((total, item) => total + (item.price * item.cart_quantity), 0)
   }, [cart])
 
-  const addToCart = (product: POSProduct) => {
+  const handleProductClick = (product: POSProduct) => {
     if (product.stock_quantity <= 0) {
       showToast.error('Product is out of stock')
       return
     }
 
+    const savedVariants = localStorage.getItem(`variants_${product.id}`)
+    if (savedVariants) {
+      const parsed = JSON.parse(savedVariants)
+      if (parsed && parsed.length > 0) {
+        setProductVariants(parsed)
+        setCurrentVariantGroupIndex(0)
+        setVariantSelectionProduct(product)
+        return
+      }
+    }
+
+    addToCart(product)
+  }
+
+  const addToCart = (product: POSProduct, variant?: any) => {
+    const stockToUse = variant ? variant.stock : product.stock_quantity
+    if (stockToUse <= 0) {
+      showToast.error('Selected item is out of stock')
+      return
+    }
+
+    const cartItemId = variant ? `${product.id}-${variant.id}` : product.id
+
     setCart(prev => {
-      const existing = prev.find(item => item.id === product.id)
+      const existing = prev.find(item => ((item as any).cartItemId || item.id) === cartItemId)
       if (existing) {
-        if (existing.cart_quantity >= product.stock_quantity) {
-          showToast.error(`Only ${product.stock_quantity} left in stock`)
+        if (existing.cart_quantity >= stockToUse) {
+          showToast.error(`Only ${stockToUse} left in stock`)
           return prev
         }
         return prev.map(item => 
-          item.id === product.id 
+          ((item as any).cartItemId || item.id) === cartItemId 
             ? { ...item, cart_quantity: item.cart_quantity + 1 }
             : item
         )
       }
-      return [...prev, { ...product, cart_quantity: 1 }]
+      return [...prev, { ...product, cartItemId, selected_variant: variant, cart_quantity: 1 } as any]
     })
   }
 
-  const updateQuantity = (id: number, delta: number) => {
+  const updateQuantity = (cartItemId: string | number, delta: number) => {
     setCart(prev => {
       return prev.map(item => {
-        if (item.id === id) {
+        const idToMatch = (item as any).cartItemId || item.id
+        if (idToMatch === cartItemId) {
+          const stockToUse = (item as any).selected_variant ? (item as any).selected_variant.stock : item.stock_quantity
           const newQ = item.cart_quantity + delta
-          if (newQ > item.stock_quantity) {
-            showToast.error(`Only ${item.stock_quantity} left in stock`)
+          if (newQ > stockToUse) {
+            showToast.error(`Only ${stockToUse} left in stock`)
             return item
           }
-          if (newQ < 1) return item // Prevent going below 1, use remove instead
+          if (newQ < 1) return item
           return { ...item, cart_quantity: newQ }
         }
         return item
@@ -116,8 +169,8 @@ export default function POSRegister({ staffName = 'Staff' }: { staffName?: strin
     })
   }
 
-  const removeFromCart = (id: number) => {
-    setCart(prev => prev.filter(item => item.id !== id))
+  const removeFromCart = (cartItemId: string | number) => {
+    setCart(prev => prev.filter(item => ((item as any).cartItemId || item.id) !== cartItemId))
   }
 
   const initiateCheckout = () => {
@@ -145,6 +198,26 @@ export default function POSRegister({ staffName = 'Staff' }: { staffName?: strin
         ? ((customer as any).full_name || [customer.first_name, customer.last_name].filter(Boolean).join(' ') || (customer as any).name || 'Guest Customer')
         : 'Walk-in Customer'
       
+      // Decrement variant stock in localStorage
+      cart.forEach(item => {
+        const variantItem = item as any
+        if (variantItem.selected_variant) {
+          const savedVariantsStr = localStorage.getItem(`variants_${item.id}`)
+          if (savedVariantsStr) {
+            try {
+              let variants = JSON.parse(savedVariantsStr)
+              variants = variants.map((v: any) => {
+                if (v.id === variantItem.selected_variant.id) {
+                  return { ...v, stock: Math.max(0, v.stock - item.cart_quantity) }
+                }
+                return v
+              })
+              localStorage.setItem(`variants_${item.id}`, JSON.stringify(variants))
+            } catch (e) {}
+          }
+        }
+      })
+
       setReceiptData({
         receipt_number: `POS-${res.order_number}`,
         invoice_number: res.order_number,
@@ -152,6 +225,13 @@ export default function POSRegister({ staffName = 'Staff' }: { staffName?: strin
         payment_id: res.order_id,
         customer_name: custName,
         service_name: 'Store Purchase',
+        items: cart.map(c => ({
+          name: c.name,
+          variant: (c as any).selected_variant ? `Size ${(c as any).selected_variant.size}` : undefined,
+          quantity: c.cart_quantity,
+          price: c.price,
+          total: c.price * c.cart_quantity
+        })),
         total_amount: cartTotal,
         previous_paid: 0,
         amount_paid: Number(paymentAmount) || cartTotal,
@@ -240,12 +320,27 @@ export default function POSRegister({ staffName = 'Staff' }: { staffName?: strin
         <div className="flex-1 overflow-y-auto p-6">
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
             {filteredProducts.map(product => {
-              const outOfStock = product.stock_quantity <= 0;
+              const savedVariantsStr = localStorage.getItem(`variants_${product.id}`)
+              let hasVariants = false
+              let totalVariantStock = 0
+              if (savedVariantsStr) {
+                try {
+                  const parsed = JSON.parse(savedVariantsStr)
+                  if (parsed && parsed.length > 0) {
+                    hasVariants = true
+                    totalVariantStock = parsed.reduce((sum: number, v: any) => sum + (v.stock || 0), 0)
+                  }
+                } catch (e) {}
+              }
+
+              const displayedStock = hasVariants ? totalVariantStock : product.stock_quantity;
+              const outOfStock = displayedStock <= 0;
+
               return (
                 <button
                   key={product.id}
                   disabled={outOfStock}
-                  onClick={() => addToCart(product)}
+                  onClick={() => handleProductClick(product)}
                   className={`relative flex flex-col bg-white dark:bg-[#1A1D24] border border-neutral-200 dark:border-neutral-800 rounded-2xl overflow-hidden transition-all text-left ${
                     outOfStock ? 'opacity-50 cursor-not-allowed grayscale' : 'hover:border-[#6B7A5E]/50 hover:shadow-lg hover:-translate-y-1'
                   }`}
@@ -262,9 +357,14 @@ export default function POSRegister({ staffName = 'Staff' }: { staffName?: strin
                     <span className="text-sm font-medium text-neutral-900 dark:text-white line-clamp-2 mb-2 leading-snug flex-1">{product.name}</span>
                     <div className="flex items-end justify-between mt-auto">
                       <span className="font-bold text-neutral-900 dark:text-white">₱{Number(product.price).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                      <span className={`text-xs font-medium ${product.stock_quantity <= product.reorder_level ? 'text-rose-500' : 'text-neutral-500'}`}>
-                        {product.stock_quantity} left
-                      </span>
+                      <div className="text-right flex flex-col items-end">
+                        <span className={`text-xs font-medium ${displayedStock <= product.reorder_level ? 'text-rose-500' : 'text-neutral-500'}`}>
+                          {displayedStock} left
+                        </span>
+                        {hasVariants && (
+                          <span className="text-[10px] text-neutral-400 mt-0.5 leading-none">Multiple sizes available</span>
+                        )}
+                      </div>
                     </div>
                   </div>
                   {outOfStock && (
@@ -331,30 +431,36 @@ export default function POSRegister({ staffName = 'Staff' }: { staffName?: strin
               <p className="text-sm font-medium">Cart is empty</p>
             </div>
           ) : (
-            cart.map(item => (
-              <div key={item.id} className="flex gap-3 bg-neutral-50 dark:bg-[#121418] p-3 rounded-2xl border border-neutral-100 dark:border-neutral-800/50">
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium text-sm text-neutral-900 dark:text-white truncate pr-2">{item.name}</div>
-                  <div className="text-xs text-neutral-500 mt-0.5">₱{Number(item.price).toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
-                </div>
-                
-                <div className="flex flex-col items-end gap-2">
-                  <div className="font-semibold text-sm text-neutral-900 dark:text-white">
-                    ₱{(item.price * item.cart_quantity).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+            cart.map(item => {
+              const cartItemId = (item as any).cartItemId || item.id;
+              const variant = (item as any).selected_variant;
+              return (
+                <div key={cartItemId} className="flex gap-3 bg-neutral-50 dark:bg-[#121418] p-3 rounded-2xl border border-neutral-100 dark:border-neutral-800/50">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-sm text-neutral-900 dark:text-white truncate pr-2">
+                      {item.name} {variant && <span className="text-neutral-500">({variant.size})</span>}
+                    </div>
+                    <div className="text-xs text-neutral-500 mt-0.5">₱{Number(item.price).toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
                   </div>
                   
-                  <div className="flex items-center gap-1 bg-white dark:bg-[#1A1D24] rounded-lg border border-neutral-200 dark:border-neutral-700 p-0.5 shadow-sm">
-                    {item.cart_quantity > 1 ? (
-                      <button onClick={() => updateQuantity(item.id, -1)} className="p-1 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-md transition-colors text-neutral-500"><Minus className="w-3.5 h-3.5" /></button>
-                    ) : (
-                      <button onClick={() => removeFromCart(item.id)} className="p-1 hover:bg-rose-50 dark:hover:bg-rose-500/10 text-rose-500 rounded-md transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
-                    )}
-                    <span className="w-6 text-center text-xs font-semibold">{item.cart_quantity}</span>
-                    <button onClick={() => updateQuantity(item.id, 1)} className="p-1 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-md transition-colors text-neutral-500"><Plus className="w-3.5 h-3.5" /></button>
+                  <div className="flex flex-col items-end gap-2">
+                    <div className="font-semibold text-sm text-neutral-900 dark:text-white">
+                      ₱{(item.price * item.cart_quantity).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </div>
+                    
+                    <div className="flex items-center gap-1 bg-white dark:bg-[#1A1D24] rounded-lg border border-neutral-200 dark:border-neutral-700 p-0.5 shadow-sm">
+                      {item.cart_quantity > 1 ? (
+                        <button onClick={() => updateQuantity(cartItemId, -1)} className="p-1 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-md transition-colors text-neutral-500"><Minus className="w-3.5 h-3.5" /></button>
+                      ) : (
+                        <button onClick={() => removeFromCart(cartItemId)} className="p-1 hover:bg-rose-50 dark:hover:bg-rose-500/10 text-rose-500 rounded-md transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
+                      )}
+                      <span className="w-6 text-center text-xs font-semibold">{item.cart_quantity}</span>
+                      <button onClick={() => updateQuantity(cartItemId, 1)} className="p-1 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-md transition-colors text-neutral-500"><Plus className="w-3.5 h-3.5" /></button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))
+              )
+            })
           )}
         </div>
 
@@ -506,6 +612,102 @@ export default function POSRegister({ staffName = 'Staff' }: { staffName?: strin
         onClose={() => setReceiptData(null)}
         receipt={receiptData}
       />
+
+      {/* Variant Selection Modal */}
+      {variantSelectionProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setVariantSelectionProduct(null)}>
+          <div className="bg-white dark:bg-[#1A1D24] rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+            <div className="px-6 py-4 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold text-neutral-900 dark:text-white">Select Variant</h3>
+                <p className="text-sm text-neutral-500">{variantSelectionProduct.name}</p>
+              </div>
+              <button onClick={() => setVariantSelectionProduct(null)} className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors text-neutral-500">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto flex-1 flex flex-col items-center">
+              {(() => {
+                if (groupedVariants.length === 0) return null
+                
+                const [image, variants] = groupedVariants[currentVariantGroupIndex]
+                const totalGroups = groupedVariants.length
+                
+                const handlePrev = () => setCurrentVariantGroupIndex(prev => prev === 0 ? totalGroups - 1 : prev - 1)
+                const handleNext = () => setCurrentVariantGroupIndex(prev => (prev + 1) % totalGroups)
+
+                return (
+                  <div className="w-full flex flex-col items-center animate-in fade-in zoom-in-95 duration-200">
+                    <div className="flex items-center justify-center gap-6 w-full">
+                      {/* Prev Button */}
+                      {totalGroups > 1 ? (
+                        <button onClick={handlePrev} className="p-2 bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 rounded-full transition-colors text-neutral-600 dark:text-neutral-300">
+                          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                        </button>
+                      ) : <div className="w-10"></div>}
+
+                      {/* Product Photo */}
+                      <div className="w-48 h-48 shrink-0 bg-white dark:bg-[#1A1D24] rounded-2xl overflow-hidden border border-neutral-100 dark:border-neutral-800 flex items-center justify-center p-3 shadow-sm">
+                        {image !== 'no-image' ? (
+                          <img src={image} alt="design" className="w-full h-full object-contain mix-blend-multiply dark:mix-blend-normal" />
+                        ) : (
+                          <Coffee className="w-10 h-10 text-neutral-300 dark:text-neutral-600" />
+                        )}
+                      </div>
+
+                      {/* Next Button */}
+                      {totalGroups > 1 ? (
+                        <button onClick={handleNext} className="p-2 bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 rounded-full transition-colors text-neutral-600 dark:text-neutral-300">
+                          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                        </button>
+                      ) : <div className="w-10"></div>}
+                    </div>
+                    
+                    <div className="mt-8 w-full max-w-lg">
+                      <h4 className="text-sm font-semibold text-neutral-900 dark:text-white mb-4 text-center">Select Size</h4>
+                      <div className="flex flex-wrap justify-center gap-3">
+                        {variants.map((variant: any) => {
+                          const outOfStock = variant.stock <= 0
+                          return (
+                            <button
+                              key={variant.id}
+                              disabled={outOfStock}
+                              onClick={() => {
+                                addToCart(variantSelectionProduct, variant)
+                                setVariantSelectionProduct(null)
+                              }}
+                              className={`flex flex-col items-center justify-center px-5 py-3 rounded-xl border transition-all min-w-[75px] ${
+                                outOfStock 
+                                  ? 'opacity-50 cursor-not-allowed border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-900/50' 
+                                  : 'border-neutral-200 dark:border-neutral-700 bg-white dark:bg-[#1A1D24] hover:border-[#6B7A5E] hover:shadow-md hover:-translate-y-0.5'
+                              }`}
+                            >
+                              <span className="font-bold text-sm text-neutral-900 dark:text-white">{variant.size}</span>
+                              <span className={`text-[10px] uppercase font-bold mt-1 ${outOfStock ? 'text-rose-500' : 'text-[#6B7A5E]'}`}>
+                                {outOfStock ? '0 left' : `${variant.stock} left`}
+                              </span>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Position Indicator */}
+                    {totalGroups > 1 && (
+                      <div className="mt-8 flex gap-1.5 items-center justify-center">
+                        {Array.from({ length: totalGroups }).map((_, i) => (
+                           <div key={i} className={`h-1.5 rounded-full transition-all ${i === currentVariantGroupIndex ? 'w-4 bg-[#6B7A5E]' : 'w-1.5 bg-neutral-300 dark:bg-neutral-700'}`} />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

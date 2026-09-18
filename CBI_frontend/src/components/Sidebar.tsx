@@ -85,7 +85,7 @@ const CUSTOMER_NAV: NavItem[] = [
   { label: 'Browse Rooms', view: 'customer-rooms', icon: BedDouble },
   { label: 'Motor Rent', view: 'customer-motorcycles', icon: Bike },
   { label: 'Pickleball Court', view: 'customer-pickleball', icon: Trophy },
-  { label: 'Snacks & Beverages', view: 'customer-store', icon: Store },
+  { label: 'Convenience Store', view: 'customer-store', icon: Store },
   { label: 'My Transactions', view: 'customer-transactions', icon: Receipt },
   { label: 'My Reviews', view: 'customer-reviews', icon: MessageSquare },
   { label: 'My Profile', view: 'customer-profile', icon: User },

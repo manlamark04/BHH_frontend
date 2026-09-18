@@ -17,12 +17,37 @@ export default function Inventory() {
   const [categories, setCategories] = useState<POSCategory[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState<number | 'all'>('all')
   const [activeTab, setActiveTab] = useState<'products' | 'categories'>('products')
 
   // Modals state
   const [showProductModal, setShowProductModal] = useState(false)
   const [showCategoryModal, setShowCategoryModal] = useState(false)
+  const [showVariantModal, setShowVariantModal] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Partial<POSProduct> | null>(null)
+  const [selectedProduct, setSelectedProduct] = useState<POSProduct | null>(null)
+  
+  // Mock variants state for UI demonstration
+  const [mockVariants, setMockVariants] = useState<any[]>([])
+
+  // Load variants when product is selected
+  useEffect(() => {
+    if (selectedProduct) {
+      const saved = localStorage.getItem(`variants_${selectedProduct.id}`)
+      if (saved) {
+        setMockVariants(JSON.parse(saved))
+      } else {
+        setMockVariants([])
+      }
+    }
+  }, [selectedProduct])
+
+  // Save variants whenever they change
+  useEffect(() => {
+    if (selectedProduct) {
+      localStorage.setItem(`variants_${selectedProduct.id}`, JSON.stringify(mockVariants))
+    }
+  }, [mockVariants, selectedProduct])
   
   useEffect(() => {
     fetchData()
@@ -80,10 +105,12 @@ export default function Inventory() {
     }
   }
 
-  const filteredProducts = products.filter(p => 
-    p.name.toLowerCase().includes(search.toLowerCase()) || 
-    (p.sku && p.sku.toLowerCase().includes(search.toLowerCase()))
-  )
+  const filteredProducts = products.filter(p => {
+    const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) || 
+                          (p.sku && p.sku.toLowerCase().includes(search.toLowerCase()));
+    const matchesCategory = selectedCategory === 'all' || p.category_id === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
 
   if (loading) {
     return <div className="p-8 text-center text-neutral-500">Loading Inventory...</div>
@@ -135,8 +162,8 @@ export default function Inventory() {
         
         {activeTab === 'products' && (
           <>
-            <div className="p-4 border-b border-neutral-200 dark:border-neutral-800 flex justify-between items-center bg-[#FDFBF7]/50 dark:bg-[#1A1D24]/50">
-              <div className="relative w-72">
+            <div className="p-4 border-b border-neutral-200 dark:border-neutral-800 flex flex-col sm:flex-row gap-4 justify-between sm:items-center bg-[#FDFBF7]/50 dark:bg-[#1A1D24]/50">
+              <div className="relative w-full sm:w-72 flex-shrink-0">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
                 <input 
                   type="text" 
@@ -146,83 +173,121 @@ export default function Inventory() {
                   className="w-full pl-9 pr-4 py-2 bg-white dark:bg-[#121418] border border-neutral-200 dark:border-neutral-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/20 focus:border-[#6B7A5E] transition-all"
                 />
               </div>
+
+              <div className="flex overflow-x-auto gap-2 pb-1 sm:pb-0 scrollbar-hide max-w-full">
+                <button
+                  onClick={() => setSelectedCategory('all')}
+                  className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
+                    selectedCategory === 'all' 
+                      ? 'bg-[#6B7A5E] text-white shadow-md shadow-[#6B7A5E]/20' 
+                      : 'bg-white dark:bg-[#1A1D24] text-neutral-600 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-800 hover:border-[#6B7A5E]/30'
+                  }`}
+                >
+                  All Items
+                </button>
+                {categories.map(cat => (
+                  <button
+                    key={cat.id}
+                    onClick={() => setSelectedCategory(cat.id)}
+                    className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
+                      selectedCategory === cat.id
+                        ? 'bg-[#6B7A5E] text-white shadow-md shadow-[#6B7A5E]/20' 
+                        : 'bg-white dark:bg-[#1A1D24] text-neutral-600 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-800 hover:border-[#6B7A5E]/30'
+                    }`}
+                  >
+                    {cat.name}
+                  </button>
+                ))}
+              </div>
             </div>
             
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-800/20">
-                    <th className="px-6 py-4 text-xs font-semibold text-neutral-500 uppercase tracking-wider">Product</th>
-                    <th className="px-6 py-4 text-xs font-semibold text-neutral-500 uppercase tracking-wider">Category</th>
-                    <th className="px-6 py-4 text-xs font-semibold text-neutral-500 uppercase tracking-wider">Price</th>
-                    <th className="px-6 py-4 text-xs font-semibold text-neutral-500 uppercase tracking-wider">Stock</th>
-                    <th className="px-6 py-4 text-xs font-semibold text-neutral-500 uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-4 text-right text-xs font-semibold text-neutral-500 uppercase tracking-wider">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
-                  {filteredProducts.map(product => {
-                    const isLowStock = product.stock_quantity <= product.reorder_level;
-                    return (
-                      <tr key={product.id} className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                              {product.image_url ? (
-                                <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
-                              ) : (
-                                <Package className="w-5 h-5 text-neutral-400" />
-                              )}
-                            </div>
-                            <div>
-                              <div className="font-medium text-neutral-900 dark:text-white">{product.name}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 text-sm text-neutral-600 dark:text-neutral-400">
-                          {product.category_name}
-                        </td>
-                        <td className="px-6 py-4 text-sm font-medium text-neutral-900 dark:text-white">
-                          ₱{Number(product.price).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-sm font-medium ${
-                            isLowStock ? 'bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400' : 'text-neutral-900 dark:text-white'
-                          }`}>
-                            {product.stock_quantity}
-                            {isLowStock && <AlertTriangle className="w-3.5 h-3.5" />}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold uppercase tracking-wider ${
+            <div className="p-4 bg-[#FDFBF7]/30 dark:bg-[#1A1D24]/30">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                {filteredProducts.map(product => {
+                  const savedVariantsStr = localStorage.getItem(`variants_${product.id}`)
+                  let hasVariants = false
+                  let totalVariantStock = 0
+                  if (savedVariantsStr) {
+                    try {
+                      const parsed = JSON.parse(savedVariantsStr)
+                      if (parsed && parsed.length > 0) {
+                        hasVariants = true
+                        totalVariantStock = parsed.reduce((sum: number, v: any) => sum + (v.stock || 0), 0)
+                      }
+                    } catch (e) {}
+                  }
+
+                  const displayedStock = hasVariants ? totalVariantStock : product.stock_quantity;
+                  const isLowStock = displayedStock <= product.reorder_level;
+                  const outOfStock = displayedStock <= 0;
+
+                  return (
+                    <div
+                      key={product.id}
+                      onClick={() => {
+                        setSelectedProduct(product)
+                        setShowVariantModal(true)
+                      }}
+                      className={`relative flex flex-col bg-white dark:bg-[#1A1D24] border border-neutral-200 dark:border-neutral-800 rounded-2xl overflow-hidden transition-all text-left group cursor-pointer ${
+                        outOfStock ? 'opacity-70 grayscale-[0.5]' : 'hover:border-[#6B7A5E]/50 hover:shadow-lg'
+                      }`}
+                    >
+                      {/* Edit button overlay */}
+                      <div className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                         <button 
+                           onClick={(e) => {
+                             e.stopPropagation()
+                             setEditingProduct(product)
+                             setShowProductModal(true)
+                           }}
+                           className="p-2 bg-white/90 dark:bg-black/90 text-neutral-700 dark:text-neutral-300 hover:text-[#6B7A5E] rounded-xl shadow-sm backdrop-blur-sm transition-colors"
+                         >
+                           <Edit2 className="w-4 h-4" />
+                         </button>
+                      </div>
+
+                      <div className="h-40 bg-white dark:bg-neutral-800 w-full flex items-center justify-center p-4">
+                        {product.image_url ? (
+                          <img src={product.image_url} alt={product.name} className="w-full h-full object-contain" />
+                        ) : (
+                          <Package className="w-8 h-8 text-neutral-300 dark:text-neutral-600" />
+                        )}
+                      </div>
+                      <div className="p-4 flex-1 flex flex-col">
+                        <div className="flex justify-between items-start mb-1.5">
+                          <span className="text-xs font-semibold text-[#6B7A5E] uppercase tracking-wider">{product.category_name}</span>
+                          <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${
                             product.status === 'active' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-neutral-100 text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400'
                           }`}>
                             {product.status}
                           </span>
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <button 
-                            onClick={() => {
-                              setEditingProduct(product)
-                              setShowProductModal(true)
-                            }}
-                            className="p-2 text-neutral-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 rounded-lg transition-colors"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                  {filteredProducts.length === 0 && (
-                    <tr>
-                      <td colSpan={6} className="px-6 py-12 text-center text-neutral-500">
-                        No products found. Add your first product to get started.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+                        </div>
+                        <span className="text-sm font-medium text-neutral-900 dark:text-white line-clamp-2 mb-3 leading-snug flex-1">{product.name}</span>
+                        <div className="flex items-end justify-between mt-auto">
+                          <span className="font-bold text-lg text-neutral-900 dark:text-white">₱{Number(product.price).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                          <div className="text-right flex flex-col items-end">
+                            <span className={`text-xs font-medium flex items-center gap-1 ${isLowStock ? 'text-rose-500' : 'text-neutral-500'}`}>
+                              {isLowStock && !outOfStock && <AlertTriangle className="w-3 h-3" />}
+                              {outOfStock ? 'Out of Stock' : `${displayedStock} left`}
+                            </span>
+                            {hasVariants && (
+                              <span className="text-[10px] text-neutral-400 mt-0.5 leading-none">Multiple sizes available</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+              
+              {filteredProducts.length === 0 && (
+                <div className="flex flex-col items-center justify-center h-64 bg-white dark:bg-[#1A1D24] rounded-2xl border border-neutral-200 dark:border-neutral-800 border-dashed text-neutral-400">
+                  <Package className="w-10 h-10 mb-4 opacity-20" />
+                  <p className="font-medium">No products found</p>
+                  <p className="text-sm opacity-60">Add your first product to get started.</p>
+                </div>
+              )}
             </div>
           </>
         )}
@@ -378,6 +443,165 @@ export default function Inventory() {
         </div>
       )}
 
+      {/* Variant Manager Modal */}
+      {showVariantModal && selectedProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowVariantModal(false)}>
+          <div className="bg-white dark:bg-[#1A1D24] rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+            <div className="px-6 py-4 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold text-neutral-900 dark:text-white">Manage Variants</h3>
+                <p className="text-sm text-neutral-500">{selectedProduct.name}</p>
+              </div>
+              <button onClick={() => setShowVariantModal(false)} className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors text-neutral-500">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto flex-1 space-y-8">
+              {/* Add Variant Form */}
+              <div className="bg-neutral-50 dark:bg-[#121418] p-5 rounded-2xl border border-neutral-200 dark:border-neutral-800">
+                <h4 className="text-sm font-semibold text-neutral-900 dark:text-white mb-4">Add New Design & Sizes</h4>
+                <form 
+                  onSubmit={(e) => {
+                    e.preventDefault()
+                    const form = e.currentTarget
+                    const formData = new FormData(form)
+                    const file = formData.get('image') as File
+                    
+                    const sizes = ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL']
+                    const addedVariants: any[] = []
+                    
+                    const addVariants = (base64Image: string | null) => {
+                      sizes.forEach((size, idx) => {
+                        const stock = Number(formData.get(`stock_${size}`))
+                        if (stock > 0) {
+                          addedVariants.push({
+                            id: Date.now().toString() + '-' + idx,
+                            size: size,
+                            stock: stock,
+                            image: base64Image
+                          })
+                        }
+                      })
+                      
+                      if (addedVariants.length > 0) {
+                        setMockVariants([...mockVariants, ...addedVariants])
+                        form.reset()
+                        showToast.success(`${addedVariants.length} variants added`)
+                      } else {
+                        showToast.error('Please enter stock for at least one size')
+                      }
+                    }
+
+                    if (file && file.size > 0) {
+                      const reader = new FileReader()
+                      reader.onload = (e) => {
+                        const img = new Image()
+                        img.onload = () => {
+                          const canvas = document.createElement('canvas')
+                          const MAX_WIDTH = 400
+                          const MAX_HEIGHT = 400
+                          let width = img.width
+                          let height = img.height
+                          if (width > height) {
+                            if (width > MAX_WIDTH) {
+                              height *= MAX_WIDTH / width
+                              width = MAX_WIDTH
+                            }
+                          } else {
+                            if (height > MAX_HEIGHT) {
+                              width *= MAX_HEIGHT / height
+                              height = MAX_HEIGHT
+                            }
+                          }
+                          canvas.width = width
+                          canvas.height = height
+                          const ctx = canvas.getContext('2d')
+                          ctx?.drawImage(img, 0, 0, width, height)
+                          // Compress image to save localStorage quota
+                          addVariants(canvas.toDataURL('image/jpeg', 0.6))
+                        }
+                        img.src = e.target?.result as string
+                      }
+                      reader.readAsDataURL(file)
+                    } else {
+                      addVariants(null)
+                    }
+                  }} 
+                  className="space-y-6"
+                >
+                  <div>
+                    <label className="block text-xs font-medium text-neutral-700 dark:text-neutral-300 mb-1">Design Picture (Applies to all sizes with stock below)</label>
+                    <input name="image" type="file" accept="image/*" className="w-full text-xs file:mr-2 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-[#6B7A5E]/10 file:text-[#6B7A5E] hover:file:bg-[#6B7A5E]/20" />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-xs font-medium text-neutral-700 dark:text-neutral-300 mb-3">Stock per Size (Leave 0 if none)</label>
+                    <div className="grid grid-cols-4 md:grid-cols-8 gap-3">
+                      {['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'].map(size => (
+                        <div key={size} className="flex flex-col gap-1">
+                          <label className="text-[10px] font-semibold text-center text-neutral-500">{size}</label>
+                          <input 
+                            name={`stock_${size}`} 
+                            type="number" 
+                            min="0" 
+                            defaultValue={0} 
+                            className="w-full px-2 py-1.5 text-center bg-white dark:bg-[#1A1D24] border border-neutral-300 dark:border-neutral-700 rounded-lg text-sm focus:outline-none focus:border-[#6B7A5E]" 
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div className="pt-2">
+                    <button type="submit" className="w-full flex items-center justify-center gap-2 bg-[#6B7A5E] text-white px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-[#5A684D] transition-colors">
+                      <Plus className="w-4 h-4" /> Add Variants
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              {/* Variant List */}
+              <div>
+                <h4 className="text-sm font-semibold text-neutral-900 dark:text-white mb-4">Existing Variants</h4>
+                {mockVariants.length > 0 ? (
+                  <div className="space-y-3">
+                    {mockVariants.map(variant => (
+                      <div key={variant.id} className="flex items-center gap-4 p-3 bg-white dark:bg-[#121418] border border-neutral-200 dark:border-neutral-800 rounded-xl">
+                        <div className="w-12 h-12 rounded-lg overflow-hidden bg-neutral-100 flex-shrink-0 flex items-center justify-center">
+                          {variant.image ? <img src={variant.image} alt={variant.color} className="w-full h-full object-cover" /> : <Package className="w-6 h-6 text-neutral-300" />}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="px-2 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 text-sm font-medium text-neutral-900 dark:text-white">Size: {variant.size}</span>
+                          </div>
+                          <span className="text-sm text-neutral-500">Stock: {variant.stock}</span>
+                        </div>
+                        <button 
+                          onClick={() => setMockVariants(mockVariants.filter(v => v.id !== variant.id))}
+                          className="p-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-neutral-500 text-sm border-2 border-dashed border-neutral-200 dark:border-neutral-800 rounded-xl">
+                    No variants added yet.
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <div className="px-6 py-4 border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-[#1A1D24] flex justify-end gap-3">
+              <button onClick={() => setShowVariantModal(false)} className="px-5 py-2.5 bg-neutral-200 text-neutral-800 dark:bg-neutral-800 dark:text-neutral-200 text-sm font-medium rounded-xl hover:opacity-90 transition-colors shadow-sm">
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
