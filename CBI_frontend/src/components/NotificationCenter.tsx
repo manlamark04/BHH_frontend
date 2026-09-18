@@ -12,6 +12,7 @@ import {
   ChevronRight,
   AlertCircle,
 } from 'lucide-react'
+import { io } from 'socket.io-client'
 import { notificationsApi, type NotificationSummary } from '../api/notifications'
 import type { View, Role } from '../types'
 
@@ -44,11 +45,27 @@ export default function NotificationCenter({ role, onNavigate }: NotificationCen
     }
   }
 
-  // Poll every 60s
+  // Fetch initially and setup Socket.io
   useEffect(() => {
     fetchNotifications()
-    const interval = setInterval(fetchNotifications, 60000)
-    return () => clearInterval(interval)
+
+    if (role === 'staff' || role === 'admin') {
+      const socket = io('http://localhost:5000', {
+        withCredentials: true,
+      })
+
+      socket.on('connect', () => {
+        socket.emit('join_role', role)
+      })
+
+      socket.on('notification_update', () => {
+        fetchNotifications()
+      })
+
+      return () => {
+        socket.disconnect()
+      }
+    }
   }, [role])
 
   // Close on outside click

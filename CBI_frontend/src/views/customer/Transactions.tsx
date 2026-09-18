@@ -14,9 +14,11 @@ import {
   ArrowRight,
   Info,
   Printer,
+  Store as StoreIcon
 } from 'lucide-react'
 import { billingApi } from '../../api/billing'
 import { bookingsApi, type BookingItem } from '../../api/bookings'
+import { posApi, type POSOrder, type POSOrderItem } from '../../api/pos'
 import StatusBadge from '../../components/StatusBadge'
 import Modal from '../../components/Modal'
 import { SkeletonTable } from '../../components/SkeletonLoader'
@@ -27,10 +29,11 @@ import BookingVoucherModal, { type BookingVoucherData } from '../../components/B
 export default function CustomerTransactions() {
   const [bills, setBills] = useState<Record<string, unknown>[]>([])
   const [bookings, setBookings] = useState<BookingItem[]>([])
+  const [orders, setOrders] = useState<(POSOrder & { items: POSOrderItem[] })[]>([])
   const [selectedVoucher, setSelectedVoucher] = useState<BookingVoucherData | null>(null)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('All')
-  const [activeTab, setActiveTab] = useState<'bills' | 'bookings'>('bookings')
+  const [activeTab, setActiveTab] = useState<'bookings' | 'bills' | 'store'>('bookings')
   const [loading, setLoading] = useState(true)
 
   // Payment Instruction Modal
@@ -41,9 +44,11 @@ export default function CustomerTransactions() {
     Promise.all([
       billingApi.getMyBills().catch(() => []),
       bookingsApi.getMyBookings().catch(() => []),
-    ]).then(([billsData, bkgsData]) => {
+      posApi.getMyOrders().catch(() => [])
+    ]).then(([billsData, bkgsData, ordersData]) => {
       setBills(billsData as Record<string, unknown>[])
       setBookings(bkgsData as BookingItem[])
+      setOrders(ordersData as (POSOrder & { items: POSOrderItem[] })[])
     }).finally(() => setLoading(false))
   }, [])
 
@@ -92,6 +97,16 @@ export default function CustomerTransactions() {
       )
     })
   }, [bookings, debouncedSearch])
+
+  const filteredOrders = useMemo(() => {
+    return orders.filter((o) => {
+      const q = debouncedSearch.toLowerCase().trim()
+      return (
+        !q ||
+        String(o.order_number).toLowerCase().includes(q)
+      )
+    })
+  }, [orders, debouncedSearch])
 
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return '—'
@@ -168,6 +183,18 @@ export default function CustomerTransactions() {
           >
             <Receipt className="w-3.5 h-3.5" />
             <span>Billing Invoices ({bills.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('store')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              activeTab === 'store'
+                ? 'bg-[#6B7A5E] text-white shadow-xs'
+                : 'bg-neutral-100/70 dark:bg-[#14171C] text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white border border-black/[0.06] dark:border-neutral-800'
+            }`}
+          >
+            <Clock className="w-3.5 h-3.5" />
+            <span>Store Receipts ({orders.length})</span>
           </button>
         </div>
 
@@ -495,6 +522,78 @@ export default function CustomerTransactions() {
               title="No billing invoices found"
               subtitle={debouncedSearch ? 'No invoices match your search.' : "Your billing invoices will appear here after your first stay."}
             />
+          )}
+        </div>
+      )}
+
+      {/* ─── TAB 3: STORE RECEIPTS ─── */}
+      {activeTab === 'store' && (
+        <div className="space-y-4">
+          {loading ? (
+            <div className="bg-white dark:bg-[#181B20] rounded-2xl border border-black/[0.07] dark:border-neutral-800 overflow-hidden">
+              <SkeletonTable rows={3} cols={1} />
+            </div>
+          ) : filteredOrders.length === 0 ? (
+            <div className="bg-white dark:bg-[#181B20] rounded-2xl border border-black/[0.07] dark:border-neutral-800">
+              <EmptyState
+                icon={StoreIcon}
+                title="No store receipts found"
+                subtitle={debouncedSearch ? 'No receipts match your search.' : "Your POS purchases will appear here."}
+              />
+            </div>
+          ) : (
+          <div className="grid gap-4">
+            {filteredOrders.map((order) => (
+              <div
+                key={order.id}
+                className="bg-white dark:bg-[#181B20] rounded-2xl border border-black/[0.07] dark:border-neutral-800 p-5 shadow-xs hover:shadow-md transition-all space-y-4"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-black/[0.06] dark:border-neutral-800">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-[#6B7A5E]/10 border border-[#6B7A5E]/20 flex items-center justify-center font-bold text-[#6B7A5E] font-mono text-xs">
+                      POS
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-bold text-neutral-900 dark:text-white text-sm">#{order.order_number}</span>
+                        <StatusBadge status={order.status.toUpperCase()} />
+                      </div>
+                      <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
+                        {formatDate(order.created_at)} · Staff: {order.cashier_name || 'System'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="text-left sm:text-right">
+                    <span className="text-[10px] uppercase font-bold text-neutral-500 dark:text-neutral-400 block">
+                      TOTAL AMOUNT
+                    </span>
+                    <span className="font-display font-bold text-lg text-neutral-900 dark:text-white">
+                      ₱{Number(order.total_amount || 0).toLocaleString()}
+                    </span>
+                    <span className="text-xs text-neutral-500 dark:text-neutral-400 block mt-0.5">
+                      {order.payment_method.replace('_', ' ').toUpperCase()}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="pt-2">
+                  <h4 className="text-[11px] font-bold text-neutral-400 uppercase tracking-wider mb-2">Purchased Items</h4>
+                  <div className="space-y-2">
+                    {order.items?.map((item) => (
+                      <div key={item.id} className="flex justify-between items-center text-sm">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-neutral-900 dark:text-neutral-200">{item.product_name}</span>
+                          <span className="text-xs text-neutral-500">x{item.quantity}</span>
+                        </div>
+                        <span className="font-mono text-neutral-700 dark:text-neutral-300">₱{Number(item.subtotal).toLocaleString()}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
           )}
         </div>
       )}

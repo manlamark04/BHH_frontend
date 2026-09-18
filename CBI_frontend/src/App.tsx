@@ -25,6 +25,8 @@ const CustomerMotorcycles = lazy(() => import('./views/customer/Motorcycles'))
 const CustomerPickleball = lazy(() => import('./views/customer/Pickleball'))
 const CustomerTransactions = lazy(() => import('./views/customer/Transactions'))
 const CustomerProfile = lazy(() => import('./views/customer/Profile'))
+const CustomerReviews = lazy(() => import('./views/customer/Reviews'))
+const CustomerStore = lazy(() => import('./views/customer/Store'))
 
 // Staff views (lazy loaded)
 const StaffCheckInOut = lazy(() => import('./views/staff/CheckInOut'))
@@ -38,6 +40,7 @@ const StaffPickleball = lazy(() => import('./views/staff/Pickleball'))
 const StaffBilling = lazy(() => import('./views/staff/Billing'))
 const StaffCustomers = lazy(() => import('./views/staff/Customers'))
 const StaffProfile = lazy(() => import('./views/staff/Profile'))
+const StaffPOSRegister = lazy(() => import('./views/staff/POSRegister'))
 
 // Admin views (lazy loaded)
 const AdminDashboard = lazy(() => import('./views/admin/Dashboard'))
@@ -51,6 +54,9 @@ const AdminAuditLog = lazy(() => import('./views/admin/AuditLog'))
 const AdminCheckInOut = lazy(() => import('./views/admin/CheckInOut'))
 const AdminPayments = lazy(() => import('./views/admin/Payments'))
 const AdminProfile = lazy(() => import('./views/admin/Profile'))
+const AdminReviews = lazy(() => import('./views/admin/GuestReviews'))
+const AdminInventory = lazy(() => import('./views/admin/Inventory'))
+const AdminPOSReports = lazy(() => import('./views/admin/POSReports'))
 
 const ViewLoading = () => (
   <div className="flex items-center justify-center min-h-[50vh] py-16">
@@ -87,6 +93,7 @@ const VIEW_TITLES: Partial<Record<View, { title: string; subtitle?: string }>> =
   'staff-motorcycles': { title: 'Motor Rent Management', subtitle: 'Motorcycle fleet dispatch, tracking, and returns' },
   'staff-pickleball': { title: 'Pickle Ball Court Management', subtitle: 'Manage court bookings, equipment, and customer reservations' },
   'staff-billing': { title: 'Payments', subtitle: 'Invoices & transactions' },
+  'staff-pos': { title: 'POS Register', subtitle: 'Process walk-in sales and checkout' },
   'staff-customers': { title: 'Customer Records', subtitle: 'View and manage guest profiles' },
   'admin-dashboard': { title: 'Admin Dashboard', subtitle: 'Full system overview' },
   'admin-bookings': { title: 'Bookings', subtitle: 'Manage all reservations' },
@@ -96,8 +103,13 @@ const VIEW_TITLES: Partial<Record<View, { title: string; subtitle?: string }>> =
   'admin-rooms': { title: 'Room Management', subtitle: 'Manage rooms and availability' },
   'admin-guests': { title: 'Guests', subtitle: 'Manage guest profiles and stay history' },
   'admin-services': { title: 'Services & Motor Rent', subtitle: 'Manage motorcycle fleet, hotel services, and amenities' },
-  'admin-reports': { title: 'Reports', subtitle: 'Revenue, bookings, and analytics' },
+  'admin-inventory': { title: 'POS Inventory', subtitle: 'Manage categories and products' },
+  'admin-pos-reports': { title: 'POS Reports', subtitle: 'View POS sales and transactions' },
+  'admin-reports': { title: 'Reports & Analytics', subtitle: 'Financial and operational insights' },
   'admin-audit': { title: 'Audit Log', subtitle: 'System activity history' },
+  'admin-reviews': { title: 'Guest Reviews', subtitle: 'Manage and moderate guest feedback' },
+  'customer-reviews': { title: 'My Reviews', subtitle: 'Your experience and feedback' },
+  'customer-store': { title: 'Snacks & Beverages', subtitle: 'Store catalog' },
 }
 
 const DEFAULT_VIEW: Record<Role, View> = {
@@ -248,6 +260,10 @@ export default function App() {
         return <CustomerPickleball customerId={String(dbId)} customerName={name} />
       case 'customer-transactions':
         return <CustomerTransactions />
+      case 'customer-reviews':
+        return <CustomerReviews />
+      case 'customer-store':
+        return <CustomerStore />
       case 'customer-profile':
         return <CustomerProfile userName={name} userId={userId} onPasswordChanged={handlePasswordChanged} />
 
@@ -269,6 +285,8 @@ export default function App() {
         return <StaffPickleball />
       case 'staff-billing':
         return <AdminPayments />
+      case 'staff-pos':
+        return <StaffPOSRegister staffName={name} />
       case 'staff-customers':
         return <StaffCustomers />
       case 'staff-profile':
@@ -287,6 +305,10 @@ export default function App() {
         return <AdminUsers />
       case 'admin-rooms':
         return <AdminRooms />
+      case 'admin-inventory':
+        return <AdminInventory />
+      case 'admin-pos-reports':
+        return <AdminPOSReports />
       case 'admin-guests':
         return <AdminGuests />
       case 'admin-services':
@@ -295,6 +317,8 @@ export default function App() {
         return <AdminReports />
       case 'admin-audit':
         return <AdminAuditLog />
+      case 'admin-reviews':
+        return <AdminReviews />
       case 'admin-profile':
         return <AdminProfile userName={name} userId={userId} onPasswordChanged={handlePasswordChanged} />
 

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { AlertCircle, Info, Palmtree, UserPlus, Check } from 'lucide-react'
 import type { View, Role } from '../types'
 import { authApi } from '../api/auth'
@@ -23,6 +23,14 @@ export default function Login({ onLogin, onNavigate }: LoginProps) {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [forgotMsg, setForgotMsg] = useState(false)
+
+  useEffect(() => {
+    const savedIdentifier = localStorage.getItem('rememberedIdentifier')
+    if (savedIdentifier) {
+      setIdentifier(savedIdentifier)
+      setRememberMe(true)
+    }
+  }, [])
 
   // Loading screen state
   const [showLoadingScreen, setShowLoadingScreen] = useState(false)
@@ -127,6 +135,12 @@ export default function Login({ onLogin, onNavigate }: LoginProps) {
     const startTime = Date.now()
     try {
       const res = await authApi.login(identifier.trim(), password)
+
+      if (rememberMe) {
+        localStorage.setItem('rememberedIdentifier', identifier.trim())
+      } else {
+        localStorage.removeItem('rememberedIdentifier')
+      }
 
       // Auth succeeded — store the result and trigger the success transition
       setAuthRole(res.user.role)

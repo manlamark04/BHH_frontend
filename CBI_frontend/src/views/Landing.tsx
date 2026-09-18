@@ -3,6 +3,7 @@ import type { View } from '../types'
 import { roomsApi } from '../api/rooms'
 import { catalogApi } from '../api/services'
 import { inquiriesApi } from '../api/inquiries'
+import { reviewsApi, type Review } from '../api/reviews'
 import logo from '../imports/logo.png'
 import InteractiveLogoMark from '../components/InteractiveLogoMark'
 import Modal from '../components/Modal'
@@ -284,6 +285,7 @@ export default function Landing({ onNavigate }: LandingProps) {
   const [viewRoom, setViewRoom] = useState<any>(null)
   const [rooms, setRooms] = useState<Record<string, unknown>[]>([])
   const [activities, setActivities] = useState<Record<string, unknown>[]>([])
+  const [reviews, setReviews] = useState<Review[]>([])
   const [navScrolled, setNavScrolled] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [activeSection, setActiveSection] = useState('')
@@ -334,6 +336,7 @@ export default function Landing({ onNavigate }: LandingProps) {
   useEffect(() => {
     roomsApi.getRooms().then(setRooms).catch(() => { })
     catalogApi.getActivities().then(setActivities).catch(() => { })
+    reviewsApi.getAll().then(setReviews).catch(() => { })
   }, [])
 
   /* Detect prefers-reduced-motion setting */
@@ -1303,6 +1306,61 @@ export default function Landing({ onNavigate }: LandingProps) {
           </div>
         </div>
       </section>
+
+      {/* ═══════════════════════════════════════
+          8.5 · TESTIMONIALS
+          ═══════════════════════════════════════ */}
+      {reviews && reviews.length > 0 && (
+        <section className="py-24 md:py-32 bg-white border-t border-stone/10">
+          <div className="max-w-[1280px] mx-auto px-8">
+            <Reveal>
+              <div className="text-center mb-16">
+                <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-ink-muted mb-4">Guest Feedback</p>
+                <h2 className="font-display text-[clamp(2rem,4vw,3rem)] font-bold text-ink leading-[1.08] tracking-[-0.02em]">
+                  What Our Guests Say
+                </h2>
+              </div>
+            </Reveal>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {reviews.slice(0, 3).map((review, idx) => (
+                <Reveal key={review.id} delay={idx + 1}>
+                  <div className="p-8 bg-[#F6F2E8] border border-stone/10 rounded-2xl h-full flex flex-col hover:shadow-[0_4px_16px_rgba(0,0,0,0.04)] transition-all">
+                    <div className="flex gap-1 mb-4">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star
+                          key={star}
+                          className={`w-4 h-4 ${
+                            review.rating >= star ? 'fill-[#C9A66B] text-[#C9A66B]' : 'text-stone/30'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <p className="text-sm text-ink leading-relaxed italic flex-1">
+                      "{review.comment}"
+                    </p>
+                    <div className="mt-6 flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-[#6B7A5E]/10 flex items-center justify-center overflow-hidden">
+                        {review.profile_photo_url ? (
+                          <img src={review.profile_photo_url} alt={review.customer_name} className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-[#6B7A5E] font-bold text-sm">
+                            {review.customer_name.charAt(0).toUpperCase()}
+                          </span>
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-ink">{review.customer_name}</p>
+                        <p className="text-[11px] text-ink-muted">Verified Guest</p>
+                      </div>
+                    </div>
+                  </div>
+                </Reveal>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ═══════════════════════════════════════
           9 · CTA
