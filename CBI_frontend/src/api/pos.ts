@@ -21,6 +21,7 @@ export interface POSProduct {
   reorder_level: number
   image_url?: string
   status: 'active' | 'inactive'
+  has_variants?: boolean
   created_at?: string
   updated_at?: string
 }
@@ -65,6 +66,8 @@ export const posApi = {
     api.post<{ message: string, id: number }>('/api/pos/products', data, { showSuccessToast: true, successMessage: 'Product created' }),
   updateProduct: (id: number, data: FormData | Partial<POSProduct>) => 
     api.put<{ message: string }>(`/api/pos/products/${id}`, data, { showSuccessToast: true, successMessage: 'Product updated' }),
+  deleteProduct: (id: number) => 
+    api.delete<{ message: string }>(`/api/pos/products/${id}`, { showSuccessToast: true, successMessage: 'Product deleted' }),
   updateStock: (id: number, adjustment: number) => 
     api.patch<{ message: string }>(`/api/pos/products/${id}/stock`, { adjustment }, { showSuccessToast: true, successMessage: 'Stock updated' }),
     

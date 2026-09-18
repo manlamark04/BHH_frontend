@@ -105,19 +105,22 @@ export default function POSRegister({ staffName = 'Staff' }: { staffName?: strin
   }, [cart])
 
   const handleProductClick = (product: POSProduct) => {
-    if (product.stock_quantity <= 0) {
+    if (product.stock_quantity <= 0 && !product.has_variants) {
+      // For variant products, total stock might be different or we want them to see sizes anyway (sizes could be out of stock, checked inside)
       showToast.error('Product is out of stock')
       return
     }
 
-    const savedVariants = localStorage.getItem(`variants_${product.id}`)
-    if (savedVariants) {
-      const parsed = JSON.parse(savedVariants)
-      if (parsed && parsed.length > 0) {
-        setProductVariants(parsed)
-        setCurrentVariantGroupIndex(0)
-        setVariantSelectionProduct(product)
-        return
+    if (product.has_variants) {
+      const savedVariants = localStorage.getItem(`variants_${product.id}`)
+      if (savedVariants) {
+        const parsed = JSON.parse(savedVariants)
+        if (parsed && parsed.length > 0) {
+          setProductVariants(parsed)
+          setCurrentVariantGroupIndex(0)
+          setVariantSelectionProduct(product)
+          return
+        }
       }
     }
 
@@ -321,13 +324,12 @@ export default function POSRegister({ staffName = 'Staff' }: { staffName?: strin
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
             {filteredProducts.map(product => {
               const savedVariantsStr = localStorage.getItem(`variants_${product.id}`)
-              let hasVariants = false
+              let hasVariants = !!product.has_variants
               let totalVariantStock = 0
-              if (savedVariantsStr) {
+              if (hasVariants && savedVariantsStr) {
                 try {
                   const parsed = JSON.parse(savedVariantsStr)
                   if (parsed && parsed.length > 0) {
-                    hasVariants = true
                     totalVariantStock = parsed.reduce((sum: number, v: any) => sum + (v.stock || 0), 0)
                   }
                 } catch (e) {}
@@ -362,7 +364,7 @@ export default function POSRegister({ staffName = 'Staff' }: { staffName?: strin
                           {displayedStock} left
                         </span>
                         {hasVariants && (
-                          <span className="text-[10px] text-neutral-400 mt-0.5 leading-none">Multiple sizes available</span>
+                          <span className="text-[10px] text-neutral-400 mt-0.5 leading-none">Multiple options available</span>
                         )}
                       </div>
                     </div>
@@ -665,7 +667,7 @@ export default function POSRegister({ staffName = 'Staff' }: { staffName?: strin
                     </div>
                     
                     <div className="mt-8 w-full max-w-lg">
-                      <h4 className="text-sm font-semibold text-neutral-900 dark:text-white mb-4 text-center">Select Size</h4>
+                      <h4 className="text-sm font-semibold text-neutral-900 dark:text-white mb-4 text-center">Select Option</h4>
                       <div className="flex flex-wrap justify-center gap-3">
                         {variants.map((variant: any) => {
                           const outOfStock = variant.stock <= 0

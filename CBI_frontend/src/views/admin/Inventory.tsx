@@ -35,7 +35,12 @@ export default function Inventory() {
     if (selectedProduct) {
       const saved = localStorage.getItem(`variants_${selectedProduct.id}`)
       if (saved) {
-        setMockVariants(JSON.parse(saved))
+        try {
+          setMockVariants(JSON.parse(saved))
+        } catch (e) {
+          console.error('Failed to parse variants from local storage', e)
+          setMockVariants([])
+        }
       } else {
         setMockVariants([])
       }
@@ -45,7 +50,14 @@ export default function Inventory() {
   // Save variants whenever they change
   useEffect(() => {
     if (selectedProduct) {
-      localStorage.setItem(`variants_${selectedProduct.id}`, JSON.stringify(mockVariants))
+      try {
+        localStorage.setItem(`variants_${selectedProduct.id}`, JSON.stringify(mockVariants))
+      } catch (err) {
+        console.error('Failed to save variants:', err)
+        if (err instanceof DOMException && err.name === 'QuotaExceededError') {
+          showToast.error('Storage limit exceeded. Try using smaller images for variants.')
+        }
+      }
     }
   }, [mockVariants, selectedProduct])
   
@@ -205,13 +217,12 @@ export default function Inventory() {
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                 {filteredProducts.map(product => {
                   const savedVariantsStr = localStorage.getItem(`variants_${product.id}`)
-                  let hasVariants = false
+                  let hasVariants = !!product.has_variants
                   let totalVariantStock = 0
-                  if (savedVariantsStr) {
+                  if (hasVariants && savedVariantsStr) {
                     try {
                       const parsed = JSON.parse(savedVariantsStr)
                       if (parsed && parsed.length > 0) {
-                        hasVariants = true
                         totalVariantStock = parsed.reduce((sum: number, v: any) => sum + (v.stock || 0), 0)
                       }
                     } catch (e) {}
@@ -226,14 +237,19 @@ export default function Inventory() {
                       key={product.id}
                       onClick={() => {
                         setSelectedProduct(product)
-                        setShowVariantModal(true)
+                        if (product.has_variants) {
+                          setShowVariantModal(true)
+                        } else {
+                          setEditingProduct(product)
+                          setShowProductModal(true)
+                        }
                       }}
                       className={`relative flex flex-col bg-white dark:bg-[#1A1D24] border border-neutral-200 dark:border-neutral-800 rounded-2xl overflow-hidden transition-all text-left group cursor-pointer ${
                         outOfStock ? 'opacity-70 grayscale-[0.5]' : 'hover:border-[#6B7A5E]/50 hover:shadow-lg'
                       }`}
                     >
-                      {/* Edit button overlay */}
-                      <div className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {/* Actions overlay */}
+                      <div className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
                          <button 
                            onClick={(e) => {
                              e.stopPropagation()
@@ -241,8 +257,26 @@ export default function Inventory() {
                              setShowProductModal(true)
                            }}
                            className="p-2 bg-white/90 dark:bg-black/90 text-neutral-700 dark:text-neutral-300 hover:text-[#6B7A5E] rounded-xl shadow-sm backdrop-blur-sm transition-colors"
+                           title="Edit Product"
                          >
                            <Edit2 className="w-4 h-4" />
+                         </button>
+                         <button 
+                           onClick={async (e) => {
+                             e.stopPropagation()
+                             if (window.confirm(`Are you sure you want to delete ${product.name}?`)) {
+                               try {
+                                 await posApi.deleteProduct(product.id)
+                                 fetchData()
+                               } catch (err) {
+                                 console.error(err)
+                               }
+                             }
+                           }}
+                           className="p-2 bg-white/90 dark:bg-black/90 text-neutral-700 dark:text-neutral-300 hover:text-rose-500 rounded-xl shadow-sm backdrop-blur-sm transition-colors"
+                           title="Delete Product"
+                         >
+                           <Trash2 className="w-4 h-4" />
                          </button>
                       </div>
 
@@ -271,7 +305,7 @@ export default function Inventory() {
                               {outOfStock ? 'Out of Stock' : `${displayedStock} left`}
                             </span>
                             {hasVariants && (
-                              <span className="text-[10px] text-neutral-400 mt-0.5 leading-none">Multiple sizes available</span>
+                              <span className="text-[10px] text-neutral-400 mt-0.5 leading-none">Multiple options available</span>
                             )}
                           </div>
                         </div>
@@ -355,7 +389,15 @@ export default function Inventory() {
                   
                   <div>
                     <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">Category *</label>
-                    <select required name="category_id" defaultValue={editingProduct?.category_id || ''} className="w-full px-3 py-2 bg-white dark:bg-[#121418] border border-neutral-300 dark:border-neutral-700 rounded-lg text-sm focus:outline-none focus:border-[#6B7A5E] focus:ring-1 focus:ring-[#6B7A5E]">
+                    <select required name="category_id" defaultValue={editingProduct?.category_id || ''} onChange={(e) => {
+                      const cat = categories.find(c => c.id.toString() === e.target.value);
+                      if (cat) {
+                        const hasVarSelect = e.target.form?.elements.namedItem('has_variants') as HTMLSelectElement;
+                        if (hasVarSelect) {
+                          hasVarSelect.value = cat.name.toLowerCase().includes('merchandise') ? 'true' : 'false';
+                        }
+                      }
+                    }} className="w-full px-3 py-2 bg-white dark:bg-[#121418] border border-neutral-300 dark:border-neutral-700 rounded-lg text-sm focus:outline-none focus:border-[#6B7A5E] focus:ring-1 focus:ring-[#6B7A5E]">
                       <option value="" disabled>Select category...</option>
                       {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                     </select>
@@ -381,6 +423,14 @@ export default function Inventory() {
                     <select name="status" defaultValue={editingProduct?.status || 'active'} className="w-full px-3 py-2 bg-white dark:bg-[#121418] border border-neutral-300 dark:border-neutral-700 rounded-lg text-sm focus:outline-none focus:border-[#6B7A5E] focus:ring-1 focus:ring-[#6B7A5E]">
                       <option value="active">Active</option>
                       <option value="inactive">Inactive</option>
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">Has Size/Design Variants?</label>
+                    <select name="has_variants" defaultValue={editingProduct ? (editingProduct.has_variants ? 'true' : 'false') : 'false'} className="w-full px-3 py-2 bg-white dark:bg-[#121418] border border-neutral-300 dark:border-neutral-700 rounded-lg text-sm focus:outline-none focus:border-[#6B7A5E] focus:ring-1 focus:ring-[#6B7A5E]">
+                      <option value="true">Yes, has variants (e.g. Shirts)</option>
+                      <option value="false">No, simple stock (e.g. Beverages)</option>
                     </select>
                   </div>
 
@@ -468,7 +518,7 @@ export default function Inventory() {
                     const formData = new FormData(form)
                     const file = formData.get('image') as File
                     
-                    const sizes = ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL']
+                    const sizes = ['OS', 'XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL']
                     const addedVariants: any[] = []
                     
                     const addVariants = (base64Image: string | null) => {
@@ -537,8 +587,8 @@ export default function Inventory() {
                   
                   <div>
                     <label className="block text-xs font-medium text-neutral-700 dark:text-neutral-300 mb-3">Stock per Size (Leave 0 if none)</label>
-                    <div className="grid grid-cols-4 md:grid-cols-8 gap-3">
-                      {['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'].map(size => (
+                    <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-9 gap-3">
+                      {['OS', 'XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'].map(size => (
                         <div key={size} className="flex flex-col gap-1">
                           <label className="text-[10px] font-semibold text-center text-neutral-500">{size}</label>
                           <input 

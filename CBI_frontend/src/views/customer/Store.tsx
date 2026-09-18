@@ -152,13 +152,12 @@ export default function CustomerStore() {
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
         {filteredProducts.map(product => {
           const savedVariantsStr = localStorage.getItem(`variants_${product.id}`)
-          let hasVariants = false
+          let hasVariants = !!product.has_variants
           let totalVariantStock = 0
-          if (savedVariantsStr) {
+          if (hasVariants && savedVariantsStr) {
             try {
               const parsed = JSON.parse(savedVariantsStr)
               if (parsed && parsed.length > 0) {
-                hasVariants = true
                 totalVariantStock = parsed.reduce((sum: number, v: any) => sum + (v.stock || 0), 0)
               }
             } catch (e) {}
@@ -192,7 +191,7 @@ export default function CustomerStore() {
                       {outOfStock ? 'Out of Stock' : `${displayedStock} left`}
                     </span>
                     {hasVariants && (
-                      <span className="text-[10px] text-neutral-400 mt-0.5 leading-none">Multiple sizes available</span>
+                      <span className="text-[10px] text-neutral-400 mt-0.5 leading-none">Multiple options available</span>
                     )}
                   </div>
                 </div>
@@ -283,12 +282,12 @@ export default function CustomerStore() {
                 </div>
               </div>
               
-              {/* Variants Section - Visible for Merchandise/T-shirts */}
-              {(selectedProduct.category_name?.toLowerCase().includes('merchandise') || selectedProduct.name.toLowerCase().includes('shirt')) && (
+              {/* Variants Section - Visible for products with variants */}
+              {selectedProduct.has_variants && (
                 <div className="space-y-6 border-t border-neutral-200 dark:border-neutral-800 pt-6">
                   <div>
-                    <h3 className="text-sm font-semibold text-neutral-900 dark:text-white mb-3">Select Size</h3>
-                    <div className="flex overflow-x-auto gap-2 pb-2 scrollbar-hide">
+                    <h3 className="text-sm font-semibold text-neutral-900 dark:text-white mb-3">Select Option</h3>
+                    <div className="flex flex-wrap gap-2">
                       {(() => {
                         const currentGroupVariants = groupedVariants.length > 0 ? groupedVariants[currentImageIndex][1] : []
                         const sizes = currentGroupVariants.length > 0 
