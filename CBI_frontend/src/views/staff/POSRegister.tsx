@@ -18,6 +18,7 @@ import { showToast } from '../../context/ToastContext'
 import Modal from '../../components/Modal'
 import { OfficialReceiptModal } from '../../components/OfficialReceiptModal'
 import { type OfficialReceiptData } from '../../api/billing'
+import { migrateVariants } from '../../utils/variantMigration'
 
 export default function POSRegister({ staffName = 'Staff' }: { staffName?: string }) {
   const [products, setProducts] = useState<POSProduct[]>([])
@@ -44,27 +45,16 @@ export default function POSRegister({ staffName = 'Staff' }: { staffName?: strin
   const [productVariants, setProductVariants] = useState<any[]>([])
   const [currentVariantGroupIndex, setCurrentVariantGroupIndex] = useState(0)
   
-  const groupedVariants = useMemo(() => {
-    if (!productVariants || productVariants.length === 0) return []
-    const groups = new Map<string, any[]>()
-    productVariants.forEach(v => {
-      const key = v.image || 'no-image'
-      if (!groups.has(key)) groups.set(key, [])
-      groups.get(key)!.push(v)
-    })
-    return Array.from(groups.entries())
-  }, [productVariants])
-
   // Keyboard navigation for variant modal
   useEffect(() => {
-    if (!variantSelectionProduct || groupedVariants.length <= 1) return
+    if (!variantSelectionProduct || productVariants.length <= 1) return
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowLeft') setCurrentVariantGroupIndex(prev => prev === 0 ? groupedVariants.length - 1 : prev - 1)
-      if (e.key === 'ArrowRight') setCurrentVariantGroupIndex(prev => (prev + 1) % groupedVariants.length)
+      if (e.key === 'ArrowLeft') setCurrentVariantGroupIndex(prev => prev === 0 ? productVariants.length - 1 : prev - 1)
+      if (e.key === 'ArrowRight') setCurrentVariantGroupIndex(prev => (prev + 1) % productVariants.length)
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [variantSelectionProduct, groupedVariants.length])
+  }, [variantSelectionProduct, productVariants.length])
 
   useEffect(() => {
     fetchData()
@@ -101,7 +91,10 @@ export default function POSRegister({ staffName = 'Staff' }: { staffName?: strin
   }, [products, search, selectedCategory])
 
   const cartTotal = useMemo(() => {
-    return cart.reduce((total, item) => total + (item.price * item.cart_quantity), 0)
+    return cart.reduce((total, item) => {
+      const price = (item as any).selected_variant?.price !== undefined ? (item as any).selected_variant.price : item.price;
+      return total + (price * item.cart_quantity);
+    }, 0)
   }, [cart])
 
   const handleProductClick = (product: POSProduct) => {
@@ -114,7 +107,8 @@ export default function POSRegister({ staffName = 'Staff' }: { staffName?: strin
     if (product.has_variants) {
       const savedVariants = localStorage.getItem(`variants_${product.id}`)
       if (savedVariants) {
-        const parsed = JSON.parse(savedVariants)
+        let parsed = JSON.parse(savedVariants)
+        parsed = migrateVariants(parsed, product.id)
         if (parsed && parsed.length > 0) {
           setProductVariants(parsed)
           setCurrentVariantGroupIndex(0)
@@ -127,14 +121,14 @@ export default function POSRegister({ staffName = 'Staff' }: { staffName?: strin
     addToCart(product)
   }
 
-  const addToCart = (product: POSProduct, variant?: any) => {
-    const stockToUse = variant ? variant.stock : product.stock_quantity
+  const addToCart = (product: POSProduct, variant?: any, sizeName?: string) => {
+    const stockToUse = variant && sizeName ? variant.sizes[sizeName] : product.stock_quantity
     if (stockToUse <= 0) {
       showToast.error('Selected item is out of stock')
       return
     }
 
-    const cartItemId = variant ? `${product.id}-${variant.id}` : product.id
+    const cartItemId = variant ? `${product.id}-${variant.id}-${sizeName}` : product.id
 
     setCart(prev => {
       const existing = prev.find(item => ((item as any).cartItemId || item.id) === cartItemId)
@@ -149,7 +143,7 @@ export default function POSRegister({ staffName = 'Staff' }: { staffName?: strin
             : item
         )
       }
-      return [...prev, { ...product, cartItemId, selected_variant: variant, cart_quantity: 1 } as any]
+      return [...prev, { ...product, cartItemId, selected_variant: variant, selected_size: sizeName, cart_quantity: 1 } as any]
     })
   }
 
@@ -158,7 +152,7 @@ export default function POSRegister({ staffName = 'Staff' }: { staffName?: strin
       return prev.map(item => {
         const idToMatch = (item as any).cartItemId || item.id
         if (idToMatch === cartItemId) {
-          const stockToUse = (item as any).selected_variant ? (item as any).selected_variant.stock : item.stock_quantity
+          const stockToUse = (item as any).selected_variant && (item as any).selected_size ? (item as any).selected_variant.sizes[(item as any).selected_size] : item.stock_quantity
           const newQ = item.cart_quantity + delta
           if (newQ > stockToUse) {
             showToast.error(`Only ${stockToUse} left in stock`)
@@ -189,7 +183,17 @@ export default function POSRegister({ staffName = 'Staff' }: { staffName?: strin
     setProcessing(true)
     try {
       const res = await posApi.checkout({
-        items: cart.map(c => ({ product_id: c.id, quantity: c.cart_quantity })),
+        items: cart.map(c => {
+          const variant = (c as any).selected_variant;
+          const size = (c as any).selected_size;
+          const variantName = variant ? (variant.name ? `${variant.name} (${size})` : `Size ${size}`) : undefined;
+          return {
+            product_id: c.id, 
+            quantity: c.cart_quantity,
+            variant_name: variantName,
+            variant_price: variant?.price
+          }
+        }),
         payment_method: paymentMethod,
         customer_id: selectedCustomer ? Number(selectedCustomer) : undefined,
         notes: paymentNotes
@@ -204,14 +208,20 @@ export default function POSRegister({ staffName = 'Staff' }: { staffName?: strin
       // Decrement variant stock in localStorage
       cart.forEach(item => {
         const variantItem = item as any
-        if (variantItem.selected_variant) {
+        if (variantItem.selected_variant && variantItem.selected_size) {
           const savedVariantsStr = localStorage.getItem(`variants_${item.id}`)
           if (savedVariantsStr) {
             try {
               let variants = JSON.parse(savedVariantsStr)
               variants = variants.map((v: any) => {
                 if (v.id === variantItem.selected_variant.id) {
-                  return { ...v, stock: Math.max(0, v.stock - item.cart_quantity) }
+                  return { 
+                    ...v, 
+                    sizes: {
+                      ...v.sizes,
+                      [variantItem.selected_size]: Math.max(0, v.sizes[variantItem.selected_size] - item.cart_quantity)
+                    }
+                  }
                 }
                 return v
               })
@@ -228,13 +238,17 @@ export default function POSRegister({ staffName = 'Staff' }: { staffName?: strin
         payment_id: res.order_id,
         customer_name: custName,
         service_name: 'Store Purchase',
-        items: cart.map(c => ({
-          name: c.name,
-          variant: (c as any).selected_variant ? `Size ${(c as any).selected_variant.size}` : undefined,
-          quantity: c.cart_quantity,
-          price: c.price,
-          total: c.price * c.cart_quantity
-        })),
+        items: cart.map(c => {
+          const variant = (c as any).selected_variant;
+          const price = variant?.price !== undefined ? variant.price : c.price;
+          return {
+            name: variant?.name || c.name,
+            variant: variant ? `Size ${(c as any).selected_size}` : undefined,
+            quantity: c.cart_quantity,
+            price: price,
+            total: price * c.cart_quantity
+          }
+        }),
         total_amount: cartTotal,
         previous_paid: 0,
         amount_paid: Number(paymentAmount) || cartTotal,
@@ -328,9 +342,13 @@ export default function POSRegister({ staffName = 'Staff' }: { staffName?: strin
               let totalVariantStock = 0
               if (hasVariants && savedVariantsStr) {
                 try {
-                  const parsed = JSON.parse(savedVariantsStr)
+                  let parsed = JSON.parse(savedVariantsStr)
+                  parsed = migrateVariants(parsed, product.id)
                   if (parsed && parsed.length > 0) {
-                    totalVariantStock = parsed.reduce((sum: number, v: any) => sum + (v.stock || 0), 0)
+                    totalVariantStock = parsed.reduce((sum: number, v: any) => {
+                      const sizesStock = v.sizes ? Object.values(v.sizes).reduce((a: number, b: any) => a + (Number(b) || 0), 0) : 0
+                      return sum + sizesStock
+                    }, 0)
                   }
                 } catch (e) {}
               }
@@ -440,14 +458,14 @@ export default function POSRegister({ staffName = 'Staff' }: { staffName?: strin
                 <div key={cartItemId} className="flex gap-3 bg-neutral-50 dark:bg-[#121418] p-3 rounded-2xl border border-neutral-100 dark:border-neutral-800/50">
                   <div className="flex-1 min-w-0">
                     <div className="font-medium text-sm text-neutral-900 dark:text-white truncate pr-2">
-                      {item.name} {variant && <span className="text-neutral-500">({variant.size})</span>}
+                      {variant?.name || item.name} {variant && <span className="text-neutral-500">({(item as any).selected_size})</span>}
                     </div>
-                    <div className="text-xs text-neutral-500 mt-0.5">₱{Number(item.price).toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+                    <div className="text-xs text-neutral-500 mt-0.5">₱{Number(variant?.price !== undefined ? variant.price : item.price).toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
                   </div>
                   
                   <div className="flex flex-col items-end gap-2">
                     <div className="font-semibold text-sm text-neutral-900 dark:text-white">
-                      ₱{(item.price * item.cart_quantity).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      ₱{((variant?.price !== undefined ? variant.price : item.price) * item.cart_quantity).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </div>
                     
                     <div className="flex items-center gap-1 bg-white dark:bg-[#1A1D24] rounded-lg border border-neutral-200 dark:border-neutral-700 p-0.5 shadow-sm">
@@ -622,7 +640,13 @@ export default function POSRegister({ staffName = 'Staff' }: { staffName?: strin
             <div className="px-6 py-4 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-bold text-neutral-900 dark:text-white">Select Variant</h3>
-                <p className="text-sm text-neutral-500">{variantSelectionProduct.name}</p>
+                {(() => {
+                  const currentVariant = productVariants[currentVariantGroupIndex]
+                  const displayName = currentVariant?.name || variantSelectionProduct.name
+                  const displayPrice = currentVariant?.price !== undefined ? currentVariant.price : variantSelectionProduct.price
+
+                  return <p className="text-sm text-neutral-500">{displayName} — ₱{Number(displayPrice).toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                })()}
               </div>
               <button onClick={() => setVariantSelectionProduct(null)} className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors text-neutral-500">
                 <X className="w-5 h-5" />
@@ -631,10 +655,10 @@ export default function POSRegister({ staffName = 'Staff' }: { staffName?: strin
             
             <div className="p-6 overflow-y-auto flex-1 flex flex-col items-center">
               {(() => {
-                if (groupedVariants.length === 0) return null
+                if (productVariants.length === 0) return null
                 
-                const [image, variants] = groupedVariants[currentVariantGroupIndex]
-                const totalGroups = groupedVariants.length
+                const currentVariant = productVariants[currentVariantGroupIndex]
+                const totalGroups = productVariants.length
                 
                 const handlePrev = () => setCurrentVariantGroupIndex(prev => prev === 0 ? totalGroups - 1 : prev - 1)
                 const handleNext = () => setCurrentVariantGroupIndex(prev => (prev + 1) % totalGroups)
@@ -651,8 +675,8 @@ export default function POSRegister({ staffName = 'Staff' }: { staffName?: strin
 
                       {/* Product Photo */}
                       <div className="w-48 h-48 shrink-0 bg-white dark:bg-[#1A1D24] rounded-2xl overflow-hidden border border-neutral-100 dark:border-neutral-800 flex items-center justify-center p-3 shadow-sm">
-                        {image !== 'no-image' ? (
-                          <img src={image} alt="design" className="w-full h-full object-contain mix-blend-multiply dark:mix-blend-normal" />
+                        {currentVariant.image && currentVariant.image !== 'no-image' ? (
+                          <img src={currentVariant.image} alt="design" className="w-full h-full object-contain mix-blend-multiply dark:mix-blend-normal" />
                         ) : (
                           <Coffee className="w-10 h-10 text-neutral-300 dark:text-neutral-600" />
                         )}
@@ -669,14 +693,15 @@ export default function POSRegister({ staffName = 'Staff' }: { staffName?: strin
                     <div className="mt-8 w-full max-w-lg">
                       <h4 className="text-sm font-semibold text-neutral-900 dark:text-white mb-4 text-center">Select Option</h4>
                       <div className="flex flex-wrap justify-center gap-3">
-                        {variants.map((variant: any) => {
-                          const outOfStock = variant.stock <= 0
+                        {Object.keys(currentVariant.sizes || {}).map((sizeName) => {
+                          const stock = currentVariant.sizes[sizeName]
+                          const outOfStock = stock <= 0
                           return (
                             <button
-                              key={variant.id}
+                              key={sizeName}
                               disabled={outOfStock}
                               onClick={() => {
-                                addToCart(variantSelectionProduct, variant)
+                                addToCart(variantSelectionProduct, currentVariant, sizeName)
                                 setVariantSelectionProduct(null)
                               }}
                               className={`flex flex-col items-center justify-center px-5 py-3 rounded-xl border transition-all min-w-[75px] ${
@@ -685,9 +710,9 @@ export default function POSRegister({ staffName = 'Staff' }: { staffName?: strin
                                   : 'border-neutral-200 dark:border-neutral-700 bg-white dark:bg-[#1A1D24] hover:border-[#6B7A5E] hover:shadow-md hover:-translate-y-0.5'
                               }`}
                             >
-                              <span className="font-bold text-sm text-neutral-900 dark:text-white">{variant.size}</span>
+                              <span className="font-bold text-sm text-neutral-900 dark:text-white">{sizeName}</span>
                               <span className={`text-[10px] uppercase font-bold mt-1 ${outOfStock ? 'text-rose-500' : 'text-[#6B7A5E]'}`}>
-                                {outOfStock ? '0 left' : `${variant.stock} left`}
+                                {outOfStock ? '0 left' : `${stock} left`}
                               </span>
                             </button>
                           )

@@ -10,7 +10,8 @@ import {
   X
 } from 'lucide-react'
 import { posApi, type POSProduct, type POSCategory } from '../../api/pos'
-import { showToast } from '../../context/ToastContext'
+import { showToast, useToast } from '../../context/ToastContext'
+import { migrateVariants } from '../../utils/variantMigration'
 
 export default function Inventory() {
   const [products, setProducts] = useState<POSProduct[]>([])
@@ -29,16 +30,19 @@ export default function Inventory() {
   
   // Mock variants state for UI demonstration
   const [mockVariants, setMockVariants] = useState<any[]>([])
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set())
+  const [editingVariantId, setEditingVariantId] = useState<string | null>(null)
 
   // Load variants when product is selected
   useEffect(() => {
-    if (selectedProduct) {
+    if (selectedProduct && selectedProduct.has_variants) {
       const saved = localStorage.getItem(`variants_${selectedProduct.id}`)
       if (saved) {
         try {
-          setMockVariants(JSON.parse(saved))
+          let parsed = JSON.parse(saved)
+          parsed = migrateVariants(parsed, selectedProduct.id)
+          setMockVariants(parsed)
         } catch (e) {
-          console.error('Failed to parse variants from local storage', e)
           setMockVariants([])
         }
       } else {
@@ -222,8 +226,12 @@ export default function Inventory() {
                   if (hasVariants && savedVariantsStr) {
                     try {
                       const parsed = JSON.parse(savedVariantsStr)
-                      if (parsed && parsed.length > 0) {
-                        totalVariantStock = parsed.reduce((sum: number, v: any) => sum + (v.stock || 0), 0)
+                      const migrated = migrateVariants(parsed, product.id)
+                      if (migrated && migrated.length > 0) {
+                        totalVariantStock = migrated.reduce((sum: number, v: any) => {
+                          const sizesStock = v.sizes ? Object.values(v.sizes).reduce((a: number, b: any) => a + (Number(b) || 0), 0) : 0
+                          return sum + sizesStock
+                        }, 0)
                       }
                     } catch (e) {}
                   }
@@ -502,16 +510,25 @@ export default function Inventory() {
                 <h3 className="text-lg font-bold text-neutral-900 dark:text-white">Manage Variants</h3>
                 <p className="text-sm text-neutral-500">{selectedProduct.name}</p>
               </div>
-              <button onClick={() => setShowVariantModal(false)} className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors text-neutral-500">
+              <button onClick={() => {
+                setShowVariantModal(false)
+                setEditingVariantId(null)
+                setExpandedRows(new Set())
+              }} className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors text-neutral-500">
                 <X className="w-5 h-5" />
               </button>
             </div>
             
             <div className="p-6 overflow-y-auto flex-1 space-y-8">
-              {/* Add Variant Form */}
               <div className="bg-neutral-50 dark:bg-[#121418] p-5 rounded-2xl border border-neutral-200 dark:border-neutral-800">
-                <h4 className="text-sm font-semibold text-neutral-900 dark:text-white mb-4">Add New Design & Sizes</h4>
+                <div className="flex justify-between items-center mb-4">
+                  <h4 className="text-sm font-semibold text-neutral-900 dark:text-white">{editingVariantId ? 'Edit Design & Sizes' : 'Add New Design & Sizes'}</h4>
+                  {editingVariantId && (
+                    <button onClick={() => setEditingVariantId(null)} className="text-xs text-neutral-500 hover:text-neutral-700">Cancel Edit</button>
+                  )}
+                </div>
                 <form 
+                  key={editingVariantId || 'new'}
                   onSubmit={(e) => {
                     e.preventDefault()
                     const form = e.currentTarget
@@ -519,25 +536,42 @@ export default function Inventory() {
                     const file = formData.get('image') as File
                     
                     const sizes = ['OS', 'XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL']
-                    const addedVariants: any[] = []
                     
-                    const addVariants = (base64Image: string | null) => {
-                      sizes.forEach((size, idx) => {
+                    const saveVariant = (base64Image: string | null) => {
+                      const variantName = formData.get('variant_name') as string
+                      const variantPrice = Number(formData.get('variant_price'))
+
+                      const variantSizes: Record<string, number> = {}
+                      sizes.forEach((size) => {
                         const stock = Number(formData.get(`stock_${size}`))
                         if (stock > 0) {
-                          addedVariants.push({
-                            id: Date.now().toString() + '-' + idx,
-                            size: size,
-                            stock: stock,
-                            image: base64Image
-                          })
+                          variantSizes[size] = stock
                         }
                       })
                       
-                      if (addedVariants.length > 0) {
-                        setMockVariants([...mockVariants, ...addedVariants])
-                        form.reset()
-                        showToast.success(`${addedVariants.length} variants added`)
+                      if (Object.keys(variantSizes).length > 0) {
+                        if (editingVariantId) {
+                          setMockVariants(mockVariants.map(v => v.id === editingVariantId ? {
+                            ...v,
+                            name: variantName,
+                            price: variantPrice,
+                            sizes: variantSizes,
+                            image: base64Image !== null ? base64Image : v.image
+                          } : v))
+                          setEditingVariantId(null)
+                          showToast.success(`Variant updated`)
+                        } else {
+                          const newVariant = {
+                            id: Date.now().toString(),
+                            name: variantName,
+                            price: variantPrice,
+                            image: base64Image,
+                            sizes: variantSizes
+                          }
+                          setMockVariants([...mockVariants, newVariant])
+                          form.reset()
+                          showToast.success(`Variant added`)
+                        }
                       } else {
                         showToast.error('Please enter stock for at least one size')
                       }
@@ -568,46 +602,66 @@ export default function Inventory() {
                           canvas.height = height
                           const ctx = canvas.getContext('2d')
                           ctx?.drawImage(img, 0, 0, width, height)
-                          // Compress image to save localStorage quota
-                          addVariants(canvas.toDataURL('image/jpeg', 0.6))
-                        }
-                        img.src = e.target?.result as string
+                        // Compress image to save localStorage quota
+                        saveVariant(canvas.toDataURL('image/jpeg', 0.6))
                       }
-                      reader.readAsDataURL(file)
-                    } else {
-                      addVariants(null)
+                      img.src = e.target?.result as string
                     }
-                  }} 
-                  className="space-y-6"
-                >
-                  <div>
-                    <label className="block text-xs font-medium text-neutral-700 dark:text-neutral-300 mb-1">Design Picture (Applies to all sizes with stock below)</label>
-                    <input name="image" type="file" accept="image/*" className="w-full text-xs file:mr-2 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-[#6B7A5E]/10 file:text-[#6B7A5E] hover:file:bg-[#6B7A5E]/20" />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-xs font-medium text-neutral-700 dark:text-neutral-300 mb-3">Stock per Size (Leave 0 if none)</label>
-                    <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-9 gap-3">
-                      {['OS', 'XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'].map(size => (
-                        <div key={size} className="flex flex-col gap-1">
-                          <label className="text-[10px] font-semibold text-center text-neutral-500">{size}</label>
-                          <input 
-                            name={`stock_${size}`} 
-                            type="number" 
-                            min="0" 
-                            defaultValue={0} 
-                            className="w-full px-2 py-1.5 text-center bg-white dark:bg-[#1A1D24] border border-neutral-300 dark:border-neutral-700 rounded-lg text-sm focus:outline-none focus:border-[#6B7A5E]" 
-                          />
+                    reader.readAsDataURL(file)
+                  } else {
+                    saveVariant(null)
+                  }
+                }} 
+                className="space-y-6"
+              >
+                {(() => {
+                  const editingData = editingVariantId ? mockVariants.find(v => v.id === editingVariantId) : null;
+                  return (
+                    <>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-medium text-neutral-700 dark:text-neutral-300 mb-1">Variant Name *</label>
+                          <input required name="variant_name" type="text" defaultValue={editingData?.name} placeholder="e.g. White Cambacay Shirt" className="w-full px-3 py-2 bg-white dark:bg-[#121418] border border-neutral-300 dark:border-neutral-700 rounded-lg text-sm focus:outline-none focus:border-[#6B7A5E] focus:ring-1 focus:ring-[#6B7A5E]" />
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <div className="pt-2">
-                    <button type="submit" className="w-full flex items-center justify-center gap-2 bg-[#6B7A5E] text-white px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-[#5A684D] transition-colors">
-                      <Plus className="w-4 h-4" /> Add Variants
-                    </button>
-                  </div>
+                        <div>
+                          <label className="block text-xs font-medium text-neutral-700 dark:text-neutral-300 mb-1">Variant Price (₱) *</label>
+                          <input required name="variant_price" type="number" step="0.01" min="0" defaultValue={editingData?.price} placeholder="e.g. 500.00" className="w-full px-3 py-2 bg-white dark:bg-[#121418] border border-neutral-300 dark:border-neutral-700 rounded-lg text-sm focus:outline-none focus:border-[#6B7A5E] focus:ring-1 focus:ring-[#6B7A5E]" />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-medium text-neutral-700 dark:text-neutral-300 mb-1">Design Picture {editingData?.image ? '(Leave empty to keep current)' : '(Applies to all sizes with stock below)'}</label>
+                        <input name="image" type="file" accept="image/*" className="w-full text-xs file:mr-2 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-[#6B7A5E]/10 file:text-[#6B7A5E] hover:file:bg-[#6B7A5E]/20" />
+                        {editingData?.image && <img src={editingData.image} alt="Preview" className="h-12 w-12 object-cover rounded mt-2 border border-neutral-200" />}
+                      </div>
+                      
+                      <div>
+                        <label className="block text-xs font-medium text-neutral-700 dark:text-neutral-300 mb-3">Stock per Size (Leave 0 if none)</label>
+                        <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-9 gap-3">
+                          {['OS', 'XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'].map(size => (
+                            <div key={size} className="flex flex-col gap-1">
+                              <label className="text-[10px] font-semibold text-center text-neutral-500">{size}</label>
+                              <input 
+                                name={`stock_${size}`} 
+                                type="number" 
+                                min="0" 
+                                defaultValue={editingData?.sizes?.[size] || 0} 
+                                className="w-full px-2 py-1.5 text-center bg-white dark:bg-[#1A1D24] border border-neutral-300 dark:border-neutral-700 rounded-lg text-sm focus:outline-none focus:border-[#6B7A5E]" 
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      <div className="pt-2">
+                        <button type="submit" className="w-full flex items-center justify-center gap-2 bg-[#6B7A5E] text-white px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-[#5A684D] transition-colors">
+                          {editingVariantId ? <Edit2 className="w-4 h-4" /> : <Plus className="w-4 h-4" />} 
+                          {editingVariantId ? 'Save Changes' : 'Add Variants'}
+                        </button>
+                      </div>
+                    </>
+                  )
+                })()}
                 </form>
               </div>
 
@@ -616,25 +670,101 @@ export default function Inventory() {
                 <h4 className="text-sm font-semibold text-neutral-900 dark:text-white mb-4">Existing Variants</h4>
                 {mockVariants.length > 0 ? (
                   <div className="space-y-3">
-                    {mockVariants.map(variant => (
-                      <div key={variant.id} className="flex items-center gap-4 p-3 bg-white dark:bg-[#121418] border border-neutral-200 dark:border-neutral-800 rounded-xl">
-                        <div className="w-12 h-12 rounded-lg overflow-hidden bg-neutral-100 flex-shrink-0 flex items-center justify-center">
-                          {variant.image ? <img src={variant.image} alt={variant.color} className="w-full h-full object-cover" /> : <Package className="w-6 h-6 text-neutral-300" />}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="px-2 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 text-sm font-medium text-neutral-900 dark:text-white">Size: {variant.size}</span>
+                    {mockVariants.map(variant => {
+                      const isExpanded = expandedRows.has(variant.id)
+                      const sizeKeys = variant.sizes ? Object.keys(variant.sizes) : []
+                      const totalStock = sizeKeys.reduce((acc, size) => acc + variant.sizes[size], 0)
+
+                      return (
+                        <div key={variant.id} className="flex flex-col bg-white dark:bg-[#121418] border border-neutral-200 dark:border-neutral-800 rounded-xl overflow-hidden transition-all">
+                          {/* Collapsed Row */}
+                          <div 
+                            className="flex items-center gap-4 p-3 cursor-pointer hover:bg-neutral-50 dark:hover:bg-[#1A1D24]/50"
+                            onClick={() => {
+                              const next = new Set(expandedRows)
+                              if (isExpanded) next.delete(variant.id)
+                              else next.add(variant.id)
+                              setExpandedRows(next)
+                            }}
+                          >
+                            <div className="w-12 h-12 rounded-lg overflow-hidden bg-neutral-100 flex-shrink-0 flex items-center justify-center">
+                              {variant.image ? <img src={variant.image} alt={variant.name} className="w-full h-full object-cover" /> : <Package className="w-6 h-6 text-neutral-300" />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-0.5">
+                                <span className="font-semibold text-neutral-900 dark:text-white text-sm truncate">{variant.name || 'Unnamed Variant'}</span>
+                                <span className="text-sm text-neutral-500">—</span>
+                                <span className="font-semibold text-neutral-900 dark:text-white text-sm whitespace-nowrap">₱{Number(variant.price || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                              </div>
+                              <div className="flex items-center gap-2 text-xs text-neutral-500">
+                                <span>{sizeKeys.length} size{sizeKeys.length !== 1 ? 's' : ''}</span>
+                                <span>·</span>
+                                <span>{totalStock} total in stock</span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setEditingVariantId(variant.id)
+                                  document.getElementById('productForm')?.scrollIntoView({ behavior: 'smooth' })
+                                }}
+                                className="p-2 text-neutral-500 hover:text-[#6B7A5E] hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  if (confirm(`Are you sure you want to delete ${variant.name}? This removes all sizes.`)) {
+                                    setMockVariants(mockVariants.filter(v => v.id !== variant.id))
+                                  }
+                                }}
+                                className="p-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                              <div className="p-1 ml-1 text-neutral-400">
+                                {isExpanded ? '▴' : '▾'}
+                              </div>
+                            </div>
                           </div>
-                          <span className="text-sm text-neutral-500">Stock: {variant.stock}</span>
+
+                          {/* Expanded Sizes */}
+                          {isExpanded && sizeKeys.length > 0 && (
+                            <div className="bg-neutral-50 dark:bg-[#1A1D24]/30 p-3 border-t border-neutral-100 dark:border-neutral-800/50">
+                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                {sizeKeys.map(size => (
+                                  <div key={size} className="flex items-center justify-between bg-white dark:bg-[#121418] border border-neutral-200 dark:border-neutral-800 rounded px-2 py-1.5">
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-semibold text-xs text-neutral-900 dark:text-white w-6">{size}</span>
+                                      <span className="text-xs text-neutral-500">{variant.sizes[size]} left</span>
+                                    </div>
+                                    <button 
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        if (sizeKeys.length === 1) {
+                                          if (confirm(`This is the last size. Delete the entire variant?`)) {
+                                            setMockVariants(mockVariants.filter(v => v.id !== variant.id))
+                                          }
+                                        } else {
+                                          const nextSizes = { ...variant.sizes }
+                                          delete nextSizes[size]
+                                          setMockVariants(mockVariants.map(v => v.id === variant.id ? { ...v, sizes: nextSizes } : v))
+                                        }
+                                      }}
+                                      className="text-neutral-400 hover:text-rose-500 transition-colors p-0.5"
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
-                        <button 
-                          onClick={() => setMockVariants(mockVariants.filter(v => v.id !== variant.id))}
-                          className="p-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 ) : (
                   <div className="text-center py-8 text-neutral-500 text-sm border-2 border-dashed border-neutral-200 dark:border-neutral-800 rounded-xl">
@@ -645,7 +775,11 @@ export default function Inventory() {
             </div>
             
             <div className="px-6 py-4 border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-[#1A1D24] flex justify-end gap-3">
-              <button onClick={() => setShowVariantModal(false)} className="px-5 py-2.5 bg-neutral-200 text-neutral-800 dark:bg-neutral-800 dark:text-neutral-200 text-sm font-medium rounded-xl hover:opacity-90 transition-colors shadow-sm">
+              <button onClick={() => {
+                setShowVariantModal(false)
+                setEditingVariantId(null)
+                setExpandedRows(new Set())
+              }} className="px-5 py-2.5 bg-neutral-200 text-neutral-800 dark:bg-neutral-800 dark:text-neutral-200 text-sm font-medium rounded-xl hover:opacity-90 transition-colors shadow-sm">
                 Done
               </button>
             </div>

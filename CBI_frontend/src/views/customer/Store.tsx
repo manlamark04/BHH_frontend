@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { Search, Coffee, Store as StoreIcon, X, ChevronLeft, ChevronRight } from 'lucide-react'
 import { posApi, type POSProduct, type POSCategory } from '../../api/pos'
 import { useToast } from '../../context/ToastContext'
+import { migrateVariants } from '../../utils/variantMigration'
 
 export default function CustomerStore() {
   const [products, setProducts] = useState<POSProduct[]>([])
@@ -16,19 +17,19 @@ export default function CustomerStore() {
   const showToast = useToast()
 
   // Grouped variants for carousel
-  const groupedVariants = useMemo(() => {
+  const groupedVariants = useMemo<any[]>(() => {
     if (!selectedProduct) return []
     if (productVariants.length === 0) {
-      return [[selectedProduct.image_url || 'no-image', []]]
+      return [{
+         id: 'default',
+         image: selectedProduct.image_url,
+         name: selectedProduct.name,
+         price: selectedProduct.price,
+         sizes: {}
+      }]
     }
-    const groups = new Map<string, any[]>()
-    productVariants.forEach(v => {
-      const key = v.image || selectedProduct.image_url || 'no-image'
-      if (!groups.has(key)) groups.set(key, [])
-      groups.get(key)!.push(v)
-    })
-    return Array.from(groups.entries())
-  }, [selectedProduct, productVariants])
+    return productVariants
+  }, [productVariants, selectedProduct])
 
   // Reset index when product changes
   useEffect(() => {
@@ -36,22 +37,38 @@ export default function CustomerStore() {
     if (selectedProduct) {
       const saved = localStorage.getItem(`variants_${selectedProduct.id}`)
       if (saved) {
-        const variants = JSON.parse(saved)
-        setProductVariants(variants)
-        if (variants.length > 0) {
-          setSelectedVariantSize(variants[0].size)
-        } else {
-          setSelectedVariantSize('M')
+        try {
+          let variants = JSON.parse(saved)
+          variants = migrateVariants(variants, selectedProduct.id)
+          setProductVariants(variants)
+          if (variants.length > 0 && variants[0].sizes) {
+            const firstSizes = Object.keys(variants[0].sizes)
+            if (firstSizes.length > 0) {
+              setSelectedVariantSize(firstSizes[0])
+            }
+          }
+        } catch (e) {
+          setProductVariants([])
+          setSelectedVariantSize(null)
         }
       } else {
         setProductVariants([])
-        setSelectedVariantSize('M')
+        setSelectedVariantSize(null)
       }
     } else {
       setProductVariants([])
       setSelectedVariantSize(null)
     }
   }, [selectedProduct])
+
+  useEffect(() => {
+    if (groupedVariants.length > 0 && groupedVariants[currentImageIndex]?.sizes) {
+      const sizes = Object.keys(groupedVariants[currentImageIndex].sizes)
+      if (sizes.length > 0 && (!selectedVariantSize || !sizes.includes(selectedVariantSize))) {
+        setSelectedVariantSize(sizes[0])
+      }
+    }
+  }, [currentImageIndex, groupedVariants])
 
   useEffect(() => {
     fetchData()
@@ -157,8 +174,12 @@ export default function CustomerStore() {
           if (hasVariants && savedVariantsStr) {
             try {
               const parsed = JSON.parse(savedVariantsStr)
-              if (parsed && parsed.length > 0) {
-                totalVariantStock = parsed.reduce((sum: number, v: any) => sum + (v.stock || 0), 0)
+              const migrated = migrateVariants(parsed, product.id)
+              if (migrated && migrated.length > 0) {
+                totalVariantStock = migrated.reduce((sum: number, v: any) => {
+                  const sizesStock = v.sizes ? Object.values(v.sizes).reduce((a: number, b: any) => a + (Number(b) || 0), 0) : 0
+                  return sum + sizesStock
+                }, 0)
               }
             } catch (e) {}
           }
@@ -221,65 +242,84 @@ export default function CustomerStore() {
                 <X className="w-5 h-5" />
               </button>
               
+              {groupedVariants[currentImageIndex]?.image ? (
+                <img key={currentImageIndex} src={groupedVariants[currentImageIndex].image} alt={selectedProduct.name} className="w-full h-full object-contain mix-blend-multiply dark:mix-blend-normal" />
+              ) : (
+                <Coffee className="w-12 h-12 text-neutral-300 dark:text-neutral-600" />
+              )}
+
               {/* Carousel Arrows */}
               {groupedVariants.length > 1 && (
-                <>
+                <div className="absolute inset-y-0 left-0 right-0 flex items-center justify-between px-4 pointer-events-none">
                   <button 
                     onClick={(e) => {
                       e.stopPropagation()
                       setCurrentImageIndex(prev => prev === 0 ? groupedVariants.length - 1 : prev - 1)
                     }}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 p-2 bg-white hover:bg-neutral-100 dark:bg-black/70 dark:hover:bg-black/90 rounded-full shadow-md backdrop-blur-sm transition-colors text-neutral-700 dark:text-neutral-300 hover:text-[#6B7A5E] z-10"
+                    className="w-10 h-10 rounded-full bg-white/90 dark:bg-black/90 backdrop-blur shadow-lg flex items-center justify-center text-neutral-900 dark:text-white pointer-events-auto hover:bg-white dark:hover:bg-black transition-colors"
                   >
-                    <ChevronLeft className="w-5 h-5" />
+                    <ChevronLeft className="w-6 h-6" />
                   </button>
                   <button 
                     onClick={(e) => {
                       e.stopPropagation()
                       setCurrentImageIndex(prev => prev === groupedVariants.length - 1 ? 0 : prev + 1)
                     }}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-white hover:bg-neutral-100 dark:bg-black/70 dark:hover:bg-black/90 rounded-full shadow-md backdrop-blur-sm transition-colors text-neutral-700 dark:text-neutral-300 hover:text-[#6B7A5E] z-10"
+                    className="w-10 h-10 rounded-full bg-white/90 dark:bg-black/90 backdrop-blur shadow-lg flex items-center justify-center text-neutral-900 dark:text-white pointer-events-auto hover:bg-white dark:hover:bg-black transition-colors"
                   >
-                    <ChevronRight className="w-5 h-5" />
+                    <ChevronRight className="w-6 h-6" />
                   </button>
-                  
-                  {/* Dots */}
-                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
-                    {groupedVariants.map((_, idx) => (
-                      <div key={idx} className={`w-1.5 h-1.5 rounded-full transition-all ${idx === currentImageIndex ? 'bg-neutral-800 dark:bg-white w-3' : 'bg-neutral-400 dark:bg-neutral-600'}`} />
-                    ))}
-                  </div>
-                </>
+                </div>
               )}
 
-              {groupedVariants.length > 0 && groupedVariants[currentImageIndex][0] !== 'no-image' ? (
-                <img key={currentImageIndex} src={groupedVariants[currentImageIndex][0]} alt={selectedProduct.name} className="w-full h-full object-contain mix-blend-multiply dark:mix-blend-normal" />
-              ) : (
-                <Coffee className="w-12 h-12 text-neutral-300 dark:text-neutral-600" />
+              {/* Image Indicators */}
+              {groupedVariants.length > 1 && (
+                <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 z-20">
+                  {groupedVariants.map((_, idx) => (
+                    <div 
+                      key={idx} 
+                      className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                        idx === currentImageIndex 
+                          ? 'bg-[#6B7A5E] w-4' 
+                          : 'bg-white/60 dark:bg-white/40'
+                      }`}
+                    />
+                  ))}
+                </div>
               )}
             </div>
             
+            {/* Details Section */}
             <div className="p-6 overflow-y-auto flex-1">
               <div className="mb-6">
                 <span className="text-xs font-semibold text-[#6B7A5E] uppercase tracking-wider mb-2 block">{selectedProduct.category_name}</span>
-                <h2 className="text-2xl font-bold text-neutral-900 dark:text-white mb-2">{selectedProduct.name}</h2>
-                <div className="flex items-center justify-between mt-4">
-                  <span className="text-xl font-bold text-neutral-900 dark:text-white">₱{Number(selectedProduct.price).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                  {(() => {
-                    let displayedStock = selectedProduct.stock_quantity;
-                    const currentGroupVariants = groupedVariants.length > 0 ? groupedVariants[currentImageIndex][1] : []
-                    if (selectedVariantSize && currentGroupVariants.length > 0) {
-                      const variant = currentGroupVariants.find((v: any) => v.size === selectedVariantSize);
-                      if (variant) displayedStock = variant.stock;
-                    }
-                    
-                    return (
-                      <span className={`text-sm font-medium px-3 py-1 rounded-full ${displayedStock <= 0 ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}`}>
-                        {displayedStock <= 0 ? 'Out of Stock' : `${displayedStock} in stock`}
-                      </span>
-                    )
-                  })()}
-                </div>
+                {(() => {
+                  const currentVariant = groupedVariants[currentImageIndex]
+                  const displayName = currentVariant?.name || selectedProduct.name
+                  const displayPrice = currentVariant?.price !== undefined ? currentVariant.price : selectedProduct.price
+                  
+                  return (
+                    <>
+                      <h2 className="text-2xl font-bold text-neutral-900 dark:text-white mb-2">{displayName}</h2>
+                      <div className="flex items-center justify-between mt-4">
+                        <span className="text-xl font-bold text-neutral-900 dark:text-white">₱{Number(displayPrice).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                        {(() => {
+                          let displayedStock = selectedProduct.stock_quantity;
+                          if (selectedVariantSize && currentVariant?.sizes) {
+                            const stock = currentVariant.sizes[selectedVariantSize];
+                            if (stock !== undefined) displayedStock = stock;
+                          }
+                          
+                          return (
+                            <span className={`text-sm font-medium px-3 py-1 rounded-full ${displayedStock <= 0 ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                              {displayedStock <= 0 ? 'Out of Stock' : `${displayedStock} in stock`}
+                            </span>
+                          )
+                        })()}
+                      </div>
+                    </>
+                  )
+                })()}
               </div>
               
               {/* Variants Section - Visible for products with variants */}
@@ -289,28 +329,37 @@ export default function CustomerStore() {
                     <h3 className="text-sm font-semibold text-neutral-900 dark:text-white mb-3">Select Option</h3>
                     <div className="flex flex-wrap gap-2">
                       {(() => {
-                        const currentGroupVariants = groupedVariants.length > 0 ? groupedVariants[currentImageIndex][1] : []
-                        const sizes = currentGroupVariants.length > 0 
-                          ? Array.from(new Set(currentGroupVariants.map((v: any) => v.size)))
-                          : ['XS', 'S', 'M', 'L', 'XL', 'XXL']
-                          
-                        return sizes.map(size => {
-                          const fallbackSelect = selectedVariantSize || (sizes.includes('M') ? 'M' : sizes[0])
-                          const isSelected = size === fallbackSelect
-                          
-                          return (
-                            <button 
-                              key={size as string} 
-                              onClick={() => setSelectedVariantSize(size as string)}
-                              className={`flex-shrink-0 px-5 py-2.5 rounded-xl text-sm font-medium border transition-colors ${
-                                isSelected
-                                  ? 'bg-[#6B7A5E] border-[#6B7A5E] text-white shadow-sm' 
-                                  : 'bg-white dark:bg-[#1A1D24] border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 hover:border-[#6B7A5E]/50'
-                            }`}>
-                              {size as string}
-                            </button>
-                          )
-                        })
+                        const currentVariant = groupedVariants[currentImageIndex]
+                        const sizes = currentVariant?.sizes ? Object.keys(currentVariant.sizes) : []
+                        if (sizes.length === 0) return null
+
+                        return (
+                          <div className="grid grid-cols-4 gap-2 w-full">
+                            {sizes.map(size => {
+                              const stock = currentVariant.sizes[size]
+                              const isOutOfStock = stock <= 0
+                              const isSelected = selectedVariantSize === size
+                              
+                              return (
+                                <button
+                                  key={size}
+                                  disabled={isOutOfStock}
+                                  onClick={() => setSelectedVariantSize(size)}
+                                  className={`py-2 rounded-xl text-sm font-semibold transition-all border-2
+                                    ${isSelected 
+                                      ? 'border-[#6B7A5E] bg-[#6B7A5E] text-white shadow-md' 
+                                      : isOutOfStock 
+                                        ? 'border-neutral-100 dark:border-neutral-800 bg-neutral-50 dark:bg-[#121418] text-neutral-300 dark:text-neutral-600 cursor-not-allowed'
+                                        : 'border-neutral-200 dark:border-neutral-700 bg-white dark:bg-[#1A1D24] text-neutral-700 dark:text-neutral-300 hover:border-[#6B7A5E] hover:text-[#6B7A5E]'
+                                    }
+                                  `}
+                                >
+                                  {size}
+                                </button>
+                              )
+                            })}
+                          </div>
+                        )
                       })()}
                     </div>
                   </div>
