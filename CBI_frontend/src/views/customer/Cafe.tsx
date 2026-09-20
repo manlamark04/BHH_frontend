@@ -17,7 +17,7 @@ export default function Cafe({ onNavigate }: CafeProps) {
 
         {/* Text */}
         <h2 className="font-display text-2xl sm:text-3xl font-bold text-neutral-900 dark:text-white mb-8 tracking-tight">
-          Coming Soon
+          Coming Soon Guys
         </h2>
 
         {/* Back Button */}
