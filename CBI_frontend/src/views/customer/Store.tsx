@@ -92,6 +92,13 @@ export default function CustomerStore() {
     }
   }
 
+  const handleProductClick = (product: POSProduct) => {
+    setSelectedProduct(product)
+    setProductVariants([])
+    setCurrentImageIndex(0)
+    setSelectedVariantSize(null)
+  }
+
   const filteredProducts = useMemo(() => {
     return products.filter(p => {
       const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) || 
@@ -190,7 +197,7 @@ export default function CustomerStore() {
           return (
             <button
               key={product.id}
-              onClick={() => setSelectedProduct(product)}
+              onClick={() => handleProductClick(product)}
               className={`relative flex flex-col bg-white dark:bg-[#1A1D24] border border-neutral-200 dark:border-neutral-800 rounded-2xl overflow-hidden transition-all text-left group focus:outline-none focus:ring-2 focus:ring-[#6B7A5E] ${
                 outOfStock ? 'opacity-50 grayscale' : 'hover:border-[#6B7A5E]/50 hover:shadow-lg'
               }`}
@@ -323,7 +330,7 @@ export default function CustomerStore() {
               </div>
               
               {/* Variants Section - Visible for products with variants */}
-              {selectedProduct.has_variants && (
+              {!!selectedProduct.has_variants && (
                 <div className="space-y-6 border-t border-neutral-200 dark:border-neutral-800 pt-6">
                   <div>
                     <h3 className="text-sm font-semibold text-neutral-900 dark:text-white mb-3">Select Option</h3>
