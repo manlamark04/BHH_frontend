@@ -29,6 +29,8 @@ export default function POSRegister({ staffName = 'Staff' }: { staffName?: strin
   const [search, setSearch] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<number | 'all'>('all')
   const [selectedCustomer, setSelectedCustomer] = useState<number | ''>('')
+  const [customerSearch, setCustomerSearch] = useState('')
+  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'e-wallet' | 'room_charge'>('cash')
   
   const [loading, setLoading] = useState(true)
@@ -263,6 +265,7 @@ export default function POSRegister({ staffName = 'Staff' }: { staffName?: strin
       showToast.success('Transaction completed')
       setCart([])
       setSelectedCustomer('')
+      setCustomerSearch('')
       setPaymentMethod('cash')
       setShowPaymentModal(false)
       
@@ -425,20 +428,73 @@ export default function POSRegister({ staffName = 'Staff' }: { staffName?: strin
         </div>
 
         {/* Customer Select (Optional) */}
-        <div className="p-4 border-b border-neutral-200 dark:border-neutral-800">
+        <div className="p-4 border-b border-neutral-200 dark:border-neutral-800 relative z-50">
           <div className="relative">
             <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
-            <select
-              value={selectedCustomer}
-              onChange={e => setSelectedCustomer(e.target.value ? Number(e.target.value) : '')}
-              className="w-full pl-9 pr-4 py-2.5 bg-neutral-50 dark:bg-[#121418] border border-neutral-200 dark:border-neutral-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/20 focus:border-[#6B7A5E] appearance-none"
-            >
-              <option value="">Walk-in Customer (Anonymous)</option>
-              {customers.map(c => (
-                <option key={c.id} value={c.id}>{c.full_name} ({c.unique_id})</option>
-              ))}
-            </select>
+            <input
+              type="text"
+              placeholder="Search Walk-in or Guest Name..."
+              value={customerSearch}
+              onChange={e => {
+                setCustomerSearch(e.target.value)
+                setShowCustomerDropdown(true)
+                if (e.target.value === '') setSelectedCustomer('')
+              }}
+              onFocus={() => setShowCustomerDropdown(true)}
+              onBlur={() => setTimeout(() => setShowCustomerDropdown(false), 200)}
+              className="w-full pl-9 pr-8 py-2.5 bg-neutral-50 dark:bg-[#121418] border border-neutral-200 dark:border-neutral-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/20 focus:border-[#6B7A5E] transition-all text-neutral-900 dark:text-white"
+            />
+            {customerSearch && (
+              <button 
+                onClick={() => {
+                  setSelectedCustomer('')
+                  setCustomerSearch('')
+                }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
           </div>
+          {showCustomerDropdown && (
+            <div className="absolute top-[calc(100%-10px)] left-4 right-4 mt-1 bg-white dark:bg-[#1A1D24] border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-lg z-50 max-h-60 overflow-y-auto">
+              <button
+                className="w-full text-left px-4 py-2.5 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-800/50 text-neutral-900 dark:text-white border-b border-neutral-100 dark:border-neutral-800/50"
+                onClick={() => {
+                  setSelectedCustomer('')
+                  setCustomerSearch('Walk-in Customer (Anonymous)')
+                  setShowCustomerDropdown(false)
+                }}
+              >
+                Walk-in Customer (Anonymous)
+              </button>
+              {customers.filter(c => 
+                (c.full_name || '').toLowerCase().includes(customerSearch.toLowerCase()) || 
+                (c.unique_id || '').toLowerCase().includes(customerSearch.toLowerCase())
+              ).map(c => (
+                <button
+                  key={c.id}
+                  className="w-full text-left px-4 py-2.5 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-800/50 flex flex-col"
+                  onClick={() => {
+                    setSelectedCustomer(c.id)
+                    setCustomerSearch(`${c.full_name} (${c.unique_id})`)
+                    setShowCustomerDropdown(false)
+                  }}
+                >
+                  <span className="font-medium text-neutral-900 dark:text-white">{c.full_name}</span>
+                  <span className="text-xs text-neutral-500">{c.unique_id}</span>
+                </button>
+              ))}
+              {customers.filter(c => 
+                (c.full_name || '').toLowerCase().includes(customerSearch.toLowerCase()) || 
+                (c.unique_id || '').toLowerCase().includes(customerSearch.toLowerCase())
+              ).length === 0 && (
+                <div className="px-4 py-3 text-sm text-neutral-500 text-center">
+                  No guests found
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Cart Items */}

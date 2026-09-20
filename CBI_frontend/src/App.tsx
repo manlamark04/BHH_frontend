@@ -27,6 +27,7 @@ const CustomerTransactions = lazy(() => import('./views/customer/Transactions'))
 const CustomerProfile = lazy(() => import('./views/customer/Profile'))
 const CustomerReviews = lazy(() => import('./views/customer/Reviews'))
 const CustomerStore = lazy(() => import('./views/customer/Store'))
+const CustomerCafe = lazy(() => import('./views/customer/Cafe'))
 
 // Staff views (lazy loaded)
 const StaffCheckInOut = lazy(() => import('./views/staff/CheckInOut'))
@@ -110,6 +111,7 @@ const VIEW_TITLES: Partial<Record<View, { title: string; subtitle?: string }>> =
   'admin-reviews': { title: 'Guest Reviews', subtitle: 'Manage and moderate guest feedback' },
   'customer-reviews': { title: 'My Reviews', subtitle: 'Your experience and feedback' },
   'customer-store': { title: 'Convenience Store', subtitle: 'Store catalog' },
+  'customer-cafe': { title: 'Breeze Café', subtitle: 'Coming Soon' },
 }
 
 const DEFAULT_VIEW: Record<Role, View> = {
@@ -264,6 +266,8 @@ export default function App() {
         return <CustomerReviews />
       case 'customer-store':
         return <CustomerStore />
+      case 'customer-cafe':
+        return <CustomerCafe onNavigate={navigate} />
       case 'customer-profile':
         return <CustomerProfile userName={name} userId={userId} onPasswordChanged={handlePasswordChanged} />
 

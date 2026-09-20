@@ -234,3 +234,4 @@ export type View =
   | 'staff-profile'
   | 'customer-reviews'
   | 'customer-store'
+  | 'customer-cafe'

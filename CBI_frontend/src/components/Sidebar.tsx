@@ -35,6 +35,7 @@ import {
   MessageSquare,
   Store,
   PackageSearch,
+  Coffee,
   type LucideIcon,
 } from 'lucide-react'
 import InquiriesModal from './InquiriesModal'
@@ -86,6 +87,7 @@ const CUSTOMER_NAV: NavItem[] = [
   { label: 'Motor Rent', view: 'customer-motorcycles', icon: Bike },
   { label: 'Pickleball Court', view: 'customer-pickleball', icon: Trophy },
   { label: 'Convenience Store', view: 'customer-store', icon: Store },
+  { label: 'Breeze Café', view: 'customer-cafe', icon: Coffee },
   { label: 'My Transactions', view: 'customer-transactions', icon: Receipt },
   { label: 'My Reviews', view: 'customer-reviews', icon: MessageSquare },
   { label: 'My Profile', view: 'customer-profile', icon: User },
