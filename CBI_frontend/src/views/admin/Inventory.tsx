@@ -27,6 +27,7 @@ export default function Inventory() {
   const [productFormStep, setProductFormStep] = useState<1 | 2>(1)
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false)
   const [hasVariantsSelection, setHasVariantsSelection] = useState<boolean | null>(null)
+  const [hasMainImage, setHasMainImage] = useState(false)
   
   // Temporary variant state during creation flow
   const [tempVariantSizes, setTempVariantSizes] = useState<{size: string, stock: number}[]>([])
@@ -176,6 +177,7 @@ export default function Inventory() {
                 setShowAdvancedSettings(false)
                 setMockVariants([])
                 setTempVariantSizes([])
+                setHasMainImage(false)
                 setShowProductModal(true)
               } else {
                 setShowCategoryModal(true)
@@ -265,6 +267,7 @@ export default function Inventory() {
                         setHasVariantsSelection(!!product.has_variants)
                         setShowAdvancedSettings(false)
                         setTempVariantSizes([])
+                        setHasMainImage(!!product.image_url)
                         setShowProductModal(true)
                       }}
                       className={`relative flex flex-col bg-white dark:bg-[#1A1D24] border border-neutral-200 dark:border-neutral-800 rounded-2xl overflow-hidden transition-all text-left group cursor-pointer ${
@@ -282,6 +285,7 @@ export default function Inventory() {
                              setHasVariantsSelection(!!product.has_variants)
                              setShowAdvancedSettings(false)
                              setTempVariantSizes([])
+                             setHasMainImage(!!product.image_url)
                              setShowProductModal(true)
                            }}
                            className="p-2 bg-white/90 dark:bg-black/90 text-neutral-700 dark:text-neutral-300 hover:text-[#6B7A5E] rounded-xl shadow-sm backdrop-blur-sm transition-colors"
@@ -412,58 +416,64 @@ export default function Inventory() {
               <form id="productForm" onSubmit={handleSaveProduct} className="space-y-6">
                 
                 {/* ── STEP 1: Basic Info ── */}
-                {productFormStep === 1 && (
-                  <div className="space-y-6">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="col-span-2">
-                        <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">Product Name *</label>
-                        <input required name="name" defaultValue={editingProduct?.name} type="text" placeholder="e.g. Red Horse 1L" className="w-full px-3 py-2.5 bg-white dark:bg-[#121418] border border-neutral-300 dark:border-neutral-700 rounded-xl text-sm focus:outline-none focus:border-[#6B7A5E] focus:ring-1 focus:ring-[#6B7A5E]" />
-                      </div>
-                      
-                      <div className="col-span-2">
-                        <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">Category *</label>
-                        <select required name="category_id" defaultValue={editingProduct?.category_id || ''} className="w-full px-3 py-2.5 bg-white dark:bg-[#121418] border border-neutral-300 dark:border-neutral-700 rounded-xl text-sm focus:outline-none focus:border-[#6B7A5E] focus:ring-1 focus:ring-[#6B7A5E]">
-                          <option value="" disabled>Select category...</option>
-                          {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                        </select>
-                      </div>
+                <div className={`space-y-6 ${productFormStep === 1 ? 'block' : 'hidden'}`}>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="col-span-2">
+                      <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">Product Name *</label>
+                      <input required name="name" defaultValue={editingProduct?.name} type="text" placeholder="e.g. Red Horse 1L" className="w-full px-3 py-2.5 bg-white dark:bg-[#121418] border border-neutral-300 dark:border-neutral-700 rounded-xl text-sm focus:outline-none focus:border-[#6B7A5E] focus:ring-1 focus:ring-[#6B7A5E]" />
+                    </div>
+                    
+                    <div className="col-span-2">
+                      <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">Category *</label>
+                      <select required name="category_id" defaultValue={editingProduct?.category_id || ''} className="w-full px-3 py-2.5 bg-white dark:bg-[#121418] border border-neutral-300 dark:border-neutral-700 rounded-xl text-sm focus:outline-none focus:border-[#6B7A5E] focus:ring-1 focus:ring-[#6B7A5E]">
+                        <option value="" disabled>Select category...</option>
+                        {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      </select>
+                    </div>
 
-                      <div className="col-span-2 space-y-3 mt-2">
-                        <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300">Does this product come in different sizes or designs?</label>
-                        <div className="space-y-2">
-                          <label className={`flex items-center p-3 border rounded-xl cursor-pointer transition-all ${hasVariantsSelection === false ? 'border-[#6B7A5E] bg-[#6B7A5E]/5' : 'border-neutral-200 dark:border-neutral-700 hover:border-[#6B7A5E]/50'}`}>
-                            <input type="radio" name="has_variants_radio" value="false" checked={hasVariantsSelection === false} onChange={() => setHasVariantsSelection(false)} className="w-4 h-4 text-[#6B7A5E] focus:ring-[#6B7A5E] border-neutral-300" />
-                            <span className="ml-3 text-sm font-medium text-neutral-900 dark:text-white">No — simple stock item (e.g. beverages, snacks)</span>
-                          </label>
-                          <label className={`flex items-center p-3 border rounded-xl cursor-pointer transition-all ${hasVariantsSelection === true ? 'border-[#6B7A5E] bg-[#6B7A5E]/5' : 'border-neutral-200 dark:border-neutral-700 hover:border-[#6B7A5E]/50'}`}>
-                            <input type="radio" name="has_variants_radio" value="true" checked={hasVariantsSelection === true} onChange={() => setHasVariantsSelection(true)} className="w-4 h-4 text-[#6B7A5E] focus:ring-[#6B7A5E] border-neutral-300" />
-                            <span className="ml-3 text-sm font-medium text-neutral-900 dark:text-white">Yes — has sizes/designs (e.g. shirts, bags)</span>
-                          </label>
-                        </div>
+                    <div className="col-span-2 space-y-3 mt-2">
+                      <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300">Does this product come in different sizes or designs?</label>
+                      <div className="space-y-2">
+                        <label className={`flex items-center p-3 border rounded-xl cursor-pointer transition-all ${hasVariantsSelection === false ? 'border-[#6B7A5E] bg-[#6B7A5E]/5' : 'border-neutral-200 dark:border-neutral-700 hover:border-[#6B7A5E]/50'}`}>
+                          <input type="radio" name="has_variants_radio" value="false" checked={hasVariantsSelection === false} onChange={() => setHasVariantsSelection(false)} className="w-4 h-4 text-[#6B7A5E] focus:ring-[#6B7A5E] border-neutral-300" />
+                          <span className="ml-3 text-sm font-medium text-neutral-900 dark:text-white">No — simple stock item (e.g. beverages, snacks)</span>
+                        </label>
+                        <label className={`flex items-center p-3 border rounded-xl cursor-pointer transition-all ${hasVariantsSelection === true ? 'border-[#6B7A5E] bg-[#6B7A5E]/5' : 'border-neutral-200 dark:border-neutral-700 hover:border-[#6B7A5E]/50'}`}>
+                          <input type="radio" name="has_variants_radio" value="true" checked={hasVariantsSelection === true} onChange={() => setHasVariantsSelection(true)} className="w-4 h-4 text-[#6B7A5E] focus:ring-[#6B7A5E] border-neutral-300" />
+                          <span className="ml-3 text-sm font-medium text-neutral-900 dark:text-white">Yes — has sizes/designs (e.g. shirts, bags)</span>
+                        </label>
                       </div>
+                    </div>
 
-                      {hasVariantsSelection === false && (
-                        <div className="col-span-2 pt-2">
-                          <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">Price (₱) *</label>
-                          <input required name="price" defaultValue={editingProduct?.price || ''} type="number" step="0.01" min="0" placeholder="0.00" className="w-full px-3 py-2.5 bg-white dark:bg-[#121418] border border-neutral-300 dark:border-neutral-700 rounded-xl text-sm focus:outline-none focus:border-[#6B7A5E] focus:ring-1 focus:ring-[#6B7A5E]" />
-                        </div>
+                    {hasVariantsSelection === false && (
+                      <div className="col-span-2 pt-2">
+                        <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">Price (₱) *</label>
+                        <input required name="price" defaultValue={editingProduct?.price || ''} type="number" step="0.01" min="0" placeholder="0.00" className="w-full px-3 py-2.5 bg-white dark:bg-[#121418] border border-neutral-300 dark:border-neutral-700 rounded-xl text-sm focus:outline-none focus:border-[#6B7A5E] focus:ring-1 focus:ring-[#6B7A5E]" />
+                      </div>
+                    )}
+
+                    <div className="col-span-2 pt-2 border-t border-neutral-200 dark:border-neutral-800 mt-2">
+                      <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">Product Image (Optional)</label>
+                      <input name="image" type="file" accept="image/jpeg, image/png, image/webp" onChange={(e) => setHasMainImage((e.target.files?.length ?? 0) > 0)} className="w-full px-3 py-2 bg-white dark:bg-[#121418] border border-neutral-300 dark:border-neutral-700 rounded-xl text-sm focus:outline-none focus:border-[#6B7A5E] focus:ring-1 focus:ring-[#6B7A5E] file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-[#6B7A5E]/10 file:text-[#6B7A5E] hover:file:bg-[#6B7A5E]/20" />
+                      {editingProduct?.image_url && (
+                        <p className="mt-1 text-xs text-neutral-500 truncate">Current: {editingProduct.image_url.split('/').pop()}</p>
                       )}
                     </div>
-
-                    <div className="pt-4 flex justify-end">
-                      <button 
-                        type="button" 
-                        disabled={hasVariantsSelection === null}
-                        onClick={() => {
-                           if (hasVariantsSelection !== null) setProductFormStep(2);
-                        }} 
-                        className="px-6 py-2.5 bg-[#6B7A5E] text-white text-sm font-medium rounded-xl hover:bg-[#5A684D] transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Continue
-                      </button>
-                    </div>
                   </div>
-                )}
+
+                  <div className="pt-4 flex justify-end">
+                    <button 
+                      type="button" 
+                      disabled={hasVariantsSelection === null}
+                      onClick={() => {
+                         if (hasVariantsSelection !== null) setProductFormStep(2);
+                      }} 
+                      className="px-6 py-2.5 bg-[#6B7A5E] text-white text-sm font-medium rounded-xl hover:bg-[#5A684D] transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Continue
+                    </button>
+                  </div>
+                </div>
 
                 {/* ── STEP 2a: Simple Product ── */}
                 {productFormStep === 2 && hasVariantsSelection === false && (
@@ -475,11 +485,8 @@ export default function Inventory() {
                       </div>
 
                       <div className="col-span-2 sm:col-span-1">
-                         <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">Product Image (Optional)</label>
-                         <input name="image" type="file" accept="image/jpeg, image/png, image/webp" className="w-full px-3 py-2 bg-white dark:bg-[#121418] border border-neutral-300 dark:border-neutral-700 rounded-xl text-sm focus:outline-none focus:border-[#6B7A5E] focus:ring-1 focus:ring-[#6B7A5E] file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-[#6B7A5E]/10 file:text-[#6B7A5E] hover:file:bg-[#6B7A5E]/20" />
-                         {editingProduct?.image_url && (
-                           <p className="mt-1 text-xs text-neutral-500 truncate">Current: {editingProduct.image_url.split('/').pop()}</p>
-                         )}
+                        <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">Stock Quantity *</label>
+                        <input required name="stock_quantity" defaultValue={editingProduct?.stock_quantity ?? 0} type="number" min="0" className="w-full px-3 py-2.5 bg-white dark:bg-[#121418] border border-neutral-300 dark:border-neutral-700 rounded-xl text-sm focus:outline-none focus:border-[#6B7A5E] focus:ring-1 focus:ring-[#6B7A5E]" />
                       </div>
                     </div>
 
@@ -544,17 +551,22 @@ export default function Inventory() {
                         <div className="col-span-2">
                           <label className="block text-xs font-medium text-neutral-700 dark:text-neutral-300 mb-1">Design Picture</label>
                           <input id="v_image" type="file" accept="image/*" className="w-full text-xs file:mr-2 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-[#6B7A5E]/10 file:text-[#6B7A5E] hover:file:bg-[#6B7A5E]/20" />
+                          {!hasMainImage && mockVariants.length === 0 && !editingProduct?.image_url && (
+                            <p className="mt-2 text-[11px] text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-2.5 py-1.5 rounded inline-block font-medium border border-emerald-100 dark:border-emerald-500/20">
+                              * This photo will also be used as your product's main image in the inventory list, since none was set yet.
+                            </p>
+                          )}
                         </div>
                       </div>
 
                       {/* Dynamic Size Rows */}
                       <div className="space-y-3">
-                         <label className="block text-xs font-medium text-neutral-700 dark:text-neutral-300">Which sizes does this come in?</label>
+                         <label className="block text-xs font-medium text-neutral-700 dark:text-neutral-300">Which sizes does this come in? (Leave empty if no specific sizes)</label>
                          
                          {tempVariantSizes.map((s, idx) => (
                            <div key={idx} className="flex gap-3 items-end">
                              <div className="flex-1">
-                               <label className="block text-[10px] text-neutral-500 mb-1">Size</label>
+                               <label className="block text-[10px] text-neutral-500 mb-1">Size (Optional)</label>
                                <input type="text" value={s.size} onChange={e => {
                                  const next = [...tempVariantSizes]
                                  next[idx].size = e.target.value
@@ -582,7 +594,7 @@ export default function Inventory() {
                            onClick={() => setTempVariantSizes([...tempVariantSizes, { size: '', stock: 0 }])}
                            className="text-sm font-medium text-[#6B7A5E] hover:text-[#5A684D] transition-colors"
                          >
-                           + Add Size
+                           + Add Size/Stock
                          </button>
                       </div>
 
@@ -599,14 +611,19 @@ export default function Inventory() {
                             showToast.error('Variant name and a valid price are required')
                             return
                           }
-                          if (tempVariantSizes.length === 0 || tempVariantSizes.some(s => !s.size.trim())) {
-                            showToast.error('Please add at least one valid size')
+                          if (tempVariantSizes.length === 0) {
+                            showToast.error('Please specify the stock amount')
+                            return
+                          }
+                          if (tempVariantSizes.length > 1 && tempVariantSizes.some(s => !s.size.trim())) {
+                            showToast.error('Please provide names for all sizes if you have multiple')
                             return
                           }
                           
                           const variantSizesObj: Record<string, number> = {}
                           tempVariantSizes.forEach(s => {
-                            if (s.size.trim()) variantSizesObj[s.size.trim()] = s.stock
+                            const sizeName = s.size.trim() || 'Standard'
+                            variantSizesObj[sizeName] = s.stock
                           })
 
                           const finishAdd = (imgData: string | null) => {
@@ -861,6 +878,25 @@ export default function Inventory() {
                     if (!fd.get('stock_quantity')) fd.set('stock_quantity', '0')
                     if (!fd.get('reorder_level')) fd.set('reorder_level', '5')
                     if (!fd.get('status')) fd.set('status', 'active')
+                    
+                    fd.set('has_variants', hasVariantsSelection ? '1' : '0')
+                    
+                    const imageFile = fd.get('image') as File
+                    if ((!imageFile || imageFile.size === 0) && !editingProduct?.image_url && hasVariantsSelection && mockVariants.length > 0 && mockVariants[0].image) {
+                        try {
+                            const base64Data = mockVariants[0].image.split(',')[1]
+                            const byteCharacters = atob(base64Data)
+                            const byteNumbers = new Array(byteCharacters.length)
+                            for (let i = 0; i < byteCharacters.length; i++) {
+                                byteNumbers[i] = byteCharacters.charCodeAt(i)
+                            }
+                            const byteArray = new Uint8Array(byteNumbers)
+                            const blob = new Blob([byteArray], { type: 'image/jpeg' })
+                            fd.set('image', blob, 'main_image_from_variant.jpg')
+                        } catch (e) {
+                            console.error('Failed to convert variant image to blob', e)
+                        }
+                    }
                     
                     try {
                       let savedProduct: any
