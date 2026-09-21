@@ -435,11 +435,11 @@ export default function Inventory() {
                       <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300">Does this product come in different sizes or designs?</label>
                       <div className="space-y-2">
                         <label className={`flex items-center p-3 border rounded-xl cursor-pointer transition-all ${hasVariantsSelection === false ? 'border-[#6B7A5E] bg-[#6B7A5E]/5' : 'border-neutral-200 dark:border-neutral-700 hover:border-[#6B7A5E]/50'}`}>
-                          <input type="radio" name="has_variants_radio" value="false" checked={hasVariantsSelection === false} onChange={() => setHasVariantsSelection(false)} className="w-4 h-4 text-[#6B7A5E] focus:ring-[#6B7A5E] border-neutral-300" />
+                          <input type="radio" name="has_variants" value="false" checked={hasVariantsSelection === false} onChange={() => setHasVariantsSelection(false)} className="w-4 h-4 text-[#6B7A5E] focus:ring-[#6B7A5E] border-neutral-300" />
                           <span className="ml-3 text-sm font-medium text-neutral-900 dark:text-white">No — simple stock item (e.g. beverages, snacks)</span>
                         </label>
                         <label className={`flex items-center p-3 border rounded-xl cursor-pointer transition-all ${hasVariantsSelection === true ? 'border-[#6B7A5E] bg-[#6B7A5E]/5' : 'border-neutral-200 dark:border-neutral-700 hover:border-[#6B7A5E]/50'}`}>
-                          <input type="radio" name="has_variants_radio" value="true" checked={hasVariantsSelection === true} onChange={() => setHasVariantsSelection(true)} className="w-4 h-4 text-[#6B7A5E] focus:ring-[#6B7A5E] border-neutral-300" />
+                          <input type="radio" name="has_variants" value="true" checked={hasVariantsSelection === true} onChange={() => setHasVariantsSelection(true)} className="w-4 h-4 text-[#6B7A5E] focus:ring-[#6B7A5E] border-neutral-300" />
                           <span className="ml-3 text-sm font-medium text-neutral-900 dark:text-white">Yes — has sizes/designs (e.g. shirts, bags)</span>
                         </label>
                       </div>
@@ -479,12 +479,7 @@ export default function Inventory() {
                 {productFormStep === 2 && hasVariantsSelection === false && (
                   <div className="space-y-6">
                     <div className="grid grid-cols-2 gap-6">
-                      <div className="col-span-2 sm:col-span-1">
-                        <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">Stock Quantity *</label>
-                        <input required name="stock_quantity" defaultValue={editingProduct?.stock_quantity ?? 0} type="number" min="0" className="w-full px-3 py-2.5 bg-white dark:bg-[#121418] border border-neutral-300 dark:border-neutral-700 rounded-xl text-sm focus:outline-none focus:border-[#6B7A5E] focus:ring-1 focus:ring-[#6B7A5E]" />
-                      </div>
-
-                      <div className="col-span-2 sm:col-span-1">
+                      <div className="col-span-2">
                         <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">Stock Quantity *</label>
                         <input required name="stock_quantity" defaultValue={editingProduct?.stock_quantity ?? 0} type="number" min="0" className="w-full px-3 py-2.5 bg-white dark:bg-[#121418] border border-neutral-300 dark:border-neutral-700 rounded-xl text-sm focus:outline-none focus:border-[#6B7A5E] focus:ring-1 focus:ring-[#6B7A5E]" />
                       </div>
