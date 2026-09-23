@@ -11,9 +11,13 @@ import {
   AlertCircle,
   Eye,
   Banknote,
+  UserCheck,
+  UserX,
+  Ban,
 } from 'lucide-react'
 import { bookingsApi, type BookingItem } from '../../api/bookings'
 import { roomsApi, type RoomRecord } from '../../api/rooms'
+import type { View } from '../../types'
 import StatusBadge from '../../components/StatusBadge'
 import Modal from '../../components/Modal'
 import ConfirmDialog from '../../components/ConfirmDialog'
@@ -33,7 +37,7 @@ const toLocalDateStr = (val?: string | Date | null) => {
   }
 }
 
-export default function AdminCheckInOut() {
+export default function AdminCheckInOut({ onNavigate }: { onNavigate?: (view: View) => void }) {
   const [bookings, setBookings] = useState<BookingItem[]>([])
   const [rooms, setRooms] = useState<RoomRecord[]>([])
   const [loading, setLoading] = useState(true)
@@ -54,6 +58,19 @@ export default function AdminCheckInOut() {
   const [chargesRemarks, setChargesRemarks] = useState('')
   const [payMethod, setPayMethod] = useState<'cash' | 'card' | 'ewallet'>('cash')
   const [processingCheckOut, setProcessingCheckOut] = useState(false)
+
+  // No-Show Modal State
+  const [noShowBooking, setNoShowBooking] = useState<BookingItem | null>(null)
+  const [noShowReason, setNoShowReason] = useState('Guest failed to arrive/check in on scheduled check-in date')
+  const [noShowSubmitting, setNoShowSubmitting] = useState(false)
+
+  // Quick Record Payment Modal
+  const [payingBooking, setPayingBooking] = useState<BookingItem | null>(null)
+  const [payAmount, setPayAmount] = useState('')
+  const [payMethodPayment, setPayMethodPayment] = useState('cash')
+  const [payRef, setPayRef] = useState('')
+  const [payNotes, setPayNotes] = useState('')
+  const [paySubmitting, setPaySubmitting] = useState(false)
 
   const todayStr = useMemo(() => toLocalDateStr(new Date()), [])
 
@@ -106,7 +123,8 @@ export default function AdminCheckInOut() {
       .filter((b) => {
         const cIn = toLocalDateStr(b.check_in)
         const st = String(b.status || '').toLowerCase().replace('-', '_').replace(' ', '_')
-        return cIn > todayStr && PRE_CHECKIN_STATUSES.includes(st)
+        // Include confirmed/reserved bookings strictly for future dates
+        return cIn > todayStr && (st === 'confirmed' || st === 'reserved')
       })
       .sort((a, b) => new Date(a.check_in || 0).getTime() - new Date(b.check_in || 0).getTime())
   }, [bookings, todayStr])
@@ -174,6 +192,70 @@ export default function AdminCheckInOut() {
       alert(err instanceof Error ? err.message : 'Failed to process check-out')
     } finally {
       setProcessingCheckOut(false)
+    }
+  }
+
+  // Mark as No-Show Handler
+  const handleMarkNoShow = async () => {
+    if (!noShowBooking) return
+    setNoShowSubmitting(true)
+    try {
+      const res = await bookingsApi.markNoShow(noShowBooking.id, {
+        reason: noShowReason,
+      })
+      fireToast(res.message || `Booking marked as No-Show. Room ${res.room_number} released.`)
+      setNoShowBooking(null)
+      setNoShowReason('Guest failed to arrive/check in on scheduled check-in date')
+      loadData()
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to mark as No-Show.')
+    } finally {
+      setNoShowSubmitting(false)
+    }
+  }
+
+  // Quick Record Payment Handler
+  const handleRecordPayment = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!payingBooking) return
+
+    setPaySubmitting(true)
+    try {
+      // Just check in the guest directly without recording payment here
+      const res = await bookingsApi.updateBookingStatus(payingBooking.id, 'checked_in')
+      
+      fireToast(res.message || `Guest Arrived and Checked-In successfully.`)
+      setPayingBooking(null)
+      setPayAmount('')
+      setPayRef('')
+      setPayNotes('')
+      loadData()
+      
+      if (onNavigate) {
+        onNavigate('staff-billing')
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to record payment')
+    } finally {
+      setPaySubmitting(false)
+    }
+  }
+
+  const openArrivedPayment = async (b: BookingItem) => {
+    try {
+      if (!b.is_arrived) {
+        await bookingsApi.markArrived(b.id)
+      }
+      const rem = Number(b.remaining_balance || 0)
+      if (rem > 0) {
+        setPayingBooking(b)
+        setPayAmount(String(rem))
+      } else {
+        // If already fully paid, skip payment and prompt for check-in directly
+        setCheckInTarget(b)
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to mark guest as arrived')
     }
   }
 
@@ -386,28 +468,36 @@ export default function AdminCheckInOut() {
                     </div>
 
                     <div className="flex items-center gap-1.5">
-                      <button
-                        onClick={() => setViewArrivalTarget(b)}
-                        className="px-3 py-1.5 bg-sand dark:bg-[#20252E] hover:bg-stone/30 dark:hover:bg-neutral-700 text-ink dark:text-white rounded-xl text-xs font-semibold border border-stone/30 dark:border-neutral-700 shadow-2xs transition-all flex items-center gap-1 cursor-pointer"
-                      >
-                        <Eye className="w-3.5 h-3.5 text-ink-muted dark:text-neutral-400" />
-                        <span>View</span>
-                      </button>
+                      <div className="flex gap-1.5">
+                        <button
+                          onClick={() => setViewArrivalTarget(b)}
+                          className="px-2 py-1.5 bg-sand dark:bg-[#20252E] hover:bg-stone/30 dark:hover:bg-neutral-700 text-ink dark:text-white rounded-lg text-[11px] font-semibold border border-stone/30 dark:border-neutral-700 shadow-2xs transition-all flex items-center justify-center cursor-pointer flex-1"
+                          title="View Details"
+                        >
+                          <Eye className="w-3.5 h-3.5 text-ink-muted dark:text-neutral-400" />
+                        </button>
 
-                      {(() => {
-                        const isPaid = String(b.payment_status || '').toUpperCase() === 'PAID' || Number(b.remaining_balance || 0) === 0
-                        if (isPaid) {
-                          return (
-                            <button
-                              onClick={() => setCheckInTarget(b)}
-                              className="px-3 py-1.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl text-xs font-semibold shadow-2xs transition-all flex items-center gap-1 cursor-pointer"
-                            >
-                              <span>Check In</span>
-                            </button>
-                          )
-                        }
-                        return null
-                      })()}
+                        <button
+                          onClick={() => openArrivedPayment(b)}
+                          className="px-2 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-semibold shadow-xs transition-all flex items-center gap-1 cursor-pointer flex-2 justify-center"
+                          title="Guest has arrived — Process Payment & Check In"
+                        >
+                          <UserCheck className="w-3.5 h-3.5" strokeWidth={2} />
+                          <span>Arrived</span>
+                        </button>
+                        
+                        <button
+                          onClick={() => {
+                            setNoShowBooking(b)
+                            setNoShowReason('Guest failed to arrive/check in on scheduled check-in date')
+                          }}
+                          className="px-2 py-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/50 rounded-lg text-[11px] font-semibold transition-all flex items-center gap-1 cursor-pointer flex-2 justify-center"
+                          title="Mark guest as No-Show & release room"
+                        >
+                          <UserX className="w-3.5 h-3.5" strokeWidth={2} />
+                          <span>No-Show</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -495,12 +585,37 @@ export default function AdminCheckInOut() {
                           <span className="text-emerald-700 font-medium text-[11px]">Fully Paid</span>
                         )}
                       </div>
-                      <button
-                        onClick={() => { setCheckOutTarget(b); setAdditionalCharges('0'); setChargesRemarks('') }}
-                        className="px-4 py-2 bg-stone-800 hover:bg-black text-white rounded-xl text-xs font-semibold shadow-sm transition-all flex items-center gap-1.5"
-                      >
-                        <span>Check Out</span>
-                      </button>
+                      <div className="flex gap-2 items-center">
+                        {isOverdue && (
+                          <button
+                            onClick={() => {
+                              setNoShowBooking(b)
+                              setNoShowReason('Guest failed to arrive/check in on scheduled check-in date')
+                            }}
+                            className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-[11px] font-semibold transition-all flex items-center gap-1 cursor-pointer"
+                            title="Mark guest as No-Show & release room"
+                          >
+                            <UserX className="w-3.5 h-3.5" strokeWidth={2} />
+                            <span>No-Show</span>
+                          </button>
+                        )}
+                        {Number(b.remaining_balance || 0) > 0 ? (
+                          <button
+                            onClick={() => onNavigate && onNavigate('staff-billing')}
+                            className="px-4 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-200 rounded-xl text-xs font-semibold shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+                            title="Go to Billing to settle balance"
+                          >
+                            <span>Awaiting Payment</span>
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => { setCheckOutTarget(b); setAdditionalCharges('0'); setChargesRemarks('') }}
+                            className="px-4 py-1.5 bg-stone-800 hover:bg-black text-white rounded-xl text-xs font-semibold shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+                          >
+                            <span>Check Out</span>
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )
@@ -539,39 +654,98 @@ export default function AdminCheckInOut() {
 
             {/* Upcoming List */}
             <div className="space-y-3 flex-1 overflow-y-auto max-h-[600px] pr-1">
-              {displayUpcoming.map((b) => (
-                <div
-                  key={b.id}
-                  className="p-4 rounded-xl bg-[#F6F2E8] border border-stone/20 hover:border-[#6B7A5E]/40 transition-all space-y-2.5 shadow-xs"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-sand text-ink-muted font-display font-bold text-sm flex items-center justify-center shrink-0">
-                        {getInitials(b.customer_name)}
+              {displayUpcoming.map((b) => {
+                const cIn = toLocalDateStr(b.check_in)
+                const isToday = cIn === todayStr
+                const daysAway = Math.max(0, Math.ceil((new Date(String(b.check_in)).getTime() - new Date(todayStr).getTime()) / (1000 * 60 * 60 * 24)))
+
+                return (
+                  <div
+                    key={b.id}
+                    className={`p-4 rounded-xl border transition-all space-y-2.5 shadow-xs ${
+                      isToday
+                        ? 'bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/50 hover:border-emerald-400'
+                        : 'bg-[#F6F2E8] border-stone/20 hover:border-[#6B7A5E]/40'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-full font-display font-bold text-sm flex items-center justify-center shrink-0 ${
+                          isToday ? 'bg-emerald-100 text-emerald-800' : 'bg-sand text-ink-muted'
+                        }`}>
+                          {getInitials(b.customer_name)}
+                        </div>
+                        <div>
+                          <h4 className="font-display font-bold text-ink text-base leading-tight">
+                            {b.customer_name}
+                          </h4>
+                          <p className="text-xs text-ink-muted">
+                            Room {b.room_number} · {b.room_type} · {b.nights} {b.nights === 1 ? 'night' : 'nights'}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <h4 className="font-display font-bold text-ink text-base leading-tight">
-                          {b.customer_name}
-                        </h4>
-                        <p className="text-xs text-ink-muted">
-                          Room {b.room_number} · {b.room_type} · {b.nights} {b.nights === 1 ? 'night' : 'nights'}
-                        </p>
+                      {isToday && (
+                        <span className="text-[9px] bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-700 px-2 py-0.5 rounded-full font-bold uppercase shrink-0">
+                          Today
+                        </span>
+                      )}
+                    </div>
+
+                    <p className="text-[11px] font-mono text-ink-muted">
+                      {formatDate(b.check_in)} → {formatDate(b.check_out)} · <strong className="text-[#6B7A5E]">{b.booking_ref || `#BK-${b.id}`}</strong>
+                    </p>
+
+                    {/* Payment Status */}
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-display font-bold text-ink text-xs">
+                        ₱{Number(b.total_price || 0).toLocaleString()}
+                      </span>
+                      {(() => {
+                        const isPaid = String(b.payment_status || '').toUpperCase() === 'PAID' || Number(b.remaining_balance || 0) === 0
+                        const rem = Number(b.remaining_balance || 0)
+                        if (isPaid) {
+                          return <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50">Fully Paid</span>
+                        }
+                        return <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50">Due: ₱{rem > 0 ? rem.toLocaleString() : Number(b.total_price || 0).toLocaleString()}</span>
+                      })()}
+                    </div>
+
+                    {/* Actions: Guest Arrived + No-Show */}
+                    <div className="flex items-center justify-between pt-2 border-t border-stone/15">
+                      <div className="flex items-center gap-1">
+                        <StatusBadge status={String(b.status || 'CONFIRMED').toUpperCase()} />
+                        {!isToday && (
+                          <span className="text-[10px] text-ink-muted font-medium ml-1">
+                            in {daysAway} day{daysAway !== 1 ? 's' : ''}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => setViewArrivalTarget(b)}
+                          className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-semibold shadow-xs transition-all flex items-center gap-1 cursor-pointer"
+                          title="Guest has arrived — View details & proceed to billing"
+                        >
+                          <UserCheck className="w-3.5 h-3.5" strokeWidth={2} />
+                          <span>Guest Arrived</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setNoShowBooking(b)
+                            setNoShowReason('Guest failed to arrive/check in on scheduled check-in date')
+                          }}
+                          className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/50 rounded-lg text-[11px] font-semibold transition-all flex items-center gap-1 cursor-pointer"
+                          title="Mark guest as No-Show & release room"
+                        >
+                          <UserX className="w-3.5 h-3.5" strokeWidth={2} />
+                          <span>No-Show</span>
+                        </button>
                       </div>
                     </div>
                   </div>
-
-                  <p className="text-[11px] font-mono text-ink-muted">
-                    {formatDate(b.check_in)} → {formatDate(b.check_out)} · <strong className="text-[#6B7A5E]">{b.booking_ref || `#BK-${b.id}`}</strong>
-                  </p>
-
-                  <div className="flex items-center justify-between pt-1 border-t border-stone/15">
-                    <StatusBadge status="CONFIRMED" />
-                    <span className="text-[11px] text-ink-muted font-medium">
-                      Arriving in {Math.max(1, Math.ceil((new Date(String(b.check_in)).getTime() - new Date(todayStr).getTime()) / (1000 * 60 * 60 * 24)))} days
-                    </span>
-                  </div>
-                </div>
-              ))}
+                )
+              })}
 
               {displayUpcoming.length === 0 && !loading && (
                 <div className="py-16 text-center text-ink-muted text-xs">
@@ -671,10 +845,24 @@ export default function AdminCheckInOut() {
                 <button
                   type="button"
                   onClick={() => setViewArrivalTarget(null)}
-                  className="flex-1 py-2.5 border border-stone/30 rounded-xl font-semibold text-ink-muted hover:bg-sand transition-all cursor-pointer text-xs"
+                  className="py-2.5 px-4 border border-stone/30 rounded-xl font-semibold text-ink-muted hover:bg-sand transition-all cursor-pointer text-xs"
                 >
                   Close
                 </button>
+
+                {!isPaid && onNavigate && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setViewArrivalTarget(null)
+                      onNavigate('staff-billing')
+                    }}
+                    className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl font-semibold shadow-sm transition-all cursor-pointer text-xs flex items-center justify-center gap-1.5"
+                  >
+                    <Banknote className="w-4 h-4" strokeWidth={1.5} />
+                    Proceed to Billing & Payments
+                  </button>
+                )}
 
                 {isPaid && (
                   <button
@@ -694,6 +882,59 @@ export default function AdminCheckInOut() {
             </div>
           )
         })()}
+      </Modal>
+
+      {/* ─── MODAL: QUICK RECORD PAYMENT ─── */}
+      <Modal
+        isOpen={Boolean(payingBooking)}
+        onClose={() => {
+          setPayingBooking(null)
+          setPayAmount('')
+          setPayRef('')
+          setPayNotes('')
+        }}
+        title="Confirm Guest Arrival"
+        size="md"
+      >
+        {payingBooking && (
+          <form onSubmit={handleRecordPayment} className="space-y-4 font-sans text-xs">
+            <div className="p-4 bg-emerald-50/50 border border-emerald-100 rounded-2xl space-y-2">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h4 className="font-display font-bold text-emerald-900 text-lg">{payingBooking.customer_name}</h4>
+                  <p className="text-xs text-emerald-700">Room {payingBooking.room_number} · {payingBooking.room_type}</p>
+                </div>
+                <span className="font-mono text-xs font-bold text-emerald-800">{payingBooking.booking_ref}</span>
+              </div>
+              <div className="pt-2 border-t border-emerald-200/50 flex justify-between text-emerald-800">
+                <span>Remaining Balance Due:</span>
+                <span className="font-mono font-bold text-base">₱{Number(payingBooking.remaining_balance || 0).toLocaleString()}</span>
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setPayingBooking(null)
+                  setPayAmount('')
+                  setPayRef('')
+                  setPayNotes('')
+                }}
+                className="flex-1 py-2.5 border border-stone/30 rounded-xl font-semibold text-ink-muted hover:bg-sand transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={paySubmitting}
+                className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl font-semibold shadow-sm transition-all"
+              >
+                {paySubmitting ? 'Processing...' : 'Confirm & proceed to billing and payment'}
+              </button>
+            </div>
+          </form>
+        )}
       </Modal>
 
       {/* ─── MODAL: CHECK-IN CONFIRMATION ─── */}
@@ -829,6 +1070,76 @@ export default function AdminCheckInOut() {
               </button>
             </div>
 
+          </div>
+        )}
+      </Modal>
+
+      {/* ─── MODAL: NO-SHOW CONFIRMATION ─── */}
+      <Modal
+        isOpen={!!noShowBooking}
+        onClose={() => setNoShowBooking(null)}
+        title="Mark Reservation as No-Show"
+        size="md"
+      >
+        {noShowBooking && (
+          <div className="space-y-4 text-xs">
+            <div className="p-3.5 bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 rounded-xl text-purple-950 dark:text-purple-100">
+              <p className="font-bold text-purple-900 dark:text-purple-300">
+                No-Show Notice
+              </p>
+              <p className="mt-1 text-[11px] leading-relaxed">
+                Guest <strong className="text-purple-950 dark:text-white">{noShowBooking.customer_name}</strong> did not check in for <strong>Room {noShowBooking.room_number}</strong> ({noShowBooking.room_type}). Marking as No-Show will immediately release Room {noShowBooking.room_number} back to <strong className="text-emerald-700 dark:text-emerald-400">Available</strong>. No penalty fee will be charged.
+              </p>
+            </div>
+
+            <div className="bg-neutral-50 dark:bg-neutral-800/40 p-3 rounded-xl border border-black/[0.04] dark:border-neutral-700 space-y-1">
+              <div className="flex justify-between">
+                <span className="text-neutral-500">Booking Reference:</span>
+                <span className="font-mono font-bold text-neutral-900 dark:text-white">{noShowBooking.booking_ref}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-neutral-500">Scheduled Check-In:</span>
+                <span className="font-semibold text-neutral-900 dark:text-white">{formatDate(noShowBooking.check_in)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-neutral-500">Total Booking Amount:</span>
+                <span className="font-semibold text-neutral-900 dark:text-white">₱{Number(noShowBooking.total_price || 0).toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-neutral-500">Amount Paid:</span>
+                <span className="font-semibold text-emerald-700 dark:text-emerald-400">₱{Number(noShowBooking.amount_paid || 0).toLocaleString()}</span>
+              </div>
+            </div>
+
+            <div>
+              <label className="block font-bold text-neutral-700 dark:text-neutral-300 mb-1">
+                Reason / Explanation
+              </label>
+              <input
+                type="text"
+                value={noShowReason}
+                onChange={(e) => setNoShowReason(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-black/[0.1] dark:border-neutral-700 bg-white dark:bg-neutral-800 text-xs focus:outline-none focus:ring-1 focus:ring-purple-600"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-black/[0.06] dark:border-neutral-800">
+              <button
+                type="button"
+                onClick={() => setNoShowBooking(null)}
+                className="px-4 py-2 rounded-lg text-xs font-semibold text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleMarkNoShow}
+                disabled={noShowSubmitting}
+                className="px-4 py-2 rounded-lg text-xs font-semibold bg-purple-700 hover:bg-purple-800 text-white shadow-xs transition-colors cursor-pointer"
+              >
+                {noShowSubmitting ? 'Processing...' : 'Confirm No-Show & Release Room'}
+              </button>
+            </div>
           </div>
         )}
       </Modal>

@@ -278,7 +278,7 @@ export default function App() {
       case 'staff-rooms':
         return <StaffRooms />
       case 'staff-checkinout':
-        return <AdminCheckInOut />
+        return <AdminCheckInOut onNavigate={navigate} />
       case 'staff-bookings':
         return <AdminBookings />
       case 'staff-walkin':
@@ -302,7 +302,7 @@ export default function App() {
       case 'admin-bookings':
         return <AdminBookings />
       case 'admin-checkinout':
-        return <AdminCheckInOut />
+        return <AdminCheckInOut onNavigate={navigate} />
       case 'admin-payments':
         return <AdminPayments />
       case 'admin-users':

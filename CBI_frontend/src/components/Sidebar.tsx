@@ -55,7 +55,7 @@ const ADMIN_NAV: NavItem[] = [
   { label: 'Guests', view: 'admin-guests', icon: Users },
   { label: 'Motor Rent', view: 'staff-motorcycles', icon: Bike },
   { label: 'Pickleball Court', view: 'staff-pickleball', icon: Trophy },
-  { label: 'Check-In / Out', view: 'admin-checkinout', icon: ArrowLeftRight },
+  { label: 'Check-In / Out', view: 'admin-checkinout', icon: ArrowLeftRight, badgeKey: 'checkin-out', badgeVariant: 'emerald' },
   { label: 'User Management', view: 'admin-users', icon: UserCog, badgeKey: 'pending-users', badgeVariant: 'amber' },
   { label: 'Payments', view: 'admin-payments', icon: CreditCard, badgeKey: 'outstanding-bills', badgeVariant: 'amber' },
   { label: 'POS Inventory', view: 'admin-inventory', icon: PackageSearch },
@@ -71,7 +71,7 @@ const STAFF_NAV: NavItem[] = [
 
   { label: 'Bookings', view: 'staff-bookings', icon: CalendarDays },
   { label: 'Rooms', view: 'staff-rooms', icon: BedDouble },
-  { label: 'Check-In / Out', view: 'staff-checkinout', icon: ArrowLeftRight },
+  { label: 'Check-In / Out', view: 'staff-checkinout', icon: ArrowLeftRight, badgeKey: 'checkin-out', badgeVariant: 'emerald' },
   { label: 'Walk-In Registration', view: 'staff-walkin', icon: UserPlus },
   { label: 'Motor Rent', view: 'staff-motorcycles', icon: Bike },
   { label: 'Pickleball Court', view: 'staff-pickleball', icon: Trophy },
@@ -190,10 +190,28 @@ export default function Sidebar({
 
       const pendingUsersCount = Array.isArray(pendingUsers) ? pendingUsers.length : 0
 
+      // Calculate Check-In/Out badge count
+      let checkInOutCount = 0
+      const todayStr = new Date().toISOString().split('T')[0]
+      for (const b of bookings) {
+        const cIn = String(b.check_in || '').split('T')[0]
+        const cOut = String(b.check_out || '').split('T')[0]
+        const st = String(b.status || '').toLowerCase().replace('-', '_').replace(' ', '_')
+        
+        if (cIn === todayStr && ['confirmed', 'reserved', 'pending', 'pending_payment', 'requested'].includes(st)) {
+          checkInOutCount++ // Today's arrivals unprocessed
+        } else if (st === 'checked_in' && cOut === todayStr) {
+          checkInOutCount++ // Today's departures unprocessed
+        } else if (st === 'checked_in' && cOut < todayStr) {
+          checkInOutCount++ // Overdue
+        }
+      }
+
       setBadgeCounts((prev) => {
         if (
           prev['outstanding-bills'] === outCount &&
-          prev['pending-users'] === pendingUsersCount
+          prev['pending-users'] === pendingUsersCount &&
+          prev['checkin-out'] === checkInOutCount
         ) {
           return prev
         }
@@ -201,6 +219,7 @@ export default function Sidebar({
           ...prev,
           'outstanding-bills': outCount,
           'pending-users': pendingUsersCount,
+          'checkin-out': checkInOutCount,
         }
       })
     } catch {
@@ -396,6 +415,8 @@ export default function Sidebar({
                   title={
                     item.badgeKey === 'pending-users'
                       ? `${badgeCount} pending registration approval${badgeCount > 1 ? 's' : ''}`
+                      : item.badgeKey === 'checkin-out'
+                      ? `${badgeCount} guest${badgeCount > 1 ? 's' : ''} needing attention`
                       : `${badgeCount} outstanding invoice${badgeCount > 1 ? 's' : ''}`
                   }
                   className="shrink-0"

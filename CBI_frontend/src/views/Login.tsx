@@ -181,7 +181,7 @@ export default function Login({ onLogin, onNavigate }: LoginProps) {
     if (loadingPhase === 'success' && authResult) {
       // Success: hand off to App.tsx which mounts the dashboard
       setShowLoadingScreen(false)
-      onLogin(authResult.role, authResult.name, authResult.userId, authResult.dbId, authResult.mustChangePassword)
+      onLogin(authResult.role, authResult.name, authResult.userId, authResult.dbId, authResult.mustChangePassword, authResult.photoUrl)
     } else if (loadingPhase === 'error') {
       // Error: fade back to login form with error shown
       setShowLoadingScreen(false)

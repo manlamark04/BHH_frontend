@@ -47,6 +47,7 @@ export interface BookingItem {
   latest_payment_notes?: string
   refund_status?: string
   refund_amount?: number
+  is_arrived?: number | boolean
 }
 
 export interface ActivityRentalItem {
@@ -167,6 +168,10 @@ export const bookingsApi = {
   /** PATCH /api/bookings/:id/status — Staff/Admin */
   updateBookingStatus: (id: number, status: string, remarks?: string) =>
     api.patch<{ message: string; status: string }>(`/api/bookings/${id}/status`, { status, remarks }),
+
+  /** PATCH /api/bookings/:id/arrive — Mark guest as arrived */
+  markArrived: (id: number) =>
+    api.patch<{ message: string }>(`/api/bookings/${id}/arrive`, {}),
 
   /** POST /api/bookings/:id/no-show — Staff/Admin: Mark booking as No-Show */
   markNoShow: (id: number, data?: { custom_fee?: number; reason?: string }) =>

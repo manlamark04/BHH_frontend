@@ -387,14 +387,25 @@ export default function StaffBookings() {
                       </td>
                       <td className="px-5 py-4 text-right">
                         <div className="flex gap-2 justify-end items-center">
-                          {/* Disabled approval button showing clear reason */}
                           <button
-                            disabled
-                            title="Cannot approve: Payment must be recorded first."
-                            className="inline-flex items-center gap-1.5 text-xs bg-stone-100 text-stone-400 border border-stone-200 px-3 py-1.5 rounded-lg font-medium cursor-not-allowed"
+                            onClick={() => setPayingBooking(b)}
+                            className="inline-flex items-center gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg font-semibold transition-colors shadow-sm cursor-pointer"
+                            title="Guest arrived - Proceed to record payment"
+                          >
+                            <User className="w-3.5 h-3.5" />
+                            Customer Arrived
+                          </button>
+                          
+                          <button
+                            onClick={() => {
+                              setNoShowBooking(b)
+                              setNoShowReason('Guest failed to arrive/check in on scheduled check-in date')
+                            }}
+                            className="inline-flex items-center gap-1.5 text-xs bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 px-3 py-1.5 rounded-lg font-semibold transition-colors cursor-pointer"
+                            title="Mark guest as No-Show"
                           >
                             <Ban className="w-3.5 h-3.5" />
-                            Awaiting Payment
+                            Mark No-Show
                           </button>
                         </div>
                       </td>
