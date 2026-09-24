@@ -58,8 +58,6 @@ const ADMIN_NAV: NavItem[] = [
   { label: 'Check-In / Out', view: 'admin-checkinout', icon: ArrowLeftRight, badgeKey: 'checkin-out', badgeVariant: 'emerald' },
   { label: 'User Management', view: 'admin-users', icon: UserCog, badgeKey: 'pending-users', badgeVariant: 'amber' },
   { label: 'Payments', view: 'admin-payments', icon: CreditCard, badgeKey: 'outstanding-bills', badgeVariant: 'amber' },
-  { label: 'POS Inventory', view: 'admin-inventory', icon: PackageSearch },
-  { label: 'POS Reports', view: 'admin-pos-reports', icon: Store },
   { label: 'Reports & Analytics', view: 'admin-reports', icon: BarChart3 },
   { label: 'Audit Log', view: 'admin-audit', icon: History },
   { label: 'Guest Reviews', view: 'admin-reviews', icon: MessageSquare },
@@ -77,7 +75,6 @@ const STAFF_NAV: NavItem[] = [
   { label: 'Pickleball Court', view: 'staff-pickleball', icon: Trophy },
   { label: 'Customer Records', view: 'staff-customers', icon: Users },
   { label: 'Billing & Payments', view: 'staff-billing', icon: CreditCard, badgeKey: 'outstanding-bills', badgeVariant: 'amber' },
-  { label: 'POS Register', view: 'staff-pos', icon: Store },
   { label: 'My Profile', view: 'staff-profile', icon: User },
 ]
 
@@ -86,8 +83,6 @@ const CUSTOMER_NAV: NavItem[] = [
   { label: 'Browse Rooms', view: 'customer-rooms', icon: BedDouble },
   { label: 'Motor Rent', view: 'customer-motorcycles', icon: Bike },
   { label: 'Pickleball Court', view: 'customer-pickleball', icon: Trophy },
-  { label: 'Convenience Store', view: 'customer-store', icon: Store },
-  { label: 'Breeze Café', view: 'customer-cafe', icon: Coffee },
   { label: 'My Transactions', view: 'customer-transactions', icon: Receipt },
   { label: 'My Reviews', view: 'customer-reviews', icon: MessageSquare },
   { label: 'My Profile', view: 'customer-profile', icon: User },

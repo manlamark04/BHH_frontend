@@ -11,6 +11,7 @@ import { usersApi } from '../../api/users'
 import StatusBadge from '../../components/StatusBadge'
 import Modal from '../../components/Modal'
 import Avatar from '../../components/Avatar'
+import GuestTransactionsModal from '../../components/GuestTransactionsModal'
 
 export default function StaffCustomers() {
   const [customers, setCustomers] = useState<Record<string, unknown>[]>([])
@@ -18,6 +19,7 @@ export default function StaffCustomers() {
   const [statusFilter, setStatusFilter] = useState('All')
   const [loading, setLoading] = useState(true)
   const [viewCustomer, setViewCustomer] = useState<Record<string, unknown> | null>(null)
+  const [txnCustomer, setTxnCustomer] = useState<Record<string, unknown> | null>(null)
   const [auditLogs, setAuditLogs] = useState<Record<string, unknown>[]>([])
 
   const loadCustomers = (q?: string, status?: string) => {
@@ -210,12 +212,20 @@ export default function StaffCustomers() {
                     </td>
                     <td className="px-5 py-4 font-mono text-ink-muted text-xs">{createdAt}</td>
                     <td className="px-5 py-4 text-right">
-                      <button
-                        onClick={() => handleViewCustomer(c)}
-                        className="px-3.5 py-1.5 bg-[#F6F2E8] hover:bg-sand border border-stone/30 text-ink rounded-lg text-xs font-semibold shadow-xs transition-all"
-                      >
-                        View Profile
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => handleViewCustomer(c)}
+                          className="px-3.5 py-1.5 bg-[#F6F2E8] hover:bg-sand border border-stone/30 text-ink rounded-lg text-[11px] font-semibold shadow-xs transition-all whitespace-nowrap"
+                        >
+                          View Profile
+                        </button>
+                        <button
+                          onClick={() => setTxnCustomer(c)}
+                          className="px-2.5 py-1.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-lg text-[11px] font-semibold shadow-xs transition-all whitespace-nowrap"
+                        >
+                          Transactions
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 )
@@ -320,6 +330,18 @@ export default function StaffCustomers() {
         )}
       </Modal>
 
+      {/* ─── GUEST TRANSACTIONS MODAL ─── */}
+      <GuestTransactionsModal
+        isOpen={!!txnCustomer}
+        onClose={() => setTxnCustomer(null)}
+        guest={txnCustomer ? {
+          id: Number(txnCustomer.id),
+          customerId: String(txnCustomer.unique_id || txnCustomer.id),
+          fullName: String(txnCustomer.full_name || `${txnCustomer.first_name || ''} ${txnCustomer.last_name || ''}`).trim(),
+          email: String(txnCustomer.email || '—'),
+          joined: String(txnCustomer.created_at || '').substring(0, 10)
+        } : null}
+      />
     </div>
   )
 }

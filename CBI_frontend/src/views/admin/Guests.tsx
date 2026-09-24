@@ -11,6 +11,7 @@ import { usersApi } from '../../api/users'
 import { bookingsApi } from '../../api/bookings'
 import Modal from '../../components/Modal'
 import StatusBadge from '../../components/StatusBadge'
+import GuestTransactionsModal from '../../components/GuestTransactionsModal'
 
 interface GuestRecord {
   id: number
@@ -32,6 +33,7 @@ export default function AdminGuests() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<'All' | 'ACTIVE' | 'DISABLED' | 'PENDING'>('All')
   const [selectedGuest, setSelectedGuest] = useState<GuestRecord | null>(null)
+  const [txnGuest, setTxnGuest] = useState<GuestRecord | null>(null)
 
   useEffect(() => {
     Promise.all([
@@ -203,12 +205,20 @@ export default function AdminGuests() {
                     <StatusBadge status={g.status} />
                   </td>
                   <td className="px-5 py-4 text-right">
-                    <button
-                      onClick={() => setSelectedGuest(g)}
-                      className="text-xs text-ink hover:text-ink px-2.5 py-1 bg-white border border-stone/20 rounded-lg hover:bg-sand transition-all font-semibold shadow-xs"
-                    >
-                      Profile
-                    </button>
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => setSelectedGuest(g)}
+                        className="text-[11px] px-2.5 py-1 bg-white border border-stone/20 rounded-lg hover:bg-sand transition-all font-semibold shadow-xs text-ink"
+                      >
+                        Profile
+                      </button>
+                      <button
+                        onClick={() => setTxnGuest(g)}
+                        className="text-[11px] px-2.5 py-1 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-lg transition-all font-semibold shadow-xs whitespace-nowrap"
+                      >
+                        View Transactions
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -267,6 +277,13 @@ export default function AdminGuests() {
           </div>
         )}
       </Modal>
+
+      {/* ─── GUEST TRANSACTIONS MODAL ─── */}
+      <GuestTransactionsModal
+        isOpen={!!txnGuest}
+        onClose={() => setTxnGuest(null)}
+        guest={txnGuest}
+      />
     </div>
   )
 }

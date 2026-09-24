@@ -279,7 +279,6 @@ export default function CustomerDashboard({ onNavigate, userName, userId, photoU
               { label: 'Browse Rooms', desc: 'Explore luxury suites & villas', Icon: BedDouble, view: 'customer-rooms' as View },
               { label: 'Motor Rent', desc: 'Rent scooters & motorcycles', Icon: Bike, view: 'customer-motorcycles' as View },
               { label: 'Pickleball Court', desc: 'Reserve court time & gear', Icon: Sparkles, view: 'customer-pickleball' as View },
-              { label: 'Breeze Café', desc: 'Coffee, pastries & light bites', Icon: Coffee, view: 'customer-cafe' as View },
               { label: 'My Transactions', desc: 'Invoices, receipts & balances', Icon: Receipt, view: 'customer-transactions' as View },
             ].map((item) => (
               <button
