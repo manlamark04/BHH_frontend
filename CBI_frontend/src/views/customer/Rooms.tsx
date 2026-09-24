@@ -19,6 +19,7 @@ import { billingApi } from '../../api/billing'
 import StatusBadge from '../../components/StatusBadge'
 import Modal from '../../components/Modal'
 import ConfirmDialog from '../../components/ConfirmDialog'
+import ResortMap from '../../components/ResortMap'
 
 const ROOM_TYPES = ['All', 'Standard', 'Deluxe', 'Suite'] as const
 
@@ -33,6 +34,7 @@ export default function CustomerRooms({ customerName }: Props) {
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [viewRoom, setViewRoom] = useState<RoomRecord | null>(null)
+  const [viewMode, setViewMode] = useState<'list' | 'map'>('list')
 
   // Booking Flow State
   const [bookingRoom, setBookingRoom] = useState<RoomRecord | null>(null)
@@ -384,24 +386,51 @@ export default function CustomerRooms({ customerName }: Props) {
           ))}
         </div>
 
-        {/* Search Bar */}
-        <div className="relative w-full sm:w-72 text-xs">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400 w-3.5 h-3.5" strokeWidth={1.5} />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search room type, number..."
-            className="w-full pl-9 pr-4 py-2 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
-          />
+        {/* Search Bar & View Toggle */}
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="relative flex-1 sm:w-72 text-xs">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400 w-3.5 h-3.5" strokeWidth={1.5} />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search room type, number..."
+              className="w-full pl-9 pr-4 py-2 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
+            />
+          </div>
+          <div className="flex bg-neutral-100/70 dark:bg-[#14171C] rounded-lg border border-black/[0.06] dark:border-neutral-800 p-1">
+            <button
+              onClick={() => setViewMode('list')}
+              className={`px-3 py-1.5 rounded-md font-semibold transition-all text-xs cursor-pointer ${
+                viewMode === 'list'
+                  ? 'bg-[#6B7A5E] text-white shadow-xs'
+                  : 'text-neutral-600 hover:text-neutral-900'
+              }`}
+            >
+              List
+            </button>
+            <button
+              onClick={() => setViewMode('map')}
+              className={`px-3 py-1.5 rounded-md font-semibold transition-all text-xs cursor-pointer ${
+                viewMode === 'map'
+                  ? 'bg-[#6B7A5E] text-white shadow-xs'
+                  : 'text-neutral-600 hover:text-neutral-900'
+              }`}
+            >
+              Map
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* ─── 3. ROOMS GRID ─── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredRooms.map((r) => {
-          const isAvail = String(r.status).toLowerCase() === 'available'
-          const imgSrc = getPrimaryImage(r)
+      {/* ─── 3. ROOMS GRID / MAP ─── */}
+      {viewMode === 'map' ? (
+        <ResortMap rooms={filteredRooms} onSelectRoom={(r) => handleStartBooking(r)} />
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredRooms.map((r) => {
+            const isAvail = String(r.status).toLowerCase() === 'available'
+            const imgSrc = getPrimaryImage(r)
 
           return (
             <div
@@ -482,7 +511,8 @@ export default function CustomerRooms({ customerName }: Props) {
             </div>
           )
         })}
-      </div>
+        </div>
+      )}
 
       {/* Empty State */}
       {!loading && filteredRooms.length === 0 && (

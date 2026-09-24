@@ -116,7 +116,7 @@ export default function Register({ onNavigate }: RegisterProps) {
 
       {/* Main Glass Container */}
       <div className="relative z-10 w-full max-w-5xl bg-white/95 backdrop-blur-xl rounded-[2rem] shadow-2xl border border-white/20 overflow-hidden grid lg:grid-cols-12 min-h-[680px]">
-        
+
         {/* Left Form Section */}
         <div className="lg:col-span-7 p-6 sm:p-10 md:p-12 flex flex-col justify-between bg-[#F6F2E8]/95">
           <div>
@@ -261,11 +261,10 @@ export default function Register({ onNavigate }: RegisterProps) {
                       value={phone}
                       onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 11))}
                       placeholder="09XXXXXXXXX"
-                      className={`w-full px-3.5 py-2.5 rounded-xl border bg-white text-ink font-mono focus:outline-none focus:ring-2 transition-all ${
-                        phone && (phone.length !== 11 || !phone.startsWith('09'))
+                      className={`w-full px-3.5 py-2.5 rounded-xl border bg-white text-ink font-mono focus:outline-none focus:ring-2 transition-all ${phone && (phone.length !== 11 || !phone.startsWith('09'))
                           ? 'border-amber-400 focus:ring-amber-400/40'
                           : 'border-stone/30 focus:ring-[#6B7A5E]/40'
-                      }`}
+                        }`}
                     />
                     {phone && (!phone.startsWith('09') || phone.length !== 11) && (
                       <p className="text-[10px] text-amber-700 mt-1">

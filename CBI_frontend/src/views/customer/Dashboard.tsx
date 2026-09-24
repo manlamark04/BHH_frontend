@@ -21,6 +21,7 @@ import Avatar from '../../components/Avatar'
 import { billingApi } from '../../api/billing'
 import { catalogApi } from '../../api/services'
 import StatusBadge from '../../components/StatusBadge'
+import GuestItinerary from '../../components/GuestItinerary'
 import pickleballCourtImg from '../../imports/pickleball_court.jpg'
 import hondaClickImg from '../../imports/Honda Vario_Click 125 Blue.jpg'
 
@@ -184,86 +185,24 @@ export default function CustomerDashboard({ onNavigate, userName, userId, photoU
       {/* ─── 3. MAIN TWO-COLUMN SECTION ─── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
-        {/* Left Column: Active & Upcoming Stays */}
+        {/* Left Column: My Itinerary */}
         <div className="bg-white dark:bg-[#181B20] rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-4 flex flex-col justify-between space-y-3.5">
           <div className="pb-2.5 border-b border-black/[0.06] dark:border-neutral-800 flex items-center justify-between">
             <div>
-              <h3 className="font-display text-base font-bold text-neutral-900 dark:text-white">Active & Upcoming Stays</h3>
-              <p className="text-[11px] text-neutral-500 dark:text-neutral-400">Your confirmed accommodation at the inn</p>
+              <h3 className="font-display text-base font-bold text-neutral-900 dark:text-white">My Itinerary</h3>
+              <p className="text-[11px] text-neutral-500 dark:text-neutral-400">Your upcoming timeline at Cambacay Breeze Inn</p>
             </div>
             <button
               onClick={() => onNavigate('customer-rooms')}
               className="text-xs font-semibold text-[#6B7A5E] hover:underline flex items-center gap-1 cursor-pointer"
             >
-              <span>Browse Rooms</span>
+              <span>Add to Itinerary</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
 
-          <div className="space-y-2.5 flex-1 overflow-y-auto max-h-80 pr-1">
-            
-            {/* Active Stay Card */}
-            {activeBooking && (
-              <div className="p-3.5 rounded-lg bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/40 space-y-2">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <span className="text-[9px] uppercase font-bold tracking-wider text-emerald-800 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/60 px-2 py-0.5 rounded-full">
-                      ● IN-HOUSE GUEST
-                    </span>
-                    <h4 className="font-display font-bold text-neutral-900 dark:text-white text-sm mt-1">
-                      Room {String(activeBooking.room_number || '')} · {String(activeBooking.room_type || 'Deluxe Room')}
-                    </h4>
-                  </div>
-                  <span className="font-mono text-xs font-bold text-[#6B7A5E]">
-                    {String(activeBooking.booking_ref || `#BK-${activeBooking.id}`)}
-                  </span>
-                </div>
-
-                <div className="pt-2 border-t border-emerald-200/60 dark:border-emerald-800/40 flex items-center justify-between text-[11px] font-mono">
-                  <span className="text-neutral-600 dark:text-neutral-400">{formatDate(String(activeBooking.check_in))} → {formatDate(String(activeBooking.check_out))}</span>
-                  <span className="font-display font-bold text-neutral-900 dark:text-white">₱{Number(activeBooking.total_price || 0).toLocaleString()}</span>
-                </div>
-              </div>
-            )}
-
-            {/* Upcoming Stays */}
-            {upcomingBookings.map((b) => (
-              <div key={String(b.id)} className="p-3.5 rounded-lg bg-neutral-50/70 dark:bg-[#14171C] border border-black/[0.06] dark:border-neutral-800 space-y-2 hover:border-[#6B7A5E]/40 transition-all">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <StatusBadge status={String(b.status).toUpperCase()} />
-                    <h4 className="font-display font-bold text-neutral-900 dark:text-white text-sm mt-1">
-                      Room {String(b.room_number || '')} · {String(b.room_type || 'Standard Room')}
-                    </h4>
-                  </div>
-                  <span className="font-mono text-xs font-bold text-[#6B7A5E]">
-                    {String(b.booking_ref || `#BK-${b.id}`)}
-                  </span>
-                </div>
-
-                <div className="pt-2 border-t border-black/[0.04] dark:border-neutral-800 flex items-center justify-between text-[11px] font-mono">
-                  <span className="text-neutral-600 dark:text-neutral-400">{formatDate(String(b.check_in))} → {formatDate(String(b.check_out))}</span>
-                  <span className="font-display font-bold text-neutral-900 dark:text-white">₱{Number(b.total_price || 0).toLocaleString()}</span>
-                </div>
-              </div>
-            ))}
-
-            {!activeBooking && upcomingBookings.length === 0 && !loading && (
-              <div className="py-8 text-center text-xs text-neutral-500 dark:text-neutral-400">
-                <div className="w-10 h-10 rounded-xl bg-neutral-100 dark:bg-neutral-800 border border-black/[0.06] dark:border-neutral-700 flex items-center justify-center mx-auto mb-2 text-neutral-400">
-                  <Palmtree className="w-5 h-5" strokeWidth={1.5} />
-                </div>
-                <p className="font-display font-bold text-neutral-900 dark:text-white text-sm">No upcoming reservations.</p>
-                <p className="mt-0.5 text-[11px]">Experience the tropical warmth of Cambacay Breeze Inn.</p>
-                <button
-                  onClick={() => onNavigate('customer-rooms')}
-                  className="mt-3 px-3.5 py-1.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-lg text-xs font-semibold transition-all shadow-xs cursor-pointer"
-                >
-                  Find Your Perfect Room
-                </button>
-              </div>
-            )}
-
+          <div className="flex-1 overflow-y-auto max-h-80 pr-1 pb-2">
+            <GuestItinerary bookings={bookings} />
           </div>
         </div>
 

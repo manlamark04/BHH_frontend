@@ -154,6 +154,9 @@ export default function AdminCheckInOut({ onNavigate }: { onNavigate?: (view: Vi
     if (!checkInTarget) return
     setProcessingCheckIn(true)
     try {
+      if (!checkInTarget.is_arrived) {
+        await bookingsApi.markArrived(checkInTarget.id).catch(() => {})
+      }
       await bookingsApi.updateBookingStatus(checkInTarget.id, 'checked_in')
       fireToast(`✓ Guest ${checkInTarget.customer_name} checked in successfully! Room ${checkInTarget.room_number} is now OCCUPIED.`)
       setCheckInTarget(null)
@@ -221,10 +224,11 @@ export default function AdminCheckInOut({ onNavigate }: { onNavigate?: (view: Vi
 
     setPaySubmitting(true)
     try {
-      // Just check in the guest directly without recording payment here
-      const res = await bookingsApi.updateBookingStatus(payingBooking.id, 'checked_in')
+      if (!payingBooking.is_arrived) {
+        await bookingsApi.markArrived(payingBooking.id)
+      }
       
-      fireToast(res.message || `Guest Arrived and Checked-In successfully.`)
+      fireToast(`Guest Arrived. Proceeding to Billing & Payments.`)
       setPayingBooking(null)
       setPayAmount('')
       setPayRef('')
@@ -235,7 +239,7 @@ export default function AdminCheckInOut({ onNavigate }: { onNavigate?: (view: Vi
         onNavigate('staff-billing')
       }
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to record payment')
+      alert(err instanceof Error ? err.message : 'Failed to mark arrived')
     } finally {
       setPaySubmitting(false)
     }
@@ -243,9 +247,6 @@ export default function AdminCheckInOut({ onNavigate }: { onNavigate?: (view: Vi
 
   const openArrivedPayment = async (b: BookingItem) => {
     try {
-      if (!b.is_arrived) {
-        await bookingsApi.markArrived(b.id)
-      }
       const rem = Number(b.remaining_balance || 0)
       if (rem > 0) {
         setPayingBooking(b)
@@ -255,7 +256,7 @@ export default function AdminCheckInOut({ onNavigate }: { onNavigate?: (view: Vi
         setCheckInTarget(b)
       }
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to mark guest as arrived')
+      alert(err instanceof Error ? err.message : 'Failed to process arrival')
     }
   }
 
