@@ -19,6 +19,7 @@ import {
   ShieldCheck,
   CheckCircle2,
   Globe,
+  Tag
 } from 'lucide-react'
 import { billingApi, type InvoiceItem, type PaymentTransaction, type OfficialReceiptData } from '../../api/billing'
 import { bookingsApi, type BookingItem } from '../../api/bookings'
@@ -455,6 +456,8 @@ export default function AdminPayments() {
         notes: finalNotes,
         staff_name: 'Front Desk Staff',
         paid_at: new Date().toISOString(),
+        discount_amount: found?.discount_amount,
+        promo_code: found?.promo_code,
       }
 
       setRecordModalOpen(false)
@@ -859,6 +862,8 @@ export default function AdminPayments() {
                                 notes: p?.notes,
                                 staff_name: p?.staff_name || inv.issued_by_name || 'Front Desk Staff',
                                 paid_at: p?.paid_at || inv.issued_at,
+                                discount_amount: inv.discount_amount,
+                                promo_code: inv.promo_code,
                               }
                               setActiveReceipt(receiptObj)
                             }}
@@ -1126,16 +1131,33 @@ export default function AdminPayments() {
 
           {/* ─── 1. PROMINENT TOTAL BILL AMOUNT ROW (Above Payment Fields) ─── */}
           {(selectedInvoice || selectedBooking) && (
-            <div className="p-3.5 bg-[#F6F2E8] dark:bg-[#181B20] border border-stone/20 dark:border-neutral-700/80 rounded-2xl flex items-center justify-between shadow-2xs">
-              <div>
-                <span className="text-[10px] uppercase font-bold text-ink-muted tracking-wider block">TOTAL BILL AMOUNT</span>
-                <span className="text-[11px] text-ink-muted font-medium">Remaining balance owed</span>
+            <div className="p-3.5 bg-[#F6F2E8] dark:bg-[#181B20] border border-stone/20 dark:border-neutral-700/80 rounded-2xl flex flex-col gap-2 shadow-2xs">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-ink-muted tracking-wider block">TOTAL BILL AMOUNT</span>
+                  <span className="text-[11px] text-ink-muted font-medium">Remaining balance owed</span>
+                </div>
+                <div className="text-right">
+                  <span className="font-display font-bold text-2xl text-[#6B7A5E]">
+                    ₱{activeDueAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
               </div>
-              <div className="text-right">
-                <span className="font-display font-bold text-2xl text-[#6B7A5E]">
-                  ₱{activeDueAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
-                </span>
-              </div>
+              
+              {/* Promo & Discount Display */}
+              {(Number(selectedInvoice?.discount_amount || 0) > 0 || Number(selectedBooking?.discount_amount || 0) > 0) && (
+                <div className="flex items-center justify-between pt-2 border-t border-stone/20 dark:border-neutral-700/80">
+                  <div className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-400">
+                    <Tag className="w-3.5 h-3.5" />
+                    <span className="uppercase tracking-wider">
+                      Promo Code Applied: {selectedInvoice?.promo_code || selectedBooking?.promo_code}
+                    </span>
+                  </div>
+                  <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400">
+                    -₱{Number(selectedInvoice?.discount_amount || selectedBooking?.discount_amount).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })} Discount
+                  </span>
+                </div>
+              )}
             </div>
           )}
 
@@ -1658,6 +1680,8 @@ export default function AdminPayments() {
                               notes: p.notes,
                               staff_name: p.staff_name || 'Front Desk Staff',
                               paid_at: p.paid_at,
+                              discount_amount: viewInvoice.discount_amount,
+                              promo_code: viewInvoice.promo_code,
                             }
                             setActiveReceipt(pastReceipt)
                           }}

@@ -206,6 +206,17 @@ export const OfficialReceiptModal: React.FC<OfficialReceiptModalProps> = ({
                   <td className="px-3.5 py-2 text-right font-bold text-neutral-900">₱{Number(receipt.total_amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                 </tr>
 
+                {Number(receipt.discount_amount) > 0 && (
+                  <tr>
+                    <td className="px-3.5 py-2 text-emerald-700 font-semibold text-[11px]">
+                      Promo Applied: {receipt.promo_code}
+                    </td>
+                    <td className="px-3.5 py-2 text-right text-emerald-700 font-semibold">
+                      -₱{Number(receipt.discount_amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </td>
+                  </tr>
+                )}
+
                 {Number(receipt.previous_paid) > 0 && (
                   <tr>
                     <td className="px-3.5 py-2 text-neutral-600">Less: Previous Partial Payments</td>

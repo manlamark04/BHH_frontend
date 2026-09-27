@@ -45,6 +45,8 @@ export interface InvoiceItem {
   paid_amount: number
   remaining_balance: number
   balance?: number
+  discount_amount?: number
+  promo_code?: string
   payment_status?: string
   status: 'PAID' | 'PARTIALLY PAID' | 'PENDING' | 'REFUNDED' | 'FAILED' | 'VOID' | string
 
@@ -103,6 +105,8 @@ export interface OfficialReceiptData {
   notes?: string
   staff_name: string
   paid_at: string
+  discount_amount?: number
+  promo_code?: string
 }
 
 export const billingApi = {

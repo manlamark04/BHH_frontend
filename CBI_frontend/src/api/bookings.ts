@@ -48,6 +48,8 @@ export interface BookingItem {
   refund_status?: string
   refund_amount?: number
   is_arrived?: number | boolean
+  discount_amount?: number
+  promo_code?: string
 }
 
 export interface ActivityRentalItem {

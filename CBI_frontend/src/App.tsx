@@ -38,6 +38,7 @@ const StaffPickleball = lazy(() => import('./views/staff/Pickleball'))
 const StaffBilling = lazy(() => import('./views/staff/Billing'))
 const StaffCustomers = lazy(() => import('./views/staff/Customers'))
 const StaffProfile = lazy(() => import('./views/staff/Profile'))
+const Housekeeping = lazy(() => import('./views/shared/Housekeeping'))
 
 
 // Admin views (lazy loaded)
@@ -53,7 +54,7 @@ const AdminCheckInOut = lazy(() => import('./views/admin/CheckInOut'))
 const AdminPayments = lazy(() => import('./views/admin/Payments'))
 const AdminProfile = lazy(() => import('./views/admin/Profile'))
 const AdminReviews = lazy(() => import('./views/admin/GuestReviews'))
-
+const AdminPromos = lazy(() => import('./views/admin/Promos'))
 
 const ViewLoading = () => (
   <div className="flex items-center justify-center min-h-[50vh] py-16">
@@ -102,6 +103,7 @@ const VIEW_TITLES: Partial<Record<View, { title: string; subtitle?: string }>> =
   'admin-reports': { title: 'Reports & Analytics', subtitle: 'Financial and operational insights' },
   'admin-audit': { title: 'Audit Log', subtitle: 'System activity history' },
   'admin-reviews': { title: 'Guest Reviews', subtitle: 'Manage and moderate guest feedback' },
+  'admin-promos': { title: 'Promo & Discounts', subtitle: 'Manage seasonal discounts and coupon codes' },
   'customer-reviews': { title: 'My Reviews', subtitle: 'Your experience and feedback' },
 }
 
@@ -280,6 +282,8 @@ export default function App() {
         return <StaffCustomers />
       case 'staff-profile':
         return <StaffProfile userName={name} userId={userId} onPasswordChanged={handlePasswordChanged} />
+      case 'staff-housekeeping':
+        return <Housekeeping />
 
       // Admin
       case 'admin-dashboard':
@@ -304,8 +308,12 @@ export default function App() {
         return <AdminAuditLog />
       case 'admin-reviews':
         return <AdminReviews />
+      case 'admin-promos':
+        return <AdminPromos />
       case 'admin-profile':
         return <AdminProfile userName={name} userId={userId} onPasswordChanged={handlePasswordChanged} />
+      case 'admin-housekeeping':
+        return <Housekeeping />
 
       default:
         return (

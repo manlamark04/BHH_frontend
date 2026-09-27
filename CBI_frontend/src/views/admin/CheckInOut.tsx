@@ -469,35 +469,44 @@ export default function AdminCheckInOut({ onNavigate }: { onNavigate?: (view: Vi
                     </div>
 
                     <div className="flex items-center gap-1.5">
-                      <div className="flex gap-1.5">
-                        <button
-                          onClick={() => setViewArrivalTarget(b)}
-                          className="px-2 py-1.5 bg-sand dark:bg-[#20252E] hover:bg-stone/30 dark:hover:bg-neutral-700 text-ink dark:text-white rounded-lg text-[11px] font-semibold border border-stone/30 dark:border-neutral-700 shadow-2xs transition-all flex items-center justify-center cursor-pointer flex-1"
-                          title="View Details"
-                        >
-                          <Eye className="w-3.5 h-3.5 text-ink-muted dark:text-neutral-400" />
-                        </button>
+                      <div className="flex gap-1.5 w-full">
+                        {b.is_arrived ? (
+                          <div className="px-2.5 py-1.5 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50 rounded-lg text-[11px] font-semibold flex items-center gap-1 w-full justify-center">
+                            <Check className="w-3.5 h-3.5" />
+                            <span>Arrived — Awaiting Payment</span>
+                          </div>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => setViewArrivalTarget(b)}
+                              className="px-2 py-1.5 bg-sand dark:bg-[#20252E] hover:bg-stone/30 dark:hover:bg-neutral-700 text-ink dark:text-white rounded-lg text-[11px] font-semibold border border-stone/30 dark:border-neutral-700 shadow-2xs transition-all flex items-center justify-center cursor-pointer flex-1"
+                              title="View Details"
+                            >
+                              <Eye className="w-3.5 h-3.5 text-ink-muted dark:text-neutral-400" />
+                            </button>
 
-                        <button
-                          onClick={() => openArrivedPayment(b)}
-                          className="px-2 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-semibold shadow-xs transition-all flex items-center gap-1 cursor-pointer flex-2 justify-center"
-                          title="Guest has arrived — Process Payment & Check In"
-                        >
-                          <UserCheck className="w-3.5 h-3.5" strokeWidth={2} />
-                          <span>Arrived</span>
-                        </button>
-                        
-                        <button
-                          onClick={() => {
-                            setNoShowBooking(b)
-                            setNoShowReason('Guest failed to arrive/check in on scheduled check-in date')
-                          }}
-                          className="px-2 py-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/50 rounded-lg text-[11px] font-semibold transition-all flex items-center gap-1 cursor-pointer flex-2 justify-center"
-                          title="Mark guest as No-Show & release room"
-                        >
-                          <UserX className="w-3.5 h-3.5" strokeWidth={2} />
-                          <span>No-Show</span>
-                        </button>
+                            <button
+                              onClick={() => openArrivedPayment(b)}
+                              className="px-2 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-semibold shadow-xs transition-all flex items-center gap-1 cursor-pointer flex-2 justify-center"
+                              title="Guest has arrived — Process Payment & Check In"
+                            >
+                              <UserCheck className="w-3.5 h-3.5" strokeWidth={2} />
+                              <span>Arrived</span>
+                            </button>
+                            
+                            <button
+                              onClick={() => {
+                                setNoShowBooking(b)
+                                setNoShowReason('Guest failed to arrive/check in on scheduled check-in date')
+                              }}
+                              className="px-2 py-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/50 rounded-lg text-[11px] font-semibold transition-all flex items-center gap-1 cursor-pointer flex-2 justify-center"
+                              title="Mark guest as No-Show & release room"
+                            >
+                              <UserX className="w-3.5 h-3.5" strokeWidth={2} />
+                              <span>No-Show</span>
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -723,25 +732,34 @@ export default function AdminCheckInOut({ onNavigate }: { onNavigate?: (view: Vi
                       </div>
 
                       <div className="flex items-center gap-1.5">
-                        <button
-                          onClick={() => setViewArrivalTarget(b)}
-                          className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-semibold shadow-xs transition-all flex items-center gap-1 cursor-pointer"
-                          title="Guest has arrived — View details & proceed to billing"
-                        >
-                          <UserCheck className="w-3.5 h-3.5" strokeWidth={2} />
-                          <span>Guest Arrived</span>
-                        </button>
-                        <button
-                          onClick={() => {
-                            setNoShowBooking(b)
-                            setNoShowReason('Guest failed to arrive/check in on scheduled check-in date')
-                          }}
-                          className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/50 rounded-lg text-[11px] font-semibold transition-all flex items-center gap-1 cursor-pointer"
-                          title="Mark guest as No-Show & release room"
-                        >
-                          <UserX className="w-3.5 h-3.5" strokeWidth={2} />
-                          <span>No-Show</span>
-                        </button>
+                        {b.is_arrived ? (
+                          <div className="px-2.5 py-1.5 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50 rounded-lg text-[11px] font-semibold flex items-center gap-1">
+                            <Check className="w-3.5 h-3.5" />
+                            <span>Arrived — Awaiting Payment</span>
+                          </div>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => setViewArrivalTarget(b)}
+                              className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-semibold shadow-xs transition-all flex items-center gap-1 cursor-pointer"
+                              title="Guest has arrived — View details & proceed to billing"
+                            >
+                              <UserCheck className="w-3.5 h-3.5" strokeWidth={2} />
+                              <span>Guest Arrived</span>
+                            </button>
+                            <button
+                              onClick={() => {
+                                setNoShowBooking(b)
+                                setNoShowReason('Guest failed to arrive/check in on scheduled check-in date')
+                              }}
+                              className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/50 rounded-lg text-[11px] font-semibold transition-all flex items-center gap-1 cursor-pointer"
+                              title="Mark guest as No-Show & release room"
+                            >
+                              <UserX className="w-3.5 h-3.5" strokeWidth={2} />
+                              <span>No-Show</span>
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>

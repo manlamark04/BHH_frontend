@@ -230,3 +230,6 @@ export type View =
   | 'staff-checkinout'
   | 'staff-profile'
   | 'customer-reviews'
+  | 'admin-housekeeping'
+  | 'staff-housekeeping'
+  | 'admin-promos'

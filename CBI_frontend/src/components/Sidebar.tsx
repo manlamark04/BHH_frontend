@@ -36,6 +36,7 @@ import {
   Store,
   PackageSearch,
   Coffee,
+  Tag,
   type LucideIcon,
 } from 'lucide-react'
 import InquiriesModal from './InquiriesModal'
@@ -56,11 +57,13 @@ const ADMIN_NAV: NavItem[] = [
   { label: 'Motor Rent', view: 'staff-motorcycles', icon: Bike },
   { label: 'Pickleball Court', view: 'staff-pickleball', icon: Trophy },
   { label: 'Check-In / Out', view: 'admin-checkinout', icon: ArrowLeftRight, badgeKey: 'checkin-out', badgeVariant: 'emerald' },
+  { label: 'Housekeeping', view: 'admin-housekeeping', icon: ClipboardCheck },
   { label: 'User Management', view: 'admin-users', icon: UserCog, badgeKey: 'pending-users', badgeVariant: 'amber' },
   { label: 'Payments', view: 'admin-payments', icon: CreditCard, badgeKey: 'outstanding-bills', badgeVariant: 'amber' },
   { label: 'Reports & Analytics', view: 'admin-reports', icon: BarChart3 },
   { label: 'Audit Log', view: 'admin-audit', icon: History },
   { label: 'Guest Reviews', view: 'admin-reviews', icon: MessageSquare },
+  { label: 'Promo & Discounts', view: 'admin-promos', icon: Tag },
   { label: 'My Profile', view: 'admin-profile', icon: User },
 ]
 
@@ -70,6 +73,7 @@ const STAFF_NAV: NavItem[] = [
   { label: 'Bookings', view: 'staff-bookings', icon: CalendarDays },
   { label: 'Rooms', view: 'staff-rooms', icon: BedDouble },
   { label: 'Check-In / Out', view: 'staff-checkinout', icon: ArrowLeftRight, badgeKey: 'checkin-out', badgeVariant: 'emerald' },
+  { label: 'Housekeeping', view: 'staff-housekeeping', icon: ClipboardCheck },
   { label: 'Walk-In Registration', view: 'staff-walkin', icon: UserPlus },
   { label: 'Motor Rent', view: 'staff-motorcycles', icon: Bike },
   { label: 'Pickleball Court', view: 'staff-pickleball', icon: Trophy },
@@ -194,7 +198,9 @@ export default function Sidebar({
         const st = String(b.status || '').toLowerCase().replace('-', '_').replace(' ', '_')
         
         if (cIn === todayStr && ['confirmed', 'reserved', 'pending', 'pending_payment', 'requested'].includes(st)) {
-          checkInOutCount++ // Today's arrivals unprocessed
+          if (!b.is_arrived) {
+            checkInOutCount++ // Today's arrivals unprocessed
+          }
         } else if (st === 'checked_in' && cOut === todayStr) {
           checkInOutCount++ // Today's departures unprocessed
         } else if (st === 'checked_in' && cOut < todayStr) {
