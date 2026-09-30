@@ -548,13 +548,13 @@ export default function AdminDashboard({ onNavigate, userName = 'Alexandra Reyes
               <p className="text-xs text-neutral-500 mt-0.5">Distribution by service category</p>
             </div>
 
-            <div className="flex items-center justify-center my-2 h-40">
+            <div className="flex items-center justify-center my-2 h-56">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={data?.revenue_breakdown || [{ name: 'Rooms', value: 100 }]}
                     cx="50%"
-                    cy="50%"
+                    cy="45%"
                     innerRadius={50}
                     outerRadius={70}
                     paddingAngle={3}
@@ -577,7 +577,7 @@ export default function AdminDashboard({ onNavigate, userName = 'Alexandra Reyes
                     verticalAlign="bottom" 
                     height={36} 
                     iconType="circle"
-                    wrapperStyle={{ fontSize: '11px' }}
+                    wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }}
                   />
                 </PieChart>
               </ResponsiveContainer>
