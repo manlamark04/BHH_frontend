@@ -59,8 +59,7 @@ const ADMIN_NAV: NavItem[] = [
   { label: 'Check-In / Out', view: 'admin-checkinout', icon: ArrowLeftRight, badgeKey: 'checkin-out', badgeVariant: 'emerald' },
   { label: 'Housekeeping', view: 'admin-housekeeping', icon: ClipboardCheck },
   { label: 'User Management', view: 'admin-users', icon: UserCog, badgeKey: 'pending-users', badgeVariant: 'amber' },
-  { label: 'Billing', view: 'admin-billing', icon: Receipt, badgeKey: 'unverified-bills', badgeVariant: 'rose' },
-  { label: 'Payments', view: 'admin-payments', icon: CreditCard, badgeKey: 'outstanding-bills', badgeVariant: 'amber' },
+  { label: 'Billing & Payments', view: 'admin-billing', icon: Receipt, badgeKey: 'outstanding-bills', badgeVariant: 'rose' },
   { label: 'Reports & Analytics', view: 'admin-reports', icon: BarChart3 },
   { label: 'Audit Log', view: 'admin-audit', icon: History },
   { label: 'Guest Reviews', view: 'admin-reviews', icon: MessageSquare },
@@ -79,8 +78,7 @@ const STAFF_NAV: NavItem[] = [
   { label: 'Motor Rent', view: 'staff-motorcycles', icon: Bike },
   { label: 'Pickleball Court', view: 'staff-pickleball', icon: Trophy },
   { label: 'Customer Records', view: 'staff-customers', icon: Users },
-  { label: 'Billing', view: 'staff-billing', icon: Receipt, badgeKey: 'unverified-bills', badgeVariant: 'rose' },
-  { label: 'Payments', view: 'staff-payments', icon: CreditCard, badgeKey: 'outstanding-bills', badgeVariant: 'amber' },
+  { label: 'Billing & Payments', view: 'staff-billing', icon: Receipt, badgeKey: 'outstanding-bills', badgeVariant: 'rose' },
   { label: 'My Profile', view: 'staff-profile', icon: User },
 ]
 

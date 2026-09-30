@@ -41,7 +41,7 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
   const [rentals, setRentals] = useState<MotorRental[]>([])
   const [customers, setCustomers] = useState<Record<string, unknown>[]>([])
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState<'rentals' | 'fleet' | 'damage'>('rentals')
+  const [tab, setTab] = useState<'fleet' | 'rentals' | 'damage'>('fleet')
   const [successMsg, setSuccessMsg] = useState('')
   const [editingMotor, setEditingMotor] = useState<Motorcycle | null>(null)
   const [showAddMotorDrawer, setShowAddMotorDrawer] = useState(false)
@@ -646,20 +646,20 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
       {/* ─── TABS ─── */}
       <div className="flex gap-1 p-1 bg-neutral-100/70 dark:bg-[#20252E] rounded-lg border border-black/[0.06] dark:border-neutral-700/80 text-xs self-start w-fit">
         <button
-          onClick={() => setTab('rentals')}
-          className={`px-3 py-1.5 rounded-md font-semibold transition-all cursor-pointer ${
-            tab === 'rentals' ? 'bg-[#6B7A5E] text-white shadow-2xs' : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-white dark:hover:bg-neutral-800'
-          }`}
-        >
-          <span>Active Rentals & History ({rentals.length})</span>
-        </button>
-        <button
           onClick={() => setTab('fleet')}
           className={`px-3 py-1.5 rounded-md font-semibold transition-all cursor-pointer ${
             tab === 'fleet' ? 'bg-[#6B7A5E] text-white shadow-2xs' : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-white dark:hover:bg-neutral-800'
           }`}
         >
           <span>Motor Fleet ({motorcycles.length})</span>
+        </button>
+        <button
+          onClick={() => setTab('rentals')}
+          className={`px-3 py-1.5 rounded-md font-semibold transition-all cursor-pointer ${
+            tab === 'rentals' ? 'bg-[#6B7A5E] text-white shadow-2xs' : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-white dark:hover:bg-neutral-800'
+          }`}
+        >
+          <span>Active Rentals & History ({rentals.length})</span>
         </button>
         <button
           onClick={() => setTab('damage')}

@@ -417,25 +417,19 @@ export default function StaffBilling() {
                           </button>
                         )}
 
-                        {Number(b.remaining_balance || b.balance || 0) > 0 && String(b.status).toUpperCase() !== 'CANCELLED' && (
+                        {/* Receipt button removed for Billing module */}
+
+                        {/* Pay */}
+                        {Number(b.remaining_balance || b.balance || 0) > 0 && String(b.status).toUpperCase() !== 'CANCELLED' && String(b.status).toUpperCase() !== 'NO_SHOW' && (
                           <button
-                            onClick={async () => {
-                              const billId = Number(b.id)
-                              const billRef = String(b.unique_id || b.invoice_number || b.bill_number || b.id)
-                              if (!confirm(`Cancel invoice ${billRef}? This will void the bill and release any reserved equipment or room.`)) return
-                              try {
-                                await billingApi.cancelBill(billId)
-                                setToast(`Invoice ${billRef} cancelled successfully.`)
-                                setTimeout(() => setToast(''), 4000)
-                                load()
-                              } catch (err) {
-                                alert(err instanceof Error ? err.message : 'Failed to cancel invoice')
-                              }
+                            onClick={() => {
+                              setPaymentBill(b)
+                              const rem = Number(b.remaining_balance) > 0 ? Number(b.remaining_balance) : Number(b.total_amount || 0)
+                              setPayAmount(String(rem))
                             }}
-                            className="px-2.5 py-0.5 text-[11px] text-rose-600 hover:text-rose-700 hover:bg-rose-50 border border-rose-200 rounded-lg font-semibold transition-all flex items-center gap-1 cursor-pointer"
+                            className="px-2.5 py-1 text-xs text-emerald-700 bg-emerald-100 hover:bg-emerald-200 border border-emerald-300 rounded-lg font-semibold transition-all shadow-xs shrink-0 cursor-pointer"
                           >
-                            <X className="w-3 h-3" />
-                            <span>Cancel</span>
+                            Pay
                           </button>
                         )}
                       </div>

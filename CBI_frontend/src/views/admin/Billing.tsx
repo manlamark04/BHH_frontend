@@ -836,7 +836,18 @@ export default function AdminBilling() {
 
                         {/* Receipt button removed for Billing module */}
 
-                        {/* Pay button removed for Billing module */}
+                        {/* Pay */}
+                        {Number(inv.remaining_balance || inv.balance || 0) > 0 && String(inv.status).toUpperCase() !== 'CANCELLED' && String(inv.status).toUpperCase() !== 'NO_SHOW' && (
+                          <button
+                            onClick={() => {
+                              setRecordModalOpen(true)
+                              handleInvoiceSelect(inv.id)
+                            }}
+                            className="px-2.5 py-1 text-xs text-emerald-700 bg-emerald-100 hover:bg-emerald-200 border border-emerald-300 rounded-lg font-semibold transition-all shadow-xs shrink-0 cursor-pointer"
+                          >
+                            Pay
+                          </button>
+                        )}
 
                         {/* 4. CANCEL */}
                         {String(inv.status).toUpperCase() !== 'PAID' && String(inv.status).toUpperCase() !== 'CANCELLED' && String(inv.status).toUpperCase() !== 'NO_SHOW' && (
