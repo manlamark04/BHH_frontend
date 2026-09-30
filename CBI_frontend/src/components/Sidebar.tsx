@@ -59,6 +59,7 @@ const ADMIN_NAV: NavItem[] = [
   { label: 'Check-In / Out', view: 'admin-checkinout', icon: ArrowLeftRight, badgeKey: 'checkin-out', badgeVariant: 'emerald' },
   { label: 'Housekeeping', view: 'admin-housekeeping', icon: ClipboardCheck },
   { label: 'User Management', view: 'admin-users', icon: UserCog, badgeKey: 'pending-users', badgeVariant: 'amber' },
+  { label: 'Billing', view: 'admin-billing', icon: Receipt, badgeKey: 'unverified-bills', badgeVariant: 'rose' },
   { label: 'Payments', view: 'admin-payments', icon: CreditCard, badgeKey: 'outstanding-bills', badgeVariant: 'amber' },
   { label: 'Reports & Analytics', view: 'admin-reports', icon: BarChart3 },
   { label: 'Audit Log', view: 'admin-audit', icon: History },
@@ -78,7 +79,8 @@ const STAFF_NAV: NavItem[] = [
   { label: 'Motor Rent', view: 'staff-motorcycles', icon: Bike },
   { label: 'Pickleball Court', view: 'staff-pickleball', icon: Trophy },
   { label: 'Customer Records', view: 'staff-customers', icon: Users },
-  { label: 'Billing & Payments', view: 'staff-billing', icon: CreditCard, badgeKey: 'outstanding-bills', badgeVariant: 'amber' },
+  { label: 'Billing', view: 'staff-billing', icon: Receipt, badgeKey: 'unverified-bills', badgeVariant: 'rose' },
+  { label: 'Payments', view: 'staff-payments', icon: CreditCard, badgeKey: 'outstanding-bills', badgeVariant: 'amber' },
   { label: 'My Profile', view: 'staff-profile', icon: User },
 ]
 
@@ -173,6 +175,7 @@ export default function Sidebar({
       ])
 
       let outCount = 0
+      let unverifiedCount = 0
       for (const inv of bills) {
         const s = String(inv.status || '').toUpperCase().replace('-', '_').replace(' ', '_')
         const rem = Number(inv.remaining_balance ?? inv.balance ?? 0)
@@ -183,7 +186,11 @@ export default function Sidebar({
           s !== 'REFUNDED' &&
           (s === 'PENDING' || s === 'UNPAID' || s === 'PARTIALLY_PAID' || rem > 0)
         ) {
-          outCount += 1
+          if (inv.service_type === 'Motor Rental' && inv.license_verification_status !== 'VERIFIED') {
+            unverifiedCount += 1
+          } else {
+            outCount += 1
+          }
         }
       }
 
@@ -211,6 +218,7 @@ export default function Sidebar({
       setBadgeCounts((prev) => {
         if (
           prev['outstanding-bills'] === outCount &&
+          prev['unverified-bills'] === unverifiedCount &&
           prev['pending-users'] === pendingUsersCount &&
           prev['checkin-out'] === checkInOutCount
         ) {
@@ -219,6 +227,7 @@ export default function Sidebar({
         return {
           ...prev,
           'outstanding-bills': outCount,
+          'unverified-bills': unverifiedCount,
           'pending-users': pendingUsersCount,
           'checkin-out': checkInOutCount,
         }
@@ -418,6 +427,8 @@ export default function Sidebar({
                       ? `${badgeCount} pending registration approval${badgeCount > 1 ? 's' : ''}`
                       : item.badgeKey === 'checkin-out'
                       ? `${badgeCount} guest${badgeCount > 1 ? 's' : ''} needing attention`
+                      : item.badgeKey === 'unverified-bills'
+                      ? `${badgeCount} license${badgeCount > 1 ? 's' : ''} needing verification`
                       : `${badgeCount} outstanding invoice${badgeCount > 1 ? 's' : ''}`
                   }
                   className="shrink-0"

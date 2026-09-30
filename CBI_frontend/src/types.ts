@@ -214,6 +214,7 @@ export type View =
   | 'staff-motorcycles'
   | 'staff-pickleball'
   | 'staff-billing'
+  | 'staff-payments'
   | 'staff-customers'
   | 'admin-dashboard'
   | 'admin-bookings'

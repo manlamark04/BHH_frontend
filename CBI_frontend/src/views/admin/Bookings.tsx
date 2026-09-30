@@ -80,11 +80,11 @@ export default function AdminBookings() {
     Promise.all([
       bookingsApi.getAllBookings().catch(() => []),
       roomsApi.getRooms().catch(() => []),
-      usersApi.getCustomers().catch(() => ({ customers: [] })),
+      usersApi.getCustomers().catch(() => []),
     ]).then(([bkgs, rms, custRes]) => {
       setBookings(bkgs)
       setRooms(rms)
-      setCustomers((custRes as { customers?: Record<string, unknown>[] }).customers || [])
+      setCustomers((Array.isArray(custRes) ? custRes : []) as Record<string, unknown>[])
     }).finally(() => setLoading(false))
   }
 

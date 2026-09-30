@@ -16,6 +16,7 @@ import {
   Eye,
   ClipboardCheck,
   Receipt,
+  UserCheck,
 } from 'lucide-react'
 import {
   motorcyclesApi,
@@ -185,11 +186,11 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
     Promise.all([
       motorcyclesApi.getMotorcycles().catch(() => []),
       motorcyclesApi.getRentals().catch(() => []),
-      usersApi.getCustomers().catch(() => ({ customers: [] })),
+      usersApi.getCustomers().catch(() => []),
     ]).then(([motors, rnts, custRes]) => {
       setMotorcycles(motors)
       setRentals(rnts)
-      setCustomers((custRes as { customers?: Record<string, unknown>[] }).customers || [])
+      setCustomers((Array.isArray(custRes) ? custRes : []) as Record<string, unknown>[])
     }).finally(() => setLoading(false))
   }
 
@@ -466,9 +467,10 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
       setStaffIdpExpiry('')
       setStaffIdpCategoryA(false)
       setNotes('')
-      setSuccessMsg(`Rental ${res.rental.rental_id} created successfully for ${res.rental.customer_name}!`)
-      setTimeout(() => setSuccessMsg(''), 5000)
+      setSuccessMsg(`Rental ${res.rental.rental_id} created! Redirecting to Billing...`)
+      setTimeout(() => setSuccessMsg(''), 4000)
       loadData()
+      window.dispatchEvent(new CustomEvent('navigate', { detail: userRole === 'admin' ? 'admin-billing' : 'staff-billing' }))
     } catch (err) {
       setRentError(err instanceof Error ? err.message : 'Failed to create rental')
     } finally {
@@ -1119,6 +1121,22 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
                   </div>
                 </div>
                 <p className="text-xs text-ink-muted mt-2 line-clamp-2">{m.description || 'Hostel rental motorcycle.'}</p>
+                
+                {/* Display Current Renter if RENTED */}
+                {(() => {
+                  if (m.status === 'RENTED') {
+                    const activeRental = rentals.find(r => Number(r.motor_id) === Number(m.id) && ['ACTIVE', 'OVERDUE'].includes(String(r.status).toUpperCase()))
+                    if (activeRental) {
+                      return (
+                        <div className="mt-2.5 p-2 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 text-[11px] flex items-center gap-1.5">
+                          <UserCheck className="w-3.5 h-3.5 shrink-0" />
+                          <span className="font-semibold">Rented by {activeRental.customer_name || 'Guest'}</span>
+                        </div>
+                      )
+                    }
+                  }
+                  return null
+                })()}
               </div>
 
               <div className="mt-4 pt-3 border-t border-stone/15 space-y-3">
@@ -1127,19 +1145,44 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
                   <span>Plate: {m.plate_number}</span>
                 </div>
 
-                <div className="grid grid-cols-1 gap-2 pt-1">
+                <div className="grid grid-cols-2 gap-2 pt-1">
                   {userRole !== 'admin' && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setStatusModalMotor(m)
-                        setSelectedNewStatus(m.status)
-                      }}
-                      className="w-full py-2 bg-sand/60 hover:bg-[#6B7A5E] text-ink hover:text-white rounded-xl text-xs font-semibold transition-all border border-stone/30 flex items-center justify-center gap-1.5 shadow-2xs group-hover:border-[#6B7A5E] cursor-pointer"
-                    >
-                      <SlidersHorizontal className="w-3.5 h-3.5" strokeWidth={1.5} />
-                      <span>Edit Status</span>
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setStatusModalMotor(m)
+                          setSelectedNewStatus(m.status)
+                        }}
+                        className="w-full py-2 bg-sand/60 hover:bg-stone/10 text-ink rounded-xl text-xs font-semibold transition-all border border-stone/30 flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
+                      >
+                        <SlidersHorizontal className="w-3.5 h-3.5" strokeWidth={1.5} />
+                        <span>Status</span>
+                      </button>
+                      
+                      {m.status === 'AVAILABLE' ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedMotorId(m.id)
+                            setShowAddRentModal(true)
+                          }}
+                          className="w-full py-2 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl text-xs font-semibold transition-all border border-transparent flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
+                        >
+                          <KeyRound className="w-3.5 h-3.5" strokeWidth={1.5} />
+                          <span>Rent</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled
+                          className="w-full py-2 bg-stone/10 text-stone-400 rounded-xl text-xs font-semibold border border-transparent flex items-center justify-center gap-1.5 cursor-not-allowed"
+                        >
+                          <AlertCircle className="w-3.5 h-3.5" strokeWidth={1.5} />
+                          <span>Unavail</span>
+                        </button>
+                      )}
+                    </>
                   )}
 
                   {userRole === 'admin' && (
@@ -1179,7 +1222,7 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
               className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#F6F2E8] text-xs focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
             >
               <option value="">-- Select Active Customer --</option>
-              {customers.map((c) => (
+              {customers.filter(c => String(c.status).toLowerCase() === 'active').map((c) => (
                 <option key={String(c.id)} value={String(c.id)}>
                   {String(c.full_name || c.name)} ({String(c.unique_id || c.customer_id)}) — {String(c.phone || c.email)}
                 </option>
@@ -1653,7 +1696,7 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
               }
               className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl text-xs font-semibold shadow-sm disabled:opacity-50 transition-all cursor-pointer"
             >
-              {creatingRental ? 'Creating Rental...' : 'Confirm & Dispatch'}
+              {creatingRental ? 'Creating Rental...' : 'Proceed to Billing'}
             </button>
           </div>
         </form>

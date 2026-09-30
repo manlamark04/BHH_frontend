@@ -601,35 +601,45 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
                     </div>
                   </div>
 
-                  {/* Rent Button */}
+                  {/* Rent Button / Action Area */}
                   <div className="p-3.5 sm:p-4 pt-0">
-                    {/* Driver's license reminder note */}
-                    <p className="text-[11px] text-neutral-500 dark:text-neutral-400 mb-2 flex items-center justify-center gap-1.5 text-center leading-tight">
-                      <span className="text-neutral-400 dark:text-neutral-500 text-xs">⚠</span>
-                      <span>A valid driver's license is required to rent this motorcycle.</span>
-                    </p>
-                    {activeRentalInProgress ? (
-                      <button
-                        disabled
-                        type="button"
-                        className="w-full py-2 rounded-lg font-semibold text-xs transition-all shadow-xs flex items-center justify-center gap-1.5 bg-amber-100/90 dark:bg-amber-950/50 border border-amber-300 dark:border-amber-800/60 text-amber-900 dark:text-amber-200 cursor-not-allowed"
-                        title="You currently have a motorcycle rental in progress. Please complete or return your active rental to book another."
-                      >
-                        <AlertCircle className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400" />
-                        <span>You Have an Active Rental</span>
-                      </button>
+                    {userRole === 'customer' ? (
+                      <div className="text-center bg-sand/30 dark:bg-neutral-800/50 p-2.5 rounded-lg border border-black/[0.05] dark:border-neutral-800">
+                        <p className="text-[11px] text-neutral-600 dark:text-neutral-300 font-medium leading-tight">
+                          Please proceed to the front desk to rent this motorcycle.
+                        </p>
+                      </div>
                     ) : (
-                      <button
-                        onClick={() => handleOpenRentalModal(motor)}
-                        disabled={!isAvailable}
-                        className={`w-full py-2 rounded-lg font-semibold text-xs transition-all shadow-xs flex items-center justify-center gap-2 ${
-                          isAvailable
-                            ? 'bg-[#6B7A5E] hover:bg-[#4F5D45] text-white cursor-pointer hover:shadow-sm'
-                            : 'bg-neutral-200 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-500 cursor-not-allowed'
-                        }`}
-                      >
-                        {isAvailable ? 'Rent This Motorcycle' : `Unavailable (${motor.status})`}
-                      </button>
+                      <>
+                        {/* Driver's license reminder note */}
+                        <p className="text-[11px] text-neutral-500 dark:text-neutral-400 mb-2 flex items-center justify-center gap-1.5 text-center leading-tight">
+                          <span className="text-neutral-400 dark:text-neutral-500 text-xs">⚠</span>
+                          <span>A valid driver's license is required to rent this motorcycle.</span>
+                        </p>
+                        {activeRentalInProgress ? (
+                          <button
+                            disabled
+                            type="button"
+                            className="w-full py-2 rounded-lg font-semibold text-xs transition-all shadow-xs flex items-center justify-center gap-1.5 bg-amber-100/90 dark:bg-amber-950/50 border border-amber-300 dark:border-amber-800/60 text-amber-900 dark:text-amber-200 cursor-not-allowed"
+                            title="You currently have a motorcycle rental in progress. Please complete or return your active rental to book another."
+                          >
+                            <AlertCircle className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400" />
+                            <span>You Have an Active Rental</span>
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleOpenRentalModal(motor)}
+                            disabled={!isAvailable}
+                            className={`w-full py-2 rounded-lg font-semibold text-xs transition-all shadow-xs flex items-center justify-center gap-2 ${
+                              isAvailable
+                                ? 'bg-[#6B7A5E] hover:bg-[#4F5D45] text-white cursor-pointer hover:shadow-sm'
+                                : 'bg-neutral-200 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-500 cursor-not-allowed'
+                            }`}
+                          >
+                            {isAvailable ? 'Rent This Motorcycle' : `Unavailable (${motor.status})`}
+                          </button>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>

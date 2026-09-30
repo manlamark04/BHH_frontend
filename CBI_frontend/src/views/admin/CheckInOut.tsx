@@ -228,7 +228,7 @@ export default function AdminCheckInOut({ onNavigate }: { onNavigate?: (view: Vi
         await bookingsApi.markArrived(payingBooking.id)
       }
       
-      fireToast(`Guest Arrived. Proceeding to Billing & Payments.`)
+      fireToast(`Guest Arrived. Proceeding to Payments.`)
       setPayingBooking(null)
       setPayAmount('')
       setPayRef('')
@@ -236,7 +236,7 @@ export default function AdminCheckInOut({ onNavigate }: { onNavigate?: (view: Vi
       loadData()
       
       if (onNavigate) {
-        onNavigate('staff-billing')
+        onNavigate('staff-payments')
       }
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to mark arrived')
@@ -949,7 +949,7 @@ export default function AdminCheckInOut({ onNavigate }: { onNavigate?: (view: Vi
                 disabled={paySubmitting}
                 className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl font-semibold shadow-sm transition-all"
               >
-                {paySubmitting ? 'Processing...' : 'Confirm & proceed to billing and payment'}
+                {paySubmitting ? 'Processing...' : 'Confirm & proceed to payment'}
               </button>
             </div>
           </form>

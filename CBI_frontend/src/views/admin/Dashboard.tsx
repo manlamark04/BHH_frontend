@@ -123,7 +123,7 @@ export default function AdminDashboard({ onNavigate, userName = 'Alexandra Reyes
     // Preload rooms & customers for quick booking
     roomsApi.getRooms().then(setRooms).catch(() => {})
     usersApi.getCustomers().then((res) => {
-      setCustomers((res as { customers?: Record<string, unknown>[] }).customers || [])
+      setCustomers((Array.isArray(res) ? res : []) as Record<string, unknown>[])
     }).catch(() => {})
   }
 

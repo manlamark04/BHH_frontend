@@ -38,7 +38,7 @@ type SortOption = 'newest' | 'oldest' | 'amount_desc' | 'amount_asc' | 'guest_as
 
 const ITEMS_PER_PAGE = 8
 
-export default function AdminPayments() {
+export default function AdminBilling() {
   const [invoices, setInvoices] = useState<InvoiceItem[]>([])
   const [bookings, setBookings] = useState<BookingItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -628,8 +628,8 @@ export default function AdminPayments() {
         {/* Controls Row: Title, Filters & Action Button */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-stone/15">
           <div>
-            <h2 className="font-display text-2xl font-bold text-ink">Invoices & Transactions</h2>
-            <p className="text-xs text-ink-muted mt-0.5">Comprehensive audit trail of receipts and settlements</p>
+            <h2 className="font-display text-2xl font-bold text-ink">Invoices & Statements</h2>
+            <p className="text-xs text-ink-muted mt-0.5">Comprehensive audit trail of customer bills</p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
@@ -644,10 +644,10 @@ export default function AdminPayments() {
             
             {/* Filter Tabs */}
             <div className="flex flex-wrap gap-1 p-1 bg-sand/40 rounded-xl border border-stone/20 text-xs">
-              {(['All', 'Paid', 'Partially Paid', 'Pending', 'Refunded'] as const).map((tab) => (
+              {(['All', 'Paid', 'Partially Paid', 'Pending', 'Cancelled'] as const).map((tab) => (
                 <button
                   key={tab}
-                  onClick={() => { setActiveFilter(tab); setCurrentPage(1); }}
+                  onClick={() => { setActiveFilter(tab as FilterOption); setCurrentPage(1); }}
                   className={`px-3.5 py-1.5 rounded-lg font-semibold transition-all ${
                     activeFilter === tab
                       ? 'bg-[#6B7A5E] text-white shadow-sm'
@@ -694,7 +694,7 @@ export default function AdminPayments() {
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="border-b border-stone/20 bg-sand/30 text-[10px] uppercase font-bold text-ink-muted tracking-wider">
-                <th className="px-4 py-3.5">INVOICE / RECEIPT</th>
+                <th className="px-4 py-3.5">INVOICE</th>
                 <th className="px-4 py-3.5">GUEST</th>
                 <th className="px-4 py-3.5">AVAILED SERVICE / BOOKING</th>
                 <th className="px-4 py-3.5">METHOD</th>
@@ -719,12 +719,9 @@ export default function AdminPayments() {
                 return (
                   <tr key={inv.id} className="hover:bg-sand/20 transition-colors">
                     
-                    {/* INVOICE & RECEIPT */}
+                    {/* INVOICE */}
                     <td className="px-4 py-4 font-mono">
                       <div className="font-bold text-[#6B7A5E] text-xs">{inv.invoice_number}</div>
-                      <div className="text-[10px] text-neutral-500 font-sans mt-0.5">
-                        Receipt: <strong className="font-mono text-neutral-700 dark:text-neutral-300 font-semibold">{inv.receipt_number || '—'}</strong>
-                      </div>
                     </td>
 
                     {/* GUEST */}
@@ -837,62 +834,20 @@ export default function AdminPayments() {
                           View
                         </button>
 
-                        {/* 2. RECEIPT */}
-                        {inv.payments.length > 0 && (
+                        {/* Receipt button removed for Billing module */}
+
+                        {/* Pay button removed for Billing module */}
+
+                        {/* 4. CANCEL */}
+                        {String(inv.status).toUpperCase() !== 'PAID' && String(inv.status).toUpperCase() !== 'CANCELLED' && String(inv.status).toUpperCase() !== 'NO_SHOW' && (
                           <button
-                            onClick={() => {
-                              const p = inv.payments[0]
-                              const receiptObj: OfficialReceiptData = {
-                                receipt_number: p?.receipt_number && p?.receipt_number !== '—' ? p.receipt_number : (inv.receipt_number || '—'),
-                                invoice_number: inv.invoice_number,
-                                bill_id: inv.id,
-                                payment_id: p?.id || 0,
-                                customer_name: inv.customer_name,
-                                customer_email: inv.customer_email,
-                                customer_phone: inv.customer_phone,
-                                service_name: inv.service_name,
-                                service_details: inv.service_details,
-                                service_type: inv.service_type,
-                                total_amount: Number(inv.total_amount),
-                                previous_paid: 0,
-                                amount_paid: Number(p?.amount || inv.paid_amount),
-                                remaining_balance: Number(inv.remaining_balance),
-                                status: inv.status,
-                                method: p?.method || inv.method || 'cash',
-                                notes: p?.notes,
-                                staff_name: p?.staff_name || inv.issued_by_name || 'Front Desk Staff',
-                                paid_at: p?.paid_at || inv.issued_at,
-                                discount_amount: inv.discount_amount,
-                                promo_code: inv.promo_code,
-                              }
-                              setActiveReceipt(receiptObj)
-                            }}
-                            className="px-2.5 py-1 text-xs text-[#6B7A5E] bg-[#6B7A5E]/10 hover:bg-[#6B7A5E]/20 border border-[#6B7A5E]/30 rounded-lg font-semibold transition-all shadow-xs shrink-0 cursor-pointer flex items-center gap-1"
-                            title="View and print official payment receipt"
+                            onClick={() => setCancelInvoiceTarget(inv)}
+                            className="px-2.5 py-1 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 border border-rose-200 dark:border-rose-800/60 rounded-lg font-semibold transition-all flex items-center gap-1 cursor-pointer shrink-0"
                           >
-                            <Printer className="w-3 h-3" />
-                            <span>Receipt</span>
+                            <X className="w-3 h-3" />
+                            <span>Cancel</span>
                           </button>
                         )}
-
-                        {/* 3. PAY (Active whenever there is an unpaid remaining balance) */}
-                        {Number(inv.remaining_balance || 0) > 0 && String(inv.status).toUpperCase() !== 'PAID' && (
-                            <button
-                              onClick={() => {
-                                setSelectedBillId(inv.id)
-                                setSelectedBookingId(inv.booking_id || '')
-                                const rem = Number(inv.remaining_balance) > 0 ? Number(inv.remaining_balance) : Number(inv.total_amount || 0)
-                                setPayAmount(String(rem))
-                                setRecordModalOpen(true)
-                              }}
-                              className="px-3 py-1 text-xs bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded-lg shadow-xs transition-all flex items-center gap-1 cursor-pointer shrink-0"
-                            >
-                              <CreditCard className="w-3 h-3" />
-                              <span>Pay</span>
-                            </button>
-                        )}
-
-                        {/* Cancel button removed - now handled in Billing module */}
                       </div>
                     </td>
 
@@ -1316,9 +1271,6 @@ export default function AdminPayments() {
                   <p className="font-mono text-neutral-600">
                     Invoice No.: <strong className="font-bold text-[#6B7A5E]">{viewInvoice.invoice_number}</strong>
                   </p>
-                  <p className="font-mono text-neutral-600">
-                    Receipt No.: <strong className="font-bold text-neutral-900 dark:text-white">{viewInvoice.receipt_number && viewInvoice.receipt_number !== '—' ? viewInvoice.receipt_number : '—'}</strong>
-                  </p>
                 </div>
                 <p className="text-ink text-xs font-semibold mt-1">
                   {viewInvoice.service_name || (viewInvoice.booking_ref ? `${viewInvoice.booking_ref} · Room ${viewInvoice.room_number || ''}` : 'Direct Service')}
@@ -1624,10 +1576,6 @@ export default function AdminPayments() {
                     <div key={p.id} className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-sand/10 transition-colors">
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          <span className="text-[10px] text-neutral-500 uppercase font-bold">Receipt No.:</span>
-                          <strong className="font-mono font-bold text-[#6B7A5E] text-xs">
-                            {p.receipt_number && p.receipt_number !== '—' ? p.receipt_number : '—'}
-                          </strong>
                           <span className="capitalize font-semibold text-ink bg-sand/40 px-2 py-0.5 rounded text-[10px] border border-stone/20">
                             {p.method}
                           </span>
@@ -1651,39 +1599,7 @@ export default function AdminPayments() {
                           ₱{Number(p.amount).toLocaleString()}
                         </span>
 
-                        <button
-                          onClick={() => {
-                            const pastReceipt: OfficialReceiptData = {
-                              receipt_number: p.receipt_number && p.receipt_number !== '—' ? p.receipt_number : `OR-${String(p.id).padStart(6, '0')}`,
-                              invoice_number: viewInvoice.invoice_number,
-                              bill_id: viewInvoice.id,
-                              payment_id: p.id,
-                              customer_name: viewInvoice.customer_name,
-                              customer_email: viewInvoice.customer_email,
-                              customer_phone: viewInvoice.customer_phone,
-                              service_name: viewInvoice.service_name,
-                              service_details: viewInvoice.service_details,
-                              service_type: viewInvoice.service_type,
-                              total_amount: Number(viewInvoice.total_amount),
-                              previous_paid: 0,
-                              amount_paid: Number(p.amount),
-                              remaining_balance: Number(viewInvoice.remaining_balance),
-                              status: viewInvoice.status,
-                              method: p.method,
-                              notes: p.notes,
-                              staff_name: p.staff_name || 'Front Desk Staff',
-                              paid_at: p.paid_at,
-                              discount_amount: viewInvoice.discount_amount,
-                              promo_code: viewInvoice.promo_code,
-                            }
-                            setActiveReceipt(pastReceipt)
-                          }}
-                          className="px-2.5 py-1 text-[11px] text-[#6B7A5E] border border-[#6B7A5E]/40 bg-[#6B7A5E]/5 rounded-lg hover:bg-sand/40 font-semibold transition-all cursor-pointer flex items-center gap-1"
-                          title="View and print official payment receipt"
-                        >
-                          <Printer className="w-3 h-3" />
-                          <span>Receipt</span>
-                        </button>
+                        {/* Receipt button removed for Billing module */}
 
                         {!p.is_refunded && (
                           <button

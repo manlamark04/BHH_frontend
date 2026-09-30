@@ -182,11 +182,11 @@ export default function StaffPickleball() {
     Promise.all([
       bookingsApi.getAllRentals().catch(() => []),
       courtsApi.getCourts().catch(() => []),
-      usersApi.getCustomers().catch(() => ({ customers: [] })),
+      usersApi.getCustomers().catch(() => []),
     ]).then(([rnts, courtsRes, custRes]) => {
       setRentals(rnts as ActivityRentalItem[])
       setCourts(courtsRes as CourtItem[])
-      setCustomers((custRes as { customers?: Record<string, unknown>[] }).customers || [])
+      setCustomers((Array.isArray(custRes) ? custRes : []) as Record<string, unknown>[])
     }).finally(() => setLoading(false))
   }
 
@@ -1018,7 +1018,7 @@ export default function StaffPickleball() {
               className="w-full px-3 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#15181D] text-xs dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
             >
               <option value="">-- Select Guest --</option>
-              {customers.map((c) => (
+              {customers.filter(c => String(c.status).toLowerCase() === 'active').map((c) => (
                 <option key={String(c.id)} value={String(c.id)}>
                   {String(c.full_name || c.name)} ({String(c.unique_id || c.customer_id)})
                 </option>

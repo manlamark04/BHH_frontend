@@ -51,6 +51,7 @@ const AdminServices = lazy(() => import('./views/admin/Services'))
 const AdminReports = lazy(() => import('./views/admin/Reports'))
 const AdminAuditLog = lazy(() => import('./views/admin/AuditLog'))
 const AdminCheckInOut = lazy(() => import('./views/admin/CheckInOut'))
+const AdminBilling = lazy(() => import('./views/admin/Billing'))
 const AdminPayments = lazy(() => import('./views/admin/Payments'))
 const AdminProfile = lazy(() => import('./views/admin/Profile'))
 const AdminReviews = lazy(() => import('./views/admin/GuestReviews'))
@@ -90,7 +91,8 @@ const VIEW_TITLES: Partial<Record<View, { title: string; subtitle?: string }>> =
   'staff-walkin': { title: 'Walk-In Registration', subtitle: 'Register new walk-in customers' },
   'staff-motorcycles': { title: 'Motor Rent Management', subtitle: 'Motorcycle fleet dispatch, tracking, and returns' },
   'staff-pickleball': { title: 'Pickle Ball Court Management', subtitle: 'Manage court bookings, equipment, and customer reservations' },
-  'staff-billing': { title: 'Payments', subtitle: 'Invoices & transactions' },
+  'staff-billing': { title: 'Billing', subtitle: 'Invoices & statements' },
+  'staff-payments': { title: 'Payments', subtitle: 'Transactions & receipts' },
   'staff-customers': { title: 'Customer Records', subtitle: 'View and manage guest profiles' },
   'admin-dashboard': { title: 'Admin Dashboard', subtitle: 'Full system overview' },
   'admin-bookings': { title: 'Bookings', subtitle: 'Manage all reservations' },
@@ -277,6 +279,8 @@ export default function App() {
       case 'staff-pickleball':
         return <StaffPickleball />
       case 'staff-billing':
+        return <AdminBilling />
+      case 'staff-payments':
         return <AdminPayments />
       case 'staff-customers':
         return <StaffCustomers />

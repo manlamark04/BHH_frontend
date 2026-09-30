@@ -452,13 +452,7 @@ export default function CustomerPickleball({ customerId, customerName }: Props) 
             </p>
           </div>
 
-          <button
-            onClick={() => openBookModalForCourt('any')}
-            className="self-start sm:self-auto px-4 py-2 bg-neutral-900 dark:bg-white hover:bg-neutral-800 dark:hover:bg-neutral-100 text-white dark:text-neutral-900 rounded-xl font-semibold text-xs transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-[#6B7A5E]" />
-            <span>Quick Book: Any Available Court</span>
-          </button>
+          {/* Booking removed for guest view */}
         </div>
 
         {/* Dynamic Grid of Separate Court Cards */}
@@ -542,39 +536,18 @@ export default function CustomerPickleball({ customerId, customerName }: Props) 
                     </div>
                   </div>
 
-                  {/* Book Button */}
-                  <div className="pt-2 border-t border-black/[0.06] dark:border-neutral-800 flex items-center justify-between">
-                    <div>
+                  {/* Front Desk Message */}
+                  <div className="pt-2 border-t border-black/[0.06] dark:border-neutral-800 flex flex-col justify-between">
+                    <div className="mb-2">
                       <span className="text-[10px] uppercase font-bold text-neutral-400 block">STARTING RATE</span>
                       <strong className="font-display text-sm font-bold text-[#6B7A5E]">₱{Number(court.hourly_rate || 150)} <span className="text-[10px] font-normal text-neutral-500">/ hour</span></strong>
                     </div>
 
-                    <button
-                      onClick={() => openBookModalForCourt(court.id)}
-                      disabled={isMaint || isInMatch || isReserved}
-                      className={`px-4 py-2 rounded-xl font-semibold text-xs transition-all flex items-center gap-1.5 ${
-                        isMaint
-                          ? 'bg-neutral-200 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-500 cursor-not-allowed'
-                          : isInMatch
-                          ? 'bg-rose-100 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border border-rose-300 dark:border-rose-800/60 cursor-not-allowed'
-                          : isReserved
-                          ? 'bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800/60 cursor-not-allowed'
-                          : 'bg-[#6B7A5E] hover:bg-[#4F5D45] text-white shadow-xs hover:shadow-md cursor-pointer'
-                      }`}
-                    >
-                      {isMaint ? (
-                        <span>Maintenance</span>
-                      ) : isInMatch ? (
-                        <span>In Match (Occupied)</span>
-                      ) : isReserved ? (
-                        <span>Reserved (Booked)</span>
-                      ) : (
-                        <>
-                          <Plus className="w-3.5 h-3.5" />
-                          <span>Reserve {court.name}</span>
-                        </>
-                      )}
-                    </button>
+                    <div className="text-center bg-sand/30 dark:bg-neutral-800/50 p-2.5 rounded-lg border border-black/[0.05] dark:border-neutral-800">
+                      <p className="text-[11px] text-neutral-600 dark:text-neutral-300 font-medium leading-tight">
+                        Please proceed to the front desk to reserve this court.
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
