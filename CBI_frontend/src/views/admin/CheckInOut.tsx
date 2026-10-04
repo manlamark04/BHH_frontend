@@ -16,6 +16,7 @@ import {
   Ban,
 } from 'lucide-react'
 import { bookingsApi, type BookingItem } from '../../api/bookings'
+import { billingApi } from '../../api/billing'
 import { roomsApi, type RoomRecord } from '../../api/rooms'
 import type { View } from '../../types'
 import StatusBadge from '../../components/StatusBadge'
@@ -57,7 +58,24 @@ export default function AdminCheckInOut({ onNavigate }: { onNavigate?: (view: Vi
   const [additionalCharges, setAdditionalCharges] = useState('0')
   const [chargesRemarks, setChargesRemarks] = useState('')
   const [payMethod, setPayMethod] = useState<'cash' | 'card' | 'ewallet'>('cash')
+  const [amountTendered, setAmountTendered] = useState('')
   const [processingCheckOut, setProcessingCheckOut] = useState(false)
+  const [guestUnpaidBills, setGuestUnpaidBills] = useState<any[]>([])
+
+  useEffect(() => {
+    if (checkOutTarget) {
+      billingApi.getAllBills().then((res: any) => {
+        const unpaid = (res?.data || res || []).filter((b: any) => 
+          b.customer_id === checkOutTarget.customer_id &&
+          (b.status === 'UNPAID' || b.status === 'PENDING') &&
+          b.booking_id !== checkOutTarget.id
+        )
+        setGuestUnpaidBills(unpaid)
+      }).catch(() => setGuestUnpaidBills([]))
+    } else {
+      setGuestUnpaidBills([])
+    }
+  }, [checkOutTarget])
 
   // No-Show Modal State
   const [noShowBooking, setNoShowBooking] = useState<BookingItem | null>(null)
@@ -173,23 +191,12 @@ export default function AdminCheckInOut({ onNavigate }: { onNavigate?: (view: Vi
     if (!checkOutTarget) return
     setProcessingCheckOut(true)
     try {
-      const extra = parseFloat(additionalCharges) || 0
-      const remaining = Math.max(0, (checkOutTarget.remaining_balance || 0) + extra)
-
-      // If outstanding balance is settled at checkout
-      if (remaining > 0) {
-        await bookingsApi.recordPayment(checkOutTarget.id, {
-          amount: remaining,
-          payment_method: payMethod,
-          notes: `Settled balance at checkout (${chargesRemarks || 'Room & amenities settlement'})`,
-        }).catch(() => {})
-      }
-
       await bookingsApi.updateBookingStatus(checkOutTarget.id, 'completed')
       fireToast(`✓ Check-out completed for ${checkOutTarget.customer_name}! Room ${checkOutTarget.room_number} set to CLEANING for housekeeping.`)
       setCheckOutTarget(null)
       setAdditionalCharges('0')
       setChargesRemarks('')
+      setAmountTendered('')
       loadData()
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to process check-out')
@@ -261,10 +268,7 @@ export default function AdminCheckInOut({ onNavigate }: { onNavigate?: (view: Vi
     }
   }
 
-<<<<<<< HEAD
->>>>>>> Stashed changes
-=======
->>>>>>> main
+
   // Format date helper: "Jul 30, 2026"
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return ''
@@ -1010,6 +1014,25 @@ export default function AdminCheckInOut({ onNavigate }: { onNavigate?: (view: Vi
               </div>
 
               {/* Additional Incidentals / Minibar */}
+              {guestUnpaidBills.length > 0 && (
+                <div className="pt-2 border-t border-stone/15">
+                  <p className="text-[10px] font-bold text-rose-600 uppercase mb-1 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    Unpaid Activity Bills on Account
+                  </p>
+                  {guestUnpaidBills.map(b => (
+                    <div key={b.id} className="flex justify-between text-xs text-rose-700 font-medium mb-1">
+                      <span>{b.activity_name || b.service_name || 'Activity'} ({b.bill_number})</span>
+                      <span>₱{Number(b.remaining_balance ?? b.total_amount).toLocaleString()}</span>
+                    </div>
+                  ))}
+                  <div className="flex justify-between text-ink-muted text-xs mt-2 border-t border-stone/10 pt-1">
+                    <span>Activities Total:</span>
+                    <span className="font-semibold text-rose-600">₱{guestUnpaidBills.reduce((s, b) => s + Number(b.remaining_balance ?? b.total_amount), 0).toLocaleString()}</span>
+                  </div>
+                </div>
+              )}
+
               <div className="pt-2 border-t border-stone/15 grid grid-cols-2 gap-2">
                 <div>
                   <label className="block text-[10px] font-bold text-ink uppercase mb-1">Additional Charges (₱)</label>
@@ -1036,8 +1059,9 @@ export default function AdminCheckInOut({ onNavigate }: { onNavigate?: (view: Vi
 
               {/* Final Settlement Total */}
               {(() => {
+                const unpaidBillsTotal = guestUnpaidBills.reduce((s, b) => s + Number(b.remaining_balance ?? b.total_amount ?? 0), 0)
                 const extra = parseFloat(additionalCharges) || 0
-                const rem = Math.max(0, (checkOutTarget.remaining_balance || 0) + extra)
+                const rem = Math.max(0, (checkOutTarget.remaining_balance || 0) + extra + unpaidBillsTotal)
                 return (
                   <div className="pt-2 border-t border-stone/20 flex justify-between items-center text-sm">
                     <span className="font-bold text-ink">Remaining Balance Due:</span>
@@ -1049,28 +1073,23 @@ export default function AdminCheckInOut({ onNavigate }: { onNavigate?: (view: Vi
               })()}
             </div>
 
-            {/* Payment Method Selector if Balance Due */}
+            {/* Error Message if Balance Due */}
             {(() => {
+              const unpaidBillsTotal = guestUnpaidBills.reduce((s, b) => s + Number(b.remaining_balance ?? b.total_amount ?? 0), 0)
               const extra = parseFloat(additionalCharges) || 0
-              const rem = Math.max(0, (checkOutTarget.remaining_balance || 0) + extra)
+              const rem = Math.max(0, (checkOutTarget.remaining_balance || 0) + extra + unpaidBillsTotal)
               if (rem > 0) {
                 return (
-                  <div>
-                    <label className="block text-[10px] font-bold text-ink uppercase mb-1">Payment Method for Balance Settlement</label>
-                    <select
-                      value={payMethod}
-                      onChange={(e) => setPayMethod(e.target.value as 'cash' | 'card' | 'ewallet')}
-                      className="w-full px-3 py-2 rounded-xl border border-stone font-semibold text-xs bg-cream"
-                    >
-                      <option value="cash">Cash</option>
-                    </select>
+                  <div className="p-3 bg-rose-50/70 border border-rose-200 rounded-xl text-[11px] text-rose-900 leading-relaxed flex items-center gap-2 mt-3">
+                    <AlertCircle className="w-4 h-4 text-rose-700 shrink-0" />
+                    <span><strong>Cannot complete check-out.</strong> Guest has an unpaid balance of ₱{rem.toLocaleString()}. Please settle all bills in the <strong>Billing & Payments</strong> module before checking out.</span>
                   </div>
                 )
               }
               return null
             })()}
 
-            <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-xl text-[11px] text-amber-900 leading-relaxed flex items-center gap-2">
+            <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-xl text-[11px] text-amber-900 leading-relaxed flex items-center gap-2 mt-3">
               <AlertCircle className="w-4 h-4 text-amber-700 shrink-0" />
               <span>Completing check-out will mark this reservation as <strong>COMPLETED</strong> and set Room {checkOutTarget.room_number} to <strong>CLEANING</strong> for housekeeping.</span>
             </div>
@@ -1079,7 +1098,10 @@ export default function AdminCheckInOut({ onNavigate }: { onNavigate?: (view: Vi
             <div className="flex gap-3 pt-2">
               <button
                 type="button"
-                onClick={() => setCheckOutTarget(null)}
+                onClick={() => {
+                  setCheckOutTarget(null)
+                  setAmountTendered('')
+                }}
                 className="flex-1 py-2.5 border border-stone/30 rounded-xl font-semibold text-ink-muted hover:bg-sand text-xs transition-colors"
               >
                 Cancel
@@ -1087,8 +1109,16 @@ export default function AdminCheckInOut({ onNavigate }: { onNavigate?: (view: Vi
               <button
                 type="button"
                 onClick={handleConfirmCheckOut}
-                disabled={processingCheckOut}
-                className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl font-semibold text-xs shadow-sm disabled:opacity-50 transition-all"
+                disabled={
+                  processingCheckOut || 
+                  (() => {
+                    const unpaidBillsTotal = guestUnpaidBills.reduce((s, b) => s + Number(b.remaining_balance ?? b.total_amount ?? 0), 0)
+                    const extra = parseFloat(additionalCharges) || 0
+                    const rem = Math.max(0, (checkOutTarget.remaining_balance || 0) + extra + unpaidBillsTotal)
+                    return rem > 0
+                  })()
+                }
+                className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl font-semibold text-xs shadow-sm disabled:opacity-50 transition-all disabled:cursor-not-allowed"
               >
                 {processingCheckOut ? 'Processing...' : 'Complete Check-Out'}
               </button>

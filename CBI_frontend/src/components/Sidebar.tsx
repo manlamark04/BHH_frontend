@@ -188,13 +188,6 @@ export default function Sidebar({
           if (inv.service_type === 'Motor Rental' && inv.license_verification_status !== 'VERIFIED') {
             unverifiedCount += 1
           }
-=======
-          if (inv.service_type === 'Motor Rental' && inv.license_verification_status !== 'VERIFIED') {
-            unverifiedCount += 1
-          } else {
-            outCount += 1
-          }
->>>>>>> main
         }
       }
 

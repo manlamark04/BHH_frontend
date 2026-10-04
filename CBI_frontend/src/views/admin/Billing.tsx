@@ -1069,21 +1069,25 @@ export default function AdminBilling() {
                   )}
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => selectedInvoice && handleMarkLicenseVerified(selectedInvoice)}
-                disabled={verifyingLicense}
-                className="w-full py-2 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl font-semibold text-xs flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer disabled:opacity-50"
-              >
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>
+              <label className="flex items-center gap-2.5 mt-2 cursor-pointer p-2 rounded-lg hover:bg-amber-100/50 dark:hover:bg-amber-900/50 transition-colors">
+                <input
+                  type="checkbox"
+                  disabled={verifyingLicense}
+                  onChange={(e) => {
+                    if (e.target.checked && selectedInvoice) {
+                      handleMarkLicenseVerified(selectedInvoice)
+                    }
+                  }}
+                  className="w-4 h-4 rounded border-amber-400 text-[#6B7A5E] focus:ring-[#6B7A5E] focus:ring-offset-amber-50 shrink-0 cursor-pointer"
+                />
+                <span className="font-bold text-amber-900 dark:text-amber-200">
                   {verifyingLicense
                     ? 'Verifying...'
                     : selectedInvoice?.license_type === 'FOREIGN' || selectedInvoice?.idp_number || selectedInvoice?.passport_number
                     ? 'Confirm Physical IDP Card Has Category A & Mark Verified'
                     : 'Confirm Physical Card Has Restriction A/A1 & Mark Verified'}
                 </span>
-              </button>
+              </label>
             </div>
           )}
           {isPayingMotorRental && isPayingMotorLicenseVerified && (

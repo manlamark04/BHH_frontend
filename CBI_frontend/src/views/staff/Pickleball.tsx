@@ -882,12 +882,7 @@ export default function StaffPickleball() {
                       )}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      {status === 'PENDING_PAYMENT' && (
-                        <span className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md font-medium">
-                          Awaiting Payment
-                        </span>
-                      )}
-                      {(status === 'CONFIRMED' || status === 'APPROVED') && (
+                      {(status === 'CONFIRMED' || status === 'APPROVED' || status === 'PENDING_PAYMENT') && (
                         <div className="flex items-center justify-end gap-1.5">
                           <button
                             onClick={async () => {
@@ -1133,43 +1128,7 @@ export default function StaffPickleball() {
                     )}
                   </div>
                 )
-<<<<<<< Updated upstream
-              })}
-            </div>
-          </div>
-
-          {/* Select Customer */}
-          <div>
-            <label className="block font-semibold text-neutral-900 dark:text-white uppercase tracking-wider mb-1">Renting Customer *</label>
-            <select
-              value={selectedCustomerId}
-              onChange={(e) => setSelectedCustomerId(e.target.value ? Number(e.target.value) : '')}
-              required
-              className="w-full px-3 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#15181D] text-xs dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
-            >
-              <option value="">-- Select Guest --</option>
-              {customers.filter(c => String(c.status).toLowerCase() === 'active').map((c) => (
-                <option key={String(c.id)} value={String(c.id)}>
-                  {String(c.full_name || c.name)} ({String(c.unique_id || c.customer_id)})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block font-semibold text-neutral-900 dark:text-white uppercase tracking-wider mb-1">Date *</label>
-              <input
-                type="date"
-                value={date}
-                onChange={(e) => handleDateChange(e.target.value)}
-                min={getTodayDateString()}
-                required
-                className="w-full px-3 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#15181D] text-xs dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
-              />
-=======
               })()}
->>>>>>> Stashed changes
             </div>
 
             {selectedCustomerId === 'anonymous' && (

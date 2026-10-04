@@ -22,9 +22,6 @@ import {
   Search,
   StickyNote,
   ArrowRight,
-=======
-  UserCheck,
->>>>>>> main
 } from 'lucide-react'
 import {
   motorcyclesApi,
@@ -506,12 +503,6 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
       loadData()
       window.dispatchEvent(new Event('billing-updated'))
       window.dispatchEvent(new CustomEvent('navigate', { detail: userRole === 'admin' ? 'admin-billing' : 'staff-billing' }))
-=======
-      setSuccessMsg(`Rental ${res.rental.rental_id} created! Redirecting to Billing...`)
-      setTimeout(() => setSuccessMsg(''), 4000)
-      loadData()
-      window.dispatchEvent(new CustomEvent('navigate', { detail: userRole === 'admin' ? 'admin-billing' : 'staff-billing' }))
->>>>>>> main
     } catch (err) {
       setRentError(err instanceof Error ? err.message : 'Failed to create rental')
     } finally {
