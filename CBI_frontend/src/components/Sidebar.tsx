@@ -3,6 +3,7 @@ import type { View, Role } from '../types'
 import logo from '../imports/logo.png'
 import ConfirmDialog from './ConfirmDialog'
 import SidebarBadge from './SidebarBadge'
+import Avatar from './Avatar'
 import { useTheme } from '../context/ThemeContext'
 import { billingApi } from '../api/billing'
 import { usersApi } from '../api/users'
@@ -32,6 +33,10 @@ import {
   Copy,
   Check,
   MessageSquare,
+  Store,
+  PackageSearch,
+  Coffee,
+  Tag,
   type LucideIcon,
 } from 'lucide-react'
 import InquiriesModal from './InquiriesModal'
@@ -51,25 +56,29 @@ const ADMIN_NAV: NavItem[] = [
   { label: 'Guests', view: 'admin-guests', icon: Users },
   { label: 'Motor Rent', view: 'staff-motorcycles', icon: Bike },
   { label: 'Pickleball Court', view: 'staff-pickleball', icon: Trophy },
-  { label: 'Check-In / Out', view: 'admin-checkinout', icon: ArrowLeftRight },
+  { label: 'Check-In / Out', view: 'admin-checkinout', icon: ArrowLeftRight, badgeKey: 'checkin-out', badgeVariant: 'emerald' },
+  { label: 'Housekeeping', view: 'admin-housekeeping', icon: ClipboardCheck },
   { label: 'User Management', view: 'admin-users', icon: UserCog, badgeKey: 'pending-users', badgeVariant: 'amber' },
-  { label: 'Payments', view: 'admin-payments', icon: CreditCard, badgeKey: 'outstanding-bills', badgeVariant: 'amber' },
+  { label: 'Billing & Payments', view: 'admin-billing', icon: Receipt, badgeKey: 'outstanding-bills', badgeVariant: 'rose' },
   { label: 'Reports & Analytics', view: 'admin-reports', icon: BarChart3 },
   { label: 'Audit Log', view: 'admin-audit', icon: History },
+  { label: 'Guest Reviews', view: 'admin-reviews', icon: MessageSquare },
+  { label: 'Promo & Discounts', view: 'admin-promos', icon: Tag },
   { label: 'My Profile', view: 'admin-profile', icon: User },
 ]
 
 const STAFF_NAV: NavItem[] = [
   { label: 'Dashboard', view: 'staff-dashboard', icon: LayoutDashboard },
-  { label: 'Pending Approvals', view: 'staff-approvals', icon: ClipboardCheck, badgeKey: 'pending-approvals', badgeVariant: 'amber' },
+
   { label: 'Bookings', view: 'staff-bookings', icon: CalendarDays },
   { label: 'Rooms', view: 'staff-rooms', icon: BedDouble },
-  { label: 'Check-In / Out', view: 'staff-checkinout', icon: ArrowLeftRight },
+  { label: 'Check-In / Out', view: 'staff-checkinout', icon: ArrowLeftRight, badgeKey: 'checkin-out', badgeVariant: 'emerald' },
+  { label: 'Housekeeping', view: 'staff-housekeeping', icon: ClipboardCheck },
   { label: 'Walk-In Registration', view: 'staff-walkin', icon: UserPlus },
   { label: 'Motor Rent', view: 'staff-motorcycles', icon: Bike },
   { label: 'Pickleball Court', view: 'staff-pickleball', icon: Trophy },
   { label: 'Customer Records', view: 'staff-customers', icon: Users },
-  { label: 'Billing & Payments', view: 'staff-billing', icon: CreditCard, badgeKey: 'outstanding-bills', badgeVariant: 'amber' },
+  { label: 'Billing & Payments', view: 'staff-billing', icon: Receipt, badgeKey: 'outstanding-bills', badgeVariant: 'rose' },
   { label: 'My Profile', view: 'staff-profile', icon: User },
 ]
 
@@ -79,6 +88,7 @@ const CUSTOMER_NAV: NavItem[] = [
   { label: 'Motor Rent', view: 'customer-motorcycles', icon: Bike },
   { label: 'Pickleball Court', view: 'customer-pickleball', icon: Trophy },
   { label: 'My Transactions', view: 'customer-transactions', icon: Receipt },
+  { label: 'My Reviews', view: 'customer-reviews', icon: MessageSquare },
   { label: 'My Profile', view: 'customer-profile', icon: User },
 ]
 
@@ -106,6 +116,7 @@ interface SidebarProps {
   role: Role
   userName: string
   userId: string
+  photoUrl?: string | null
   notifCount: number
   onLogout: () => void
   isMobileOpen: boolean
@@ -127,6 +138,7 @@ export default function Sidebar({
   role,
   userName,
   userId,
+  photoUrl,
   notifCount: _notifCount,
   onLogout,
   isMobileOpen,
@@ -161,58 +173,67 @@ export default function Sidebar({
       ])
 
       let outCount = 0
+      let unverifiedCount = 0
       for (const inv of bills) {
         const s = String(inv.status || '').toUpperCase().replace('-', '_').replace(' ', '_')
         const rem = Number(inv.remaining_balance ?? inv.balance ?? 0)
-        const isPendingApproval = Boolean(inv.is_pending_approval || s === 'PENDING_APPROVAL')
-        // Enforce "approve first, then bill": do NOT count invoices linked to reservations awaiting approval
         if (
           s !== 'PAID' &&
           s !== 'CANCELLED' &&
           s !== 'VOID' &&
           s !== 'REFUNDED' &&
-          !isPendingApproval &&
           (s === 'PENDING' || s === 'UNPAID' || s === 'PARTIALLY_PAID' || rem > 0)
         ) {
           outCount += 1
-<<<<<<< Updated upstream
-=======
           if (inv.service_type === 'Motor Rental' && inv.license_verification_status !== 'VERIFIED') {
             unverifiedCount += 1
           }
->>>>>>> Stashed changes
+=======
+          if (inv.service_type === 'Motor Rental' && inv.license_verification_status !== 'VERIFIED') {
+            unverifiedCount += 1
+          } else {
+            outCount += 1
+          }
+>>>>>>> main
         }
       }
 
       const pendingUsersCount = Array.isArray(pendingUsers) ? pendingUsers.length : 0
 
-      let pendingApprovalsCount = 0
-      for (const b of (Array.isArray(bookings) ? bookings : [])) {
-        const s = String(b.status_raw || b.status || '').toUpperCase()
-        if (s === 'PENDING_APPROVAL' || s === 'REQUESTED' || s === 'PENDING') {
-          pendingApprovalsCount += 1
-        }
-      }
-      for (const r of (Array.isArray(motorRentals) ? motorRentals : [])) {
-        const s = String(r.status || '').toUpperCase()
-        if (s === 'PENDING_APPROVAL' || s === 'PENDING') {
-          pendingApprovalsCount += 1
+      // Calculate Check-In/Out badge count
+      let checkInOutCount = 0
+      const todayStr = new Date().toISOString().split('T')[0]
+      for (const b of bookings) {
+        const cIn = String(b.check_in || '').split('T')[0]
+        const cOut = String(b.check_out || '').split('T')[0]
+        const st = String(b.status || '').toLowerCase().replace('-', '_').replace(' ', '_')
+        
+        if (cIn === todayStr && ['confirmed', 'reserved', 'pending', 'pending_payment', 'requested'].includes(st)) {
+          if (!b.is_arrived) {
+            checkInOutCount++ // Today's arrivals unprocessed
+          }
+        } else if (st === 'checked_in' && cOut === todayStr) {
+          checkInOutCount++ // Today's departures unprocessed
+        } else if (st === 'checked_in' && cOut < todayStr) {
+          checkInOutCount++ // Overdue
         }
       }
 
       setBadgeCounts((prev) => {
         if (
           prev['outstanding-bills'] === outCount &&
+          prev['unverified-bills'] === unverifiedCount &&
           prev['pending-users'] === pendingUsersCount &&
-          prev['pending-approvals'] === pendingApprovalsCount
+          prev['checkin-out'] === checkInOutCount
         ) {
           return prev
         }
         return {
           ...prev,
           'outstanding-bills': outCount,
+          'unverified-bills': unverifiedCount,
           'pending-users': pendingUsersCount,
-          'pending-approvals': pendingApprovalsCount,
+          'checkin-out': checkInOutCount,
         }
       })
     } catch {
@@ -408,6 +429,10 @@ export default function Sidebar({
                   title={
                     item.badgeKey === 'pending-users'
                       ? `${badgeCount} pending registration approval${badgeCount > 1 ? 's' : ''}`
+                      : item.badgeKey === 'checkin-out'
+                      ? `${badgeCount} guest${badgeCount > 1 ? 's' : ''} needing attention`
+                      : item.badgeKey === 'unverified-bills'
+                      ? `${badgeCount} license${badgeCount > 1 ? 's' : ''} needing verification`
                       : `${badgeCount} outstanding invoice${badgeCount > 1 ? 's' : ''}`
                   }
                   className="shrink-0"
@@ -492,12 +517,7 @@ export default function Sidebar({
             collapsed ? 'justify-center px-0' : ''
           }`}
         >
-          <div
-            style={{ backgroundColor: '#6B7A5E' }}
-            className="w-7 h-7 rounded-full text-white font-display font-bold text-xs flex items-center justify-center shrink-0"
-          >
-            {userName.charAt(0).toUpperCase()}
-          </div>
+          <Avatar name={userName} photoUrl={photoUrl} size="sm" />
           {!collapsed && (
             <div className="min-w-0 flex-1">
               <p style={{ color: '#F5F1EC' }} className="text-xs font-semibold truncate leading-tight">

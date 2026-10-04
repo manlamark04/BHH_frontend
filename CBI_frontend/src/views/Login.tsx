@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { AlertCircle, Info, Palmtree, UserPlus, Check } from 'lucide-react'
 import type { View, Role } from '../types'
 import { authApi } from '../api/auth'
@@ -10,7 +10,7 @@ import AuthLoadingScreen from '../components/AuthLoadingScreen'
 import Modal from '../components/Modal'
 
 interface LoginProps {
-  onLogin: (role: Role, name: string, userId: string, dbId: number, mustChangePassword?: boolean) => void
+  onLogin: (role: Role, name: string, userId: string, dbId: number, mustChangePassword?: boolean, photoUrl?: string | null) => void
   onNavigate: (view: View) => void
 }
 
@@ -23,6 +23,14 @@ export default function Login({ onLogin, onNavigate }: LoginProps) {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [forgotMsg, setForgotMsg] = useState(false)
+
+  useEffect(() => {
+    const savedIdentifier = localStorage.getItem('rememberedIdentifier')
+    if (savedIdentifier) {
+      setIdentifier(savedIdentifier)
+      setRememberMe(true)
+    }
+  }, [])
 
   // Loading screen state
   const [showLoadingScreen, setShowLoadingScreen] = useState(false)
@@ -128,6 +136,12 @@ export default function Login({ onLogin, onNavigate }: LoginProps) {
     try {
       const res = await authApi.login(identifier.trim(), password)
 
+      if (rememberMe) {
+        localStorage.setItem('rememberedIdentifier', identifier.trim())
+      } else {
+        localStorage.removeItem('rememberedIdentifier')
+      }
+
       // Auth succeeded — store the result and trigger the success transition
       setAuthRole(res.user.role)
       setAuthResult({
@@ -138,6 +152,7 @@ export default function Login({ onLogin, onNavigate }: LoginProps) {
         gender: res.user.gender,
         civilStatus: res.user.civil_status,
         mustChangePassword: Boolean(res.user.must_change_password),
+        photoUrl: res.user.profile_photo_url,
       })
 
       // Maintain loading screen for 4 seconds
@@ -166,7 +181,7 @@ export default function Login({ onLogin, onNavigate }: LoginProps) {
     if (loadingPhase === 'success' && authResult) {
       // Success: hand off to App.tsx which mounts the dashboard
       setShowLoadingScreen(false)
-      onLogin(authResult.role, authResult.name, authResult.userId, authResult.dbId, authResult.mustChangePassword)
+      onLogin(authResult.role, authResult.name, authResult.userId, authResult.dbId, authResult.mustChangePassword, authResult.photoUrl)
     } else if (loadingPhase === 'error') {
       // Error: fade back to login form with error shown
       setShowLoadingScreen(false)

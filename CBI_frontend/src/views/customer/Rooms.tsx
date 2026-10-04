@@ -16,6 +16,7 @@ import {
 import { roomsApi, type RoomRecord } from '../../api/rooms'
 import { bookingsApi } from '../../api/bookings'
 import { billingApi } from '../../api/billing'
+import { promosApi, type PromoCode } from '../../api/promos'
 import StatusBadge from '../../components/StatusBadge'
 import Modal from '../../components/Modal'
 import ConfirmDialog from '../../components/ConfirmDialog'
@@ -48,6 +49,12 @@ export default function CustomerRooms({ customerName }: Props) {
   const [toast, setToast] = useState('')
   const [error, setError] = useState('')
 
+  const [promoCode, setPromoCode] = useState('')
+  const [promoDiscount, setPromoDiscount] = useState(0)
+  const [validatingPromo, setValidatingPromo] = useState(false)
+  const [promoMessage, setPromoMessage] = useState('')
+  const [activePromo, setActivePromo] = useState<PromoCode | null>(null)
+
   const todayStr = useMemo(() => new Date().toISOString().split('T')[0], [])
 
   const fireToast = (msg: string) => {
@@ -73,16 +80,24 @@ export default function CustomerRooms({ customerName }: Props) {
 
   useEffect(() => {
     loadRooms()
+    // Fetch active promos for the banner
+    promosApi.getAllPromos()
+      .then((allPromos) => {
+        const active = allPromos.find(
+          (p) => p.status === 'active' && new Date(p.valid_until) >= new Date()
+        )
+        setActivePromo(active || null)
+      })
+      .catch(() => setActivePromo(null))
   }, [])
 
-  // Calculate unpaid outstanding balance (from No-Show fees, penalties, or past due balances)
+  // Calculate unpaid outstanding balance (from penalties, or past due balances)
   const outstandingBalance = useMemo(() => {
     return myBills.reduce((s, b) => {
       const isCancelled = String(b.status || '').toUpperCase() === 'CANCELLED' || String(b.status || '').toUpperCase() === 'VOID' || Boolean(b.is_cancelled)
-      const isNoShow = String(b.booking_status || '').toUpperCase() === 'NO_SHOW' || String(b.status || '').toUpperCase() === 'NO_SHOW'
-      const fee = Number(b.no_show_fee ?? b.cancellation_fee ?? 0)
+      const fee = Number(b.cancellation_fee ?? 0)
       const paid = Number(b.amount_paid || b.paid_amount || 0)
-      if (isNoShow || isCancelled) {
+      if (isCancelled) {
         return s + (fee > 0 ? Math.max(0, fee - paid) : 0)
       }
       const total = Number(b.total_amount || 0)
@@ -141,10 +156,15 @@ export default function CustomerRooms({ customerName }: Props) {
 
   const totalAmount = useMemo(() => {
     if (!bookingRoom) return 0
-    if (bookingType === 'short_time') return shortTimeTotal
-    if (nights <= 0) return 0
-    return Number(bookingRoom.rate_per_night || 0) * nights
-  }, [bookingRoom, bookingType, nights, shortTimeTotal])
+    let baseAmount = 0
+    if (bookingType === 'short_time') baseAmount = shortTimeTotal
+    else if (nights > 0) baseAmount = Number(bookingRoom.rate_per_night || 0) * nights
+    
+    if (promoDiscount > 0) {
+      return baseAmount - (baseAmount * (promoDiscount / 100))
+    }
+    return baseAmount
+  }, [bookingRoom, bookingType, nights, shortTimeTotal, promoDiscount])
 
   // Auto-calculated checkout time for short-time bookings
   const computedCheckout = useMemo(() => {
@@ -182,6 +202,35 @@ export default function CustomerRooms({ customerName }: Props) {
     setNumGuests(Number(room.capacity || 2))
     setSpecialNotes('')
     setError('')
+    setPromoCode('')
+    setPromoDiscount(0)
+    setPromoMessage('')
+  }
+
+  const handleValidatePromo = async () => {
+    if (!promoCode.trim()) return
+    setValidatingPromo(true)
+    setPromoMessage('')
+    try {
+      const res = await fetch('/api/promocodes/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: promoCode.trim() })
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setPromoMessage(data.message || 'Invalid promo code')
+        setPromoDiscount(0)
+      } else {
+        setPromoMessage(data.message || 'Promo applied!')
+        setPromoDiscount(data.discount_percentage)
+      }
+    } catch (err) {
+      setPromoMessage('Error validating code')
+      setPromoDiscount(0)
+    } finally {
+      setValidatingPromo(false)
+    }
   }
 
   // Check if chosen booking dates conflict with 1-stay rule (Option B)
@@ -205,12 +254,13 @@ export default function CustomerRooms({ customerName }: Props) {
     setSubmitting(true)
     setError('')
     try {
-      const payload: Parameters<typeof bookingsApi.createBooking>[0] = {
+      const payload: Parameters<typeof bookingsApi.createBooking>[0] & { promo_code?: string } = {
         room_id: Number(bookingRoom.id),
         check_in: checkIn,
         num_guests: numGuests,
         notes: specialNotes.trim() || undefined,
         booking_type: bookingType,
+        promo_code: promoDiscount > 0 ? promoCode.trim() : undefined
       }
       if (bookingType === 'short_time') {
         payload.check_in_time = checkInTime
@@ -253,6 +303,36 @@ export default function CustomerRooms({ customerName }: Props) {
         <div className="fixed top-6 right-6 z-50 px-5 py-3.5 bg-emerald-700 text-white font-medium text-xs rounded-2xl shadow-xl border border-emerald-500 animate-slideDown flex items-center gap-2">
           <Check className="w-4 h-4 text-emerald-200" strokeWidth={2} />
           <span>{toast}</span>
+        </div>
+      )}
+
+      {/* ─── PROMO BANNER ─── */}
+      {activePromo && (
+        <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-700 p-4 sm:p-5 rounded-2xl shadow-lg relative overflow-hidden flex flex-col sm:flex-row items-center justify-between gap-4 text-white animate-fadeIn">
+          {/* Background Decorative Circles */}
+          <div className="absolute top-0 right-0 -mr-16 -mt-16 w-48 h-48 rounded-full bg-white opacity-10 blur-2xl pointer-events-none"></div>
+          <div className="absolute bottom-0 left-0 -ml-16 -mb-16 w-32 h-32 rounded-full bg-white opacity-10 blur-xl pointer-events-none"></div>
+
+          <div className="flex items-start sm:items-center gap-4 z-10 w-full">
+            <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center shrink-0 shadow-inner">
+              <Sparkles className="w-6 h-6 text-white" strokeWidth={2} />
+            </div>
+            <div>
+              <h3 className="font-display font-bold text-lg sm:text-xl tracking-tight">Special Promo is Here!</h3>
+              <p className="text-sm text-emerald-50 max-w-lg mt-0.5 leading-snug">
+                Planning your next getaway? Use the promo code below during checkout to get <strong className="text-white bg-emerald-800/40 px-1.5 rounded">{activePromo.discount_percentage}% OFF</strong> your total bill.
+              </p>
+            </div>
+          </div>
+
+          <div className="z-10 shrink-0 bg-white/10 p-1.5 rounded-xl border border-white/20 backdrop-blur-md flex items-center w-full sm:w-auto">
+            <div className="px-4 py-2 text-lg font-mono font-bold tracking-widest text-white select-all cursor-pointer text-center w-full sm:w-auto border-r border-white/10 border-dashed">
+              {activePromo.code}
+            </div>
+            <div className="px-3 text-[10px] uppercase font-bold text-emerald-100 whitespace-nowrap text-center">
+              Valid until {new Date(activePromo.valid_until).toLocaleDateString()}
+            </div>
+          </div>
         </div>
       )}
 
@@ -327,7 +407,7 @@ export default function CustomerRooms({ customerName }: Props) {
                 Outstanding Balance Required (₱{outstandingBalance.toLocaleString()})
               </h4>
               <p className="text-xs text-rose-900/90 dark:text-rose-200/90 mt-0.5 leading-relaxed">
-                You have an unpaid remaining balance of <strong>₱{outstandingBalance.toLocaleString()}</strong> from a previous reservation or No-Show service charge. Please settle your outstanding balance at the front desk before creating new room bookings.
+                You have an unpaid remaining balance of <strong>₱{outstandingBalance.toLocaleString()}</strong> from a previous reservation or cancellation charge. Please settle your outstanding balance at the front desk before creating new room bookings.
               </p>
             </div>
           </div>
@@ -386,23 +466,25 @@ export default function CustomerRooms({ customerName }: Props) {
         </div>
 
         {/* Search Bar */}
-        <div className="relative w-full sm:w-72 text-xs">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400 w-3.5 h-3.5" strokeWidth={1.5} />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search room type, number..."
-            className="w-full pl-9 pr-4 py-2 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
-          />
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="relative flex-1 sm:w-72 text-xs">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400 w-3.5 h-3.5" strokeWidth={1.5} />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search room type, number..."
+              className="w-full pl-9 pr-4 py-2 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
+            />
+          </div>
         </div>
       </div>
 
       {/* ─── 3. ROOMS GRID ─── */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredRooms.map((r) => {
-          const isAvail = String(r.status).toLowerCase() === 'available'
-          const imgSrc = getPrimaryImage(r)
+          {filteredRooms.map((r) => {
+            const isAvail = String(r.status).toLowerCase() === 'available'
+            const imgSrc = getPrimaryImage(r)
 
           return (
             <div
@@ -470,8 +552,7 @@ export default function CustomerRooms({ customerName }: Props) {
                   >
                     {isAvail
                       ? 'Book Room'
-                      : String(r.status).toUpperCase() === 'PENDING_APPROVAL'
-                      ? 'Pending Approval'
+
                       : String(r.status).toUpperCase() === 'RESERVED'
                       ? 'Reserved'
                       : String(r.status).toUpperCase() === 'OCCUPIED'
@@ -764,12 +845,47 @@ export default function CustomerRooms({ customerName }: Props) {
                   <span className="italic">Includes {SHORT_TIME_MULTIPLIER}x short-stay rate</span>
                 </div>
               )}
+              {promoDiscount > 0 && (
+                <div className="flex justify-between items-center text-emerald-700 text-sm font-semibold pt-1">
+                  <span>Promo Discount ({promoDiscount}% off):</span>
+                  <span className="font-display">
+                    -₱{((totalAmount / (1 - (promoDiscount / 100))) * (promoDiscount / 100)).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+              )}
               <div className="pt-2 border-t border-stone/15 flex justify-between items-center text-sm">
                 <span className="font-bold text-ink">Total Estimated Bill:</span>
                 <span className="font-display font-bold text-xl text-[#6B7A5E]">
                   ₱{totalAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
                 </span>
               </div>
+            </div>
+
+            {/* Promo Code Input */}
+            <div>
+              <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Promo Code (Optional)</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={promoCode}
+                  onChange={(e) => setPromoCode(e.target.value)}
+                  placeholder="Enter code (e.g. SUMMER20)"
+                  className="flex-1 px-3 py-2 rounded-xl border border-stone/30 bg-[#F6F2E8] font-mono text-xs uppercase"
+                />
+                <button
+                  type="button"
+                  onClick={handleValidatePromo}
+                  disabled={validatingPromo || !promoCode.trim()}
+                  className="px-4 py-2 bg-stone-200 hover:bg-stone-300 text-stone-800 font-semibold rounded-xl text-xs transition-colors disabled:opacity-50"
+                >
+                  {validatingPromo ? '...' : 'Apply'}
+                </button>
+              </div>
+              {promoMessage && (
+                <p className={`text-[10px] mt-1 font-semibold ${promoDiscount > 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                  {promoMessage}
+                </p>
+              )}
             </div>
 
             {/* Outstanding Balance Block Alert */}
@@ -779,7 +895,7 @@ export default function CustomerRooms({ customerName }: Props) {
                 <div>
                   <p className="font-bold">Unpaid Remaining Balance (₱{outstandingBalance.toLocaleString()})</p>
                   <p className="text-[11px] text-rose-700 mt-0.5 leading-relaxed">
-                    You have an outstanding balance from an unpaid No-Show service charge or previous stay. Please settle your balance at the front desk before reserving another room.
+                    You have an outstanding balance from an unpaid cancellation charge or previous stay. Please settle your balance at the front desk before reserving another room.
                   </p>
                 </div>
               </div>

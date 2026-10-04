@@ -4,7 +4,7 @@ export type AccountStatus = 'PENDING' | 'ACTIVE' | 'DISABLED' | 'REJECTED'
 
 export type BookingStatus =
   | 'PENDING_PAYMENT'
-  | 'PENDING_APPROVAL'
+
   | 'PENDING'
   | 'CONFIRMED'
   | 'CHECKED_IN'
@@ -17,7 +17,7 @@ export type BookingStatus =
 
 export type RoomStatus =
   | 'AVAILABLE'
-  | 'PENDING_APPROVAL'
+
   | 'RESERVED'
   | 'OCCUPIED'
   | 'CLEANING'
@@ -28,7 +28,7 @@ export type PaymentStatus = 'UNPAID' | 'PARTIALLY PAID' | 'PAID' | 'REFUNDED' | 
 
 export type RentalStatus =
   | 'PENDING_PAYMENT'
-  | 'PENDING_APPROVAL'
+
   | 'PENDING'
   | 'APPROVED'
   | 'CONFIRMED'
@@ -214,6 +214,7 @@ export type View =
   | 'staff-motorcycles'
   | 'staff-pickleball'
   | 'staff-billing'
+  | 'staff-payments'
   | 'staff-customers'
   | 'admin-dashboard'
   | 'admin-bookings'
@@ -226,5 +227,10 @@ export type View =
   | 'admin-checkinout'
   | 'admin-payments'
   | 'admin-profile'
+  | 'admin-reviews'
   | 'staff-checkinout'
   | 'staff-profile'
+  | 'customer-reviews'
+  | 'admin-housekeeping'
+  | 'staff-housekeeping'
+  | 'admin-promos'

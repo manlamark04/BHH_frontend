@@ -25,11 +25,11 @@ const CustomerMotorcycles = lazy(() => import('./views/customer/Motorcycles'))
 const CustomerPickleball = lazy(() => import('./views/customer/Pickleball'))
 const CustomerTransactions = lazy(() => import('./views/customer/Transactions'))
 const CustomerProfile = lazy(() => import('./views/customer/Profile'))
-
+const CustomerReviews = lazy(() => import('./views/customer/Reviews'))
 // Staff views (lazy loaded)
 const StaffCheckInOut = lazy(() => import('./views/staff/CheckInOut'))
 const StaffDashboard = lazy(() => import('./views/staff/Dashboard'))
-const StaffApprovals = lazy(() => import('./views/staff/Approvals'))
+
 const StaffBookings = lazy(() => import('./views/staff/Bookings'))
 const StaffRooms = lazy(() => import('./views/staff/Rooms'))
 const StaffWalkIn = lazy(() => import('./views/staff/WalkIn'))
@@ -38,6 +38,8 @@ const StaffPickleball = lazy(() => import('./views/staff/Pickleball'))
 const StaffBilling = lazy(() => import('./views/staff/Billing'))
 const StaffCustomers = lazy(() => import('./views/staff/Customers'))
 const StaffProfile = lazy(() => import('./views/staff/Profile'))
+const Housekeeping = lazy(() => import('./views/shared/Housekeeping'))
+
 
 // Admin views (lazy loaded)
 const AdminDashboard = lazy(() => import('./views/admin/Dashboard'))
@@ -49,8 +51,11 @@ const AdminServices = lazy(() => import('./views/admin/Services'))
 const AdminReports = lazy(() => import('./views/admin/Reports'))
 const AdminAuditLog = lazy(() => import('./views/admin/AuditLog'))
 const AdminCheckInOut = lazy(() => import('./views/admin/CheckInOut'))
+const AdminBilling = lazy(() => import('./views/admin/Billing'))
 const AdminPayments = lazy(() => import('./views/admin/Payments'))
 const AdminProfile = lazy(() => import('./views/admin/Profile'))
+const AdminReviews = lazy(() => import('./views/admin/GuestReviews'))
+const AdminPromos = lazy(() => import('./views/admin/Promos'))
 
 const ViewLoading = () => (
   <div className="flex items-center justify-center min-h-[50vh] py-16">
@@ -86,7 +91,8 @@ const VIEW_TITLES: Partial<Record<View, { title: string; subtitle?: string }>> =
   'staff-walkin': { title: 'Walk-In Registration', subtitle: 'Register new walk-in customers' },
   'staff-motorcycles': { title: 'Motor Rent Management', subtitle: 'Motorcycle fleet dispatch, tracking, and returns' },
   'staff-pickleball': { title: 'Pickle Ball Court Management', subtitle: 'Manage court bookings, equipment, and customer reservations' },
-  'staff-billing': { title: 'Payments', subtitle: 'Invoices & transactions' },
+  'staff-billing': { title: 'Billing', subtitle: 'Invoices & statements' },
+  'staff-payments': { title: 'Payments', subtitle: 'Transactions & receipts' },
   'staff-customers': { title: 'Customer Records', subtitle: 'View and manage guest profiles' },
   'admin-dashboard': { title: 'Admin Dashboard', subtitle: 'Full system overview' },
   'admin-bookings': { title: 'Bookings', subtitle: 'Manage all reservations' },
@@ -96,8 +102,11 @@ const VIEW_TITLES: Partial<Record<View, { title: string; subtitle?: string }>> =
   'admin-rooms': { title: 'Room Management', subtitle: 'Manage rooms and availability' },
   'admin-guests': { title: 'Guests', subtitle: 'Manage guest profiles and stay history' },
   'admin-services': { title: 'Services & Motor Rent', subtitle: 'Manage motorcycle fleet, hotel services, and amenities' },
-  'admin-reports': { title: 'Reports', subtitle: 'Revenue, bookings, and analytics' },
+  'admin-reports': { title: 'Reports & Analytics', subtitle: 'Financial and operational insights' },
   'admin-audit': { title: 'Audit Log', subtitle: 'System activity history' },
+  'admin-reviews': { title: 'Guest Reviews', subtitle: 'Manage and moderate guest feedback' },
+  'admin-promos': { title: 'Promo & Discounts', subtitle: 'Manage seasonal discounts and coupon codes' },
+  'customer-reviews': { title: 'My Reviews', subtitle: 'Your experience and feedback' },
 }
 
 const DEFAULT_VIEW: Record<Role, View> = {
@@ -112,6 +121,7 @@ interface AuthState {
   userId: string
   dbId: number
   mustChangePassword: boolean
+  photoUrl?: string | null
 }
 
 export default function App() {
@@ -136,6 +146,7 @@ export default function App() {
           userId: user.unique_id,
           dbId: user.id,
           mustChangePassword: Boolean(user.must_change_password),
+          photoUrl: user.profile_photo_url,
         })
         setView(DEFAULT_VIEW[user.role])
       })
@@ -157,8 +168,8 @@ export default function App() {
     return () => window.removeEventListener('auth:expired', handleExpired)
   }, [])
 
-  const handleLogin = useCallback((role: Role, name: string, userId: string, dbId: number, mustChangePassword = false) => {
-    setAuth({ role, name, userId, dbId, mustChangePassword })
+  const handleLogin = useCallback((role: Role, name: string, userId: string, dbId: number, mustChangePassword = false, photoUrl?: string | null) => {
+    setAuth({ role, name, userId, dbId, mustChangePassword, photoUrl })
     setView(DEFAULT_VIEW[role])
   }, [])
 
@@ -235,7 +246,7 @@ export default function App() {
     switch (view) {
       // Customer
       case 'customer-dashboard':
-        return <CustomerDashboard onNavigate={navigate} userName={name} userId={userId} />
+        return <CustomerDashboard onNavigate={navigate} userName={name} userId={userId} photoUrl={auth.photoUrl} />
       case 'customer-rooms':
         return <CustomerRooms customerId={String(dbId)} customerName={name} />
       case 'customer-activities':
@@ -246,18 +257,19 @@ export default function App() {
         return <CustomerPickleball customerId={String(dbId)} customerName={name} />
       case 'customer-transactions':
         return <CustomerTransactions />
+      case 'customer-reviews':
+        return <CustomerReviews />
       case 'customer-profile':
         return <CustomerProfile userName={name} userId={userId} onPasswordChanged={handlePasswordChanged} />
 
       // Staff
       case 'staff-dashboard':
-        return <StaffDashboard onNavigate={navigate} userName={name} userId={userId} />
-      case 'staff-approvals':
-        return <StaffApprovals />
+        return <StaffDashboard onNavigate={navigate} userName={name} userId={userId} photoUrl={auth.photoUrl} />
+
       case 'staff-rooms':
         return <StaffRooms />
       case 'staff-checkinout':
-        return <AdminCheckInOut />
+        return <AdminCheckInOut onNavigate={navigate} />
       case 'staff-bookings':
         return <AdminBookings />
       case 'staff-walkin':
@@ -267,19 +279,23 @@ export default function App() {
       case 'staff-pickleball':
         return <StaffPickleball />
       case 'staff-billing':
+        return <AdminBilling />
+      case 'staff-payments':
         return <AdminPayments />
       case 'staff-customers':
         return <StaffCustomers />
       case 'staff-profile':
         return <StaffProfile userName={name} userId={userId} onPasswordChanged={handlePasswordChanged} />
+      case 'staff-housekeeping':
+        return <Housekeeping />
 
       // Admin
       case 'admin-dashboard':
-        return <AdminDashboard onNavigate={navigate} userName={name} />
+        return <AdminDashboard onNavigate={navigate} userName={name} photoUrl={auth.photoUrl} />
       case 'admin-bookings':
         return <AdminBookings />
       case 'admin-checkinout':
-        return <AdminCheckInOut />
+        return <AdminCheckInOut onNavigate={navigate} />
       case 'admin-payments':
         return <AdminPayments />
       case 'admin-users':
@@ -294,8 +310,14 @@ export default function App() {
         return <AdminReports />
       case 'admin-audit':
         return <AdminAuditLog />
+      case 'admin-reviews':
+        return <AdminReviews />
+      case 'admin-promos':
+        return <AdminPromos />
       case 'admin-profile':
         return <AdminProfile userName={name} userId={userId} onPasswordChanged={handlePasswordChanged} />
+      case 'admin-housekeeping':
+        return <Housekeeping />
 
       default:
         return (
@@ -316,6 +338,7 @@ export default function App() {
             role={role}
             userName={name}
             userId={userId}
+            photoUrl={auth.photoUrl}
             notifCount={0}
             onLogout={handleLogout}
             isMobileOpen={mobileMenuOpen}

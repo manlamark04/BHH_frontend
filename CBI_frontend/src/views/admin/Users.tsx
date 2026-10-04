@@ -21,6 +21,7 @@ import {
 import { usersApi } from '../../api/users'
 import StatusBadge from '../../components/StatusBadge'
 import Modal from '../../components/Modal'
+import Avatar from '../../components/Avatar'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import EmptyState from '../../components/EmptyState'
 import { SkeletonTable } from '../../components/SkeletonLoader'
@@ -76,10 +77,10 @@ export default function AdminUsers() {
     const cleanLast = last.trim().toLowerCase().replace(/[^a-z0-9]/g, '')
     if (cleanFirst && cleanLast) {
       setNsUsername(`${cleanFirst}.${cleanLast}`)
-      setNsPassword(`${cleanFirst}123`)
+      setNsPassword(`staff123`)
     } else if (cleanFirst) {
       setNsUsername(`${cleanFirst}`)
-      setNsPassword(`${cleanFirst}123`)
+      setNsPassword(`staff123`)
     }
   }
 
@@ -192,13 +193,11 @@ export default function AdminUsers() {
 
   const handleCreateStaff = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!nsFirstName.trim() || !nsLastName.trim() || !nsEmail.trim() || !nsUsername.trim() || !nsPassword) return
-    if (nsPhone.trim()) {
-      const digits = nsPhone.replace(/\D/g, '')
-      if (!/^09\d{9}$/.test(digits)) {
-        alert('Phone number must be a valid 11-digit Philippine mobile number starting with 09 (e.g. 09171234567).')
-        return
-      }
+    if (!nsFirstName.trim() || !nsLastName.trim() || !nsEmail.trim() || !nsUsername.trim() || !nsPassword || !nsPhone.trim()) return
+    const digits = nsPhone.replace(/\D/g, '')
+    if (!/^09\d{9}$/.test(digits)) {
+      toast.error('Phone number must be a valid 11-digit Philippine mobile number starting with 09 (e.g. 09171234567).', 'Invalid Phone Number')
+      return
     }
     setCreating(true)
     const fullName = [nsFirstName.trim(), nsMiddleName.trim(), nsLastName.trim()].filter(Boolean).join(' ')
@@ -401,9 +400,7 @@ export default function AdminUsers() {
                   <tr key={String(u.id)} className="hover:bg-sand/20 transition-colors">
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-[#6B7A5E]/15 text-[#6B7A5E] font-display font-bold text-sm flex items-center justify-center shrink-0">
-                          {getInitials(name)}
-                        </div>
+                        <Avatar name={name} photoUrl={(u as any).profile_photo_url} size="md" />
                         <div>
                           <p className="font-semibold text-ink text-sm">{name}</p>
                           <p className="text-xs text-ink-muted">{email}</p>
@@ -499,9 +496,7 @@ export default function AdminUsers() {
           <div className="space-y-5 max-h-[75vh] overflow-y-auto pr-1 text-xs font-sans">
             <div className="bg-[#F6F2E8] border border-stone/20 rounded-2xl p-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-[#6B7A5E] text-white font-display text-lg font-bold flex items-center justify-center shadow-sm">
-                  {getInitials(String(viewUser.full_name || viewUser.name || ''))}
-                </div>
+                <Avatar name={String(viewUser.full_name || viewUser.name || '')} photoUrl={(viewUser as any).profile_photo_url} size="xl" />
                 <div>
                   <p className="font-display font-bold text-ink text-lg leading-tight">{String(viewUser.full_name || viewUser.name)}</p>
                   <p className="font-mono text-xs font-bold text-[#6B7A5E]">{String(viewUser.unique_id || viewUser.userId)}</p>
@@ -818,7 +813,7 @@ export default function AdminUsers() {
             </div>
             <div>
               <label className="block font-semibold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider mb-1">
-                Middle Name <span className="text-neutral-400 font-normal lowercase">(opt)</span>
+                Middle Name
               </label>
               <input
                 value={nsMiddleName}
@@ -903,12 +898,20 @@ export default function AdminUsers() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block font-semibold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider mb-1">
-                Phone Number
+                Phone Number *
               </label>
               <input
+                required
+                type="tel"
+                maxLength={11}
                 value={nsPhone}
-                onChange={(e) => setNsPhone(e.target.value)}
-                placeholder="e.g. 0917-123-4567"
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, '');
+                  if (val.length <= 11) {
+                    setNsPhone(val);
+                  }
+                }}
+                placeholder="e.g. 09171234567"
                 className="w-full px-3.5 py-2.5 rounded-xl border border-black/[0.12] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
               />
             </div>
@@ -940,9 +943,6 @@ export default function AdminUsers() {
                 placeholder="e.g. maria.delacruz"
                 className="w-full px-3.5 py-2.5 rounded-xl border border-black/[0.12] dark:border-neutral-700 bg-neutral-50 dark:bg-[#20252E] text-neutral-900 dark:text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
               />
-              <p className="text-[10px] text-neutral-400 mt-1">
-                Auto-formatted: <span className="font-mono text-[#6B7A5E]">firstname.lastname</span>
-              </p>
             </div>
             <div>
               <label className="block font-semibold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider mb-1">
@@ -953,12 +953,9 @@ export default function AdminUsers() {
                 type="text"
                 value={nsPassword}
                 onChange={(e) => setNsPassword(e.target.value)}
-                placeholder="e.g. maria123"
+                placeholder="e.g. staff123"
                 className="w-full px-3.5 py-2.5 rounded-xl border border-black/[0.12] dark:border-neutral-700 bg-neutral-50 dark:bg-[#20252E] text-neutral-900 dark:text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
               />
-              <p className="text-[10px] text-neutral-400 mt-1">
-                Auto-formatted: <span className="font-mono text-[#6B7A5E]">firstname123</span>
-              </p>
             </div>
           </div>
 
@@ -972,7 +969,7 @@ export default function AdminUsers() {
             </button>
             <button
               type="submit"
-              disabled={creating || !nsFirstName || !nsLastName || !nsEmail || !nsUsername || !nsPassword}
+              disabled={creating || !nsFirstName || !nsLastName || !nsEmail || !nsUsername || !nsPassword || !nsPhone}
               className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl font-semibold shadow-xs disabled:opacity-50 transition-all cursor-pointer flex items-center justify-center gap-1.5"
             >
               <UserPlus className="w-4 h-4" />

@@ -186,10 +186,36 @@ export const OfficialReceiptModal: React.FC<OfficialReceiptModalProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-200">
-                <tr>
-                  <td className="px-3.5 py-2 text-neutral-700">Total Billed Charge</td>
+                {receipt.items && receipt.items.length > 0 ? (
+                  receipt.items.map((item, idx) => (
+                    <tr key={idx}>
+                      <td className="px-3.5 py-2 text-neutral-700">
+                        <div className="flex justify-between items-center w-full">
+                          <span>
+                            {item.name} {item.variant && <span className="text-[10px] text-neutral-500">({item.variant})</span>}
+                            <span className="text-[10px] text-neutral-400 ml-1">x{item.quantity}</span>
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-3.5 py-2 text-right font-medium text-neutral-900">₱{Number(item.total).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    </tr>
+                  ))
+                ) : null}
+                <tr className={receipt.items && receipt.items.length > 0 ? "bg-neutral-50/50" : ""}>
+                  <td className="px-3.5 py-2 text-neutral-800 font-bold">Total Billed Charge</td>
                   <td className="px-3.5 py-2 text-right font-bold text-neutral-900">₱{Number(receipt.total_amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                 </tr>
+
+                {Number(receipt.discount_amount) > 0 && (
+                  <tr>
+                    <td className="px-3.5 py-2 text-emerald-700 font-semibold text-[11px]">
+                      Promo Applied: {receipt.promo_code}
+                    </td>
+                    <td className="px-3.5 py-2 text-right text-emerald-700 font-semibold">
+                      -₱{Number(receipt.discount_amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </td>
+                  </tr>
+                )}
 
                 {Number(receipt.previous_paid) > 0 && (
                   <tr>

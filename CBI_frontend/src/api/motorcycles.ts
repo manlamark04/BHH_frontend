@@ -35,7 +35,7 @@ export interface MotorRental {
   late_fee_waived?: boolean
   late_fee_waiver_reason?: string
   final_amount: number
-  status: 'PENDING_APPROVAL' | 'PENDING_PAYMENT' | 'PENDING' | 'RESERVED' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED' | 'REJECTED' | 'OVERDUE' | string
+  status: 'PENDING_PAYMENT' | 'PENDING' | 'RESERVED' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED' | 'REJECTED' | 'OVERDUE' | string
   notes?: string
   brand?: string
   model?: string

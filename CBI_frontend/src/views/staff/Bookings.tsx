@@ -33,7 +33,7 @@ const REJECTION_REASONS = [
 
 export default function StaffBookings() {
   const [bookings, setBookings] = useState<BookingItem[]>([])
-  const [activeTab, setActiveTab] = useState<'pending_approval' | 'pending_payment' | 'all'>('pending_approval')
+  const [activeTab, setActiveTab] = useState<'pending_payment' | 'all'>('pending_payment')
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('All')
   const [loading, setLoading] = useState(true)
@@ -62,18 +62,7 @@ export default function StaffBookings() {
   // No-Show Modal State
   const [noShowBooking, setNoShowBooking] = useState<BookingItem | null>(null)
   const [noShowReason, setNoShowReason] = useState('Guest failed to arrive/check in on scheduled check-in date')
-  const [noShowCustomFee, setNoShowCustomFee] = useState('')
-  const [noShowWaiveFee, setNoShowWaiveFee] = useState(false)
   const [noShowSubmitting, setNoShowSubmitting] = useState(false)
-
-  // Waive Fee Modal State
-  const [waivingBooking, setWaivingBooking] = useState<BookingItem | null>(null)
-  const [waiverReason, setWaiverReason] = useState('')
-  const [waiverNewFee, setWaiverNewFee] = useState('0')
-  const [waiverSubmitting, setWaiverSubmitting] = useState(false)
-
-  // Sweeper State
-  const [sweepingNoShows, setSweepingNoShows] = useState(false)
 
   // Toast Notification
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
@@ -101,10 +90,6 @@ export default function StaffBookings() {
   }, [])
 
   // Partitioned Bookings
-  const pendingApprovals = useMemo(() => {
-    return bookings.filter((b) => String(b.status).toUpperCase() === 'PENDING_APPROVAL')
-  }, [bookings])
-
   const awaitingPayments = useMemo(() => {
     return bookings.filter((b) => {
       const s = String(b.status).toUpperCase()
@@ -115,9 +100,7 @@ export default function StaffBookings() {
   // Filtered by current tab & search
   const displayedBookings = useMemo(() => {
     let list: BookingItem[] = []
-    if (activeTab === 'pending_approval') {
-      list = pendingApprovals
-    } else if (activeTab === 'pending_payment') {
+    if (activeTab === 'pending_payment') {
       list = awaitingPayments
     } else {
       list = bookings.filter((b) => {
@@ -138,7 +121,7 @@ export default function StaffBookings() {
         String(b.room_type || '').toLowerCase().includes(q)
       )
     })
-  }, [bookings, activeTab, pendingApprovals, awaitingPayments, search, statusFilter])
+  }, [bookings, activeTab, awaitingPayments, search, statusFilter])
 
   // Approve Handler
   const handleApprove = async () => {
@@ -225,14 +208,12 @@ export default function StaffBookings() {
     }
   }
 
-  // Mark as No-Show Handler
+  // Mark as No-Show Handler (no fee charged)
   const handleMarkNoShow = async () => {
     if (!noShowBooking) return
     setNoShowSubmitting(true)
     try {
-      const feeVal = noShowWaiveFee ? 0 : (noShowCustomFee !== '' ? parseFloat(noShowCustomFee) : undefined)
       const res = await bookingsApi.markNoShow(noShowBooking.id, {
-        custom_fee: feeVal,
         reason: noShowReason,
       })
       showToast('success', res.message || `Booking marked as No-Show. Room ${res.room_number} released.`)
@@ -242,44 +223,6 @@ export default function StaffBookings() {
       showToast('error', err instanceof Error ? err.message : 'Failed to mark as No-Show.')
     } finally {
       setNoShowSubmitting(false)
-    }
-  }
-
-  // Waive No-Show Fee Handler
-  const handleWaiveFee = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!waivingBooking) return
-    if (!waiverReason.trim()) {
-      alert('A justification reason is required to waive or adjust the no-show fee.')
-      return
-    }
-    setWaiverSubmitting(true)
-    try {
-      const res = await bookingsApi.waiveNoShowFee(waivingBooking.id, {
-        reason: waiverReason.trim(),
-        new_fee: parseFloat(waiverNewFee) || 0,
-      })
-      showToast('success', res.message || 'No-Show fee adjusted successfully.')
-      setWaivingBooking(null)
-      loadBookings()
-    } catch (err) {
-      showToast('error', err instanceof Error ? err.message : 'Failed to waive fee.')
-    } finally {
-      setWaiverSubmitting(false)
-    }
-  }
-
-  // Trigger Midnight Sweeper Handler
-  const handleSweepNoShows = async () => {
-    setSweepingNoShows(true)
-    try {
-      const res = await bookingsApi.processNoShows()
-      showToast('success', res.message || `Sweeper checked reservations. Processed ${res.processed_count} no-shows.`)
-      loadBookings()
-    } catch (err) {
-      showToast('error', err instanceof Error ? err.message : 'Failed to execute no-show sweeper.')
-    } finally {
-      setSweepingNoShows(false)
     }
   }
 
@@ -304,11 +247,6 @@ export default function StaffBookings() {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="font-display text-lg sm:text-xl font-bold text-neutral-900 dark:text-white tracking-tight">Booking Approvals & Ledger</h1>
-            {pendingApprovals.length > 0 && (
-              <span className="bg-indigo-600 text-white font-mono text-[10px] font-bold px-2 py-0.5 rounded-full shadow-xs animate-pulse">
-                {pendingApprovals.length} Action Needed
-              </span>
-            )}
           </div>
           <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
             Strict State Machine Lifecycle: Verified Payment Gate → Staff Approval → Active Reservation
@@ -316,39 +254,11 @@ export default function StaffBookings() {
         </div>
 
         <div className="flex items-center gap-2 self-start sm:self-auto">
-          <button
-            onClick={handleSweepNoShows}
-            disabled={sweepingNoShows}
-            className="px-3 py-1.5 bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer hover:bg-purple-100 transition-colors"
-            title="Auto-detect and process reservations past scheduled check-in midnight cutoff"
-          >
-            <Clock className={`w-3.5 h-3.5 ${sweepingNoShows ? 'animate-spin' : ''}`} />
-            <span>{sweepingNoShows ? 'Sweeping...' : 'Check No-Shows Now'}</span>
-          </button>
         </div>
       </div>
 
       {/* ─── 2. LIFECYCLE TABS ─── */}
       <div className="flex flex-wrap items-center gap-1.5 border-b border-black/[0.06] dark:border-neutral-800 pb-2.5">
-        <button
-          onClick={() => setActiveTab('pending_approval')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-            activeTab === 'pending_approval'
-              ? 'bg-indigo-600 text-white shadow-xs'
-              : 'bg-white dark:bg-[#181B20] text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white border border-black/[0.06] dark:border-neutral-800'
-          }`}
-        >
-          <ShieldCheck className="w-3.5 h-3.5" />
-          <span>Pending Approvals</span>
-          <span
-            className={`font-mono text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-              activeTab === 'pending_approval' ? 'bg-white/20 text-white' : 'bg-indigo-100 text-indigo-800'
-            }`}
-          >
-            {pendingApprovals.length}
-          </span>
-        </button>
-
         <button
           onClick={() => setActiveTab('pending_payment')}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
@@ -407,7 +317,7 @@ export default function StaffBookings() {
             className="px-4 py-2.5 rounded-xl border border-stone/30 bg-[#F6F2E8] text-xs focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40 font-semibold"
           >
             <option value="All">All Statuses</option>
-            <option value="pending_approval">Pending Approval</option>
+
             <option value="pending_payment">Pending Payment</option>
             <option value="confirmed">Confirmed</option>
             <option value="checked_in">Checked In</option>
@@ -417,136 +327,6 @@ export default function StaffBookings() {
           </select>
         )}
       </div>
-
-      {/* ─── TAB 1: PENDING APPROVALS QUEUE (Paid & Reviewable) ─── */}
-      {activeTab === 'pending_approval' && (
-        <div className="space-y-4">
-          <div className="bg-indigo-50/60 border border-indigo-200/60 rounded-2xl p-4 flex items-start gap-3">
-            <Info className="w-5 h-5 text-indigo-600 shrink-0 mt-0.5" />
-            <div className="text-xs text-indigo-950">
-              <p className="font-bold text-indigo-900">Dedicated Staff Review Queue</p>
-              <p className="mt-0.5 text-indigo-800">
-                All requests in this queue have already passed the payment gate with confirmed deposit or full payment.
-                Review the room dates and payment proof below, then single-click <strong>Approve</strong> to lock the room or{' '}
-                <strong>Reject</strong> to decline and initiate a refund.
-              </p>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl border border-stone/20 shadow-xs overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead>
-                  <tr className="border-b border-stone/20 bg-sand/30 text-[10px] uppercase font-bold text-ink-muted tracking-wider">
-                    <th className="px-5 py-3.5">REF & GUEST</th>
-                    <th className="px-5 py-3.5">ROOM & DATES</th>
-                    <th className="px-5 py-3.5">PAYMENT PROOF</th>
-                    <th className="px-5 py-3.5">AMOUNT PAID</th>
-                    <th className="px-5 py-3.5">SUBMITTED</th>
-                    <th className="px-5 py-3.5 text-right">STAFF ACTIONS</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-stone/15">
-                  {displayedBookings.map((b) => (
-                    <tr key={b.id} className="hover:bg-indigo-50/30 transition-colors">
-                      {/* Ref & Guest */}
-                      <td className="px-5 py-4">
-                        <div className="font-mono font-bold text-xs text-indigo-700">{b.booking_ref || `BK-${b.id}`}</div>
-                        <div className="font-semibold text-ink text-xs mt-0.5">{b.customer_name}</div>
-                        <div className="text-[11px] text-ink-muted">{b.customer_phone || b.customer_email || 'No contact'}</div>
-                      </td>
-
-                      {/* Room & Dates */}
-                      <td className="px-5 py-4">
-                        <div className="font-semibold text-ink flex items-center gap-1.5">
-                          <span>{b.room_type} <span className="font-mono text-xs text-ink-muted">({b.room_number})</span></span>
-                          {b.booking_type === 'short_time' && (
-                            <span className="px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 text-[9px] font-bold border border-amber-200">
-                              ⏱ Short Time
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-[11px] text-ink-muted font-mono mt-0.5">
-                          {b.booking_type === 'short_time'
-                            ? `${b.check_in} · ${b.duration_hours || b.nights || 3} hr(s)`
-                            : `${b.check_in} → ${b.check_out} (${b.nights}n)`
-                          }
-                        </div>
-                      </td>
-
-                      {/* Payment Proof Badge */}
-                      <td className="px-5 py-4">
-                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 font-mono text-[11px] font-semibold">
-                          <CreditCard className="w-3.5 h-3.5 text-emerald-600" />
-                          <span className="capitalize">{b.latest_payment_method || 'Verified'}</span>
-                          {b.latest_payment_notes && (
-                            <span className="text-[10px] text-emerald-600 truncate max-w-[120px]">({b.latest_payment_notes})</span>
-                          )}
-                        </div>
-                      </td>
-
-                      {/* Amount Paid */}
-                      <td className="px-5 py-4">
-                        <div className="font-mono font-bold text-xs text-emerald-700">
-                          ₱{Number(b.amount_paid).toLocaleString()}
-                        </div>
-                        <div className="text-[10px] text-ink-muted">
-                          Total: ₱{Number(b.total_price).toLocaleString()}
-                          {Number(b.remaining_balance) > 0 && (
-                            <span className="text-amber-700 ml-1">(Bal: ₱{Number(b.remaining_balance).toLocaleString()})</span>
-                          )}
-                        </div>
-                      </td>
-
-                      {/* Timestamp */}
-                      <td className="px-5 py-4 text-ink-muted text-[11px] font-mono">
-                        {b.created_at ? new Date(b.created_at).toLocaleString() : '—'}
-                      </td>
-
-                      {/* Action Buttons */}
-                      <td className="px-5 py-4 text-right">
-                        <div className="flex gap-2 justify-end">
-                          <button
-                            onClick={() => setApprovingBooking(b)}
-                            className="inline-flex items-center gap-1.5 text-xs bg-emerald-700 hover:bg-emerald-800 text-white px-3.5 py-1.5 rounded-lg shadow-xs font-semibold transition-all cursor-pointer"
-                          >
-                            <CheckCircle2 className="w-3.5 h-3.5" />
-                            Approve
-                          </button>
-                          <button
-                            onClick={() => setRejectingBooking(b)}
-                            className="inline-flex items-center gap-1.5 text-xs border border-rose-300 text-rose-700 bg-rose-50/50 hover:bg-rose-100/80 px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer"
-                          >
-                            <XCircle className="w-3.5 h-3.5" />
-                            Reject
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {loading && (
-              <div className="text-center py-16 text-ink-muted text-xs">
-                <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-                <p>Loading approval queue...</p>
-              </div>
-            )}
-
-            {!loading && displayedBookings.length === 0 && (
-              <div className="text-center py-16 text-ink-muted text-xs">
-                <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-200 flex items-center justify-center mx-auto mb-3 text-indigo-600">
-                  <ShieldCheck className="w-6 h-6" strokeWidth={1.5} />
-                </div>
-                <p className="font-display font-bold text-ink text-sm">Approval Queue is Clear!</p>
-                <p className="text-ink-muted text-xs mt-1">No paid bookings are currently awaiting staff review.</p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* ─── TAB 2: AWAITING PAYMENT (Unpaid Requests) ─── */}
       {activeTab === 'pending_payment' && (
@@ -607,14 +387,25 @@ export default function StaffBookings() {
                       </td>
                       <td className="px-5 py-4 text-right">
                         <div className="flex gap-2 justify-end items-center">
-                          {/* Disabled approval button showing clear reason */}
                           <button
-                            disabled
-                            title="Cannot approve: Payment must be recorded first."
-                            className="inline-flex items-center gap-1.5 text-xs bg-stone-100 text-stone-400 border border-stone-200 px-3 py-1.5 rounded-lg font-medium cursor-not-allowed"
+                            onClick={() => setPayingBooking(b)}
+                            className="inline-flex items-center gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg font-semibold transition-colors shadow-sm cursor-pointer"
+                            title="Guest arrived - Proceed to record payment"
+                          >
+                            <User className="w-3.5 h-3.5" />
+                            Customer Arrived
+                          </button>
+                          
+                          <button
+                            onClick={() => {
+                              setNoShowBooking(b)
+                              setNoShowReason('Guest failed to arrive/check in on scheduled check-in date')
+                            }}
+                            className="inline-flex items-center gap-1.5 text-xs bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 px-3 py-1.5 rounded-lg font-semibold transition-colors cursor-pointer"
+                            title="Mark guest as No-Show"
                           >
                             <Ban className="w-3.5 h-3.5" />
-                            Awaiting Payment
+                            Mark No-Show
                           </button>
                         </div>
                       </td>
@@ -694,11 +485,6 @@ export default function StaffBookings() {
                       <td className="px-5 py-4 font-mono text-xs text-emerald-700">₱{Number(b.amount_paid).toLocaleString()}</td>
                       <td className="px-5 py-4">
                         <StatusBadge status={status} />
-                        {status === 'NO_SHOW' && Number(b.no_show_fee || 0) > 0 && (
-                          <div className="text-[10px] text-purple-700 font-bold mt-0.5">
-                            Fee: ₱{Number(b.no_show_fee).toLocaleString()}
-                          </div>
-                        )}
                         {b.rejection_reason && (
                           <div className="text-[10px] text-rose-600 mt-1 truncate max-w-[150px]" title={b.rejection_reason}>
                             Reason: {b.rejection_reason}
@@ -707,47 +493,17 @@ export default function StaffBookings() {
                       </td>
                       <td className="px-5 py-4 text-right">
                         <div className="flex gap-1.5 justify-end">
-                          {status === 'PENDING_APPROVAL' && (
-                            <>
-                              <button
-                                onClick={() => setApprovingBooking(b)}
-                                className="text-[11px] bg-emerald-700 hover:bg-emerald-800 text-white px-2.5 py-1 rounded-md font-semibold cursor-pointer"
-                              >
-                                Approve
-                              </button>
-                              <button
-                                onClick={() => setRejectingBooking(b)}
-                                className="text-[11px] border border-rose-300 text-rose-700 bg-rose-50 px-2.5 py-1 rounded-md font-semibold cursor-pointer"
-                              >
-                                Reject
-                              </button>
-                            </>
-                          )}
+
                           {(status === 'CONFIRMED' || status === 'APPROVED') && (
                             <button
                               onClick={() => {
                                 setNoShowBooking(b)
                                 setNoShowReason('Guest failed to arrive/check in on scheduled check-in date')
-                                setNoShowCustomFee('')
-                                setNoShowWaiveFee(false)
                               }}
                               className="text-[11px] bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 px-2.5 py-1 rounded-md font-semibold cursor-pointer flex items-center gap-1"
                               title="Mark guest as No-Show & release room"
                             >
                               <span>No-Show</span>
-                            </button>
-                          )}
-                          {status === 'NO_SHOW' && Number(b.no_show_fee || 0) > 0 && (
-                            <button
-                              onClick={() => {
-                                setWaivingBooking(b)
-                                setWaiverReason('')
-                                setWaiverNewFee('0')
-                              }}
-                              className="text-[11px] bg-neutral-100 hover:bg-neutral-200 text-neutral-700 border border-neutral-300 px-2.5 py-1 rounded-md font-semibold cursor-pointer"
-                              title="Waive or adjust no-show penalty fee"
-                            >
-                              Waive Fee
                             </button>
                           )}
                         </div>
@@ -954,10 +710,10 @@ export default function StaffBookings() {
           <div className="space-y-4 text-xs">
             <div className="p-3.5 bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 rounded-xl text-purple-950 dark:text-purple-100">
               <p className="font-bold text-purple-900 dark:text-purple-300">
-                No-Show Penalty Notice
+                No-Show Notice
               </p>
               <p className="mt-1 text-[11px] leading-relaxed">
-                Guest <strong className="text-purple-950 dark:text-white">{noShowBooking.customer_name}</strong> did not check in for <strong>Room {noShowBooking.room_number}</strong> ({noShowBooking.room_type}). Marking as No-Show will immediately release Room {noShowBooking.room_number} back to <strong className="text-emerald-700 dark:text-emerald-400">Available</strong> and apply a No-Show Service Fee.
+                Guest <strong className="text-purple-950 dark:text-white">{noShowBooking.customer_name}</strong> did not check in for <strong>Room {noShowBooking.room_number}</strong> ({noShowBooking.room_type}). Marking as No-Show will immediately release Room {noShowBooking.room_number} back to <strong className="text-emerald-700 dark:text-emerald-400">Available</strong>. No penalty fee will be charged.
               </p>
             </div>
 
@@ -992,40 +748,6 @@ export default function StaffBookings() {
               />
             </div>
 
-            <div className="pt-1">
-              <label className="flex items-center gap-2 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={noShowWaiveFee}
-                  onChange={(e) => setNoShowWaiveFee(e.target.checked)}
-                  className="rounded border-neutral-300 text-purple-600 focus:ring-purple-500"
-                />
-                <span className="font-semibold text-neutral-700 dark:text-neutral-300 text-xs">
-                  Waive No-Show Fee entirely (Charge ₱0.00)
-                </span>
-              </label>
-            </div>
-
-            {!noShowWaiveFee && (
-              <div>
-                <label className="block font-bold text-neutral-700 dark:text-neutral-300 mb-1">
-                  Custom Fee (Optional — leave blank for standard 20% fee)
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 font-bold">₱</span>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    placeholder="Auto (20% of booking)"
-                    value={noShowCustomFee}
-                    onChange={(e) => setNoShowCustomFee(e.target.value)}
-                    className="w-full pl-7 pr-3 py-2 rounded-lg border border-black/[0.1] dark:border-neutral-700 bg-white dark:bg-neutral-800 text-xs focus:outline-none focus:ring-1 focus:ring-purple-600 font-mono"
-                  />
-                </div>
-              </div>
-            )}
-
             <div className="flex justify-end gap-2 pt-2 border-t border-black/[0.06] dark:border-neutral-800">
               <button
                 type="button"
@@ -1044,80 +766,6 @@ export default function StaffBookings() {
               </button>
             </div>
           </div>
-        )}
-      </Modal>
-
-      {/* ─── MODAL 6: WAIVE / ADJUST NO-SHOW FEE ─── */}
-      <Modal
-        isOpen={!!waivingBooking}
-        onClose={() => setWaivingBooking(null)}
-        title="Waive / Adjust No-Show Service Fee"
-        size="md"
-      >
-        {waivingBooking && (
-          <form onSubmit={handleWaiveFee} className="space-y-4 text-xs">
-            <div className="p-3 bg-neutral-50 dark:bg-neutral-800/40 rounded-xl border border-black/[0.05] dark:border-neutral-700 space-y-1">
-              <div className="flex justify-between">
-                <span className="text-neutral-500">Booking:</span>
-                <span className="font-mono font-bold text-neutral-900 dark:text-white">{waivingBooking.booking_ref}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-neutral-500">Guest:</span>
-                <span className="font-semibold text-neutral-900 dark:text-white">{waivingBooking.customer_name}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-neutral-500">Current No-Show Fee:</span>
-                <span className="font-bold text-purple-700 dark:text-purple-400">₱{Number(waivingBooking.no_show_fee || 0).toLocaleString()}</span>
-              </div>
-            </div>
-
-            <div>
-              <label className="block font-bold text-neutral-700 dark:text-neutral-300 mb-1">
-                New Fee Amount (₱) <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                required
-                value={waiverNewFee}
-                onChange={(e) => setWaiverNewFee(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-black/[0.1] dark:border-neutral-700 bg-white dark:bg-neutral-800 text-xs focus:outline-none focus:ring-1 focus:ring-[#6B7A5E] font-mono"
-              />
-              <span className="text-[10px] text-neutral-500 mt-0.5 block">Set to 0 to waive the entire penalty fee.</span>
-            </div>
-
-            <div>
-              <label className="block font-bold text-neutral-700 dark:text-neutral-300 mb-1">
-                Justification / Reason for Waiver <span className="text-rose-500">*</span>
-              </label>
-              <textarea
-                rows={3}
-                required
-                placeholder="e.g., Guest called explaining flight cancellation due to severe typhoon..."
-                value={waiverReason}
-                onChange={(e) => setWaiverReason(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-black/[0.1] dark:border-neutral-700 bg-white dark:bg-neutral-800 text-xs focus:outline-none focus:ring-1 focus:ring-[#6B7A5E]"
-              />
-            </div>
-
-            <div className="flex justify-end gap-2 pt-2 border-t border-black/[0.06] dark:border-neutral-800">
-              <button
-                type="button"
-                onClick={() => setWaivingBooking(null)}
-                className="px-4 py-2 rounded-lg text-xs font-semibold text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={waiverSubmitting}
-                className="px-4 py-2 rounded-lg text-xs font-semibold bg-[#6B7A5E] hover:bg-[#56624B] text-white shadow-xs transition-colors"
-              >
-                {waiverSubmitting ? 'Saving...' : 'Confirm Waiver & Log Audit'}
-              </button>
-            </div>
-          </form>
         )}
       </Modal>
 

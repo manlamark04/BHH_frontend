@@ -13,7 +13,7 @@ import {
   HelpCircle,
   ArrowRight,
   Info,
-  Printer,
+  Printer
 } from 'lucide-react'
 import { billingApi } from '../../api/billing'
 import { bookingsApi, type BookingItem } from '../../api/bookings'
@@ -30,7 +30,7 @@ export default function CustomerTransactions() {
   const [selectedVoucher, setSelectedVoucher] = useState<BookingVoucherData | null>(null)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('All')
-  const [activeTab, setActiveTab] = useState<'bills' | 'bookings'>('bookings')
+  const [activeTab, setActiveTab] = useState<'bookings' | 'bills'>('bookings')
   const [loading, setLoading] = useState(true)
 
   // Payment Instruction Modal
@@ -40,7 +40,7 @@ export default function CustomerTransactions() {
     setLoading(true)
     Promise.all([
       billingApi.getMyBills().catch(() => []),
-      bookingsApi.getMyBookings().catch(() => []),
+      bookingsApi.getMyBookings().catch(() => [])
     ]).then(([billsData, bkgsData]) => {
       setBills(billsData as Record<string, unknown>[])
       setBookings(bkgsData as BookingItem[])
@@ -204,7 +204,7 @@ export default function CustomerTransactions() {
             {filteredBookings.map((b) => {
               const status = String(b.status || '').toUpperCase()
               const isPendingPay = status === 'PENDING_PAYMENT' || status === 'REQUESTED' || status === 'PENDING'
-              const isPendingApprove = status === 'PENDING_APPROVAL'
+              const isPendingApprove = false
               const isConfirmed = status === 'CONFIRMED' || status === 'CHECKED_IN' || status === 'CHECKED_OUT'
               const isRejected = status === 'REJECTED'
               const isCancelled = status === 'CANCELLED'
@@ -372,15 +372,9 @@ export default function CustomerTransactions() {
                         <span>Reservation Flagged as No-Show</span>
                       </div>
                       <div className="pl-6 text-[11px] text-purple-800 dark:text-purple-300">
-                        {cancellationFee > 0 ? (
-                          <p>
-                            No-Show service fee: <strong className="font-mono font-bold">₱{cancellationFee.toLocaleString()}</strong>. Unclaimed room was automatically released back to inventory.
-                          </p>
-                        ) : (
-                          <p>
-                            No-Show logged. Service fee was waived (₱0.00). Room was released back to inventory.
-                          </p>
-                        )}
+                        <p>
+                          No-Show logged. Room was released back to inventory. No penalty fee will be charged.
+                        </p>
                       </div>
                     </div>
                   )}

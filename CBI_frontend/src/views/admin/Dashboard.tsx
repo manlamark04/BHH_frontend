@@ -18,6 +18,9 @@ import {
   PieChart,
   Pie,
   Cell,
+  BarChart,
+  Bar,
+  Legend
 } from 'recharts'
 import {
   Search,
@@ -38,12 +41,14 @@ import {
   Users,
 } from 'lucide-react'
 import StatusBadge from '../../components/StatusBadge'
+import Avatar from '../../components/Avatar'
 import Modal from '../../components/Modal'
 import NotificationCenter from '../../components/NotificationCenter'
 
 interface AdminDashboardProps {
   onNavigate: (view: View) => void
   userName?: string
+  photoUrl?: string | null
 }
 
 interface DashboardData {
@@ -65,6 +70,8 @@ interface DashboardData {
   upcoming_arrivals: Record<string, unknown>[]
   recent_bookings: Record<string, unknown>[]
   notifications: { id: string; type: string; title: string; message: string; time: string }[]
+  revenue_breakdown?: { name: string; value: number }[]
+  bookings_30days?: { date_str: string; bookings: number }[]
 }
 
 const ROOM_STATUS_COLORS: Record<string, string> = {
@@ -74,7 +81,7 @@ const ROOM_STATUS_COLORS: Record<string, string> = {
   Maintenance: '#EF4444', // red
 }
 
-export default function AdminDashboard({ onNavigate, userName = 'Alexandra Reyes' }: AdminDashboardProps) {
+export default function AdminDashboard({ onNavigate, userName = 'Alexandra Reyes', photoUrl }: AdminDashboardProps) {
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
@@ -116,7 +123,7 @@ export default function AdminDashboard({ onNavigate, userName = 'Alexandra Reyes
     // Preload rooms & customers for quick booking
     roomsApi.getRooms().then(setRooms).catch(() => {})
     usersApi.getCustomers().then((res) => {
-      setCustomers((res as { customers?: Record<string, unknown>[] }).customers || [])
+      setCustomers((Array.isArray(res) ? res : []) as Record<string, unknown>[])
     }).catch(() => {})
   }
 
@@ -275,9 +282,7 @@ export default function AdminDashboard({ onNavigate, userName = 'Alexandra Reyes
                 onClick={() => setShowProfileMenu(!showProfileMenu)}
                 className="flex items-center gap-2.5 p-1 pr-3 rounded-xl border border-black/[0.08] hover:border-[#6B7A5E]/40 bg-white transition-all text-left shadow-xs"
               >
-                <div className="w-7 h-7 rounded-lg bg-[#6B7A5E] text-white font-bold text-xs flex items-center justify-center shadow-xs">
-                  {userName.charAt(0)}
-                </div>
+                <Avatar name={userName} photoUrl={photoUrl} size="sm" />
                 <div className="hidden md:block">
                   <p className="text-xs font-semibold leading-tight truncate max-w-[100px] text-neutral-900">{userName}</p>
                   <p className="text-[10px] text-neutral-400 leading-none">General Manager</p>
@@ -531,6 +536,90 @@ export default function AdminDashboard({ onNavigate, userName = 'Alexandra Reyes
 
         </div>
 
+        {/* ─── NEW SECTION: REVENUE BREAKDOWN + 30-DAY BOOKINGS ─── */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5">
+            
+          {/* Revenue Breakdown (Donut/Pie) - 5 Cols */}
+          <div className={`lg:col-span-5 p-4.5 sm:p-5 rounded-xl border shadow-[0_1px_3px_rgba(0,0,0,0.04)] flex flex-col justify-between ${
+            darkMode ? 'bg-[#181B20] border-slate-800' : 'bg-white border-black/[0.07]'
+          }`}>
+            <div className="mb-1">
+              <h3 className="font-display text-base font-bold leading-tight text-neutral-900">Revenue Breakdown</h3>
+              <p className="text-xs text-neutral-500 mt-0.5">Distribution by service category</p>
+            </div>
+
+            <div className="flex items-center justify-center my-2 h-56">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={data?.revenue_breakdown || [{ name: 'Rooms', value: 100 }]}
+                    cx="50%"
+                    cy="45%"
+                    innerRadius={50}
+                    outerRadius={70}
+                    paddingAngle={3}
+                    dataKey="value"
+                  >
+                    <Cell fill="#6B7A5E" /> {/* Rooms */}
+                    <Cell fill="#C9A66B" /> {/* Motorcycles */}
+                    <Cell fill="#3B82F6" /> {/* Activities */}
+                  </Pie>
+                  <Tooltip 
+                    formatter={(value: unknown, name: unknown) => [`₱${Number(value || 0).toLocaleString()}`, String(name)]}
+                    contentStyle={{
+                      backgroundColor: darkMode ? '#1E293B' : '#FFFFFF',
+                      borderColor: 'rgba(0,0,0,0.08)',
+                      borderRadius: '10px',
+                      fontSize: '11px',
+                    }}
+                  />
+                  <Legend 
+                    verticalAlign="bottom" 
+                    height={36} 
+                    iconType="circle"
+                    wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* 30-Day Booking Trends (Bar Chart) - 7 Cols */}
+          <div className={`lg:col-span-7 p-4.5 sm:p-5 rounded-xl border shadow-[0_1px_3px_rgba(0,0,0,0.04)] flex flex-col justify-between ${
+            darkMode ? 'bg-[#181B20] border-slate-800' : 'bg-white border-black/[0.07]'
+          }`}>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-3">
+              <div>
+                <h3 className="font-display text-base font-bold leading-tight text-neutral-900">Booking Volume</h3>
+                <p className="text-xs text-neutral-500 mt-0.5">New reservations over the last 30 days</p>
+              </div>
+            </div>
+
+            <div className="h-48 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={data?.bookings_30days || []} margin={{ top: 6, right: 6, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#334155' : '#F1F1F4'} vertical={false} />
+                  <XAxis dataKey="date_str" stroke={darkMode ? '#94A3B8' : '#8E8E93'} fontSize={10} tickLine={false} tickMargin={8} minTickGap={20} />
+                  <YAxis stroke={darkMode ? '#94A3B8' : '#8E8E93'} fontSize={11} tickLine={false} axisLine={false} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: darkMode ? '#1E293B' : '#FFFFFF',
+                      borderColor: 'rgba(0,0,0,0.08)',
+                      borderRadius: '10px',
+                      fontSize: '11px',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
+                    }}
+                    cursor={{ fill: darkMode ? '#334155' : '#F1F5F9' }}
+                    formatter={(value: unknown) => [value, 'Bookings']}
+                  />
+                  <Bar dataKey="bookings" fill="#6B7A5E" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+        </div>
+
         {/* ─── SECTION 3: OPERATIONAL ROW (ARRIVALS + DEPARTURES + UPCOMING) ─── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5">
           
@@ -558,9 +647,7 @@ export default function AdminDashboard({ onNavigate, userName = 'Alexandra Reyes
                     className="p-2.5 rounded-xl bg-neutral-50/70 dark:bg-[#14171C] border border-black/[0.04] dark:border-slate-800 flex items-center justify-between gap-2 text-xs hover:bg-neutral-100/60 dark:hover:bg-[#1A1E24] transition-colors"
                   >
                     <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-7 h-7 rounded-full bg-[#6B7A5E] text-white flex items-center justify-center font-bold text-[11px] shrink-0 shadow-2xs">
-                        {String(a.customer_name || 'G').charAt(0)}
-                      </div>
+                      <Avatar name={a.customer_name || 'G'} photoUrl={(a as any).profile_photo_url} size="sm" />
                       <div className="min-w-0">
                         <p className="font-semibold truncate text-neutral-900 dark:text-white text-xs">{String(a.customer_name)}</p>
                         <p className="text-[11px] text-neutral-500 dark:text-neutral-400 truncate font-mono">
@@ -616,9 +703,7 @@ export default function AdminDashboard({ onNavigate, userName = 'Alexandra Reyes
                     className="p-2.5 rounded-xl bg-neutral-50/70 dark:bg-[#14171C] border border-black/[0.04] dark:border-slate-800 flex items-center justify-between gap-2 text-xs hover:bg-neutral-100/60 dark:hover:bg-[#1A1E24] transition-colors"
                   >
                     <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-7 h-7 rounded-full bg-[#6B7A5E] text-white flex items-center justify-center font-bold text-[11px] shrink-0 shadow-2xs">
-                        {String(d.customer_name || 'G').charAt(0)}
-                      </div>
+                      <Avatar name={d.customer_name || 'G'} photoUrl={(d as any).profile_photo_url} size="sm" />
                       <div className="min-w-0">
                         <p className="font-semibold truncate text-neutral-900 dark:text-white text-xs">{String(d.customer_name)}</p>
                         <p className="text-[11px] text-neutral-500 dark:text-neutral-400 truncate font-mono">

@@ -26,7 +26,7 @@ export interface BookingItem {
   remaining_balance: number
   payment_status: 'PAID' | 'PARTIALLY PAID' | 'PENDING' | 'REFUNDED' | string
   status_raw?: string
-  status: 'PENDING_PAYMENT' | 'PENDING_APPROVAL' | 'CONFIRMED' | 'CHECKED_IN' | 'CHECKED_OUT' | 'CANCELLED' | 'REJECTED' | string
+  status: 'PENDING_PAYMENT' | 'CONFIRMED' | 'CHECKED_IN' | 'CHECKED_OUT' | 'CANCELLED' | 'REJECTED' | string
   notes?: string
   rejection_reason?: string
   rejected_at?: string
@@ -47,6 +47,9 @@ export interface BookingItem {
   latest_payment_notes?: string
   refund_status?: string
   refund_amount?: number
+  is_arrived?: number | boolean
+  discount_amount?: number
+  promo_code?: string
 }
 
 export interface ActivityRentalItem {
@@ -73,7 +76,7 @@ export interface ActivityRentalItem {
   remaining_balance?: number
   payment_status?: string
   status_raw?: string
-  status: 'PENDING_PAYMENT' | 'PENDING_APPROVAL' | 'CONFIRMED' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED' | 'REJECTED' | string
+  status: 'PENDING_PAYMENT' | 'CONFIRMED' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED' | 'REJECTED' | string
   notes?: string
   rejection_reason?: string
   rejected_at?: string
@@ -167,6 +170,10 @@ export const bookingsApi = {
   /** PATCH /api/bookings/:id/status — Staff/Admin */
   updateBookingStatus: (id: number, status: string, remarks?: string) =>
     api.patch<{ message: string; status: string }>(`/api/bookings/${id}/status`, { status, remarks }),
+
+  /** PATCH /api/bookings/:id/arrive — Mark guest as arrived */
+  markArrived: (id: number) =>
+    api.patch<{ message: string }>(`/api/bookings/${id}/arrive`, {}),
 
   /** POST /api/bookings/:id/no-show — Staff/Admin: Mark booking as No-Show */
   markNoShow: (id: number, data?: { custom_fee?: number; reason?: string }) =>

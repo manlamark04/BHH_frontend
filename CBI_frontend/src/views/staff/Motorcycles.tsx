@@ -16,15 +16,15 @@ import {
   Eye,
   ClipboardCheck,
   Receipt,
-<<<<<<< Updated upstream
-=======
   UserCheck,
   CalendarDays,
   ChevronDown,
   Search,
   StickyNote,
   ArrowRight,
->>>>>>> Stashed changes
+=======
+  UserCheck,
+>>>>>>> main
 } from 'lucide-react'
 import {
   motorcyclesApi,
@@ -49,7 +49,7 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
   const [rentals, setRentals] = useState<MotorRental[]>([])
   const [customers, setCustomers] = useState<Record<string, unknown>[]>([])
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState<'rentals' | 'fleet' | 'damage'>('rentals')
+  const [tab, setTab] = useState<'fleet' | 'rentals' | 'damage'>('fleet')
   const [successMsg, setSuccessMsg] = useState('')
   const [editingMotor, setEditingMotor] = useState<Motorcycle | null>(null)
   const [showAddMotorDrawer, setShowAddMotorDrawer] = useState(false)
@@ -201,11 +201,11 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
     Promise.all([
       motorcyclesApi.getMotorcycles().catch(() => []),
       motorcyclesApi.getRentals().catch(() => []),
-      usersApi.getCustomers().catch(() => ({ customers: [] })),
+      usersApi.getCustomers().catch(() => []),
     ]).then(([motors, rnts, custRes]) => {
       setMotorcycles(motors)
       setRentals(rnts)
-      setCustomers((custRes as { customers?: Record<string, unknown>[] }).customers || [])
+      setCustomers((Array.isArray(custRes) ? custRes : []) as Record<string, unknown>[])
     }).finally(() => setLoading(false))
   }
 
@@ -351,7 +351,7 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
     ? rentals.find(
         (r) =>
           Number(r.customer_id) === Number(selectedCustomerId) &&
-          ['PENDING_PAYMENT', 'PENDING_APPROVAL', 'ACTIVE', 'RESERVED', 'OVERDUE'].includes(
+          ['PENDING_PAYMENT', 'ACTIVE', 'RESERVED', 'OVERDUE'].includes(
             String(r.status || '').toUpperCase()
           )
       )
@@ -498,11 +498,6 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
       setStaffIdpExpiry('')
       setStaffIdpCategoryA(false)
       setNotes('')
-<<<<<<< Updated upstream
-      setSuccessMsg(`Rental ${res.rental.rental_id} created successfully for ${res.rental.customer_name}!`)
-      setTimeout(() => setSuccessMsg(''), 5000)
-      loadData()
-=======
       setWalkInName('')
       setWalkInPhone('')
       setWalkInEmail('')
@@ -511,7 +506,12 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
       loadData()
       window.dispatchEvent(new Event('billing-updated'))
       window.dispatchEvent(new CustomEvent('navigate', { detail: userRole === 'admin' ? 'admin-billing' : 'staff-billing' }))
->>>>>>> Stashed changes
+=======
+      setSuccessMsg(`Rental ${res.rental.rental_id} created! Redirecting to Billing...`)
+      setTimeout(() => setSuccessMsg(''), 4000)
+      loadData()
+      window.dispatchEvent(new CustomEvent('navigate', { detail: userRole === 'admin' ? 'admin-billing' : 'staff-billing' }))
+>>>>>>> main
     } catch (err) {
       setRentError(err instanceof Error ? err.message : 'Failed to create rental')
     } finally {
@@ -687,20 +687,20 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
       {/* ─── TABS ─── */}
       <div className="flex gap-1 p-1 bg-neutral-100/70 dark:bg-[#20252E] rounded-lg border border-black/[0.06] dark:border-neutral-700/80 text-xs self-start w-fit">
         <button
-          onClick={() => setTab('rentals')}
-          className={`px-3 py-1.5 rounded-md font-semibold transition-all cursor-pointer ${
-            tab === 'rentals' ? 'bg-[#6B7A5E] text-white shadow-2xs' : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-white dark:hover:bg-neutral-800'
-          }`}
-        >
-          <span>Active Rentals & History ({rentals.length})</span>
-        </button>
-        <button
           onClick={() => setTab('fleet')}
           className={`px-3 py-1.5 rounded-md font-semibold transition-all cursor-pointer ${
             tab === 'fleet' ? 'bg-[#6B7A5E] text-white shadow-2xs' : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-white dark:hover:bg-neutral-800'
           }`}
         >
           <span>Motor Fleet ({motorcycles.length})</span>
+        </button>
+        <button
+          onClick={() => setTab('rentals')}
+          className={`px-3 py-1.5 rounded-md font-semibold transition-all cursor-pointer ${
+            tab === 'rentals' ? 'bg-[#6B7A5E] text-white shadow-2xs' : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-white dark:hover:bg-neutral-800'
+          }`}
+        >
+          <span>Active Rentals & History ({rentals.length})</span>
         </button>
         <button
           onClick={() => setTab('damage')}
@@ -871,23 +871,7 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
                           </button>
                         )}
 
-                        {String(r.status) === 'PENDING_APPROVAL' && (
-                          <div className="flex items-center gap-1">
-                            <button
-                              onClick={() => setApprovingRental(r)}
-                              className="px-2.5 py-1 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-lg text-xs font-semibold shadow-xs transition-all cursor-pointer flex items-center gap-1"
-                            >
-                              <Check className="w-3 h-3" />
-                              <span>Approve</span>
-                            </button>
-                            <button
-                              onClick={() => setRejectingRental(r)}
-                              className="px-2 py-1 text-rose-600 hover:bg-rose-50 border border-rose-200 dark:border-rose-900 rounded-lg text-xs font-semibold transition-all cursor-pointer"
-                            >
-                              Reject
-                            </button>
-                          </div>
-                        )}
+
                         {String(r.status) === 'PENDING_PAYMENT' && (
                           <span className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md font-medium">
                             Awaiting Payment
@@ -1178,6 +1162,22 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
                   </div>
                 </div>
                 <p className="text-xs text-ink-muted mt-2 line-clamp-2">{m.description || 'Hostel rental motorcycle.'}</p>
+                
+                {/* Display Current Renter if RENTED */}
+                {(() => {
+                  if (m.status === 'RENTED') {
+                    const activeRental = rentals.find(r => Number(r.motor_id) === Number(m.id) && ['ACTIVE', 'OVERDUE'].includes(String(r.status).toUpperCase()))
+                    if (activeRental) {
+                      return (
+                        <div className="mt-2.5 p-2 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 text-[11px] flex items-center gap-1.5">
+                          <UserCheck className="w-3.5 h-3.5 shrink-0" />
+                          <span className="font-semibold">Rented by {activeRental.customer_name || 'Guest'}</span>
+                        </div>
+                      )
+                    }
+                  }
+                  return null
+                })()}
               </div>
 
               <div className="mt-4 pt-3 border-t border-stone/15 space-y-3">
@@ -1186,19 +1186,44 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
                   <span>Plate: {m.plate_number}</span>
                 </div>
 
-                <div className="grid grid-cols-1 gap-2 pt-1">
+                <div className="grid grid-cols-2 gap-2 pt-1">
                   {userRole !== 'admin' && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setStatusModalMotor(m)
-                        setSelectedNewStatus(m.status)
-                      }}
-                      className="w-full py-2 bg-sand/60 hover:bg-[#6B7A5E] text-ink hover:text-white rounded-xl text-xs font-semibold transition-all border border-stone/30 flex items-center justify-center gap-1.5 shadow-2xs group-hover:border-[#6B7A5E] cursor-pointer"
-                    >
-                      <SlidersHorizontal className="w-3.5 h-3.5" strokeWidth={1.5} />
-                      <span>Edit Status</span>
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setStatusModalMotor(m)
+                          setSelectedNewStatus(m.status)
+                        }}
+                        className="w-full py-2 bg-sand/60 hover:bg-stone/10 text-ink rounded-xl text-xs font-semibold transition-all border border-stone/30 flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
+                      >
+                        <SlidersHorizontal className="w-3.5 h-3.5" strokeWidth={1.5} />
+                        <span>Status</span>
+                      </button>
+                      
+                      {m.status === 'AVAILABLE' ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedMotorId(m.id)
+                            setShowAddRentModal(true)
+                          }}
+                          className="w-full py-2 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl text-xs font-semibold transition-all border border-transparent flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
+                        >
+                          <KeyRound className="w-3.5 h-3.5" strokeWidth={1.5} />
+                          <span>Rent</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled
+                          className="w-full py-2 bg-stone/10 text-stone-400 rounded-xl text-xs font-semibold border border-transparent flex items-center justify-center gap-1.5 cursor-not-allowed"
+                        >
+                          <AlertCircle className="w-3.5 h-3.5" strokeWidth={1.5} />
+                          <span>Unavail</span>
+                        </button>
+                      )}
+                    </>
                   )}
 
                   {userRole === 'admin' && (
@@ -1228,34 +1253,6 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
             </div>
           )}
 
-<<<<<<< Updated upstream
-          {/* Select Customer */}
-          <div>
-            <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Renting Customer *</label>
-            <select
-              value={selectedCustomerId}
-              onChange={(e) => setSelectedCustomerId(e.target.value ? Number(e.target.value) : '')}
-              required
-              className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#F6F2E8] text-xs focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
-            >
-              <option value="">-- Select Active Customer --</option>
-              {customers.map((c) => (
-                <option key={String(c.id)} value={String(c.id)}>
-                  {String(c.full_name || c.name)} ({String(c.unique_id || c.customer_id)}) — {String(c.phone || c.email)}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Active Rental Warning for Selected Customer */}
-          {(() => {
-            const customerActiveRental = selectedCustomerId
-              ? rentals.find(
-                  (r) =>
-                    Number(r.customer_id) === Number(selectedCustomerId) &&
-                    ['PENDING_PAYMENT', 'PENDING_APPROVAL', 'ACTIVE', 'RESERVED', 'OVERDUE'].includes(
-                      String(r.status || '').toUpperCase()
-=======
           {/* ═══ STEP 1: GUEST & MOTORCYCLE ═══ */}
           <section className="rounded-2xl border border-stone/20 bg-white p-4 space-y-3">
             <div className="flex items-center gap-2.5">
@@ -1294,7 +1291,6 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
                           <X className="w-3.5 h-3.5" />
                         </button>
                       </div>
->>>>>>> Stashed changes
                     )
                   }
                   
@@ -1974,29 +1970,6 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
               })()}
             </div>
 
-<<<<<<< Updated upstream
-          <div className="flex gap-3 pt-2">
-            <button
-              type="button"
-              onClick={() => setShowAddRentModal(false)}
-              className="flex-1 py-2.5 border border-stone/30 rounded-xl text-xs font-semibold text-ink-muted hover:bg-sand cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={
-                creatingRental ||
-                !selectedMotorId ||
-                !selectedCustomerId ||
-                !!selectedCustomerActiveRental ||
-                !staffIsLicenseValid
-              }
-              className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl text-xs font-semibold shadow-sm disabled:opacity-50 transition-all cursor-pointer"
-            >
-              {creatingRental ? 'Creating Rental...' : 'Confirm & Dispatch'}
-            </button>
-=======
             <div className="flex gap-2 sm:w-auto">
               <button
                 type="button"
@@ -2019,7 +1992,6 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
                 {creatingRental ? 'Creating Rental...' : (<>Proceed to Billing <ArrowRight className="w-3.5 h-3.5" /></>)}
               </button>
             </div>
->>>>>>> Stashed changes
           </div>
         </form>
       </Modal>

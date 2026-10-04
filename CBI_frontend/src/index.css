@@ -334,6 +334,16 @@ html.dark .bhh-skeleton {
   100% { background-position: -200% 0; }
 }
 
+/* ─── Hero Slideshow Ken Burns Animation ───────────────────── */
+@keyframes bhhKenBurns {
+  0% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(1.05);
+  }
+}
+
 /* ─── Official Receipt Print Styles ───────────────────────── */
 @media print {
   /* Hide everything except the receipt */

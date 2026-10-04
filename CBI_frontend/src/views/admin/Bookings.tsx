@@ -19,7 +19,7 @@ import Modal from '../../components/Modal'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import BookingVoucherModal, { type BookingVoucherData } from '../../components/BookingVoucherModal'
 
-type FilterTab = 'all' | 'pending_approval' | 'pending_payment' | 'confirmed' | 'checked_in' | 'completed' | 'rejected' | 'cancelled'
+type FilterTab = 'all' | 'pending_payment' | 'confirmed' | 'checked_in' | 'completed' | 'rejected' | 'cancelled'
 type SortField = 'newest' | 'oldest' | 'checkin' | 'checkout' | 'amount' | 'status'
 
 export default function AdminBookings() {
@@ -80,11 +80,11 @@ export default function AdminBookings() {
     Promise.all([
       bookingsApi.getAllBookings().catch(() => []),
       roomsApi.getRooms().catch(() => []),
-      usersApi.getCustomers().catch(() => ({ customers: [] })),
+      usersApi.getCustomers().catch(() => []),
     ]).then(([bkgs, rms, custRes]) => {
       setBookings(bkgs)
       setRooms(rms)
-      setCustomers((custRes as { customers?: Record<string, unknown>[] }).customers || [])
+      setCustomers((Array.isArray(custRes) ? custRes : []) as Record<string, unknown>[])
     }).finally(() => setLoading(false))
   }
 
@@ -104,7 +104,7 @@ export default function AdminBookings() {
     if (activeFilter !== 'all') {
       result = result.filter((b) => {
         const s = String(b.status || '').toLowerCase().replace('-', '_').replace(' ', '_')
-        if (activeFilter === 'pending_approval') return s === 'pending_approval'
+
         if (activeFilter === 'pending_payment') return s === 'pending_payment' || s === 'pending' || s === 'requested'
         if (activeFilter === 'confirmed') return s === 'confirmed'
         if (activeFilter === 'checked_in') return s === 'checked_in'
@@ -326,7 +326,7 @@ export default function AdminBookings() {
             {(
               [
                 { id: 'all', label: 'All' },
-                { id: 'pending_approval', label: 'Pending Approval' },
+
                 { id: 'pending_payment', label: 'Awaiting Payment' },
                 { id: 'confirmed', label: 'Confirmed' },
                 { id: 'checked_in', label: 'Checked In' },
@@ -697,30 +697,7 @@ export default function AdminBookings() {
               </div>
             </div>
 
-            {/* No-Show Penalty Details */}
-            {String(viewBooking.status).toUpperCase() === 'NO_SHOW' && (
-              <div className="bg-purple-50 dark:bg-purple-950/40 p-4 rounded-2xl border border-purple-200 dark:border-purple-800 space-y-2">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-purple-700 dark:text-purple-300 block">No-Show Penalty Details</span>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  <div>
-                    <span className="text-neutral-500 block text-[10px]">No-Show Fee</span>
-                    <span className="font-bold text-purple-900 dark:text-purple-200 text-sm">₱{Number(viewBooking.no_show_fee || 0).toLocaleString()}</span>
-                  </div>
-                  {Boolean(viewBooking.no_show_at) && (
-                    <div>
-                      <span className="text-neutral-500 block text-[10px]">Flagged On</span>
-                      <span className="font-medium text-neutral-900 dark:text-white">{new Date(String(viewBooking.no_show_at)).toLocaleString()}</span>
-                    </div>
-                  )}
-                  {Boolean(viewBooking.no_show_waiver_reason) && (
-                    <div className="col-span-2">
-                      <span className="text-neutral-500 block text-[10px]">Fee Waiver Reason</span>
-                      <span className="italic text-neutral-700 dark:text-neutral-300">{String(viewBooking.no_show_waiver_reason)}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
+
 
             {/* Actions Footer */}
             <div className="flex justify-end gap-2 pt-2">

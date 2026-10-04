@@ -45,9 +45,11 @@ export interface InvoiceItem {
   paid_amount: number
   remaining_balance: number
   balance?: number
+  discount_amount?: number
+  promo_code?: string
   payment_status?: string
-  status: 'PAID' | 'PARTIALLY PAID' | 'PENDING' | 'PENDING_APPROVAL' | 'REFUNDED' | 'FAILED' | 'VOID' | string
-  is_pending_approval?: boolean
+  status: 'PAID' | 'PARTIALLY PAID' | 'PENDING' | 'REFUNDED' | 'FAILED' | 'VOID' | string
+
   approval_gated?: boolean
   can_pay?: boolean
   method: string
@@ -86,6 +88,13 @@ export interface OfficialReceiptData {
   service_name?: string
   service_details?: string
   service_type?: string
+  items?: {
+    name: string;
+    variant?: string;
+    quantity: number;
+    price: number;
+    total: number;
+  }[];
   total_amount: number
   previous_paid: number
   amount_paid: number
@@ -96,6 +105,8 @@ export interface OfficialReceiptData {
   notes?: string
   staff_name: string
   paid_at: string
+  discount_amount?: number
+  promo_code?: string
 }
 
 export const billingApi = {
