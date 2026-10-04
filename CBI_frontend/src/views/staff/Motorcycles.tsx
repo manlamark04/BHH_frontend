@@ -17,6 +17,14 @@ import {
   ClipboardCheck,
   Receipt,
   UserCheck,
+  CalendarDays,
+  ChevronDown,
+  Search,
+  StickyNote,
+  ArrowRight,
+=======
+  UserCheck,
+>>>>>>> main
 } from 'lucide-react'
 import {
   motorcyclesApi,
@@ -53,7 +61,14 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
   // Rent Motor for Customer Modal
   const [showRentModal, setShowAddRentModal] = useState(false)
   const [selectedMotorId, setSelectedMotorId] = useState<number | ''>('')
-  const [selectedCustomerId, setSelectedCustomerId] = useState<number | ''>('')
+  const [selectedCustomerId, setSelectedCustomerId] = useState<number | '' | 'anonymous'>('')
+  const [customerSearch, setCustomerSearch] = useState('')
+  const [customerPickerOpen, setCustomerPickerOpen] = useState(false)
+  
+  // Walk-in Guest Information
+  const [walkInName, setWalkInName] = useState('')
+  const [walkInPhone, setWalkInPhone] = useState('')
+  const [walkInEmail, setWalkInEmail] = useState('')
   const [startDate, setStartDate] = useState('')
   const [startTime, setStartTime] = useState('08:00')
   const [returnDate, setReturnDate] = useState('')
@@ -350,6 +365,17 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
       return
     }
 
+    if (selectedCustomerId === 'anonymous') {
+      if (!walkInName.trim()) {
+        setRentError('Please provide the full name for the walk-in guest.')
+        return
+      }
+      if (!walkInPhone.trim()) {
+        setRentError('Please provide a phone number for the walk-in guest.')
+        return
+      }
+    }
+
     if (staffLicenseType === 'FOREIGN') {
       if (!staffPassportNumber.trim()) {
         setRentError('Passport number is required for foreign guests.')
@@ -415,14 +441,18 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
       let licenseTag = ''
       let payload: Parameters<typeof motorcyclesApi.createRental>[0]
 
+      const guestInfo = selectedCustomerId === 'anonymous' 
+        ? `\\n[Walk-in Guest Info: Name: ${walkInName.trim() || 'N/A'} | Phone: ${walkInPhone.trim() || 'N/A'} | Email: ${walkInEmail.trim() || 'N/A'}]`
+        : ''
+
       if (staffLicenseType === 'FOREIGN') {
         licenseTag = `[Foreign License: ${staffForeignLicenseNumber.trim()} (${staffFinalCountry}) | Passport: ${staffPassportNumber.trim()} | IDP: ${staffIdpNumber.trim()} | IDP Exp: ${staffIdpExpiry} | Category A: Verified]`
         payload = {
           motor_id: Number(selectedMotorId),
-          customer_id: Number(selectedCustomerId),
+          customer_id: selectedCustomerId === 'anonymous' ? undefined : Number(selectedCustomerId),
           start_datetime: `${startDate}T${startTime}:00`,
           expected_return_datetime: `${returnDate}T${returnTime}:00`,
-          notes: notes.trim() ? `${notes.trim()}\n${licenseTag}` : licenseTag,
+          notes: notes.trim() ? `${notes.trim()}\n${licenseTag}${guestInfo}` : `${licenseTag}${guestInfo}`,
           license_type: 'FOREIGN',
           passport_number: staffPassportNumber.trim(),
           country_of_issuance: staffFinalCountry,
@@ -440,10 +470,10 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
         licenseTag = `[Driver's License: ${staffLicenseNumber.trim()} | Expiry: ${staffLicenseExpiry} | Restrictions: ${restrictionsStr}]`
         payload = {
           motor_id: Number(selectedMotorId),
-          customer_id: Number(selectedCustomerId),
+          customer_id: selectedCustomerId === 'anonymous' ? undefined : Number(selectedCustomerId),
           start_datetime: `${startDate}T${startTime}:00`,
           expected_return_datetime: `${returnDate}T${returnTime}:00`,
-          notes: notes.trim() ? `${notes.trim()}\n${licenseTag}` : licenseTag,
+          notes: notes.trim() ? `${notes.trim()}\n${licenseTag}${guestInfo}` : `${licenseTag}${guestInfo}`,
           license_type: 'PH',
           driver_license_number: staffLicenseNumber.trim(),
           driver_license_expiry: staffLicenseExpiry,
@@ -455,6 +485,7 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
       setShowAddRentModal(false)
       setSelectedMotorId('')
       setSelectedCustomerId('')
+      setCustomerSearch('')
       setStaffLicenseNumber('')
       setStaffLicenseExpiry('')
       setStaffRestrictions(['A1'])
@@ -467,10 +498,20 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
       setStaffIdpExpiry('')
       setStaffIdpCategoryA(false)
       setNotes('')
+      setWalkInName('')
+      setWalkInPhone('')
+      setWalkInEmail('')
+      setSuccessMsg(`Rental ${res.rental.rental_id} created! Redirecting to Billing...`)
+      setTimeout(() => setSuccessMsg(''), 4000)
+      loadData()
+      window.dispatchEvent(new Event('billing-updated'))
+      window.dispatchEvent(new CustomEvent('navigate', { detail: userRole === 'admin' ? 'admin-billing' : 'staff-billing' }))
+=======
       setSuccessMsg(`Rental ${res.rental.rental_id} created! Redirecting to Billing...`)
       setTimeout(() => setSuccessMsg(''), 4000)
       loadData()
       window.dispatchEvent(new CustomEvent('navigate', { detail: userRole === 'admin' ? 'admin-billing' : 'staff-billing' }))
+>>>>>>> main
     } catch (err) {
       setRentError(err instanceof Error ? err.message : 'Failed to create rental')
     } finally {
@@ -1203,7 +1244,7 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
       )}
 
       {/* ─── MODAL: CREATE RENTAL (STAFF) ─── */}
-      <Modal isOpen={showRentModal} onClose={() => setShowAddRentModal(false)} title="Dispatch Motorcycle Rental" size="md">
+      <Modal isOpen={showRentModal} onClose={() => setShowAddRentModal(false)} title="Dispatch Motorcycle Rental" size="lg">
         <form onSubmit={handleCreateRental} className="space-y-4 text-xs font-sans">
           {rentError && (
             <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs font-semibold flex items-center gap-2">
@@ -1212,171 +1253,378 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
             </div>
           )}
 
-          {/* Select Customer */}
-          <div>
-            <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Renting Customer *</label>
-            <select
-              value={selectedCustomerId}
-              onChange={(e) => setSelectedCustomerId(e.target.value ? Number(e.target.value) : '')}
-              required
-              className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#F6F2E8] text-xs focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
-            >
-              <option value="">-- Select Active Customer --</option>
-              {customers.filter(c => String(c.status).toLowerCase() === 'active').map((c) => (
-                <option key={String(c.id)} value={String(c.id)}>
-                  {String(c.full_name || c.name)} ({String(c.unique_id || c.customer_id)}) — {String(c.phone || c.email)}
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* ═══ STEP 1: GUEST & MOTORCYCLE ═══ */}
+          <section className="rounded-2xl border border-stone/20 bg-white p-4 space-y-3">
+            <div className="flex items-center gap-2.5">
+              <span className="w-6 h-6 rounded-full bg-[#6B7A5E] text-white text-[11px] font-bold flex items-center justify-center shrink-0">1</span>
+              <div>
+                <h3 className="text-sm font-bold text-ink leading-tight">Guest &amp; Motorcycle</h3>
+                <p className="text-[10px] text-ink-muted">Who is renting and which unit</p>
+              </div>
+            </div>
 
-          {/* Active Rental Warning for Selected Customer */}
-          {(() => {
-            const customerActiveRental = selectedCustomerId
-              ? rentals.find(
-                  (r) =>
-                    Number(r.customer_id) === Number(selectedCustomerId) &&
-                    ['PENDING_PAYMENT', 'ACTIVE', 'RESERVED', 'OVERDUE'].includes(
-                      String(r.status || '').toUpperCase()
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="flex items-center gap-1.5 text-[11px] font-semibold text-ink-muted mb-1.5">
+                  <UserCheck className="w-3.5 h-3.5" /> Renting Customer <span className="text-rose-500">*</span>
+                </label>
+                {(() => {
+                  const activeCustomers = customers.filter((c) => String(c.status).toLowerCase() === 'active')
+                  
+                  if (selectedCustomerId === 'anonymous' && !customerPickerOpen) {
+                    return (
+                      <div className="w-full h-10 px-3 rounded-lg border border-[#6B7A5E]/40 bg-[#6B7A5E]/5 flex items-center justify-between gap-2">
+                        <div className="min-w-0 truncate text-xs">
+                          <span className="font-semibold text-ink">Walk-in Guest</span>
+                          <span className="ml-1.5 font-mono text-[10px] text-ink-muted">(Anonymous)</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedCustomerId('')
+                            setCustomerSearch('')
+                            setCustomerPickerOpen(true)
+                          }}
+                          className="shrink-0 w-6 h-6 rounded-md flex items-center justify-center text-ink-muted hover:bg-stone/15 hover:text-ink cursor-pointer"
+                          aria-label="Change customer"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     )
-                )
-              : null
+                  }
+                  
+                  const selected = activeCustomers.find((c) => Number(c.id) === Number(selectedCustomerId))
 
-            if (!customerActiveRental) return null
+                  // Selected state — show chip with change button
+                  if (selected && !customerPickerOpen) {
+                    return (
+                      <div className="w-full h-10 px-3 rounded-lg border border-[#6B7A5E]/40 bg-[#6B7A5E]/5 flex items-center justify-between gap-2">
+                        <div className="min-w-0 truncate text-xs">
+                          <span className="font-semibold text-ink">{String(selected.full_name || selected.name)}</span>
+                          <span className="ml-1.5 font-mono text-[10px] text-ink-muted">{String(selected.unique_id || selected.customer_id || '')}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedCustomerId('')
+                            setCustomerSearch('')
+                            setCustomerPickerOpen(true)
+                          }}
+                          className="shrink-0 w-6 h-6 rounded-md flex items-center justify-center text-ink-muted hover:bg-stone/15 hover:text-ink cursor-pointer"
+                          aria-label="Change customer"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )
+                  }
 
-            return (
-              <div className="p-3 bg-amber-50 border border-amber-300 rounded-xl text-amber-900 text-xs flex items-start gap-2.5 shadow-2xs">
-                <AlertCircle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+                  const q = customerSearch.trim().toLowerCase()
+                  const results = q
+                    ? activeCustomers.filter((c) =>
+                        [c.full_name, c.name, c.unique_id, c.customer_id, c.phone, c.email]
+                          .filter(Boolean)
+                          .some((v) => String(v).toLowerCase().includes(q))
+                      )
+                    : activeCustomers
+
+                  return (
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-ink-muted pointer-events-none" />
+                      <input
+                        type="text"
+                        id="dispatch_customer_search"
+                        value={customerSearch}
+                        onChange={(e) => {
+                          setCustomerSearch(e.target.value)
+                          setCustomerPickerOpen(true)
+                        }}
+                        onFocus={() => setCustomerPickerOpen(true)}
+                        onBlur={() => setTimeout(() => setCustomerPickerOpen(false), 150)}
+                        placeholder="Search name, ID or phone…"
+                        autoComplete="off"
+                        autoFocus={customerPickerOpen}
+                        className="w-full h-10 pl-9 pr-3 rounded-lg border border-stone/30 bg-[#F6F2E8] text-xs text-ink focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40 focus:border-[#6B7A5E]"
+                      />
+
+                      {customerPickerOpen && (
+                        <div className="absolute z-20 mt-1 w-full max-h-60 overflow-y-auto rounded-xl border border-stone/25 bg-white dark:bg-[#181B20] shadow-lg py-1">
+                          {!customerSearch && (
+                            <button
+                              type="button"
+                              onMouseDown={(e) => e.preventDefault()}
+                              onClick={() => {
+                                setSelectedCustomerId('anonymous')
+                                setCustomerSearch('')
+                                setCustomerPickerOpen(false)
+                              }}
+                              className="w-full text-left px-3 py-2 hover:bg-[#6B7A5E]/10 cursor-pointer flex items-center gap-2 border-b border-stone/20"
+                            >
+                              <UserCheck className="w-4 h-4 text-ink-muted" />
+                              <div className="min-w-0">
+                                <p className="text-xs font-semibold text-ink">Walk-in Guest</p>
+                                <p className="text-[10px] text-ink-muted">Anonymous booking (no account)</p>
+                              </div>
+                            </button>
+                          )}
+                          {results.length === 0 ? (
+                            <p className="px-3 py-3 text-[11px] text-ink-muted text-center">No customer found for “{customerSearch}”</p>
+                          ) : (
+                            results.map((c) => (
+                              <button
+                                key={String(c.id)}
+                                type="button"
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => {
+                                  setSelectedCustomerId(Number(c.id))
+                                  setCustomerSearch('')
+                                  setCustomerPickerOpen(false)
+                                }}
+                                className="w-full text-left px-3 py-2 hover:bg-[#6B7A5E]/10 cursor-pointer flex items-center justify-between gap-2"
+                              >
+                                <div className="min-w-0">
+                                  <p className="text-xs font-semibold text-ink truncate">{String(c.full_name || c.name)}</p>
+                                  <p className="text-[10px] text-ink-muted truncate">{String(c.phone || c.email || '')}</p>
+                                </div>
+                                <span className="shrink-0 font-mono text-[10px] text-ink-muted">{String(c.unique_id || c.customer_id || '')}</span>
+                              </button>
+                            ))
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })()}
+              </div>
+
+              <div>
+                <label className="flex items-center gap-1.5 text-[11px] font-semibold text-ink-muted mb-1.5">
+                  <Bike className="w-3.5 h-3.5" /> Motorcycle <span className="text-rose-500">*</span>
+                </label>
+                {(() => {
+                  const motor = motorcycles.find((m) => m.id === selectedMotorId)
+                  if (!motor) {
+                    return (
+                      <div className="w-full h-10 px-3 rounded-lg border border-dashed border-stone/40 bg-stone/5 text-xs text-ink-muted flex items-center">
+                        No motorcycle selected
+                      </div>
+                    )
+                  }
+                  return (
+                    <div className="w-full h-10 px-3 rounded-lg border border-[#6B7A5E]/40 bg-[#6B7A5E]/5 flex items-center justify-between gap-2">
+                      <div className="min-w-0 truncate text-xs">
+                        <span className="font-semibold text-ink">{motor.brand} {motor.model}</span>
+                        <span className="ml-1.5 font-mono text-[10px] text-ink-muted">{motor.plate_number}</span>
+                      </div>
+                      <span className="shrink-0 text-[11px] font-bold text-[#6B7A5E]">
+                        ₱{Number(motor.rental_rate).toLocaleString()}/{motor.rate_type}
+                      </span>
+                    </div>
+                  )
+                })()}
+              </div>
+            </div>
+
+            {selectedCustomerId === 'anonymous' && (
+              <div className="pt-3 mt-3 border-t border-stone/15 space-y-3">
+                <p className="text-[11px] font-semibold text-ink uppercase tracking-wider mb-2">Walk-in Guest Details</p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold text-ink-muted mb-1">Full Name <span className="text-rose-500">*</span></label>
+                    <input
+                      type="text"
+                      value={walkInName}
+                      onChange={(e) => setWalkInName(e.target.value)}
+                      required
+                      placeholder="John Doe"
+                      className="w-full h-9 px-3 rounded-lg border border-stone/30 bg-[#F6F2E8] text-xs text-ink focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-ink-muted mb-1">Phone Number <span className="text-rose-500">*</span></label>
+                    <input
+                      type="tel"
+                      value={walkInPhone}
+                      onChange={(e) => setWalkInPhone(e.target.value)}
+                      required
+                      placeholder="+63 912 345 6789"
+                      className="w-full h-9 px-3 rounded-lg border border-stone/30 bg-[#F6F2E8] text-xs text-ink focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-ink-muted mb-1">Email Address (Optional)</label>
+                    <input
+                      type="email"
+                      value={walkInEmail}
+                      onChange={(e) => setWalkInEmail(e.target.value)}
+                      placeholder="john@example.com"
+                      className="w-full h-9 px-3 rounded-lg border border-stone/30 bg-[#F6F2E8] text-xs text-ink focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Active Rental Warning for Selected Customer */}
+            {(() => {
+              const customerActiveRental = selectedCustomerId
+                ? rentals.find(
+                    (r) =>
+                      Number(r.customer_id) === Number(selectedCustomerId) &&
+                      ['PENDING_PAYMENT', 'ACTIVE', 'RESERVED', 'OVERDUE'].includes(
+                        String(r.status || '').toUpperCase()
+                      )
+                  )
+                : null
+
+              if (!customerActiveRental) return null
+
+              return (
+                <div className="p-3 bg-amber-50 border border-amber-300 rounded-xl text-amber-900 text-xs flex items-start gap-2.5">
+                  <AlertCircle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-bold">Guest already has an active rental</p>
+                    <p className="text-[11px] text-amber-800 mt-0.5 leading-relaxed">
+                      <strong>{customerActiveRental.brand} {customerActiveRental.model}</strong> ({customerActiveRental.plate_number}) — <strong>{String(customerActiveRental.status).replace('_', ' ')}</strong>. Only one active motorcycle rental is allowed per guest.
+                    </p>
+                  </div>
+                </div>
+              )
+            })()}
+          </section>
+
+          {/* ═══ STEP 2: SCHEDULE ═══ */}
+          <section className="rounded-2xl border border-stone/20 bg-white p-4 space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2.5">
+                <span className="w-6 h-6 rounded-full bg-[#6B7A5E] text-white text-[11px] font-bold flex items-center justify-center shrink-0">2</span>
                 <div>
-                  <p className="font-bold">Customer Already Has an Active Motorcycle Rental</p>
-                  <p className="text-[11px] text-amber-800 mt-0.5 leading-relaxed">
-                    This guest currently has <strong>{customerActiveRental.brand} {customerActiveRental.model}</strong> (Plate: {customerActiveRental.plate_number}) with status <strong>{String(customerActiveRental.status).replace('_', ' ')}</strong>. Under business policy, guests may only hold one active motorcycle rental at a time.
+                  <h3 className="text-sm font-bold text-ink leading-tight">Rental Schedule</h3>
+                  <p className="text-[10px] text-ink-muted">Pick-up and expected return</p>
+                </div>
+              </div>
+              {startDate && returnDate && (() => {
+                const s = new Date(`${startDate}T${startTime}:00`).getTime()
+                const e = new Date(`${returnDate}T${returnTime}:00`).getTime()
+                if (isNaN(s) || isNaN(e) || e <= s) return null
+                const d = Math.max(1, Math.ceil((e - s) / (1000 * 60 * 60 * 24)))
+                return (
+                  <span className="px-2.5 py-1 rounded-full bg-[#6B7A5E]/10 text-[#4F5D45] text-[10px] font-bold">
+                    {d} day{d > 1 ? 's' : ''}
+                  </span>
+                )
+              })()}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr] gap-3 items-stretch">
+              {/* Pick-up */}
+              <div className="rounded-xl bg-[#F6F2E8]/60 border border-stone/20 p-3 space-y-2">
+                <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-[#6B7A5E]">
+                  <CalendarDays className="w-3.5 h-3.5" /> Pick-up
+                </p>
+                <div className="grid grid-cols-[1.4fr_1fr] gap-2">
+                  <input
+                    type="date"
+                    aria-label="Start date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
+                    required
+                    className="w-full h-9 px-2.5 rounded-lg border border-stone/30 bg-white text-xs text-ink focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
+                  />
+                  <input
+                    type="time"
+                    aria-label="Start time"
+                    value={startTime}
+                    onChange={(e) => setStartTime(e.target.value)}
+                    className="w-full h-9 px-2.5 rounded-lg border border-stone/30 bg-white text-xs text-ink focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
+                  />
+                </div>
+              </div>
+
+              <div className="hidden sm:flex items-center justify-center text-ink-muted">
+                <ArrowRight className="w-4 h-4" />
+              </div>
+
+              {/* Return */}
+              <div className="rounded-xl bg-[#F6F2E8]/60 border border-stone/20 p-3 space-y-2">
+                <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-[#6B7A5E]">
+                  <CalendarDays className="w-3.5 h-3.5" /> Return
+                </p>
+                <div className="grid grid-cols-[1.4fr_1fr] gap-2">
+                  <input
+                    type="date"
+                    aria-label="Expected return date"
+                    value={returnDate}
+                    onChange={(e) => setReturnDate(e.target.value)}
+                    min={startDate || new Date().toISOString().split('T')[0]}
+                    required
+                    className="w-full h-9 px-2.5 rounded-lg border border-stone/30 bg-white text-xs text-ink focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
+                  />
+                  <input
+                    type="time"
+                    aria-label="Expected return time"
+                    value={returnTime}
+                    onChange={(e) => setReturnTime(e.target.value)}
+                    className="w-full h-9 px-2.5 rounded-lg border border-stone/30 bg-white text-xs text-ink focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
+                  />
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* ═══ STEP 3: DRIVER'S LICENSE ═══ */}
+          <section className="rounded-2xl border border-stone/20 bg-white p-4 space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2.5">
+                <span className="w-6 h-6 rounded-full bg-[#6B7A5E] text-white text-[11px] font-bold flex items-center justify-center shrink-0">3</span>
+                <div>
+                  <h3 className="text-sm font-bold text-ink leading-tight">Driver's License</h3>
+                  <p className="text-[10px] text-ink-muted">
+                    {staffLicenseType === 'PH' ? 'Restriction A or A1 required' : 'Passport, foreign license & IDP (Category A)'}
                   </p>
                 </div>
               </div>
-            )
-          })()}
 
-          {/* Select Motorcycle */}
-          <div>
-            <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Select Available Motorcycle *</label>
-            <select
-              value={selectedMotorId}
-              onChange={(e) => setSelectedMotorId(e.target.value ? Number(e.target.value) : '')}
-              required
-              className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#F6F2E8] text-xs focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
-            >
-              <option value="">-- Select Motorcycle --</option>
-              {availableMotors.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.brand} {m.model} ({m.plate_number}) — ₱{m.rental_rate}/{m.rate_type}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Date & Time Range */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Start Date *</label>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                min={new Date().toISOString().split('T')[0]}
-                required
-                className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#F6F2E8] text-xs"
-              />
-            </div>
-            <div>
-              <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Start Time</label>
-              <input
-                type="time"
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#F6F2E8] text-xs"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Expected Return Date *</label>
-              <input
-                type="date"
-                value={returnDate}
-                onChange={(e) => setReturnDate(e.target.value)}
-                min={startDate || new Date().toISOString().split('T')[0]}
-                required
-                className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#F6F2E8] text-xs"
-              />
-            </div>
-            <div>
-              <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Expected Return Time</label>
-              <input
-                type="time"
-                value={returnTime}
-                onChange={(e) => setReturnTime(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#F6F2E8] text-xs"
-              />
-            </div>
-          </div>
-
-          {/* DRIVER'S LICENSE INFORMATION & RESTRICTION VALIDATION */}
-          <div className="pt-2 border-t border-stone/20 space-y-3 text-xs">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5">
-                <ShieldCheck className="w-4 h-4 text-[#6B7A5E]" />
-                <label className="block text-[11px] font-bold text-ink uppercase tracking-wider">
-                  Driver's License Information
-                </label>
+              {/* License Type Toggle */}
+              <div className="inline-flex p-0.5 bg-stone/10 rounded-lg shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setStaffLicenseType('PH')}
+                  className={`px-3 py-1.5 rounded-md text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    staffLicenseType === 'PH' ? 'bg-white text-ink shadow-xs' : 'text-ink-muted hover:text-ink'
+                  }`}
+                >
+                  <ShieldCheck className="w-3.5 h-3.5 text-[#6B7A5E]" />
+                  Local
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStaffLicenseType('FOREIGN')}
+                  className={`px-3 py-1.5 rounded-md text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    staffLicenseType === 'FOREIGN' ? 'bg-white text-ink shadow-xs' : 'text-ink-muted hover:text-ink'
+                  }`}
+                >
+                  <Globe className="w-3.5 h-3.5 text-[#6B7A5E]" />
+                  Foreign
+                </button>
               </div>
-              <span className="text-[10px] text-ink-muted">
-                {staffLicenseType === 'PH' ? 'A or A1 Required' : 'Passport & IDP Category A Required'}
-              </span>
-            </div>
-
-            {/* License Type Toggle */}
-            <div className="grid grid-cols-2 gap-2 p-1 bg-stone/10 rounded-xl">
-              <button
-                type="button"
-                onClick={() => setStaffLicenseType('PH')}
-                className={`py-1.5 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                  staffLicenseType === 'PH'
-                    ? 'bg-white text-ink shadow-xs'
-                    : 'text-ink-muted hover:text-ink'
-                }`}
-              >
-                <ShieldCheck className="w-3.5 h-3.5 text-[#6B7A5E]" />
-                <span>Philippine License</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setStaffLicenseType('FOREIGN')}
-                className={`py-1.5 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                  staffLicenseType === 'FOREIGN'
-                    ? 'bg-white text-ink shadow-xs'
-                    : 'text-ink-muted hover:text-ink'
-                }`}
-              >
-                <Globe className="w-3.5 h-3.5 text-[#6B7A5E]" />
-                <span>Foreign License / Tourist</span>
-              </button>
             </div>
 
             {/* PATH 1: PHILIPPINE LICENSE */}
             {staffLicenseType === 'PH' ? (
               <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block font-semibold text-ink uppercase tracking-wider mb-1 text-[11px]">
-                      Driver's License Number *
+                    <label htmlFor="staff_motor_license_num" className="block text-[11px] font-semibold text-ink-muted mb-1.5">
+                      License Number <span className="text-rose-500">*</span>
                     </label>
                     <input
                       type="text"
                       value={staffLicenseNumber}
                       onChange={(e) => setStaffLicenseNumber(formatDriverLicense(e.target.value))}
-                      placeholder="e.g. A12-34-567890"
+                      placeholder="A12-34-567890"
                       maxLength={13}
                       required
                       autoComplete="off"
@@ -1385,27 +1633,23 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
                       spellCheck={false}
                       name="staff_motor_license_num"
                       id="staff_motor_license_num"
-                      className={`w-full px-3 py-2 rounded-xl border bg-[#F6F2E8] text-ink font-mono text-xs focus:outline-none focus:ring-2 ${
+                      className={`w-full h-10 px-3 rounded-lg border bg-[#F6F2E8] text-ink font-mono text-xs focus:outline-none focus:ring-2 ${
                         staffLicenseNumber && !validateDriverLicense(staffLicenseNumber).isValid
                           ? 'border-rose-500 text-rose-600 focus:ring-rose-500/40'
                           : 'border-stone/30 focus:ring-[#6B7A5E]/40'
                       }`}
                     />
-                    {staffLicenseNumber && !validateDriverLicense(staffLicenseNumber).isValid ? (
-                      <p className="text-[11px] text-rose-600 mt-1 font-medium leading-tight flex items-center gap-1">
-                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                        <span>Invalid Driver’s License Number. Please use the format A12-34-567890.</span>
-                      </p>
-                    ) : (
-                      <p className="text-[10px] text-ink-muted mt-1">
-                        Format: <span className="font-mono font-medium text-ink">A12-34-567890</span> (1 uppercase letter, 8 digits, with hyphens)
+                    {staffLicenseNumber && !validateDriverLicense(staffLicenseNumber).isValid && (
+                      <p className="text-[10px] text-rose-600 mt-1 font-medium flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3 shrink-0" />
+                        Use format A12-34-567890
                       </p>
                     )}
                   </div>
 
                   <div>
-                    <label className="block font-semibold text-ink uppercase tracking-wider mb-1 text-[11px]">
-                      License Expiry Date *
+                    <label htmlFor="staff_motor_license_exp" className="block text-[11px] font-semibold text-ink-muted mb-1.5">
+                      Expiry Date <span className="text-rose-500">*</span>
                     </label>
                     <input
                       type="date"
@@ -1415,289 +1659,339 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
                       autoComplete="off"
                       name="staff_motor_license_exp"
                       id="staff_motor_license_exp"
-                      className={`w-full px-3 py-2 rounded-xl border bg-[#F6F2E8] text-ink font-mono text-xs focus:outline-none focus:ring-2 ${
+                      className={`w-full h-10 px-3 rounded-lg border bg-[#F6F2E8] text-ink text-xs focus:outline-none focus:ring-2 ${
                         staffIsLicenseExpired
                           ? 'border-rose-500 text-rose-600 focus:ring-rose-500/40'
                           : 'border-stone/30 focus:ring-[#6B7A5E]/40'
                       }`}
                     />
                     {staffIsLicenseExpired && (
-                      <p className="text-[11px] text-rose-600 mt-1 font-medium leading-tight">
-                        This license has expired and cannot be accepted.
+                      <p className="text-[10px] text-rose-600 mt-1 font-medium flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3 shrink-0" />
+                        License has expired
                       </p>
                     )}
                   </div>
                 </div>
 
-                {/* Restriction Codes Checkboxes */}
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="block font-semibold text-ink uppercase tracking-wider text-[11px]">
-                      License Restriction Code(s) *
-                    </label>
-                    <span className="text-[10px] text-ink-muted">Must match physical card</span>
-                  </div>
+                {/* Restriction Codes */}
+                {(() => {
+                  const toggleCode = (code: string, isChecked: boolean) => {
+                    if (isChecked) {
+                      setStaffRestrictions(staffRestrictions.filter((c) => c !== code))
+                    } else {
+                      setStaffRestrictions([...staffRestrictions, code])
+                    }
+                  }
+                  const motorCodes = PH_RESTRICTION_CODES.filter((rc) => rc.isMotorcycle)
+                  const otherCodes = PH_RESTRICTION_CODES.filter((rc) => !rc.isMotorcycle)
+                  const otherSelected = otherCodes.filter((rc) => staffRestrictions.includes(rc.code)).length
 
-                  <div className="grid grid-cols-2 gap-2">
-                    {PH_RESTRICTION_CODES.map((rc) => {
-                      const isChecked = staffRestrictions.includes(rc.code)
-                      return (
-                        <label
-                          key={rc.code}
-                          className={`flex items-start gap-2 p-2 rounded-xl border cursor-pointer select-none transition-all ${
-                            isChecked
-                              ? rc.isMotorcycle
-                                ? 'bg-[#6B7A5E]/10 border-[#6B7A5E] text-ink ring-1 ring-[#6B7A5E]/30'
-                                : 'bg-stone/10 border-stone/40 text-ink'
-                              : 'border-stone/20 bg-white hover:bg-sand/30 text-ink-muted'
-                          }`}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={() => {
-                              if (isChecked) {
-                                setStaffRestrictions(staffRestrictions.filter((c) => c !== rc.code))
-                              } else {
-                                setStaffRestrictions([...staffRestrictions, rc.code])
-                              }
-                            }}
-                            className="mt-0.5 w-3.5 h-3.5 rounded border-stone text-[#6B7A5E] focus:ring-[#6B7A5E]"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1">
-                              <span className="font-bold font-mono text-xs text-ink">{rc.label}</span>
-                              {rc.isMotorcycle && (
-                                <span className="px-1 py-0.2 bg-emerald-100 text-emerald-800 rounded text-[9px] font-bold">
-                                  Valid
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-[9px] text-ink-muted mt-0.5 leading-snug">{rc.desc}</p>
-                          </div>
+                  return (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="block text-[11px] font-semibold text-ink-muted">
+                          Restriction Codes <span className="text-rose-500">*</span>
                         </label>
-                      )
-                    })}
-                  </div>
-
-                  {/* Inline Error for missing A/A1 */}
-                  {staffRestrictions.length > 0 && !staffHasMotorcycleRestriction && (
-                    <div className="mt-2 p-2.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs font-semibold flex items-start gap-2">
-                      <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-                      <div>
-                        <p className="font-bold text-[11px] text-rose-900">Motorcycle Restriction Missing</p>
-                        <p className="font-normal text-[11px] leading-relaxed text-rose-700">
-                          Your license does not include restriction code A or A1, which is required to legally operate a motorcycle in the Philippines. This rental cannot proceed without a valid motorcycle license restriction.
-                        </p>
+                        <span className="text-[10px] text-ink-muted">Must match physical card</span>
                       </div>
+
+                      {/* Motorcycle codes — primary */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {motorCodes.map((rc) => {
+                          const isChecked = staffRestrictions.includes(rc.code)
+                          return (
+                            <label
+                              key={rc.code}
+                              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border cursor-pointer select-none transition-all ${
+                                isChecked
+                                  ? 'bg-[#6B7A5E]/10 border-[#6B7A5E] ring-1 ring-[#6B7A5E]/30'
+                                  : 'border-stone/25 bg-white hover:border-[#6B7A5E]/50'
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => toggleCode(rc.code, isChecked)}
+                                className="w-4 h-4 rounded border-stone text-[#6B7A5E] focus:ring-[#6B7A5E]"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-bold font-mono text-sm text-ink">{rc.label}</span>
+                                  <span className="px-1.5 py-px bg-emerald-100 text-emerald-800 rounded text-[9px] font-bold">Motorcycle</span>
+                                </div>
+                                <p className="text-[10px] text-ink-muted truncate">{rc.desc}</p>
+                              </div>
+                            </label>
+                          )
+                        })}
+                      </div>
+
+                      {/* Other codes — collapsed */}
+                      {otherCodes.length > 0 && (
+                        <details className="group rounded-xl border border-stone/20 bg-stone/5">
+                          <summary className="flex items-center justify-between px-3 py-2 cursor-pointer list-none text-[11px] font-semibold text-ink-muted hover:text-ink">
+                            <span>
+                              Other codes on license (optional)
+                              {otherSelected > 0 && (
+                                <span className="ml-1.5 px-1.5 py-px rounded bg-stone/20 text-ink text-[10px]">{otherSelected} selected</span>
+                              )}
+                            </span>
+                            <ChevronDown className="w-3.5 h-3.5 transition-transform group-open:rotate-180" />
+                          </summary>
+                          <div className="flex flex-wrap gap-1.5 px-3 pb-3">
+                            {otherCodes.map((rc) => {
+                              const isChecked = staffRestrictions.includes(rc.code)
+                              return (
+                                <label
+                                  key={rc.code}
+                                  title={rc.desc}
+                                  className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border cursor-pointer select-none transition-all text-[11px] font-mono font-semibold ${
+                                    isChecked
+                                      ? 'bg-ink/5 border-stone/50 text-ink'
+                                      : 'bg-white border-stone/20 text-ink-muted hover:text-ink'
+                                  }`}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={isChecked}
+                                    onChange={() => toggleCode(rc.code, isChecked)}
+                                    className="w-3.5 h-3.5 rounded border-stone text-[#6B7A5E] focus:ring-[#6B7A5E]"
+                                  />
+                                  {rc.label}
+                                </label>
+                              )
+                            })}
+                          </div>
+                        </details>
+                      )}
+
+                      {/* Inline Error for missing A/A1 */}
+                      {staffRestrictions.length > 0 && !staffHasMotorcycleRestriction && (
+                        <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 flex items-start gap-2">
+                          <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                          <p className="text-[11px] leading-relaxed">
+                            <span className="font-bold">A or A1 required.</span> This license can't legally be used to operate a motorcycle, so the rental cannot proceed.
+                          </p>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
+                  )
+                })()}
               </div>
             ) : (
               /* PATH 2: FOREIGN LICENSE / TOURIST */
-              <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block font-semibold text-ink uppercase tracking-wider mb-1 text-[11px]">
-                      Passport Number *
-                    </label>
+              <div className="space-y-4">
+                {/* Passport */}
+                <div className="space-y-2">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#6B7A5E]">Passport</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-ink-muted mb-1.5">
+                        Passport Number <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={staffPassportNumber}
+                        onChange={(e) => setStaffPassportNumber(e.target.value.toUpperCase())}
+                        placeholder="E12345678"
+                        required
+                        autoComplete="off"
+                        className="w-full h-10 px-3 rounded-lg border border-stone/30 bg-[#F6F2E8] text-ink font-mono text-xs focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-ink-muted mb-1.5">
+                        Country of Issuance <span className="text-rose-500">*</span>
+                      </label>
+                      <select
+                        value={staffCountryOfIssuance}
+                        onChange={(e) => setStaffCountryOfIssuance(e.target.value)}
+                        className="w-full h-10 px-3 rounded-lg border border-stone/30 bg-[#F6F2E8] text-ink text-xs focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
+                      >
+                        {COMMON_COUNTRIES.map((c) => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  {staffCountryOfIssuance === 'Other' && (
                     <input
                       type="text"
-                      value={staffPassportNumber}
-                      onChange={(e) => setStaffPassportNumber(e.target.value.toUpperCase())}
-                      placeholder="e.g. E12345678"
-                      required
-                      autoComplete="off"
-                      className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#F6F2E8] text-ink font-mono text-xs focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
-                    />
-                  </div>
-                  <div>
-                    <label className="block font-semibold text-ink uppercase tracking-wider mb-1 text-[11px]">
-                      Country of Issuance *
-                    </label>
-                    <select
-                      value={staffCountryOfIssuance}
-                      onChange={(e) => setStaffCountryOfIssuance(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#F6F2E8] text-ink text-xs focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
-                    >
-                      {COMMON_COUNTRIES.map((c) => (
-                        <option key={c} value={c}>
-                          {c}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                {staffCountryOfIssuance === 'Other' && (
-                  <div>
-                    <label className="block font-semibold text-ink uppercase tracking-wider mb-1 text-[11px]">
-                      Specify Country Name *
-                    </label>
-                    <input
-                      type="text"
+                      aria-label="Specify country name"
                       value={staffCustomCountry}
                       onChange={(e) => setStaffCustomCountry(e.target.value)}
-                      placeholder="Enter passport issuing country"
+                      placeholder="Specify issuing country *"
                       required
-                      className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#F6F2E8] text-ink text-xs"
+                      className="w-full h-10 px-3 rounded-lg border border-stone/30 bg-[#F6F2E8] text-ink text-xs focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
                     />
-                  </div>
-                )}
+                  )}
+                </div>
 
-                <div className="grid grid-cols-2 gap-3 pt-1 border-t border-stone/15">
-                  <div>
-                    <label className="block font-semibold text-ink uppercase tracking-wider mb-1 text-[11px]">
-                      Foreign License # *
-                    </label>
-                    <input
-                      type="text"
-                      value={staffForeignLicenseNumber}
-                      onChange={(e) => setStaffForeignLicenseNumber(e.target.value)}
-                      placeholder="Home country license #"
-                      required
-                      className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#F6F2E8] text-ink font-mono text-xs"
-                    />
-                  </div>
-                  <div>
-                    <label className="block font-semibold text-ink uppercase tracking-wider mb-1 text-[11px]">
-                      Foreign License Expiry *
-                    </label>
-                    <input
-                      type="date"
-                      value={staffForeignLicenseExpiry}
-                      onChange={(e) => setStaffForeignLicenseExpiry(e.target.value)}
-                      required
-                      className={`w-full px-3 py-2 rounded-xl border bg-[#F6F2E8] text-ink font-mono text-xs ${
-                        staffIsForeignLicenseExpired ? 'border-rose-500 text-rose-600' : 'border-stone/30'
-                      }`}
-                    />
+                {/* Foreign License */}
+                <div className="space-y-2">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#6B7A5E]">Home Country License</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-ink-muted mb-1.5">
+                        License Number <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={staffForeignLicenseNumber}
+                        onChange={(e) => setStaffForeignLicenseNumber(e.target.value)}
+                        placeholder="Home country license #"
+                        required
+                        className="w-full h-10 px-3 rounded-lg border border-stone/30 bg-[#F6F2E8] text-ink font-mono text-xs focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-ink-muted mb-1.5">
+                        Expiry Date <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="date"
+                        value={staffForeignLicenseExpiry}
+                        onChange={(e) => setStaffForeignLicenseExpiry(e.target.value)}
+                        required
+                        className={`w-full h-10 px-3 rounded-lg border bg-[#F6F2E8] text-ink text-xs focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40 ${
+                          staffIsForeignLicenseExpired ? 'border-rose-500 text-rose-600' : 'border-stone/30'
+                        }`}
+                      />
+                    </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 pt-1 border-t border-stone/15">
-                  <div>
-                    <label className="block font-semibold text-ink uppercase tracking-wider mb-1 text-[11px]">
-                      International Driving Permit (IDP) # *
-                    </label>
-                    <input
-                      type="text"
-                      value={staffIdpNumber}
-                      onChange={(e) => setStaffIdpNumber(e.target.value)}
-                      placeholder="e.g. IDP-98765432"
-                      required
-                      className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#F6F2E8] text-ink font-mono text-xs"
-                    />
+                {/* IDP */}
+                <div className="space-y-2">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#6B7A5E]">International Driving Permit</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-ink-muted mb-1.5">
+                        IDP Number <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={staffIdpNumber}
+                        onChange={(e) => setStaffIdpNumber(e.target.value)}
+                        placeholder="IDP-98765432"
+                        required
+                        className="w-full h-10 px-3 rounded-lg border border-stone/30 bg-[#F6F2E8] text-ink font-mono text-xs focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-ink-muted mb-1.5">
+                        IDP Expiry <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="date"
+                        value={staffIdpExpiry}
+                        onChange={(e) => setStaffIdpExpiry(e.target.value)}
+                        required
+                        className={`w-full h-10 px-3 rounded-lg border bg-[#F6F2E8] text-ink text-xs focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40 ${
+                          staffIsIdpExpired ? 'border-rose-500 text-rose-600' : 'border-stone/30'
+                        }`}
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <label className="block font-semibold text-ink uppercase tracking-wider mb-1 text-[11px]">
-                      IDP Expiry Date *
-                    </label>
-                    <input
-                      type="date"
-                      value={staffIdpExpiry}
-                      onChange={(e) => setStaffIdpExpiry(e.target.value)}
-                      required
-                      className={`w-full px-3 py-2 rounded-xl border bg-[#F6F2E8] text-ink font-mono text-xs ${
-                        staffIsIdpExpired ? 'border-rose-500 text-rose-600' : 'border-stone/30'
-                      }`}
-                    />
-                  </div>
-                </div>
 
-                {/* IDP Category A Checkbox */}
-                <div className="pt-1">
+                  {/* IDP Category A Checkbox */}
                   <label
-                    className={`flex items-start gap-2.5 p-2.5 rounded-xl border cursor-pointer select-none transition-all ${
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border cursor-pointer select-none transition-all ${
                       staffIdpCategoryA
-                        ? 'bg-[#6B7A5E]/10 border-[#6B7A5E] text-ink ring-1 ring-[#6B7A5E]/30'
-                        : 'border-amber-300 bg-amber-50/50 text-ink'
+                        ? 'bg-[#6B7A5E]/10 border-[#6B7A5E] ring-1 ring-[#6B7A5E]/30'
+                        : 'border-amber-300 bg-amber-50/60'
                     }`}
                   >
                     <input
                       type="checkbox"
                       checked={staffIdpCategoryA}
                       onChange={(e) => setStaffIdpCategoryA(e.target.checked)}
-                      className="mt-0.5 w-4 h-4 rounded border-stone text-[#6B7A5E] focus:ring-[#6B7A5E]"
+                      className="w-4 h-4 rounded border-stone text-[#6B7A5E] focus:ring-[#6B7A5E]"
                     />
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-bold text-xs text-ink">
-                          Physical IDP Card shows Category A (Motorcycle)
-                        </span>
-                        <span className="px-1 py-0.2 bg-emerald-100 text-emerald-800 rounded text-[9px] font-bold">
-                          Required
-                        </span>
-                      </div>
-                      <p className="text-[10px] text-ink-muted mt-0.5">
-                        Staff verified that the guest's physical International Driving Permit has Category A stamped.
-                      </p>
+                      <p className="font-bold text-xs text-ink">IDP card shows Category A (Motorcycle)</p>
+                      <p className="text-[10px] text-ink-muted">Verified on the guest's physical permit</p>
                     </div>
                   </label>
 
                   {!staffIdpCategoryA && (
-                    <p className="text-[11px] text-rose-600 mt-1 font-medium">
-                      An International Driving Permit (IDP) with a motorcycle category is required for foreign guests to rent a motorcycle in the Philippines. Please present your IDP at the front desk, or contact us if you don't have one.
+                    <p className="text-[10px] text-rose-600 font-medium flex items-start gap-1">
+                      <AlertCircle className="w-3 h-3 shrink-0 mt-px" />
+                      Foreign guests need an IDP with a motorcycle category to rent.
                     </p>
                   )}
 
-                  <div className="mt-2 p-2 bg-blue-50/80 border border-blue-200 rounded-xl text-[10px] text-blue-800 flex items-center gap-1.5">
-                    <Globe className="w-3 h-3 text-blue-600 shrink-0" />
-                    <span>
-                      Notice: Tourists may drive with an IDP + valid foreign license for up to 90 days from arrival in the Philippines.
-                    </span>
-                  </div>
+                  <p className="text-[10px] text-blue-700 flex items-center gap-1.5">
+                    <Globe className="w-3 h-3 shrink-0" />
+                    IDP + valid foreign license is accepted for up to 90 days from arrival.
+                  </p>
                 </div>
               </div>
             )}
-          </div>
+          </section>
 
-          <div>
-            <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Dispatch Notes / Condition</label>
+          {/* ═══ STEP 4: NOTES ═══ */}
+          <section className="rounded-2xl border border-stone/20 bg-white p-4 space-y-2">
+            <label className="flex items-center gap-1.5 text-[11px] font-semibold text-ink-muted">
+              <StickyNote className="w-3.5 h-3.5" /> Dispatch Notes <span className="font-normal">(optional)</span>
+            </label>
             <input
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="e.g. Helmet issued (Qty: 2), gas tank full"
-              className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#F6F2E8] text-xs"
+              className="w-full h-10 px-3 rounded-lg border border-stone/30 bg-[#F6F2E8] text-xs text-ink focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
             />
-          </div>
+          </section>
 
-          {/* Rate Preview */}
-          {(() => {
-            const motor = motorcycles.find((m) => m.id === selectedMotorId)
-            if (!motor || !startDate || !returnDate) return null
-            const days = Math.max(1, Math.ceil((new Date(returnDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)))
-            const total = Number(motor.rental_rate) * days
-            return (
-              <div className="bg-sand/40 border border-stone/20 rounded-xl p-3.5 flex justify-between items-center text-xs">
-                <span className="text-ink-muted">Estimated Rental ({days} day{days > 1 ? 's' : ''}):</span>
-                <span className="font-display font-bold text-[#6B7A5E] text-base">₱{total.toLocaleString()}</span>
-              </div>
-            )
-          })()}
+          {/* ═══ STICKY FOOTER: SUMMARY + ACTIONS ═══ */}
+          <div className="sticky -bottom-6 -mx-6 -mb-6 px-6 py-4 bg-white/95 dark:bg-[#181B20]/95 backdrop-blur border-t border-stone/20 flex flex-col sm:flex-row sm:items-center gap-3">
+            {/* Rate Preview */}
+            <div className="flex-1 min-w-0">
+              {(() => {
+                const motor = motorcycles.find((m) => m.id === selectedMotorId)
+                if (!motor || !startDate || !returnDate) {
+                  return <p className="text-[11px] text-ink-muted">Select a motorcycle and dates to see the estimate.</p>
+                }
+                const s = new Date(`${startDate}T${startTime}:00`).getTime()
+                const e = new Date(`${returnDate}T${returnTime}:00`).getTime()
+                const days = (isNaN(s) || isNaN(e) || e <= s) ? 0 : Math.max(1, Math.ceil((e - s) / (1000 * 60 * 60 * 24)))
+                const total = Number(motor.rental_rate) * days
+                return (
+                  <div className="leading-tight">
+                    <p className="text-[10px] uppercase tracking-wider font-semibold text-ink-muted">
+                      Estimated · {days} day{days > 1 ? 's' : ''}
+                    </p>
+                    <p className="font-display font-bold text-[#6B7A5E] text-xl">₱{total.toLocaleString()}</p>
+                  </div>
+                )
+              })()}
+            </div>
 
-          <div className="flex gap-3 pt-2">
-            <button
-              type="button"
-              onClick={() => setShowAddRentModal(false)}
-              className="flex-1 py-2.5 border border-stone/30 rounded-xl text-xs font-semibold text-ink-muted hover:bg-sand cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={
-                creatingRental ||
-                !selectedMotorId ||
-                !selectedCustomerId ||
-                !!selectedCustomerActiveRental ||
-                !staffIsLicenseValid
-              }
-              className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl text-xs font-semibold shadow-sm disabled:opacity-50 transition-all cursor-pointer"
-            >
-              {creatingRental ? 'Creating Rental...' : 'Proceed to Billing'}
-            </button>
+            <div className="flex gap-2 sm:w-auto">
+              <button
+                type="button"
+                onClick={() => setShowAddRentModal(false)}
+                className="flex-1 sm:flex-none px-5 h-10 border border-stone/30 rounded-xl text-xs font-semibold text-ink-muted hover:bg-sand cursor-pointer transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={
+                  creatingRental ||
+                  !selectedMotorId ||
+                  !selectedCustomerId ||
+                  !!selectedCustomerActiveRental ||
+                  !staffIsLicenseValid
+                }
+                className="flex-1 sm:flex-none px-5 h-10 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl text-xs font-semibold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                {creatingRental ? 'Creating Rental...' : (<>Proceed to Billing <ArrowRight className="w-3.5 h-3.5" /></>)}
+              </button>
+            </div>
           </div>
         </form>
       </Modal>

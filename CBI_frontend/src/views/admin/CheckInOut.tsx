@@ -234,6 +234,7 @@ export default function AdminCheckInOut({ onNavigate }: { onNavigate?: (view: Vi
       setPayRef('')
       setPayNotes('')
       loadData()
+      window.dispatchEvent(new Event('billing-updated'))
       
       if (onNavigate) {
         onNavigate('staff-payments')
@@ -260,6 +261,10 @@ export default function AdminCheckInOut({ onNavigate }: { onNavigate?: (view: Vi
     }
   }
 
+<<<<<<< HEAD
+>>>>>>> Stashed changes
+=======
+>>>>>>> main
   // Format date helper: "Jul 30, 2026"
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return ''

@@ -17,6 +17,9 @@ import {
   Trash2,
   Camera,
   RotateCcw,
+  Search,
+  X,
+  UserCheck,
 } from 'lucide-react'
 import { bookingsApi, ActivityRentalItem } from '../../api/bookings'
 import { courtsApi, CourtItem } from '../../api/courts'
@@ -87,7 +90,15 @@ export default function StaffPickleball() {
   // Reserve modal state
   const [showReserveModal, setShowReserveModal] = useState(false)
   const [selectedCourtIdForBooking, setSelectedCourtIdForBooking] = useState<number | 'any'>('any')
-  const [selectedCustomerId, setSelectedCustomerId] = useState<number | ''>('')
+  const [selectedCustomerId, setSelectedCustomerId] = useState<number | '' | 'anonymous'>('')
+  const [customerSearch, setCustomerSearch] = useState('')
+  const [customerPickerOpen, setCustomerPickerOpen] = useState(false)
+
+  // Walk-in Guest Information
+  const [walkInName, setWalkInName] = useState('')
+  const [walkInPhone, setWalkInPhone] = useState('')
+  const [walkInEmail, setWalkInEmail] = useState('')
+  const [courtLocked, setCourtLocked] = useState(false)
   const [date, setDate] = useState(getTodayDateString())
   const [startTime, setStartTime] = useState(getCurrentTimeString())
   const [duration, setDuration] = useState(1)
@@ -98,11 +109,17 @@ export default function StaffPickleball() {
 
   const openReserveModal = (courtId: number | 'any' = 'any') => {
     setSelectedCourtIdForBooking(courtId)
+    setCourtLocked(courtId !== 'any')
     setSelectedCustomerId('')
+    setCustomerSearch('')
+    setCustomerPickerOpen(false)
     setDate(getTodayDateString())
     setStartTime(getCurrentTimeString())
     setDuration(1)
     setNotes('')
+    setWalkInName('')
+    setWalkInPhone('')
+    setWalkInEmail('')
     setError('')
     setShowReserveModal(true)
   }
@@ -233,6 +250,17 @@ export default function StaffPickleball() {
       setError(availabilityStatus.message || 'The selected time range is unavailable. Please choose another time or court.')
       return
     }
+
+    if (selectedCustomerId === 'anonymous') {
+      if (!walkInName.trim()) {
+        setError('Please provide the full name for the walk-in guest.')
+        return
+      }
+      if (!walkInPhone.trim()) {
+        setError('Please provide a phone number for the walk-in guest.')
+        return
+      }
+    }
     setSubmitting(true)
     setError('')
     try {
@@ -250,13 +278,17 @@ export default function StaffPickleball() {
         return `${y}-${m}-${day} ${hh}:${mm}:${ss}`
       }
 
+      const guestInfo = selectedCustomerId === 'anonymous'
+        ? `\\n[Walk-in Guest Info: Name: ${walkInName.trim() || 'N/A'} | Phone: ${walkInPhone.trim() || 'N/A'} | Email: ${walkInEmail.trim() || 'N/A'}]`
+        : ''
+
       const res = await bookingsApi.createRental({
         activity_id: 2,
         court_id: selectedCourtIdForBooking !== 'any' ? Number(selectedCourtIdForBooking) : undefined,
-        customer_id: Number(selectedCustomerId),
+        customer_id: selectedCustomerId === 'anonymous' ? undefined : Number(selectedCustomerId),
         start_time: toSqlDateTime(startDt),
         end_time: toSqlDateTime(endDt),
-        notes: `${players} players · ${notes || 'Staff booking'}`,
+        notes: `${players} players · ${notes || 'Staff booking'}${guestInfo}`,
       })
 
       setShowReserveModal(false)
@@ -265,6 +297,7 @@ export default function StaffPickleball() {
       const courtNameText = res.court_name ? ` on ${res.court_name}` : ''
       setSuccessMsg(`Pickleball court reserved successfully${courtNameText} for ${date} at ${formatTime12h(startTime)}!`)
       setTimeout(() => setSuccessMsg(''), 4500)
+      window.dispatchEvent(new Event('billing-updated'))
       loadData()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to reserve court')
@@ -951,7 +984,7 @@ export default function StaffPickleball() {
       </div>
 
       {/* ─── MODAL 1: RESERVE COURT FOR GUEST ─── */}
-      <Modal isOpen={showReserveModal} onClose={() => setShowReserveModal(false)} title="Reserve Pickleball Court" size="md">
+      <Modal isOpen={showReserveModal} onClose={() => setShowReserveModal(false)} title="Reserve Pickleball Court" size="lg">
         <form onSubmit={handleCreateCourtBooking} className="space-y-4 text-xs font-sans">
           {error && (
             <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs font-semibold flex items-center gap-2">
@@ -960,50 +993,147 @@ export default function StaffPickleball() {
             </div>
           )}
 
-          {/* Select Court */}
-          <div>
-            <label className="block font-semibold text-neutral-900 dark:text-white uppercase tracking-wider mb-1.5">
-              Select Court *
-            </label>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                type="button"
-                onClick={() => setSelectedCourtIdForBooking('any')}
-                className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
-                  selectedCourtIdForBooking === 'any'
-                    ? 'border-[#6B7A5E] bg-[#6B7A5E]/10 text-[#6B7A5E] ring-1 ring-[#6B7A5E]'
-                    : 'border-black/[0.08] dark:border-neutral-800 bg-neutral-50/50 dark:bg-[#15181D] text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-0.5">
-                  <span className="font-bold text-xs">Any Court</span>
-                  {selectedCourtIdForBooking === 'any' && <Check className="w-3.5 h-3.5" />}
-                </div>
-                <span className="text-[10px] text-neutral-500 block">Auto-assign free</span>
-              </button>
+          {/* ═══ STEP 1: GUEST & COURT ═══ */}
+          <section className="rounded-2xl border border-black/[0.08] dark:border-neutral-800 bg-white dark:bg-[#15181D] p-4 space-y-3">
+            <div className="flex items-center gap-2.5">
+              <span className="w-6 h-6 rounded-full bg-[#6B7A5E] text-white text-[11px] font-bold flex items-center justify-center shrink-0">1</span>
+              <div>
+                <h3 className="text-sm font-bold text-neutral-900 dark:text-white leading-tight">Guest &amp; Court</h3>
+                <p className="text-[10px] text-neutral-500">Who is playing and where</p>
+              </div>
+            </div>
 
-              {courts.map((c) => {
-                const isSelected = selectedCourtIdForBooking === c.id
-                const isMaint = c.status === 'MAINTENANCE' || c.status === 'INACTIVE'
-                return (
-                  <button
-                    key={String(c.id)}
-                    type="button"
-                    disabled={isMaint}
-                    onClick={() => setSelectedCourtIdForBooking(c.id)}
-                    className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
-                      isSelected
-                        ? 'border-[#6B7A5E] bg-[#6B7A5E]/10 text-[#6B7A5E] ring-1 ring-[#6B7A5E]'
-                        : 'border-black/[0.08] dark:border-neutral-800 bg-neutral-50/50 dark:bg-[#15181D] text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-0.5">
-                      <span className="font-bold text-xs">{c.name}</span>
-                      {isSelected && <Check className="w-3.5 h-3.5" />}
+            {/* Customer search */}
+            <div>
+              <label className="flex items-center gap-1.5 text-[11px] font-semibold text-neutral-500 mb-1.5">
+                <UserCheck className="w-3.5 h-3.5" /> Renting Customer <span className="text-rose-500">*</span>
+              </label>
+              {(() => {
+                const activeCustomers = customers.filter((c) => String(c.status).toLowerCase() === 'active')
+                
+                if (selectedCustomerId === 'anonymous' && !customerPickerOpen) {
+                  return (
+                    <div className="w-full h-10 px-3 rounded-lg border border-[#6B7A5E]/40 bg-[#6B7A5E]/5 flex items-center justify-between gap-2">
+                      <div className="min-w-0 truncate text-xs">
+                        <span className="font-semibold text-neutral-900 dark:text-white">Walk-in Guest</span>
+                        <span className="ml-1.5 font-mono text-[10px] text-neutral-500">(Anonymous)</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedCustomerId('')
+                          setCustomerSearch('')
+                          setCustomerPickerOpen(true)
+                        }}
+                        className="shrink-0 w-6 h-6 rounded-md flex items-center justify-center text-neutral-500 hover:bg-neutral-200/60 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-white cursor-pointer"
+                        aria-label="Change customer"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
                     </div>
-                    <span className="text-[10px] text-neutral-500 block">₱{Number(c.hourly_rate || 150)}/hr</span>
-                  </button>
+                  )
+                }
+                
+                const selected = activeCustomers.find((c) => Number(c.id) === Number(selectedCustomerId))
+
+                if (selected && !customerPickerOpen) {
+                  return (
+                    <div className="w-full h-10 px-3 rounded-lg border border-[#6B7A5E]/40 bg-[#6B7A5E]/5 flex items-center justify-between gap-2">
+                      <div className="min-w-0 truncate text-xs">
+                        <span className="font-semibold text-neutral-900 dark:text-white">{String(selected.full_name || selected.name)}</span>
+                        <span className="ml-1.5 font-mono text-[10px] text-neutral-500">{String(selected.unique_id || selected.customer_id || '')}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedCustomerId('')
+                          setCustomerSearch('')
+                          setCustomerPickerOpen(true)
+                        }}
+                        className="shrink-0 w-6 h-6 rounded-md flex items-center justify-center text-neutral-500 hover:bg-neutral-200/60 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-white cursor-pointer"
+                        aria-label="Change customer"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )
+                }
+
+                const q = customerSearch.trim().toLowerCase()
+                const results = q
+                  ? activeCustomers.filter((c) =>
+                      [c.full_name, c.name, c.unique_id, c.customer_id, c.phone, c.email]
+                        .filter(Boolean)
+                        .some((v) => String(v).toLowerCase().includes(q))
+                    )
+                  : activeCustomers
+
+                return (
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-400 pointer-events-none" />
+                    <input
+                      type="text"
+                      id="court_customer_search"
+                      value={customerSearch}
+                      onChange={(e) => {
+                        setCustomerSearch(e.target.value)
+                        setCustomerPickerOpen(true)
+                      }}
+                      onFocus={() => setCustomerPickerOpen(true)}
+                      onBlur={() => setTimeout(() => setCustomerPickerOpen(false), 150)}
+                      placeholder="Search name, ID or phone…"
+                      autoComplete="off"
+                      autoFocus={customerPickerOpen}
+                      className="w-full h-10 pl-9 pr-3 rounded-lg border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#111317] text-xs text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40 focus:border-[#6B7A5E]"
+                    />
+                    {customerPickerOpen && (
+                      <div className="absolute z-20 mt-1 w-full max-h-60 overflow-y-auto rounded-xl border border-black/[0.08] dark:border-neutral-800 bg-white dark:bg-[#181B20] shadow-lg py-1">
+                        {!customerSearch && (
+                          <button
+                            type="button"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => {
+                              setSelectedCustomerId('anonymous')
+                              setCustomerSearch('')
+                              setCustomerPickerOpen(false)
+                            }}
+                            className="w-full text-left px-3 py-2 hover:bg-[#6B7A5E]/10 cursor-pointer flex items-center gap-2 border-b border-black/[0.06] dark:border-neutral-800"
+                          >
+                            <UserCheck className="w-4 h-4 text-neutral-500" />
+                            <div className="min-w-0">
+                              <p className="text-xs font-semibold text-neutral-900 dark:text-white">Walk-in Guest</p>
+                              <p className="text-[10px] text-neutral-500">Anonymous booking (no account)</p>
+                            </div>
+                          </button>
+                        )}
+                        {results.length === 0 ? (
+                          <p className="px-3 py-3 text-[11px] text-neutral-500 text-center">No customer found for “{customerSearch}”</p>
+                        ) : (
+                          results.map((c) => (
+                            <button
+                              key={String(c.id)}
+                              type="button"
+                              onMouseDown={(e) => e.preventDefault()}
+                              onClick={() => {
+                                setSelectedCustomerId(Number(c.id))
+                                setCustomerSearch('')
+                                setCustomerPickerOpen(false)
+                              }}
+                              className="w-full text-left px-3 py-2 hover:bg-[#6B7A5E]/10 cursor-pointer flex items-center justify-between gap-2"
+                            >
+                              <div className="min-w-0">
+                                <p className="text-xs font-semibold text-neutral-900 dark:text-white truncate">{String(c.full_name || c.name)}</p>
+                                <p className="text-[10px] text-neutral-500 truncate">{String(c.phone || c.email || '')}</p>
+                              </div>
+                              <span className="shrink-0 font-mono text-[10px] text-neutral-500">{String(c.unique_id || c.customer_id || '')}</span>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
                 )
+<<<<<<< Updated upstream
               })}
             </div>
           </div>
@@ -1037,168 +1167,305 @@ export default function StaffPickleball() {
                 required
                 className="w-full px-3 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#15181D] text-xs dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
               />
+=======
+              })()}
+>>>>>>> Stashed changes
             </div>
 
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="block font-semibold text-neutral-900 dark:text-white uppercase tracking-wider text-xs">
-                  Start Time (24/7) *
-                </label>
-                {date === getTodayDateString() && (
-                  <button
-                    type="button"
-                    onClick={() => setStartTime(getCurrentTimeString())}
-                    className="text-[11px] font-semibold text-[#6B7A5E] hover:text-[#4F5D45] hover:underline flex items-center gap-1 cursor-pointer"
-                    title="Snap to current clock time"
-                  >
-                    <Clock className="w-3 h-3" />
-                    <span>Start Now ({formatTime12h(getCurrentTimeString())})</span>
-                  </button>
-                )}
+            {selectedCustomerId === 'anonymous' && (
+              <div className="pt-3 mt-3 border-t border-black/[0.06] dark:border-neutral-800 space-y-3">
+                <p className="text-[11px] font-semibold text-neutral-900 dark:text-white uppercase tracking-wider mb-2">Walk-in Guest Details</p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold text-neutral-500 mb-1">Full Name <span className="text-rose-500">*</span></label>
+                    <input
+                      type="text"
+                      value={walkInName}
+                      onChange={(e) => setWalkInName(e.target.value)}
+                      required
+                      placeholder="John Doe"
+                      className="w-full h-9 px-3 rounded-lg border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#111317] text-xs text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-neutral-500 mb-1">Phone Number <span className="text-rose-500">*</span></label>
+                    <input
+                      type="tel"
+                      value={walkInPhone}
+                      onChange={(e) => setWalkInPhone(e.target.value)}
+                      required
+                      placeholder="+63 912 345 6789"
+                      className="w-full h-9 px-3 rounded-lg border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#111317] text-xs text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-neutral-500 mb-1">Email Address (Optional)</label>
+                    <input
+                      type="email"
+                      value={walkInEmail}
+                      onChange={(e) => setWalkInEmail(e.target.value)}
+                      placeholder="john@example.com"
+                      className="w-full h-9 px-3 rounded-lg border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#111317] text-xs text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
+                    />
+                  </div>
+                </div>
               </div>
-              <input
-                type="time"
-                required
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#15181D] font-mono text-xs font-bold text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
-              />
-              {!startTime && date !== getTodayDateString() && (
-                <p className="text-[10px] text-neutral-400 mt-1">Select an intended start time for this day.</p>
+            )}
+
+            {/* Court chips */}
+            <div>
+              <label className="block text-[11px] font-semibold text-neutral-500 mb-1.5">
+                Court <span className="text-rose-500">*</span>
+              </label>
+              {courtLocked && activeCourtObj ? (
+                <div className="w-full h-10 px-3 rounded-lg border border-[#6B7A5E]/40 bg-[#6B7A5E]/5 flex items-center justify-between gap-2">
+                  <span className="text-xs font-semibold text-neutral-900 dark:text-white truncate">{activeCourtObj.name}</span>
+                  <span className="shrink-0 text-[11px] font-bold text-[#6B7A5E]">₱{Number(activeCourtObj.hourly_rate || 150)}/hr</span>
+                </div>
+              ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedCourtIdForBooking('any')}
+                  className={`px-3 py-2 rounded-xl border text-left transition-all cursor-pointer ${
+                    selectedCourtIdForBooking === 'any'
+                      ? 'border-[#6B7A5E] bg-[#6B7A5E]/10 ring-1 ring-[#6B7A5E]/40'
+                      : 'border-black/[0.08] dark:border-neutral-800 bg-white dark:bg-[#111317] hover:border-[#6B7A5E]/50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-xs text-neutral-900 dark:text-white">Any Court</span>
+                    {selectedCourtIdForBooking === 'any' && <Check className="w-3.5 h-3.5 text-[#6B7A5E]" />}
+                  </div>
+                  <span className="text-[10px] text-neutral-500">Auto-assign</span>
+                </button>
+
+                {courts.map((c) => {
+                  const isSelected = selectedCourtIdForBooking === c.id
+                  const isMaint = c.status === 'MAINTENANCE' || c.status === 'INACTIVE'
+                  return (
+                    <button
+                      key={String(c.id)}
+                      type="button"
+                      disabled={isMaint}
+                      onClick={() => setSelectedCourtIdForBooking(c.id)}
+                      className={`px-3 py-2 rounded-xl border text-left transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
+                        isSelected
+                          ? 'border-[#6B7A5E] bg-[#6B7A5E]/10 ring-1 ring-[#6B7A5E]/40'
+                          : 'border-black/[0.08] dark:border-neutral-800 bg-white dark:bg-[#111317] hover:border-[#6B7A5E]/50'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-xs text-neutral-900 dark:text-white">{c.name}</span>
+                        {isSelected && <Check className="w-3.5 h-3.5 text-[#6B7A5E]" />}
+                      </div>
+                      <span className="text-[10px] text-neutral-500">
+                        {isMaint ? 'Unavailable' : `₱${Number(c.hourly_rate || 150)}/hr`}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
               )}
             </div>
-          </div>
+          </section>
 
-          {/* Real-time continuous availability indicator */}
-          {!availabilityStatus.isAvailable ? (
-            <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl space-y-1 text-xs">
-              <div className="flex items-start gap-2 text-rose-800 font-semibold">
-                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+          {/* ═══ STEP 2: SCHEDULE ═══ */}
+          <section className="rounded-2xl border border-black/[0.08] dark:border-neutral-800 bg-white dark:bg-[#15181D] p-4 space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2.5">
+                <span className="w-6 h-6 rounded-full bg-[#6B7A5E] text-white text-[11px] font-bold flex items-center justify-center shrink-0">2</span>
                 <div>
-                  <p className="font-bold">Court Slot Conflict</p>
-                  <p className="text-[11px] font-normal text-rose-700 mt-0.5">{availabilityStatus.message}</p>
+                  <h3 className="text-sm font-bold text-neutral-900 dark:text-white leading-tight">Schedule</h3>
+                  <p className="text-[10px] text-neutral-500">Open 24 hours</p>
                 </div>
               </div>
-              {availabilityStatus.suggestedSlot && (
-                <div className="pl-6 pt-1">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const [h, m] = availabilityStatus.suggestedSlot!.split(':').map((s) => s.trim())
-                      const isPm = availabilityStatus.suggestedSlot!.toUpperCase().includes('PM')
-                      let hh = parseInt(h, 10)
-                      if (isPm && hh < 12) hh += 12
-                      if (!isPm && hh === 12) hh = 0
-                      const mm = m.substring(0, 2)
-                      setStartTime(`${String(hh).padStart(2, '0')}:${mm}`)
-                    }}
-                    className="text-[11px] text-[#6B7A5E] hover:underline font-semibold cursor-pointer"
-                  >
-                    👉 Jump to nearest available time ({availabilityStatus.suggestedSlot})
-                  </button>
-                </div>
+              {date === getTodayDateString() && (
+                <button
+                  type="button"
+                  onClick={() => setStartTime(getCurrentTimeString())}
+                  className="px-2.5 py-1 rounded-full bg-[#6B7A5E]/10 text-[#4F5D45] dark:text-[#A9B89A] text-[10px] font-bold hover:bg-[#6B7A5E]/20 flex items-center gap-1 cursor-pointer"
+                  title="Snap to current clock time"
+                >
+                  <Clock className="w-3 h-3" />
+                  Start now
+                </button>
               )}
             </div>
-          ) : (
-            <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between text-xs text-emerald-800 font-medium">
-              <span className="flex items-center gap-1.5">
-                <Check className="w-3.5 h-3.5 text-emerald-600" />
-                <span>
-                  {selectedCourtIdForBooking === 'any' 
-                    ? 'Slot is available! (Will assign first free court)' 
-                    : `${activeCourtObj?.name || 'Court'} is available!`}
-                </span>
-              </span>
-              <span className="text-[10px] font-mono">Open 24 Hours</span>
-            </div>
-          )}
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block font-semibold text-neutral-900 dark:text-white uppercase tracking-wider mb-1">Duration (Hours) *</label>
-              <select
-                value={duration}
-                onChange={(e) => setDuration(Number(e.target.value))}
-                className="w-full px-3 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#15181D] text-xs font-semibold dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
-              >
-                <option value={0.5}>0.5 Hour (30 Mins) — ₱{bookingRate * 0.5}</option>
-                <option value={1}>1.0 Hour (60 Mins) — ₱{bookingRate * 1}</option>
-                <option value={1.5}>1.5 Hours (90 Mins) — ₱{bookingRate * 1.5}</option>
-                <option value={2}>2.0 Hours (120 Mins) — ₱{bookingRate * 2}</option>
-                <option value={2.5}>2.5 Hours (150 Mins) — ₱{bookingRate * 2.5}</option>
-                <option value={3}>3.0 Hours (180 Mins) — ₱{bookingRate * 3}</option>
-                <option value={4}>4.0 Hours (240 Mins) — ₱{bookingRate * 4}</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block font-semibold text-neutral-900 dark:text-white uppercase tracking-wider mb-1">Expected Match End</label>
-              <div className="w-full px-3 py-2 rounded-xl border border-amber-300/80 bg-amber-50/70 dark:bg-[#221D16] font-mono text-xs font-bold text-amber-900 dark:text-amber-200 flex items-center gap-2">
-                <Clock className="w-3.5 h-3.5 text-[#6B7A5E] shrink-0" />
-                <span>{calculateExpectedEndTime(startTime, duration, date)}</span>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] font-semibold text-neutral-500 mb-1.5">
+                  Date <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="date"
+                  value={date}
+                  onChange={(e) => handleDateChange(e.target.value)}
+                  min={getTodayDateString()}
+                  required
+                  className="w-full h-10 px-3 rounded-lg border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#111317] text-xs text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-semibold text-neutral-500 mb-1.5">
+                  Start Time <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="time"
+                  required
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                  className="w-full h-10 px-3 rounded-lg border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#111317] text-xs font-semibold text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
+                />
               </div>
             </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-3">
+            {/* Duration pills */}
             <div>
-              <label className="block font-semibold text-neutral-900 dark:text-white uppercase tracking-wider mb-1">Players</label>
-              <select
-                value={players}
-                onChange={(e) => setPlayers(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#15181D] text-xs dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
-              >
-                <option value="2">2 Players (Singles)</option>
-                <option value="4">4 Players (Doubles)</option>
-                <option value="6">Group (5+ Players)</option>
-              </select>
+              <label className="block text-[11px] font-semibold text-neutral-500 mb-1.5">
+                Duration <span className="text-rose-500">*</span>
+              </label>
+              <div className="grid grid-cols-4 sm:grid-cols-7 gap-1.5">
+                {[0.5, 1, 1.5, 2, 2.5, 3, 4].map((h) => {
+                  const active = duration === h
+                  return (
+                    <button
+                      key={h}
+                      type="button"
+                      onClick={() => setDuration(h)}
+                      className={`py-2 rounded-lg border text-center transition-all cursor-pointer ${
+                        active
+                          ? 'border-[#6B7A5E] bg-[#6B7A5E] text-white shadow-sm'
+                          : 'border-black/[0.08] dark:border-neutral-800 bg-white dark:bg-[#111317] text-neutral-700 dark:text-neutral-300 hover:border-[#6B7A5E]/50'
+                      }`}
+                    >
+                      <span className="block text-xs font-bold">{h < 1 ? '30m' : `${h}h`}</span>
+                      <span className={`block text-[9px] ${active ? 'text-white/80' : 'text-neutral-500'}`}>₱{(bookingRate * h).toLocaleString()}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Time range + availability */}
+            {!availabilityStatus.isAvailable ? (
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs">
+                <div className="flex items-start gap-2 text-rose-800">
+                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="font-bold">Court slot conflict</p>
+                    <p className="text-[11px] text-rose-700 mt-0.5">{availabilityStatus.message}</p>
+                    {availabilityStatus.suggestedSlot && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const [h, m] = availabilityStatus.suggestedSlot!.split(':').map((s) => s.trim())
+                          const isPm = availabilityStatus.suggestedSlot!.toUpperCase().includes('PM')
+                          let hh = parseInt(h, 10)
+                          if (isPm && hh < 12) hh += 12
+                          if (!isPm && hh === 12) hh = 0
+                          const mm = m.substring(0, 2)
+                          setStartTime(`${String(hh).padStart(2, '0')}:${mm}`)
+                        }}
+                        className="mt-1.5 px-2.5 py-1 rounded-md bg-white border border-rose-200 text-[11px] text-[#4F5D45] font-semibold hover:bg-rose-100/50 cursor-pointer"
+                      >
+                        Use nearest free time ({availabilityStatus.suggestedSlot})
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="px-3 py-2.5 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 rounded-xl flex items-center justify-between gap-2 text-xs">
+                <span className="flex items-center gap-1.5 text-emerald-800 dark:text-emerald-300 font-semibold">
+                  <Check className="w-3.5 h-3.5 text-emerald-600" />
+                  {selectedCourtIdForBooking === 'any'
+                    ? 'Slot available — first free court will be assigned'
+                    : `${activeCourtObj?.name || 'Court'} is available`}
+                </span>
+                <span className="font-mono text-[11px] font-bold text-neutral-800 dark:text-neutral-200 shrink-0">
+                  {formatTime12h(startTime)} → {calculateExpectedEndTime(startTime, duration, date)}
+                </span>
+              </div>
+            )}
+          </section>
+
+          {/* ═══ STEP 3: DETAILS ═══ */}
+          <section className="rounded-2xl border border-black/[0.08] dark:border-neutral-800 bg-white dark:bg-[#15181D] p-4 space-y-3">
+            <div className="flex items-center gap-2.5">
+              <span className="w-6 h-6 rounded-full bg-[#6B7A5E] text-white text-[11px] font-bold flex items-center justify-center shrink-0">3</span>
+              <div>
+                <h3 className="text-sm font-bold text-neutral-900 dark:text-white leading-tight">Match Details</h3>
+                <p className="text-[10px] text-neutral-500">Players and remarks</p>
+              </div>
             </div>
 
             <div>
-              <label className="block font-semibold text-neutral-900 dark:text-white uppercase tracking-wider mb-1">Remarks / Notes</label>
+              <label className="flex items-center gap-1.5 text-[11px] font-semibold text-neutral-500 mb-1.5">
+                <Users className="w-3.5 h-3.5" /> Players
+              </label>
+              <div className="grid grid-cols-3 gap-1.5 p-0.5 bg-neutral-100 dark:bg-[#111317] rounded-lg">
+                {[
+                  { v: '2', label: 'Singles', sub: '2 players' },
+                  { v: '4', label: 'Doubles', sub: '4 players' },
+                  { v: '6', label: 'Group', sub: '5+ players' },
+                ].map((p) => {
+                  const active = players === p.v
+                  return (
+                    <button
+                      key={p.v}
+                      type="button"
+                      onClick={() => setPlayers(p.v)}
+                      className={`py-1.5 rounded-md text-center transition-all cursor-pointer ${
+                        active ? 'bg-white dark:bg-[#1E2228] shadow-xs text-neutral-900 dark:text-white' : 'text-neutral-500 hover:text-neutral-900 dark:hover:text-white'
+                      }`}
+                    >
+                      <span className="block text-xs font-semibold">{p.label}</span>
+                      <span className="block text-[9px] text-neutral-500">{p.sub}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-semibold text-neutral-500 mb-1.5">
+                Remarks <span className="font-normal">(optional)</span>
+              </label>
               <input
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="Equipment requests, etc."
-                className="w-full px-3 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#15181D] text-xs dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
+                placeholder="e.g. Paddle rental, extra balls"
+                className="w-full h-10 px-3 rounded-lg border border-black/[0.1] dark:border-neutral-800 bg-neutral-50 dark:bg-[#111317] text-xs text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
               />
             </div>
-          </div>
+          </section>
 
-          <div className="bg-neutral-50 dark:bg-[#15181D] border border-black/[0.06] dark:border-neutral-800 rounded-xl p-3.5 space-y-1.5 text-xs">
-            <div className="flex justify-between text-neutral-500">
-              <span>Court:</span>
-              <span className="font-semibold text-neutral-900 dark:text-white">
-                {selectedCourtIdForBooking === 'any' ? 'Any Available Court (Auto-Assign)' : (activeCourtObj?.name || 'Court A')}
-              </span>
+          {/* ═══ STICKY FOOTER: SUMMARY + ACTIONS ═══ */}
+          <div className="sticky -bottom-6 -mx-6 -mb-6 px-6 py-4 bg-white/95 dark:bg-[#181B20]/95 backdrop-blur border-t border-black/[0.06] dark:border-neutral-800 flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="flex-1 min-w-0 leading-tight">
+              <p className="text-[10px] uppercase tracking-wider font-semibold text-neutral-500 truncate">
+                {selectedCourtIdForBooking === 'any' ? 'Any court' : (activeCourtObj?.name || 'Court')} · {duration < 1 ? '30 mins' : `${duration} hr${duration > 1 ? 's' : ''}`}
+              </p>
+              <p className="font-display font-bold text-[#6B7A5E] text-xl">₱{totalCost.toLocaleString()}</p>
             </div>
-            <div className="flex justify-between text-neutral-500">
-              <span>Playing Schedule:</span>
-              <span className="font-mono font-semibold text-neutral-900 dark:text-white">
-                {formatTime12h(startTime)} → <span className="text-amber-800 font-bold">{calculateExpectedEndTime(startTime, duration, date)}</span>
-              </span>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setShowReserveModal(false)}
+                className="flex-1 sm:flex-none px-5 h-10 border border-black/[0.1] dark:border-neutral-700 rounded-xl text-xs font-semibold text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={submitting || !selectedCustomerId || !date || !startTime || !availabilityStatus.isAvailable}
+                className="flex-1 sm:flex-none px-5 h-10 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl text-xs font-semibold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                {submitting ? 'Confirming...' : (<>Confirm Booking <Check className="w-3.5 h-3.5" /></>)}
+              </button>
             </div>
-            <div className="pt-1.5 border-t border-black/[0.06] dark:border-neutral-800 flex justify-between items-center">
-              <span className="font-medium text-neutral-700 dark:text-neutral-300">Total Rental Fee:</span>
-              <span className="font-display font-bold text-[#6B7A5E] text-base">₱{totalCost.toLocaleString()}</span>
-            </div>
-          </div>
-
-          <div className="flex gap-3 pt-2">
-            <button
-              type="button"
-              onClick={() => setShowReserveModal(false)}
-              className="flex-1 py-2.5 border border-black/[0.1] dark:border-neutral-700 rounded-xl text-xs font-semibold text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={submitting || !selectedCustomerId || !date || !startTime || !availabilityStatus.isAvailable}
-              className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl text-xs font-semibold shadow-sm disabled:opacity-50 transition-all cursor-pointer"
-            >
-              {submitting ? 'Confirming...' : 'Confirm Court Booking'}
-            </button>
           </div>
         </form>
       </Modal>

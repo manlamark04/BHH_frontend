@@ -967,15 +967,25 @@ export default function AdminPayments() {
         title="Record Payment Transaction"
         size="md"
       >
-        <form onSubmit={handleConfirmRecordPayment} className="space-y-4 text-xs font-sans">
+        <form onSubmit={handleConfirmRecordPayment} className="text-xs font-sans bg-[#F6F2E8] p-4 space-y-3 relative overflow-hidden rounded-xl">
           
-          {/* Invoice or Booking Selector */}
-          <div>
-            <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Select Invoice / Folio to Pay *</label>
+          {/* ═══ STEP 1: INVOICE & VERIFICATION ═══ */}
+          <section className="rounded-2xl border border-stone/20 bg-white p-4 space-y-3 shadow-sm">
+            <div className="flex items-center gap-2.5 mb-2">
+              <span className="w-6 h-6 rounded-full bg-[#6B7A5E] text-white text-[11px] font-bold flex items-center justify-center shrink-0">1</span>
+              <div>
+                <h3 className="text-sm font-bold text-ink leading-tight">Invoice Details</h3>
+                <p className="text-[10px] text-ink-muted">Select an invoice and verify requirements</p>
+              </div>
+            </div>
+
+            {/* Invoice or Booking Selector */}
+            <div>
+              <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Select Invoice / Folio to Pay</label>
             <select
               value={selectedBillId}
               onChange={(e) => handleInvoiceSelect(e.target.value ? Number(e.target.value) : '')}
-              className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#F6F2E8] font-semibold text-xs text-ink focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
+              className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#F6F2E8] font-semibold text-xs text-ink focus:outline-none appearance-none pointer-events-none"
             >
               <option value="">-- Choose from Invoices ({invoices.filter(i => !['PAID', 'CANCELLED', 'VOID', 'REFUNDED'].includes(String(i.status).toUpperCase())).length} Actionable) --</option>
               {invoices
@@ -1093,21 +1103,25 @@ export default function AdminPayments() {
                   )}
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => selectedInvoice && handleMarkLicenseVerified(selectedInvoice)}
-                disabled={verifyingLicense}
-                className="w-full py-2 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl font-semibold text-xs flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer disabled:opacity-50"
-              >
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>
+              <label className="flex items-center gap-2.5 mt-2 cursor-pointer p-2 rounded-lg hover:bg-amber-100/50 dark:hover:bg-amber-900/50 transition-colors">
+                <input
+                  type="checkbox"
+                  disabled={verifyingLicense}
+                  onChange={(e) => {
+                    if (e.target.checked && selectedInvoice) {
+                      handleMarkLicenseVerified(selectedInvoice)
+                    }
+                  }}
+                  className="w-4 h-4 rounded border-amber-400 text-[#6B7A5E] focus:ring-[#6B7A5E] focus:ring-offset-amber-50 shrink-0 cursor-pointer"
+                />
+                <span className="font-bold text-amber-900 dark:text-amber-200">
                   {verifyingLicense
                     ? 'Verifying...'
                     : selectedInvoice?.license_type === 'FOREIGN' || selectedInvoice?.idp_number || selectedInvoice?.passport_number
                     ? 'Confirm Physical IDP Card Has Category A & Mark Verified'
                     : 'Confirm Physical Card Has Restriction A/A1 & Mark Verified'}
                 </span>
-              </button>
+              </label>
             </div>
           )}
           {isPayingMotorRental && isPayingMotorLicenseVerified && (
@@ -1121,8 +1135,19 @@ export default function AdminPayments() {
               <span className="text-[10px] font-mono text-emerald-700 dark:text-emerald-300 font-bold uppercase">Ready to Pay</span>
             </div>
           )}
+          </section>
 
-          {/* ─── 1. PROMINENT TOTAL BILL AMOUNT ROW (Above Payment Fields) ─── */}
+          {/* ═══ STEP 2: PAYMENT & SETTLEMENT ═══ */}
+          <section className="rounded-2xl border border-stone/20 bg-white p-4 space-y-3 shadow-sm">
+            <div className="flex items-center gap-2.5 mb-2">
+              <span className="w-6 h-6 rounded-full bg-[#6B7A5E] text-white text-[11px] font-bold flex items-center justify-center shrink-0">2</span>
+              <div>
+                <h3 className="text-sm font-bold text-ink leading-tight">Settlement Details</h3>
+                <p className="text-[10px] text-ink-muted">Tender cash and add remarks</p>
+              </div>
+            </div>
+
+            {/* ─── 1. PROMINENT TOTAL BILL AMOUNT ROW (Above Payment Fields) ─── */}
           {(selectedInvoice || selectedBooking) && (
             <div className="p-3.5 bg-[#F6F2E8] dark:bg-[#181B20] border border-stone/20 dark:border-neutral-700/80 rounded-2xl flex flex-col gap-2 shadow-2xs">
               <div className="flex items-center justify-between">
@@ -1256,13 +1281,14 @@ export default function AdminPayments() {
               </strong>
             </div>
           )}
+          </section>
 
-          {/* ─── 5. ACTION BUTTONS (Disabled on insufficient payment or exceeded cap) ─── */}
-          <div className="flex gap-3 pt-2">
+          {/* ─── 5. ACTION BUTTONS ─── */}
+          <div className="pt-3 flex gap-3 sticky bottom-0 bg-[#F6F2E8]">
             <button
               type="button"
               onClick={() => setRecordModalOpen(false)}
-              className="flex-1 py-2.5 border border-stone/30 rounded-xl font-semibold text-ink-muted hover:bg-sand transition-all"
+              className="flex-1 py-2.5 border border-stone/30 bg-white rounded-xl font-semibold text-ink-muted hover:bg-stone/5 transition-all shadow-sm cursor-pointer"
             >
               Cancel
             </button>
@@ -1282,11 +1308,10 @@ export default function AdminPayments() {
               {processingPayment
                 ? 'Recording...'
                 : !isPayingMotorLicenseVerified
-                  ? "Physical License Verification Required"
+                  ? "Verification Required"
                   : 'Record Payment'}
             </button>
           </div>
-
         </form>
       </Modal>
 

@@ -184,11 +184,17 @@ export default function Sidebar({
           s !== 'REFUNDED' &&
           (s === 'PENDING' || s === 'UNPAID' || s === 'PARTIALLY_PAID' || rem > 0)
         ) {
+          outCount += 1
+          if (inv.service_type === 'Motor Rental' && inv.license_verification_status !== 'VERIFIED') {
+            unverifiedCount += 1
+          }
+=======
           if (inv.service_type === 'Motor Rental' && inv.license_verification_status !== 'VERIFIED') {
             unverifiedCount += 1
           } else {
             outCount += 1
           }
+>>>>>>> main
         }
       }
 
