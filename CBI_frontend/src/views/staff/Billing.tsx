@@ -479,19 +479,40 @@ export default function StaffBilling() {
           const isInsufficient = dueAmount > 0 && paymentReceivedNum < dueAmount
 
           return (
-            <div className="space-y-4 text-xs font-sans">
+            <div className="text-xs font-sans bg-[#F6F2E8] p-4 space-y-3 relative overflow-hidden rounded-xl">
               
-              {/* Billing Context Header */}
-              <div className="p-3.5 bg-sand/30 border border-stone/20 rounded-xl space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="font-mono font-bold text-[#6B7A5E]">{paymentBill.invoice_number || paymentBill.bill_number}</span>
-                  <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-sand border border-stone/20">
-                    {paymentBill.service_type || 'Hotel Service'}
-                  </span>
+              {/* ═══ STEP 1: INVOICE DETAILS ═══ */}
+              <section className="rounded-2xl border border-stone/20 bg-white p-4 space-y-3 shadow-sm">
+                <div className="flex items-center gap-2.5 mb-2">
+                  <span className="w-6 h-6 rounded-full bg-[#6B7A5E] text-white text-[11px] font-bold flex items-center justify-center shrink-0">1</span>
+                  <div>
+                    <h3 className="text-sm font-bold text-ink leading-tight">Invoice Details</h3>
+                    <p className="text-[10px] text-ink-muted">Guest and service information</p>
+                  </div>
                 </div>
-                <p className="font-bold text-ink text-sm">{paymentBill.customer_name}</p>
-                <p className="text-ink-muted text-[11px]">{paymentBill.service_name || 'Room Stay'}</p>
-              </div>
+
+                {/* Billing Context Header */}
+                <div className="p-3.5 bg-sand/30 border border-stone/20 rounded-xl space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono font-bold text-[#6B7A5E]">{paymentBill.invoice_number || paymentBill.bill_number}</span>
+                    <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-sand border border-stone/20">
+                      {paymentBill.service_type || 'Hotel Service'}
+                    </span>
+                  </div>
+                  <p className="font-bold text-ink text-sm">{paymentBill.customer_name}</p>
+                  <p className="text-ink-muted text-[11px]">{paymentBill.service_name || 'Room Stay'}</p>
+                </div>
+              </section>
+
+              {/* ═══ STEP 2: SETTLEMENT DETAILS ═══ */}
+              <section className="rounded-2xl border border-stone/20 bg-white p-4 space-y-3 shadow-sm">
+                <div className="flex items-center gap-2.5 mb-2">
+                  <span className="w-6 h-6 rounded-full bg-[#6B7A5E] text-white text-[11px] font-bold flex items-center justify-center shrink-0">2</span>
+                  <div>
+                    <h3 className="text-sm font-bold text-ink leading-tight">Settlement Details</h3>
+                    <p className="text-[10px] text-ink-muted">Tender cash and collect payment</p>
+                  </div>
+                </div>
 
               {/* Total Due Callout */}
               <div className="p-3.5 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center justify-between">
@@ -582,13 +603,15 @@ export default function StaffBilling() {
                   </strong>
                 </div>
               )}
+              </section>
 
-              <div className="flex gap-3 pt-2">
-                <button onClick={() => setPaymentBill(null)} className="flex-1 py-2.5 border border-stone/30 rounded-xl text-xs font-semibold text-ink-muted hover:bg-sand transition-all cursor-pointer">Cancel</button>
+              {/* ─── ACTION BUTTONS ─── */}
+              <div className="pt-3 flex gap-3 sticky bottom-0 bg-[#F6F2E8]">
+                <button onClick={() => setPaymentBill(null)} className="flex-1 py-2.5 border border-stone/30 bg-white rounded-xl text-xs font-semibold text-ink-muted hover:bg-stone/5 transition-all shadow-sm cursor-pointer">Cancel</button>
                 <button
                   onClick={handlePayment}
                   disabled={submitting || !payAmount || isInsufficient || isExceeded || paymentReceivedNum <= 0}
-                  className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl text-xs font-semibold shadow-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                  className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl text-xs font-semibold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   {submitting ? 'Processing...' : 'Record Payment'}
                 </button>

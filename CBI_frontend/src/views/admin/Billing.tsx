@@ -19,6 +19,7 @@ import {
   ShieldCheck,
   CheckCircle2,
   Globe,
+  Tag
 } from 'lucide-react'
 import { billingApi, type InvoiceItem, type PaymentTransaction, type OfficialReceiptData } from '../../api/billing'
 import { bookingsApi, type BookingItem } from '../../api/bookings'
@@ -37,7 +38,7 @@ type SortOption = 'newest' | 'oldest' | 'amount_desc' | 'amount_asc' | 'guest_as
 
 const ITEMS_PER_PAGE = 8
 
-export default function AdminPayments() {
+export default function AdminBilling() {
   const [invoices, setInvoices] = useState<InvoiceItem[]>([])
   const [bookings, setBookings] = useState<BookingItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -217,13 +218,10 @@ export default function AdminPayments() {
       collected += Number(inv.paid_amount || 0)
       const rem = Number(inv.remaining_balance || 0)
       const s = String(inv.status || '').toUpperCase().replace('-', '_').replace(' ', '_')
-      const isPendingApproval = Boolean(inv.is_pending_approval || s === 'PENDING_APPROVAL')
-
       // Count actionable unpaid balances (including No-Show / cancellation penalty fees)
       if (
         s !== 'PAID' &&
         s !== 'REFUNDED' &&
-        !isPendingApproval &&
         rem > 0
       ) {
         outstanding += rem
@@ -248,12 +246,11 @@ export default function AdminPayments() {
       list = list.filter((inv) => {
         const s = String(inv.status || '').toUpperCase().replace('-', '_').replace(' ', '_')
         const rem = Number(inv.remaining_balance || 0)
-        const isPendingApproval = Boolean(inv.is_pending_approval || s === 'PENDING_APPROVAL')
         if (activeFilter === 'Paid') return s === 'PAID'
         if (activeFilter === 'Partially Paid') return s === 'PARTIALLY_PAID' || s === 'PARTIALLY PAID'
         if (activeFilter === 'Pending') {
-          // Include pending/unpaid and any unpaid No-Show / penalty fee balances
-          return (s === 'PENDING' || s === 'UNPAID' || (s === 'NO_SHOW' && rem > 0) || (s === 'CANCELLED' && rem > 0) || rem > 0) && s !== 'PAID' && s !== 'REFUNDED' && !isPendingApproval
+          // Include pending/unpaid and any unpaid cancellation penalty fee balances
+          return (s === 'PENDING' || s === 'UNPAID' || (s === 'CANCELLED' && rem > 0) || rem > 0) && s !== 'PAID' && s !== 'REFUNDED'
         }
         if (activeFilter === 'Refunded') return s === 'REFUNDED'
         return true
@@ -459,6 +456,8 @@ export default function AdminPayments() {
         notes: finalNotes,
         staff_name: 'Front Desk Staff',
         paid_at: new Date().toISOString(),
+        discount_amount: found?.discount_amount,
+        promo_code: found?.promo_code,
       }
 
       setRecordModalOpen(false)
@@ -629,8 +628,8 @@ export default function AdminPayments() {
         {/* Controls Row: Title, Filters & Action Button */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-stone/15">
           <div>
-            <h2 className="font-display text-2xl font-bold text-ink">Invoices & Transactions</h2>
-            <p className="text-xs text-ink-muted mt-0.5">Comprehensive audit trail of receipts and settlements</p>
+            <h2 className="font-display text-2xl font-bold text-ink">Invoices & Statements</h2>
+            <p className="text-xs text-ink-muted mt-0.5">Comprehensive audit trail of customer bills</p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
@@ -645,10 +644,10 @@ export default function AdminPayments() {
             
             {/* Filter Tabs */}
             <div className="flex flex-wrap gap-1 p-1 bg-sand/40 rounded-xl border border-stone/20 text-xs">
-              {(['All', 'Paid', 'Partially Paid', 'Pending', 'Refunded'] as const).map((tab) => (
+              {(['All', 'Paid', 'Partially Paid', 'Pending', 'Cancelled'] as const).map((tab) => (
                 <button
                   key={tab}
-                  onClick={() => { setActiveFilter(tab); setCurrentPage(1); }}
+                  onClick={() => { setActiveFilter(tab as FilterOption); setCurrentPage(1); }}
                   className={`px-3.5 py-1.5 rounded-lg font-semibold transition-all ${
                     activeFilter === tab
                       ? 'bg-[#6B7A5E] text-white shadow-sm'
@@ -695,7 +694,7 @@ export default function AdminPayments() {
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="border-b border-stone/20 bg-sand/30 text-[10px] uppercase font-bold text-ink-muted tracking-wider">
-                <th className="px-4 py-3.5">INVOICE / RECEIPT</th>
+                <th className="px-4 py-3.5">INVOICE</th>
                 <th className="px-4 py-3.5">GUEST</th>
                 <th className="px-4 py-3.5">AVAILED SERVICE / BOOKING</th>
                 <th className="px-4 py-3.5">METHOD</th>
@@ -720,12 +719,9 @@ export default function AdminPayments() {
                 return (
                   <tr key={inv.id} className="hover:bg-sand/20 transition-colors">
                     
-                    {/* INVOICE & RECEIPT */}
+                    {/* INVOICE */}
                     <td className="px-4 py-4 font-mono">
                       <div className="font-bold text-[#6B7A5E] text-xs">{inv.invoice_number}</div>
-                      <div className="text-[10px] text-neutral-500 font-sans mt-0.5">
-                        Receipt: <strong className="font-mono text-neutral-700 dark:text-neutral-300 font-semibold">{inv.receipt_number || '—'}</strong>
-                      </div>
                     </td>
 
                     {/* GUEST */}
@@ -812,17 +808,9 @@ export default function AdminPayments() {
                     <td className="px-4 py-4">
                       <div className="font-mono">
                         <p className="font-display font-bold text-ink text-sm">
-                          {inv.is_no_show || String(inv.status).toUpperCase() === 'NO_SHOW' ? (
-                            `₱${Number(inv.no_show_fee ?? inv.cancellation_fee ?? inv.remaining_balance ?? 0).toLocaleString()}`
-                          ) : (
-                            `₱${Number(inv.paid_amount || inv.total_amount || 0).toLocaleString()}`
-                          )}
+                          {`₱${Number(inv.paid_amount || inv.total_amount || 0).toLocaleString()}`}
                         </p>
-                        {inv.is_no_show || String(inv.status).toUpperCase() === 'NO_SHOW' ? (
-                          <p className="text-[10px] text-purple-700 dark:text-purple-300 font-semibold font-sans">
-                            No-Show Fee {Number(inv.remaining_balance) > 0 ? `(₱${Number(inv.remaining_balance).toLocaleString()} balance)` : '(Paid)'}
-                          </p>
-                        ) : isPartiallyPaid ? (
+                        {isPartiallyPaid ? (
                           <p className="text-[10px] text-amber-800 font-semibold font-sans">
                             Bal: ₱{Number(inv.remaining_balance).toLocaleString()} of ₱{Number(inv.total_amount).toLocaleString()}
                           </p>
@@ -832,17 +820,7 @@ export default function AdminPayments() {
 
                     {/* STATUS */}
                     <td className="px-4 py-4">
-                      {inv.is_pending_approval || String(inv.status).toUpperCase() === 'PENDING_APPROVAL' ? (
-                        <span
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 shadow-2xs"
-                          title="Reservation is currently pending staff approval"
-                        >
-                          <Clock className="w-3 h-3 text-amber-500" />
-                          <span>Awaiting reservation approval</span>
-                        </span>
-                      ) : (
-                        <StatusBadge status={inv.status} />
-                      )}
+                      <StatusBadge status={inv.status} />
                     </td>
 
                     {/* ACTIONS */}
@@ -856,67 +834,19 @@ export default function AdminPayments() {
                           View
                         </button>
 
-                        {/* 2. RECEIPT */}
-                        {inv.payments.length > 0 && (
+                        {/* Receipt button removed for Billing module */}
+
+                        {/* Pay */}
+                        {Number(inv.remaining_balance || inv.balance || 0) > 0 && String(inv.status).toUpperCase() !== 'CANCELLED' && String(inv.status).toUpperCase() !== 'NO_SHOW' && (
                           <button
                             onClick={() => {
-                              const p = inv.payments[0]
-                              const receiptObj: OfficialReceiptData = {
-                                receipt_number: p?.receipt_number && p?.receipt_number !== '—' ? p.receipt_number : (inv.receipt_number || '—'),
-                                invoice_number: inv.invoice_number,
-                                bill_id: inv.id,
-                                payment_id: p?.id || 0,
-                                customer_name: inv.customer_name,
-                                customer_email: inv.customer_email,
-                                customer_phone: inv.customer_phone,
-                                service_name: inv.service_name,
-                                service_details: inv.service_details,
-                                service_type: inv.service_type,
-                                total_amount: Number(inv.total_amount),
-                                previous_paid: 0,
-                                amount_paid: Number(p?.amount || inv.paid_amount),
-                                remaining_balance: Number(inv.remaining_balance),
-                                status: inv.status,
-                                method: p?.method || inv.method || 'cash',
-                                notes: p?.notes,
-                                staff_name: p?.staff_name || inv.issued_by_name || 'Front Desk Staff',
-                                paid_at: p?.paid_at || inv.issued_at,
-                              }
-                              setActiveReceipt(receiptObj)
+                              setRecordModalOpen(true)
+                              handleInvoiceSelect(inv.id)
                             }}
-                            className="px-2.5 py-1 text-xs text-[#6B7A5E] bg-[#6B7A5E]/10 hover:bg-[#6B7A5E]/20 border border-[#6B7A5E]/30 rounded-lg font-semibold transition-all shadow-xs shrink-0 cursor-pointer flex items-center gap-1"
-                            title="View and print official payment receipt"
+                            className="px-2.5 py-1 text-xs text-emerald-700 bg-emerald-100 hover:bg-emerald-200 border border-emerald-300 rounded-lg font-semibold transition-all shadow-xs shrink-0 cursor-pointer"
                           >
-                            <Printer className="w-3 h-3" />
-                            <span>Receipt</span>
+                            Pay
                           </button>
-                        )}
-
-                        {/* 3. PAY (Active whenever there is an unpaid remaining balance) */}
-                        {Number(inv.remaining_balance || 0) > 0 && String(inv.status).toUpperCase() !== 'PAID' && (
-                          inv.is_pending_approval || String(inv.status).toUpperCase() === 'PENDING_APPROVAL' ? (
-                            <span
-                              className="px-2.5 py-1 text-[11px] text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/50 rounded-lg font-medium shadow-2xs shrink-0 flex items-center gap-1 cursor-not-allowed opacity-85"
-                              title="Reservation must be approved in Pending Approvals before payment can be collected"
-                            >
-                              <Clock className="w-3 h-3 text-amber-500" />
-                              <span>Awaiting approval</span>
-                            </span>
-                          ) : (
-                            <button
-                              onClick={() => {
-                                setSelectedBillId(inv.id)
-                                setSelectedBookingId(inv.booking_id || '')
-                                const rem = Number(inv.remaining_balance) > 0 ? Number(inv.remaining_balance) : Number(inv.total_amount || 0)
-                                setPayAmount(String(rem))
-                                setRecordModalOpen(true)
-                              }}
-                              className="px-3 py-1 text-xs bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded-lg shadow-xs transition-all flex items-center gap-1 cursor-pointer shrink-0"
-                            >
-                              <CreditCard className="w-3 h-3" />
-                              <span>Pay</span>
-                            </button>
-                          )
                         )}
 
                         {/* 4. CANCEL */}
@@ -1023,10 +953,12 @@ export default function AdminPayments() {
               onChange={(e) => handleInvoiceSelect(e.target.value ? Number(e.target.value) : '')}
               className="w-full px-3 py-2.5 rounded-xl border border-stone/30 bg-[#F6F2E8] font-semibold text-xs text-ink focus:outline-none appearance-none pointer-events-none"
             >
-              <option value="">-- Choose from Invoices ({invoices.filter(i => String(i.status).toUpperCase() !== 'PAID' && !i.is_pending_approval && String(i.status).toUpperCase() !== 'PENDING_APPROVAL').length} Actionable) --</option>
-              {invoices.map((i) => {
+              <option value="">-- Choose from Invoices ({invoices.filter(i => !['PAID', 'CANCELLED', 'VOID', 'REFUNDED'].includes(String(i.status).toUpperCase())).length} Actionable) --</option>
+              {invoices
+                .filter(i => !['PAID', 'CANCELLED', 'VOID', 'REFUNDED'].includes(String(i.status).toUpperCase()))
+                .map((i) => {
                 const isPaid = String(i.status).toUpperCase() === 'PAID'
-                const isAwaitingApproval = Boolean(i.is_pending_approval || String(i.status).toUpperCase() === 'PENDING_APPROVAL')
+                const isAwaitingApproval = false
                 const bal = Number(i.remaining_balance) > 0 ? Number(i.remaining_balance) : Number(i.total_amount || 0)
                 const matchingBk = i.booking_id ? bookings.find((b) => b.id === i.booking_id) : null
                 const avail = getAvailmentType(i, matchingBk)
@@ -1183,16 +1115,33 @@ export default function AdminPayments() {
 
             {/* ─── 1. PROMINENT TOTAL BILL AMOUNT ROW (Above Payment Fields) ─── */}
           {(selectedInvoice || selectedBooking) && (
-            <div className="p-3.5 bg-[#F6F2E8] dark:bg-[#181B20] border border-stone/20 dark:border-neutral-700/80 rounded-2xl flex items-center justify-between shadow-2xs">
-              <div>
-                <span className="text-[10px] uppercase font-bold text-ink-muted tracking-wider block">TOTAL BILL AMOUNT</span>
-                <span className="text-[11px] text-ink-muted font-medium">Remaining balance owed</span>
+            <div className="p-3.5 bg-[#F6F2E8] dark:bg-[#181B20] border border-stone/20 dark:border-neutral-700/80 rounded-2xl flex flex-col gap-2 shadow-2xs">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-ink-muted tracking-wider block">TOTAL BILL AMOUNT</span>
+                  <span className="text-[11px] text-ink-muted font-medium">Remaining balance owed</span>
+                </div>
+                <div className="text-right">
+                  <span className="font-display font-bold text-2xl text-[#6B7A5E]">
+                    ₱{activeDueAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
               </div>
-              <div className="text-right">
-                <span className="font-display font-bold text-2xl text-[#6B7A5E]">
-                  ₱{activeDueAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
-                </span>
-              </div>
+              
+              {/* Promo & Discount Display */}
+              {(Number(selectedInvoice?.discount_amount || 0) > 0 || Number(selectedBooking?.discount_amount || 0) > 0) && (
+                <div className="flex items-center justify-between pt-2 border-t border-stone/20 dark:border-neutral-700/80">
+                  <div className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-400">
+                    <Tag className="w-3.5 h-3.5" />
+                    <span className="uppercase tracking-wider">
+                      Promo Code Applied: {selectedInvoice?.promo_code || selectedBooking?.promo_code}
+                    </span>
+                  </div>
+                  <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400">
+                    -₱{Number(selectedInvoice?.discount_amount || selectedBooking?.discount_amount).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })} Discount
+                  </span>
+                </div>
+              )}
             </div>
           )}
 
@@ -1357,9 +1306,6 @@ export default function AdminPayments() {
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-xs">
                   <p className="font-mono text-neutral-600">
                     Invoice No.: <strong className="font-bold text-[#6B7A5E]">{viewInvoice.invoice_number}</strong>
-                  </p>
-                  <p className="font-mono text-neutral-600">
-                    Receipt No.: <strong className="font-bold text-neutral-900 dark:text-white">{viewInvoice.receipt_number && viewInvoice.receipt_number !== '—' ? viewInvoice.receipt_number : '—'}</strong>
                   </p>
                 </div>
                 <p className="text-ink text-xs font-semibold mt-1">
@@ -1666,10 +1612,6 @@ export default function AdminPayments() {
                     <div key={p.id} className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-sand/10 transition-colors">
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          <span className="text-[10px] text-neutral-500 uppercase font-bold">Receipt No.:</span>
-                          <strong className="font-mono font-bold text-[#6B7A5E] text-xs">
-                            {p.receipt_number && p.receipt_number !== '—' ? p.receipt_number : '—'}
-                          </strong>
                           <span className="capitalize font-semibold text-ink bg-sand/40 px-2 py-0.5 rounded text-[10px] border border-stone/20">
                             {p.method}
                           </span>
@@ -1693,37 +1635,7 @@ export default function AdminPayments() {
                           ₱{Number(p.amount).toLocaleString()}
                         </span>
 
-                        <button
-                          onClick={() => {
-                            const pastReceipt: OfficialReceiptData = {
-                              receipt_number: p.receipt_number && p.receipt_number !== '—' ? p.receipt_number : `OR-${String(p.id).padStart(6, '0')}`,
-                              invoice_number: viewInvoice.invoice_number,
-                              bill_id: viewInvoice.id,
-                              payment_id: p.id,
-                              customer_name: viewInvoice.customer_name,
-                              customer_email: viewInvoice.customer_email,
-                              customer_phone: viewInvoice.customer_phone,
-                              service_name: viewInvoice.service_name,
-                              service_details: viewInvoice.service_details,
-                              service_type: viewInvoice.service_type,
-                              total_amount: Number(viewInvoice.total_amount),
-                              previous_paid: 0,
-                              amount_paid: Number(p.amount),
-                              remaining_balance: Number(viewInvoice.remaining_balance),
-                              status: viewInvoice.status,
-                              method: p.method,
-                              notes: p.notes,
-                              staff_name: p.staff_name || 'Front Desk Staff',
-                              paid_at: p.paid_at,
-                            }
-                            setActiveReceipt(pastReceipt)
-                          }}
-                          className="px-2.5 py-1 text-[11px] text-[#6B7A5E] border border-[#6B7A5E]/40 bg-[#6B7A5E]/5 rounded-lg hover:bg-sand/40 font-semibold transition-all cursor-pointer flex items-center gap-1"
-                          title="View and print official payment receipt"
-                        >
-                          <Printer className="w-3 h-3" />
-                          <span>Receipt</span>
-                        </button>
+                        {/* Receipt button removed for Billing module */}
 
                         {!p.is_refunded && (
                           <button

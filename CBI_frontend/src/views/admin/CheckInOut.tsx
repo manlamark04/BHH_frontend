@@ -177,6 +177,72 @@ export default function AdminCheckInOut() {
     }
   }
 
+<<<<<<< Updated upstream
+=======
+  // Mark as No-Show Handler
+  const handleMarkNoShow = async () => {
+    if (!noShowBooking) return
+    setNoShowSubmitting(true)
+    try {
+      const res = await bookingsApi.markNoShow(noShowBooking.id, {
+        reason: noShowReason,
+      })
+      fireToast(res.message || `Booking marked as No-Show. Room ${res.room_number} released.`)
+      setNoShowBooking(null)
+      setNoShowReason('Guest failed to arrive/check in on scheduled check-in date')
+      loadData()
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to mark as No-Show.')
+    } finally {
+      setNoShowSubmitting(false)
+    }
+  }
+
+  // Quick Record Payment Handler
+  const handleRecordPayment = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!payingBooking) return
+
+    setPaySubmitting(true)
+    try {
+      if (!payingBooking.is_arrived) {
+        await bookingsApi.markArrived(payingBooking.id)
+      }
+      
+      fireToast(`Guest Arrived. Proceeding to Payments.`)
+      setPayingBooking(null)
+      setPayAmount('')
+      setPayRef('')
+      setPayNotes('')
+      loadData()
+      window.dispatchEvent(new Event('billing-updated'))
+      
+      if (onNavigate) {
+        onNavigate('staff-payments')
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to mark arrived')
+    } finally {
+      setPaySubmitting(false)
+    }
+  }
+
+  const openArrivedPayment = async (b: BookingItem) => {
+    try {
+      const rem = Number(b.remaining_balance || 0)
+      if (rem > 0) {
+        setPayingBooking(b)
+        setPayAmount(String(rem))
+      } else {
+        // If already fully paid, skip payment and prompt for check-in directly
+        setCheckInTarget(b)
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to process arrival')
+    }
+  }
+
+>>>>>>> Stashed changes
   // Format date helper: "Jul 30, 2026"
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return ''
