@@ -25,7 +25,10 @@ export default function StaffCustomers() {
   const loadCustomers = (q?: string, status?: string) => {
     setLoading(true)
     usersApi.getCustomers({ q: q || undefined, status: status !== 'All' ? status : undefined })
-      .then(setCustomers)
+      .then((data) => {
+        const filtered = data.filter((c: any) => c.created_by_role !== 'staff' && c.created_by_role !== 'admin')
+        setCustomers(filtered)
+      })
       .catch(() => {})
       .finally(() => setLoading(false))
   }
@@ -200,8 +203,15 @@ export default function StaffCustomers() {
                       <div className="flex items-center gap-3">
                         <Avatar name={fullName} photoUrl={(c as any).profile_photo_url} size="md" />
                         <div>
-                          <p className="font-semibold text-ink">{fullName}</p>
-                          <p className="text-[10px] text-ink-muted">{String(c.city || c.address || 'Guest')}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-semibold text-ink">{fullName}</p>
+                            {(c as any).created_by_role === 'staff' || (c as any).created_by_role === 'admin' ? (
+                              <span className="px-1.5 py-0.5 bg-blue-100/80 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800 rounded text-[9px] font-bold uppercase tracking-widest shadow-xs">
+                                Walk-In
+                              </span>
+                            ) : null}
+                          </div>
+                          <p className="text-[10px] text-ink-muted mt-0.5">{String(c.city || c.address || 'Guest')}</p>
                         </div>
                       </div>
                     </td>

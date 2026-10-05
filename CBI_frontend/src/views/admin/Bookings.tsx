@@ -14,6 +14,7 @@ import {
 import { bookingsApi } from '../../api/bookings'
 import { roomsApi } from '../../api/rooms'
 import { usersApi } from '../../api/users'
+import { ApiError } from '../../api/client'
 import StatusBadge from '../../components/StatusBadge'
 import Modal from '../../components/Modal'
 import ConfirmDialog from '../../components/ConfirmDialog'
@@ -22,7 +23,12 @@ import BookingVoucherModal, { type BookingVoucherData } from '../../components/B
 type FilterTab = 'all' | 'pending_payment' | 'confirmed' | 'checked_in' | 'completed' | 'rejected' | 'cancelled'
 type SortField = 'newest' | 'oldest' | 'checkin' | 'checkout' | 'amount' | 'status'
 
-export default function AdminBookings() {
+interface AdminBookingsProps {
+  onNavigate?: (view: string) => void
+  userRole?: string
+}
+
+export default function AdminBookings({ onNavigate, userRole }: AdminBookingsProps = {}) {
   const [bookings, setBookings] = useState<Record<string, unknown>[]>([])
   const [rooms, setRooms] = useState<Record<string, unknown>[]>([])
   const [selectedVoucher, setSelectedVoucher] = useState<BookingVoucherData | null>(null)
@@ -45,7 +51,24 @@ export default function AdminBookings() {
 
   // New Booking Form State
   const [newCustomerId, setNewCustomerId] = useState<number | ''>('')
+  const [isNewGuest, setIsNewGuest] = useState(true)
+  const [guestSearch, setGuestSearch] = useState('')
+  
+  // New Guest Walk-In Fields
+  const [firstName, setFirstName] = useState('')
+  const [middleName, setMiddleName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [phone, setPhone] = useState('')
+  const [email, setEmail] = useState('')
+  const [address, setAddress] = useState('')
+  const [dob, setDob] = useState('')
+  const [gender, setGender] = useState('Male')
+  const [civilStatus, setCivilStatus] = useState('Single')
+
   const [newRoomId, setNewRoomId] = useState<number | ''>('')
+  const [bookingType, setBookingType] = useState<'per_night' | 'short_time'>('per_night')
+  const [durationHours, setDurationHours] = useState(3)
+  const [checkInTime, setCheckInTime] = useState('12:00')
   const [newCheckIn, setNewCheckIn] = useState('')
   const [newCheckOut, setNewCheckOut] = useState('')
   const [newGuests, setNewGuests] = useState(2)
@@ -156,34 +179,93 @@ export default function AdminBookings() {
     const diff = (new Date(newCheckOut).getTime() - new Date(newCheckIn).getTime()) / (1000 * 60 * 60 * 24)
     return Math.max(1, Math.ceil(diff))
   }, [newCheckIn, newCheckOut])
-  const newTotalCost = (Number(selectedNewRoom?.price_per_night || 0)) * newNights
+  
+  const newTotalCost = useMemo(() => {
+    if (!selectedNewRoom) return 0
+    const baseRate = Number(selectedNewRoom.price_per_night || selectedNewRoom.rate_per_night || 0)
+    if (bookingType === 'short_time') {
+      const hourlyRate = (baseRate / 24) * 2.0
+      return Math.round(hourlyRate * durationHours * 100) / 100
+    } else {
+      return baseRate * newNights
+    }
+  }, [selectedNewRoom, bookingType, durationHours, newNights])
 
   // Handle Create Booking
   const handleCreateBooking = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newCustomerId || !newRoomId || !newCheckIn || !newCheckOut) return
     setSubmitting(true)
     setFormError('')
     try {
+      let finalCustomerId = Number(newCustomerId)
+
+      if (isNewGuest) {
+        if (!firstName || !lastName || !phone || !email || !address || !dob || !gender || !civilStatus) {
+           throw new Error('Please fill in all required guest information fields.')
+        }
+        const digitsPhone = phone.replace(/\D/g, '')
+        if (!/^09\d{9}$/.test(digitsPhone)) {
+           throw new Error('Contact number must be an 11-digit Philippine mobile number starting with 09.')
+        }
+        
+        const response = await usersApi.registerWalkIn({
+          first_name: firstName.trim(),
+          middle_name: middleName.trim() || undefined,
+          last_name: lastName.trim(),
+          phone: phone.trim(),
+          email: email.trim(),
+          address: address.trim(),
+          dob: dob.trim(),
+          gender,
+          civil_status: civilStatus,
+        })
+        
+        finalCustomerId = Number(response.customer.id)
+      }
+
+      if (!finalCustomerId || !newRoomId || !newCheckIn || (bookingType === 'per_night' && !newCheckOut)) {
+         throw new Error('Missing required booking details.')
+      }
+
       await bookingsApi.createBooking({
-        customer_id: Number(newCustomerId),
+        customer_id: finalCustomerId,
         room_id: Number(newRoomId),
         check_in: newCheckIn,
-        check_out: newCheckOut,
+        check_out: bookingType === 'per_night' ? newCheckOut : undefined,
+        booking_type: bookingType,
+        check_in_time: bookingType === 'short_time' ? checkInTime : undefined,
+        duration_hours: bookingType === 'short_time' ? durationHours : undefined,
         num_guests: Number(newGuests),
         notes: newNotes.trim() || undefined,
-        initial_payment: newPayment ? Number(newPayment) : undefined,
-        payment_method: newPaymentMethod,
       })
+
       setShowNewModal(false)
       setNewCustomerId('')
+      setFirstName(''); setMiddleName(''); setLastName(''); setPhone(''); setEmail(''); setAddress(''); setDob('');
       setNewRoomId('')
+      setBookingType('per_night')
+      setDurationHours(3)
+      setCheckInTime('12:00')
       setNewNotes('')
       setNewPayment('')
-      fireToast('✓ Reservation created successfully!')
+      if (onNavigate) {
+         onNavigate(userRole === 'admin' ? 'admin-billing' : 'staff-billing')
+         fireToast('✓ Reservation created! Redirecting to Billing & Payments...')
+      } else {
+         fireToast('✓ Reservation created successfully!')
+      }
       loadData()
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : 'Failed to create reservation')
+      if (err instanceof ApiError) {
+         const d = err.data as any
+         let errorMsg = d?.errors?.join(' ') || d?.message || err.message
+         if (String(errorMsg).toLowerCase().includes('already')) {
+             errorMsg = "This guest is already registered! Please click the 'Existing Guest' tab above to search for them and create their booking."
+         }
+         setFormError(errorMsg)
+      } else {
+         setFormError(err instanceof Error ? err.message : 'Failed to create reservation')
+      }
     } finally {
       setSubmitting(false)
     }
@@ -719,7 +801,7 @@ export default function AdminBookings() {
         title="Create New Reservation"
         size="md"
       >
-        <form onSubmit={handleCreateBooking} className="space-y-4 text-xs">
+        <form onSubmit={handleCreateBooking} className="space-y-4 text-xs max-h-[75vh] overflow-y-auto pr-2">
           {formError && (
             <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 font-medium flex items-center gap-2">
               <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
@@ -727,65 +809,254 @@ export default function AdminBookings() {
             </div>
           )}
 
-          {/* Select Customer */}
-          <div>
-            <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Select Guest / Customer *</label>
-            <select
-              value={newCustomerId}
-              onChange={(e) => setNewCustomerId(e.target.value ? Number(e.target.value) : '')}
-              required
-              className="w-full px-3 py-2.5 rounded-xl border border-stone bg-cream focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/30 text-xs"
+          {/* Guest Selection Toggle */}
+          <div className="bg-sand/30 p-1 rounded-lg border border-stone/20 flex gap-1">
+            <button
+              type="button"
+              onClick={() => setIsNewGuest(true)}
+              className={`flex-1 py-1.5 rounded-md font-semibold transition-all cursor-pointer ${isNewGuest ? 'bg-[#6B7A5E] shadow-sm text-white' : 'text-ink-muted hover:text-ink'}`}
             >
-              <option value="">-- Choose Customer --</option>
-              {customers.map((c) => (
-                <option key={String(c.id)} value={String(c.id)}>
-                  {String(c.full_name || c.name)} ({String(c.unique_id || c.customer_id)}) — {String(c.phone || c.email)}
-                </option>
-              ))}
-            </select>
+              + Walk-In Registration
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsNewGuest(false)}
+              className={`flex-1 py-1.5 rounded-md font-semibold transition-all cursor-pointer ${!isNewGuest ? 'bg-white shadow-sm text-ink' : 'text-ink-muted hover:text-ink'}`}
+            >
+              Existing Guest
+            </button>
           </div>
+
+          {!isNewGuest ? (
+            <div className="space-y-2">
+              <label className="block font-semibold text-ink uppercase tracking-wider">Select Existing Guest *</label>
+              
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-stone-400" />
+                <input 
+                  type="text" 
+                  placeholder="Search guest by name..." 
+                  value={guestSearch}
+                  onChange={(e) => setGuestSearch(e.target.value)}
+                  className="w-full pl-8 pr-3 py-2 rounded-lg border border-stone bg-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/30 text-xs"
+                />
+              </div>
+
+              <select
+                value={newCustomerId}
+                onChange={(e) => setNewCustomerId(e.target.value ? Number(e.target.value) : '')}
+                required={!isNewGuest}
+                size={4}
+                className="w-full px-3 py-2 rounded-xl border border-stone bg-cream focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/30 text-xs shadow-inner"
+              >
+                {customers
+                  .filter(c => !guestSearch || String(c.full_name || c.name).toLowerCase().includes(guestSearch.toLowerCase()))
+                  .map((c) => (
+                  <option key={String(c.id)} value={String(c.id)} className="py-1.5 border-b border-stone/10 hover:bg-stone/5">
+                    {String(c.full_name || c.name)} ({String(c.unique_id || c.customer_id)}) — {String(c.phone || c.email)}
+                  </option>
+                ))}
+                {customers.filter(c => !guestSearch || String(c.full_name || c.name).toLowerCase().includes(guestSearch.toLowerCase())).length === 0 && (
+                  <option disabled>No guests found matching search.</option>
+                )}
+              </select>
+            </div>
+          ) : (
+            <div className="space-y-3 p-3 bg-neutral-50 border border-black/[0.06] rounded-xl">
+              <span className="font-bold text-ink uppercase tracking-wider text-[10px] block border-b border-black/[0.06] pb-1">New Guest Details</span>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block font-semibold text-ink mb-1">First Name *</label>
+                  <input type="text" required value={firstName} onChange={e => setFirstName(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-stone bg-white" />
+                </div>
+                <div>
+                  <label className="block font-semibold text-ink mb-1">Middle Name</label>
+                  <input type="text" value={middleName} onChange={e => setMiddleName(e.target.value)} placeholder="(Optional)" className="w-full px-3 py-2 rounded-lg border border-stone bg-white" />
+                </div>
+                <div>
+                  <label className="block font-semibold text-ink mb-1">Last Name *</label>
+                  <input type="text" required value={lastName} onChange={e => setLastName(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-stone bg-white" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-ink mb-1">Phone * (09...)</label>
+                  <input 
+                    type="tel" 
+                    required 
+                    maxLength={11}
+                    value={phone} 
+                    onChange={e => setPhone(e.target.value.replace(/\D/g, ''))} 
+                    className="w-full px-3 py-2 rounded-lg border border-stone bg-white" 
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-ink mb-1">Email *</label>
+                  <input type="email" required value={email} onChange={e => setEmail(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-stone bg-white" />
+                </div>
+              </div>
+              <div>
+                <label className="block font-semibold text-ink mb-1">Address *</label>
+                <input type="text" required value={address} onChange={e => setAddress(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-stone bg-white" />
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block font-semibold text-ink mb-1">Date of Birth *</label>
+                  <input type="date" required value={dob} onChange={e => setDob(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-stone bg-white text-xs" />
+                </div>
+                <div>
+                  <label className="block font-semibold text-ink mb-1">Gender *</label>
+                  <select required value={gender} onChange={e => setGender(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-stone bg-white">
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-semibold text-ink mb-1">Civil Status *</label>
+                  <select required value={civilStatus} onChange={e => setCivilStatus(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-stone bg-white">
+                    <option value="Single">Single</option>
+                    <option value="Married">Married</option>
+                    <option value="Widowed">Widowed</option>
+                    <option value="Separated">Separated</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Select Room */}
           <div>
-            <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Select Room *</label>
-            <select
-              value={newRoomId}
-              onChange={(e) => setNewRoomId(e.target.value ? Number(e.target.value) : '')}
-              required
-              className="w-full px-3 py-2.5 rounded-xl border border-stone bg-cream focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/30 text-xs"
-            >
-              <option value="">-- Choose Room --</option>
-              {rooms.map((r) => (
-                <option key={String(r.id)} value={String(r.id)}>
-                  Room {String(r.room_number)} · {String(r.name)} ({String(r.type)}) — ₱{Number(r.price_per_night).toLocaleString()}/night ({String(r.status)})
-                </option>
-              ))}
-            </select>
+            <label className="block font-semibold text-ink uppercase tracking-wider mb-2">Select Room *</label>
+            <div className="grid grid-cols-2 gap-3 max-h-[220px] overflow-y-auto p-1 custom-scrollbar">
+              {rooms.map((r) => {
+                const isSelected = Number(newRoomId) === Number(r.id)
+                const isAvail = String(r.status).toLowerCase() === 'available'
+                const firstImage = (r.image_urls && Array.isArray(r.image_urls) && r.image_urls.length > 0) 
+                  ? r.image_urls[0] 
+                  : (r.image || 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?q=80&w=300&auto=format&fit=crop')
+                
+                return (
+                  <button
+                    key={String(r.id)}
+                    type="button"
+                    onClick={() => isAvail && setNewRoomId(Number(r.id))}
+                    disabled={!isAvail}
+                    className={`relative text-left rounded-xl overflow-hidden border-2 transition-all group ${
+                      isSelected
+                        ? 'border-[#6B7A5E] shadow-md ring-2 ring-[#6B7A5E]/30'
+                        : !isAvail
+                        ? 'border-transparent opacity-60 grayscale-[50%] cursor-not-allowed'
+                        : 'border-transparent hover:border-[#6B7A5E]/50 shadow-sm cursor-pointer'
+                    }`}
+                  >
+                    <div className="h-20 sm:h-24 w-full relative bg-stone/20">
+                      <img src={firstImage} alt={`Room ${r.room_number}`} className="w-full h-full object-cover" />
+                      {!isAvail && (
+                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center backdrop-blur-[1px]">
+                          <span className="bg-black/60 text-white text-[10px] uppercase font-bold px-2 py-1 rounded-md tracking-wider">
+                            {String(r.status)}
+                          </span>
+                        </div>
+                      )}
+                      {isSelected && (
+                        <div className="absolute top-2 right-2 w-5 h-5 bg-[#6B7A5E] rounded-full flex items-center justify-center shadow-sm">
+                          <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
+                        </div>
+                      )}
+                    </div>
+                    <div className={`p-2 ${isSelected ? 'bg-[#6B7A5E]/5' : 'bg-white'}`}>
+                      <p className="font-bold text-ink text-xs leading-tight">Room {String(r.room_number)}</p>
+                      <p className="text-[10px] text-ink-muted truncate">{String(r.name || r.room_type || r.type || 'Standard')}</p>
+                      <p className="font-semibold text-forest text-[11px] mt-1">₱{Number(r.price_per_night || r.rate_per_night || 0).toLocaleString()}/night</p>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
           </div>
 
-          {/* Check-In / Check-Out */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Check-In Date *</label>
-              <input
-                type="date"
-                value={newCheckIn}
-                onChange={(e) => setNewCheckIn(e.target.value)}
-                required
-                className="w-full px-3 py-2 rounded-xl border border-stone text-xs bg-cream"
-              />
-            </div>
-            <div>
-              <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Check-Out Date *</label>
-              <input
-                type="date"
-                value={newCheckOut}
-                onChange={(e) => setNewCheckOut(e.target.value)}
-                required
-                className="w-full px-3 py-2 rounded-xl border border-stone text-xs bg-cream"
-              />
-            </div>
+          {/* Booking Type Toggle */}
+          <div className="bg-sand/30 p-1 rounded-lg border border-stone/20 flex gap-1 mt-2">
+            <button
+              type="button"
+              onClick={() => setBookingType('per_night')}
+              className={`flex-1 py-1.5 rounded-md font-semibold transition-all cursor-pointer ${bookingType === 'per_night' ? 'bg-[#6B7A5E] shadow-sm text-white' : 'text-ink-muted hover:text-ink'}`}
+            >
+              Per Night
+            </button>
+            <button
+              type="button"
+              onClick={() => setBookingType('short_time')}
+              className={`flex-1 py-1.5 rounded-md font-semibold transition-all cursor-pointer ${bookingType === 'short_time' ? 'bg-[#6B7A5E] shadow-sm text-white' : 'text-ink-muted hover:text-ink'}`}
+            >
+              Short Time (Hourly)
+            </button>
           </div>
+
+          {/* Dates & Times */}
+          {bookingType === 'per_night' ? (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Check-In Date *</label>
+                <input
+                  type="date"
+                  value={newCheckIn}
+                  onChange={(e) => setNewCheckIn(e.target.value)}
+                  required
+                  className="w-full px-3 py-2 rounded-xl border border-stone text-xs bg-cream"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Check-Out Date *</label>
+                <input
+                  type="date"
+                  value={newCheckOut}
+                  onChange={(e) => setNewCheckOut(e.target.value)}
+                  required={bookingType === 'per_night'}
+                  className="w-full px-3 py-2 rounded-xl border border-stone text-xs bg-cream"
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Date *</label>
+                <input
+                  type="date"
+                  value={newCheckIn}
+                  onChange={(e) => setNewCheckIn(e.target.value)}
+                  required
+                  className="w-full px-3 py-2 rounded-xl border border-stone text-xs bg-cream"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Time In *</label>
+                <input
+                  type="time"
+                  value={checkInTime}
+                  onChange={(e) => setCheckInTime(e.target.value)}
+                  required={bookingType === 'short_time'}
+                  className="w-full px-3 py-2 rounded-xl border border-stone text-xs bg-cream"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Duration *</label>
+                <select
+                  value={durationHours}
+                  onChange={(e) => setDurationHours(Number(e.target.value))}
+                  required={bookingType === 'short_time'}
+                  className="w-full px-3 py-2 rounded-xl border border-stone text-xs bg-cream"
+                >
+                  <option value={1}>1 Hour</option>
+                  <option value={2}>2 Hours</option>
+                  <option value={3}>3 Hours</option>
+                  <option value={4}>4 Hours</option>
+                  <option value={5}>5 Hours</option>
+                </select>
+              </div>
+            </div>
+          )}
 
           {/* Guests */}
           <div>
@@ -806,32 +1077,15 @@ export default function AdminBookings() {
               <span className="text-ink-muted text-[10px] uppercase font-bold block">Estimated Total</span>
               <span className="font-display font-bold text-forest text-base">₱{newTotalCost.toLocaleString()}</span>
             </div>
-            <span className="text-[10px] text-ink-muted font-mono">{newNights} night(s) @ ₱{Number(selectedNewRoom?.price_per_night || 0)}/night</span>
+            <span className="text-[10px] text-ink-muted font-mono">
+              {bookingType === 'short_time' 
+                ? `${durationHours} hour(s) @ ₱${((Number(selectedNewRoom?.price_per_night || selectedNewRoom?.rate_per_night || 0) / 24) * 2.0).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}/hr`
+                : `${newNights} night(s) @ ₱${Number(selectedNewRoom?.price_per_night || selectedNewRoom?.rate_per_night || 0).toLocaleString()}/night`
+              }
+            </span>
           </div>
 
-          {/* Initial Payment */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Initial Payment (₱)</label>
-              <input
-                type="number"
-                value={newPayment}
-                onChange={(e) => setNewPayment(e.target.value)}
-                placeholder="0"
-                className="w-full px-3 py-2 rounded-xl border border-stone text-xs bg-cream"
-              />
-            </div>
-            <div>
-              <label className="block font-semibold text-ink uppercase tracking-wider mb-1">Payment Method</label>
-              <select
-                value={newPaymentMethod}
-                onChange={(e) => setNewPaymentMethod(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-stone text-xs bg-cream"
-              >
-                <option value="CASH">Cash</option>
-              </select>
-            </div>
-          </div>
+          {/* Initial Payment Removed */}
 
           {/* Special Notes */}
           <div>
@@ -854,10 +1108,10 @@ export default function AdminBookings() {
             </button>
             <button
               type="submit"
-              disabled={submitting || !newCustomerId || !newRoomId}
+              disabled={submitting || (!isNewGuest && !newCustomerId) || !newRoomId}
               className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl font-semibold shadow-sm disabled:opacity-50 transition-all"
             >
-              {submitting ? 'Creating...' : 'Confirm Booking'}
+              {submitting ? 'Processing...' : 'Proceed to Billing and Payments'}
             </button>
           </div>
         </form>

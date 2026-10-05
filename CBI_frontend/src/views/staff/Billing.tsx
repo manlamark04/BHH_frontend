@@ -31,6 +31,7 @@ export default function StaffBilling() {
   const [payMethod, setPayMethod] = useState<'cash' | 'card' | 'ewallet'>('cash')
   const [submitting, setSubmitting] = useState(false)
   const [toast, setToast] = useState('')
+  const [idVerified, setIdVerified] = useState(false)
 
   const load = () => {
     setLoading(true)
@@ -181,6 +182,7 @@ export default function StaffBilling() {
 
       setPaymentBill(null)
       setPayAmount('')
+      setIdVerified(false)
       setToast(
         isCourt
           ? `Payment recorded! Receipt No.: ${res.receipt_number || '—'}. Pickleball court session is now ACTIVE (Match in Progress).${change > 0 ? ` (Change: ₱${change.toLocaleString()})` : ''}`
@@ -457,12 +459,16 @@ export default function StaffBilling() {
       {/* ─── RECORD PAYMENT MODAL ─── */}
       <Modal
         isOpen={!!paymentBill}
-        onClose={() => setPaymentBill(null)}
+        onClose={() => {
+          setPaymentBill(null)
+          setIdVerified(false)
+        }}
         title="Record Payment Transaction"
       >
         {paymentBill && (() => {
           const dueAmount = Number(paymentBill.remaining_balance || paymentBill.balance || paymentBill.total_amount || 0)
           const paymentReceivedNum = parseFloat(payAmount) || 0
+          const isPayingMotorRental = getAvailmentType(paymentBill).type === 'motor'
           const MAX_PAYMENT_AMOUNT = 1000000
           const isExceeded = payAmount !== '' && (paymentReceivedNum > MAX_PAYMENT_AMOUNT || payAmount.split('.')[0].length > 7)
           const isUnderpaid = payAmount !== '' && !isExceeded && paymentReceivedNum < dueAmount && dueAmount > 0
@@ -599,15 +605,33 @@ export default function StaffBilling() {
               )}
               </section>
 
+              {/* ─── 4.5. GENERAL ID VERIFICATION CHECKBOX ─── */}
+              {!isPayingMotorRental && (
+                <div className="pt-1">
+                  <label className="flex items-center gap-2.5 p-3 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 cursor-pointer hover:bg-blue-100/50 transition-colors shadow-2xs">
+                    <input
+                      type="checkbox"
+                      required
+                      checked={idVerified}
+                      onChange={(e) => setIdVerified(e.target.checked)}
+                      className="w-4 h-4 rounded border-blue-400 text-blue-600 focus:ring-blue-500 shrink-0 cursor-pointer"
+                    />
+                    <span className="font-bold text-xs text-blue-900 dark:text-blue-200">
+                      I have physically verified the guest's Valid ID at the front desk.
+                    </span>
+                  </label>
+                </div>
+              )}
+
               {/* ─── ACTION BUTTONS ─── */}
               <div className="pt-3 flex gap-3 sticky bottom-0 bg-[#F6F2E8]">
-                <button onClick={() => setPaymentBill(null)} className="flex-1 py-2.5 border border-stone/30 bg-white rounded-xl text-xs font-semibold text-ink-muted hover:bg-stone/5 transition-all shadow-sm cursor-pointer">Cancel</button>
+                <button onClick={() => { setPaymentBill(null); setIdVerified(false) }} className="flex-1 py-2.5 border border-stone/30 bg-white rounded-xl text-xs font-semibold text-ink-muted hover:bg-stone/5 transition-all shadow-sm cursor-pointer">Cancel</button>
                 <button
                   onClick={handlePayment}
-                  disabled={submitting || !payAmount || isInsufficient || isExceeded || paymentReceivedNum <= 0}
+                  disabled={submitting || !payAmount || isInsufficient || isExceeded || paymentReceivedNum <= 0 || (!isPayingMotorRental && !idVerified)}
                   className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl text-xs font-semibold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 cursor-pointer"
                 >
-                  {submitting ? 'Processing...' : 'Record Payment'}
+                  {submitting ? 'Processing...' : (!isPayingMotorRental && !idVerified) ? 'ID Verification Required' : 'Record Payment'}
                 </button>
               </div>
             </div>

@@ -69,6 +69,7 @@ export default function AdminBilling() {
   const [payRefNumber, setPayRefNumber] = useState('')
   const [payRemarks, setPayRemarks] = useState('')
   const [processingPayment, setProcessingPayment] = useState(false)
+  const [idVerified, setIdVerified] = useState(false)
 
   // Refund Modal
   const [refundTarget, setRefundTarget] = useState<{
@@ -466,6 +467,7 @@ export default function AdminBilling() {
       setPayAmount('')
       setPayRefNumber('')
       setPayRemarks('')
+      setIdVerified(false)
       setViewInvoice(null)
       loadData()
 
@@ -929,7 +931,10 @@ export default function AdminBilling() {
          ══════════════════════════════════════════════════════════════ */}
       <Modal
         isOpen={recordModalOpen}
-        onClose={() => setRecordModalOpen(false)}
+        onClose={() => {
+          setRecordModalOpen(false)
+          setIdVerified(false)
+        }}
         title="Record Payment Transaction"
         size="md"
       >
@@ -1249,11 +1254,32 @@ export default function AdminBilling() {
           )}
           </section>
 
+          {/* ─── 4.5. GENERAL ID VERIFICATION CHECKBOX ─── */}
+          {!isPayingMotorRental && (
+            <div className="pt-1">
+              <label className="flex items-center gap-2.5 p-3 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 cursor-pointer hover:bg-blue-100/50 transition-colors shadow-2xs">
+                <input
+                  type="checkbox"
+                  required
+                  checked={idVerified}
+                  onChange={(e) => setIdVerified(e.target.checked)}
+                  className="w-4 h-4 rounded border-blue-400 text-blue-600 focus:ring-blue-500 shrink-0 cursor-pointer"
+                />
+                <span className="font-bold text-xs text-blue-900 dark:text-blue-200">
+                  I have physically verified the guest's Valid ID at the front desk.
+                </span>
+              </label>
+            </div>
+          )}
+
           {/* ─── 5. ACTION BUTTONS ─── */}
           <div className="pt-3 flex gap-3 sticky bottom-0 bg-[#F6F2E8]">
             <button
               type="button"
-              onClick={() => setRecordModalOpen(false)}
+              onClick={() => {
+                setRecordModalOpen(false)
+                setIdVerified(false)
+              }}
               className="flex-1 py-2.5 border border-stone/30 bg-white rounded-xl font-semibold text-ink-muted hover:bg-stone/5 transition-all shadow-sm cursor-pointer"
             >
               Cancel
@@ -1267,6 +1293,7 @@ export default function AdminBilling() {
                 isInsufficient ||
                 isExceeded ||
                 paymentReceivedNum <= 0 ||
+                (!isPayingMotorRental && !idVerified) ||
                 !isPayingMotorLicenseVerified
               }
               className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl font-semibold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center justify-center gap-1.5"
@@ -1275,7 +1302,9 @@ export default function AdminBilling() {
                 ? 'Recording...'
                 : !isPayingMotorLicenseVerified
                   ? "Physical License Verification Required"
-                  : 'Record Payment'}
+                  : (!isPayingMotorRental && !idVerified) 
+                    ? "ID Verification Required"
+                    : 'Record Payment'}
             </button>
           </div>
 

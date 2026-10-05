@@ -272,7 +272,7 @@ export default function App() {
       case 'staff-checkinout':
         return <AdminCheckInOut onNavigate={navigate} />
       case 'staff-bookings':
-        return <AdminBookings />
+        return <AdminBookings onNavigate={navigate} userRole={role} />
       case 'staff-walkin':
         return <StaffWalkIn />
       case 'staff-motorcycles':
@@ -294,7 +294,7 @@ export default function App() {
       case 'admin-dashboard':
         return <AdminDashboard onNavigate={navigate} userName={name} photoUrl={auth.photoUrl} />
       case 'admin-bookings':
-        return <AdminBookings />
+        return <AdminBookings onNavigate={navigate} userRole={role} />
       case 'admin-checkinout':
         return <AdminCheckInOut onNavigate={navigate} />
       case 'admin-billing':

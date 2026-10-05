@@ -46,7 +46,9 @@ export default function AdminGuests() {
   }, [])
 
   const guestRecords: GuestRecord[] = useMemo(() => {
-    return customers.map((c) => {
+    return customers
+      .filter((c) => c.created_by_role !== 'staff' && c.created_by_role !== 'admin')
+      .map((c) => {
       const custId = c.id
       const custBookings = bookings.filter((b) => b.customer_id === custId || b.customerId === custId)
       const totalSpent = custBookings.reduce((sum, b) => sum + Number(b.total_amount || b.totalAmount || 0), 0)
@@ -66,6 +68,7 @@ export default function AdminGuests() {
         lastStay,
         status: String(c.status || 'ACTIVE').toUpperCase(),
         joined: String(c.created_at || '').substring(0, 10),
+        createdByRole: (c as any).created_by_role,
       }
     })
   }, [customers, bookings])
@@ -187,8 +190,15 @@ export default function AdminGuests() {
                         {g.fullName.charAt(0)}
                       </div>
                       <div>
-                        <p className="font-semibold text-ink text-sm">{g.fullName}</p>
-                        <p className="text-xs text-ink-muted">{g.email}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-semibold text-ink text-sm">{g.fullName}</p>
+                          {g.createdByRole === 'staff' || g.createdByRole === 'admin' ? (
+                            <span className="px-1.5 py-0.5 bg-blue-100/80 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800 rounded text-[9px] font-bold uppercase tracking-widest shadow-xs">
+                              Walk-In
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className="text-xs text-ink-muted mt-0.5">{g.email}</p>
                       </div>
                     </div>
                   </td>

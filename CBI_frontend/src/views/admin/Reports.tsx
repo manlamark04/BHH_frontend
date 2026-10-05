@@ -11,9 +11,10 @@ import {
   Layers,
 } from 'lucide-react'
 import { billingApi, type InvoiceItem } from '../../api/billing'
-import { bookingsApi, type BookingItem } from '../../api/bookings'
+import { bookingsApi, type BookingItem, type ActivityRentalItem } from '../../api/bookings'
 import { roomsApi, type RoomRecord } from '../../api/rooms'
 import { usersApi } from '../../api/users'
+import { motorcyclesApi, type MotorRental } from '../../api/motorcycles'
 import { useToast } from '../../context/ToastContext'
 import {
   BarChart,
@@ -29,7 +30,7 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 
-type PeriodOption = 'this_month' | 'last_month' | 'last_3_months' | 'last_6_months' | 'this_year' | 'last_year' | 'custom'
+type PeriodOption = 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom'
 type GroupByOption = 'daily' | 'monthly' | 'yearly'
 
 const DONUT_COLORS = ['#6B7A5E', '#8C6239', '#5B3E25', '#D4A373', '#A5A58D', '#6B705C', '#3D405B', '#E07A5F']
@@ -48,10 +49,12 @@ export default function AdminReports() {
   const [bookings, setBookings] = useState<BookingItem[]>([])
   const [rooms, setRooms] = useState<RoomRecord[]>([])
   const [users, setUsers] = useState<Record<string, unknown>[]>([])
+  const [motorRentals, setMotorRentals] = useState<MotorRental[]>([])
+  const [activityRentals, setActivityRentals] = useState<ActivityRentalItem[]>([])
   const [loading, setLoading] = useState(true)
 
   // Filter States
-  const [period, setPeriod] = useState<PeriodOption>('last_6_months')
+  const [period, setPeriod] = useState<PeriodOption>('monthly')
   const [customStart, setCustomStart] = useState('')
   const [customEnd, setCustomEnd] = useState('')
   const [groupBy, setGroupBy] = useState<GroupByOption>('monthly')
@@ -119,11 +122,15 @@ export default function AdminReports() {
       bookingsApi.getAllBookings().catch(() => []),
       roomsApi.getRooms().catch(() => []),
       usersApi.getAllUsers().catch(() => []),
-    ]).then(([invData, bkData, rmData, uData]) => {
+      motorcyclesApi.getRentals().catch(() => []),
+      bookingsApi.getAllRentals().catch(() => [])
+    ]).then(([invData, bkData, rmData, uData, motorData, activityData]) => {
       setInvoices(invData)
       setBookings(bkData)
       setRooms(rmData as RoomRecord[])
       setUsers(uData)
+      setMotorRentals(motorData)
+      setActivityRentals(activityData)
     }).finally(() => setLoading(false))
   }
 
@@ -137,27 +144,31 @@ export default function AdminReports() {
     let start = new Date()
     let end = new Date()
 
-    if (period === 'this_month') {
+    if (period === 'daily') {
+      start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0)
+      end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59)
+    } else if (period === 'weekly') {
+      start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6, 0, 0, 0)
+      end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59)
+    } else if (period === 'monthly') {
       start = new Date(now.getFullYear(), now.getMonth(), 1)
       end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59)
-    } else if (period === 'last_month') {
-      start = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-      end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59)
-    } else if (period === 'last_3_months') {
-      start = new Date(now.getFullYear(), now.getMonth() - 3, 1)
-      end = now
-    } else if (period === 'last_6_months') {
-      start = new Date(now.getFullYear(), now.getMonth() - 6, 1)
-      end = now
-    } else if (period === 'this_year') {
+    } else if (period === 'yearly') {
       start = new Date(now.getFullYear(), 0, 1)
-      end = now
-    } else if (period === 'last_year') {
-      start = new Date(now.getFullYear() - 1, 0, 1)
-      end = new Date(now.getFullYear() - 1, 11, 31, 23, 59, 59)
+      end = new Date(now.getFullYear(), 11, 31, 23, 59, 59)
     } else if (period === 'custom') {
-      start = customStart ? new Date(customStart) : new Date(now.getFullYear(), now.getMonth() - 6, 1)
-      end = customEnd ? new Date(`${customEnd}T23:59:59`) : now
+      if (customStart) {
+        const [y, m] = customStart.split('-').map(Number)
+        start = new Date(y, m - 1, 1, 0, 0, 0)
+      } else {
+        start = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+      }
+      if (customEnd) {
+        const [y, m] = customEnd.split('-').map(Number)
+        end = new Date(y, m, 0, 23, 59, 59)
+      } else {
+        end = now
+      }
     }
 
     return { start, end }
@@ -207,10 +218,28 @@ export default function AdminReports() {
   }, [bookings, dateRange, roomTypeFilter, bookingStatusFilter, searchQuery])
 
   // ─── 3. OVERALL KPI METRICS ───
-  const { netRevenue, totalBookingsCount, completedStaysCount, occupancyRate, avgStayDuration } = useMemo(() => {
+  const { netRevenue, totalBookingsCount, completedStaysCount, occupancyRate, avgStayDuration, motorRevenue, courtRevenue } = useMemo(() => {
     let rev = 0
     for (const inv of filteredInvoices) {
       rev += Number(inv.paid_amount || 0)
+    }
+
+    let mRev = 0
+    const filteredMotors = motorRentals.filter(m => {
+      const d = new Date(m.created_at || m.start_datetime || Date.now())
+      return d >= dateRange.start && d <= dateRange.end && (m.status === 'COMPLETED' || m.status === 'ACTIVE')
+    })
+    for (const m of filteredMotors) {
+       mRev += Number(m.final_amount || m.total_amount || 0)
+    }
+
+    let cRev = 0
+    const filteredCourts = activityRentals.filter(a => {
+      const d = new Date(a.created_at || a.start_time || Date.now())
+      return d >= dateRange.start && d <= dateRange.end && (a.status === 'COMPLETED' || a.status === 'ACTIVE' || a.status === 'CONFIRMED')
+    })
+    for (const c of filteredCourts) {
+       cRev += Number(c.amount_paid || 0)
     }
 
     const totalBk = filteredBookings.length
@@ -229,72 +258,70 @@ export default function AdminReports() {
     const occRate = sellableRooms.length > 0 ? Math.min(100, Math.round((occupiedCount / sellableRooms.length) * 100)) : 0
 
     return {
-      netRevenue: rev,
+      netRevenue: rev + mRev + cRev,
+      motorRevenue: mRev,
+      courtRevenue: cRev,
       totalBookingsCount: totalBk,
       completedStaysCount: completedBk.length,
       occupancyRate: occRate,
       avgStayDuration: avgStay,
     }
-  }, [filteredInvoices, filteredBookings, rooms])
+  }, [filteredInvoices, filteredBookings, rooms, motorRentals, activityRentals, dateRange])
 
   // ─── 4. MONTHLY / PERIOD REVENUE CHART DATA ───
   const revenueChartData = useMemo(() => {
     const map = new Map<string, number>()
 
+    const addRevenue = (dateString: string, amount: number, format: 'monthly' | 'daily' | 'yearly') => {
+      const pDate = new Date(dateString)
+      let key = ''
+      if (format === 'monthly') key = pDate.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
+      else if (format === 'daily') key = pDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      else key = String(pDate.getFullYear())
+      if (map.has(key)) map.set(key, (map.get(key) || 0) + amount)
+    }
+
     if (groupBy === 'monthly') {
-      // Initialize past months
       const d = new Date(dateRange.start)
       while (d <= dateRange.end) {
-        const key = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
-        map.set(key, 0)
+        map.set(d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }), 0)
         d.setMonth(d.getMonth() + 1)
-      }
-
-      for (const inv of filteredInvoices) {
-        for (const p of inv.payments) {
-          if (p.is_refunded) continue
-          const pDate = new Date(p.paid_at || inv.issued_at)
-          const key = pDate.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
-          if (map.has(key)) {
-            map.set(key, (map.get(key) || 0) + Number(p.amount || 0))
-          }
-        }
       }
     } else if (groupBy === 'daily') {
       const d = new Date(dateRange.start)
       while (d <= dateRange.end) {
-        const key = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-        map.set(key, 0)
+        map.set(d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }), 0)
         d.setDate(d.getDate() + 1)
       }
-
-      for (const inv of filteredInvoices) {
-        for (const p of inv.payments) {
-          if (p.is_refunded) continue
-          const pDate = new Date(p.paid_at || inv.issued_at)
-          const key = pDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-          if (map.has(key)) {
-            map.set(key, (map.get(key) || 0) + Number(p.amount || 0))
-          }
-        }
-      }
     } else {
-      // Yearly
       const d = new Date(dateRange.start)
       while (d <= dateRange.end) {
-        const key = String(d.getFullYear())
-        map.set(key, 0)
+        map.set(String(d.getFullYear()), 0)
         d.setFullYear(d.getFullYear() + 1)
       }
+    }
 
-      for (const inv of filteredInvoices) {
-        for (const p of inv.payments) {
-          if (p.is_refunded) continue
-          const pDate = new Date(p.paid_at || inv.issued_at)
-          const key = String(pDate.getFullYear())
-          if (map.has(key)) {
-            map.set(key, (map.get(key) || 0) + Number(p.amount || 0))
-          }
+    for (const inv of filteredInvoices) {
+      for (const p of inv.payments) {
+        if (p.is_refunded) continue
+        addRevenue(p.paid_at || inv.issued_at, Number(p.amount || 0), groupBy)
+      }
+    }
+    
+    for (const m of motorRentals) {
+      if (m.status === 'COMPLETED' || m.status === 'ACTIVE') {
+        const d = m.created_at || m.start_datetime || Date.now()
+        if (new Date(d) >= dateRange.start && new Date(d) <= dateRange.end) {
+          addRevenue(String(d), Number(m.final_amount || m.total_amount || 0), groupBy)
+        }
+      }
+    }
+    
+    for (const c of activityRentals) {
+      if (c.status === 'COMPLETED' || c.status === 'ACTIVE' || c.status === 'CONFIRMED') {
+        const d = c.latest_payment_date || c.created_at || c.start_time || Date.now()
+        if (new Date(d) >= dateRange.start && new Date(d) <= dateRange.end) {
+          addRevenue(String(d), Number(c.amount_paid || 0), groupBy)
         }
       }
     }
@@ -303,7 +330,7 @@ export default function AdminReports() {
       label,
       revenue,
     }))
-  }, [filteredInvoices, dateRange, groupBy])
+  }, [filteredInvoices, motorRentals, activityRentals, dateRange, groupBy])
 
   // ─── 5. REVENUE BY ROOM TYPE (DONUT CHART) ───
   const roomTypeRevenueData = useMemo(() => {
@@ -519,12 +546,10 @@ export default function AdminReports() {
               onChange={(e) => setPeriod(e.target.value as PeriodOption)}
               className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-[#F6F2E8] text-ink font-semibold focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
             >
-              <option value="this_month">This Month</option>
-              <option value="last_month">Last Month</option>
-              <option value="last_3_months">Last 3 Months</option>
-              <option value="last_6_months">Last 6 Months</option>
-              <option value="this_year">This Year (YTD)</option>
-              <option value="last_year">Last Year</option>
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+              <option value="yearly">Yearly</option>
               <option value="custom">Custom Date Range</option>
             </select>
           </div>
@@ -579,28 +604,77 @@ export default function AdminReports() {
 
         {/* Custom Range Picker */}
         {period === 'custom' && (
-          <div className="pt-2 border-t border-stone/15 flex flex-wrap items-center gap-3 text-xs animate-slideDown">
+          <div className="pt-3 border-t border-stone/15 flex flex-wrap items-center gap-3 text-xs animate-slideDown">
             <span className="font-semibold text-ink">Custom Date Range:</span>
-            <input
-              type="date"
-              value={customStart}
-              onChange={(e) => setCustomStart(e.target.value)}
-              className="px-3 py-1.5 rounded-xl border border-stone font-mono"
-            />
+            
+            <div className="flex items-center gap-1.5">
+              <select 
+                value={customStart ? customStart.split('-')[1] : ''}
+                onChange={(e) => {
+                  const y = customStart ? customStart.split('-')[0] : new Date().getFullYear().toString()
+                  setCustomStart(`${y}-${e.target.value}`)
+                }}
+                className="px-2.5 py-1.5 rounded-lg border border-stone/30 bg-[#F6F2E8] font-semibold text-ink focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
+              >
+                <option value="" disabled>Start Month</option>
+                {['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map((m, i) => (
+                  <option key={`sm-${i}`} value={String(i + 1).padStart(2, '0')}>{m}</option>
+                ))}
+              </select>
+              <select
+                value={customStart ? customStart.split('-')[0] : ''}
+                onChange={(e) => {
+                  const m = customStart ? customStart.split('-')[1] : String(new Date().getMonth() + 1).padStart(2, '0')
+                  setCustomStart(`${e.target.value}-${m}`)
+                }}
+                className="px-2.5 py-1.5 rounded-lg border border-stone/30 bg-[#F6F2E8] font-semibold text-ink focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
+              >
+                <option value="" disabled>Year</option>
+                {Array.from({ length: 15 }).map((_, i) => {
+                  const y = 2024 + i
+                  return <option key={`sy-${y}`} value={y}>{y}</option>
+                })}
+              </select>
+            </div>
+
             <span className="text-ink-muted">→</span>
-            <input
-              type="date"
-              value={customEnd}
-              onChange={(e) => setCustomEnd(e.target.value)}
-              className="px-3 py-1.5 rounded-xl border border-stone font-mono"
-            />
+
+            <div className="flex items-center gap-1.5">
+              <select 
+                value={customEnd ? customEnd.split('-')[1] : ''}
+                onChange={(e) => {
+                  const y = customEnd ? customEnd.split('-')[0] : new Date().getFullYear().toString()
+                  setCustomEnd(`${y}-${e.target.value}`)
+                }}
+                className="px-2.5 py-1.5 rounded-lg border border-stone/30 bg-[#F6F2E8] font-semibold text-ink focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
+              >
+                <option value="" disabled>End Month</option>
+                {['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map((m, i) => (
+                  <option key={`em-${i}`} value={String(i + 1).padStart(2, '0')}>{m}</option>
+                ))}
+              </select>
+              <select
+                value={customEnd ? customEnd.split('-')[0] : ''}
+                onChange={(e) => {
+                  const m = customEnd ? customEnd.split('-')[1] : String(new Date().getMonth() + 1).padStart(2, '0')
+                  setCustomEnd(`${e.target.value}-${m}`)
+                }}
+                className="px-2.5 py-1.5 rounded-lg border border-stone/30 bg-[#F6F2E8] font-semibold text-ink focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
+              >
+                <option value="" disabled>Year</option>
+                {Array.from({ length: 15 }).map((_, i) => {
+                  const y = 2024 + i
+                  return <option key={`ey-${y}`} value={y}>{y}</option>
+                })}
+              </select>
+            </div>
           </div>
         )}
 
       </div>
 
       {/* ─── 3. STATISTIC KPI CARDS ─── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
         
         {/* Net Revenue */}
         <div className="bg-white p-4 sm:p-4.5 rounded-xl border border-black/[0.07] shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.04)] transition-all flex flex-col justify-between">
@@ -636,6 +710,24 @@ export default function AdminReports() {
             {avgStayDuration} <span className="text-xs font-sans font-normal text-neutral-500">nights</span>
           </p>
           <span className="text-[11px] text-neutral-500 mt-0.5">Average stay length</span>
+        </div>
+        
+        {/* Motor Revenue */}
+        <div className="bg-white p-4 sm:p-4.5 rounded-xl border border-black/[0.07] shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.04)] transition-all flex flex-col justify-between">
+          <span className="text-[10px] uppercase font-bold tracking-wider text-purple-700">MOTOR RENTALS</span>
+          <p className="font-display text-2xl font-bold text-purple-800 mt-1 leading-tight">
+            ₱{motorRevenue.toLocaleString()}
+          </p>
+          <span className="text-[11px] text-neutral-500 mt-0.5">Motorcycle revenue</span>
+        </div>
+
+        {/* Pickleball Revenue */}
+        <div className="bg-white p-4 sm:p-4.5 rounded-xl border border-black/[0.07] shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.04)] transition-all flex flex-col justify-between">
+          <span className="text-[10px] uppercase font-bold tracking-wider text-orange-700">PICKLEBALL</span>
+          <p className="font-display text-2xl font-bold text-orange-800 mt-1 leading-tight">
+            ₱{courtRevenue.toLocaleString()}
+          </p>
+          <span className="text-[11px] text-neutral-500 mt-0.5">Court revenue</span>
         </div>
       </div>
 
