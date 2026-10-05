@@ -9,6 +9,7 @@ import { billingApi } from '../api/billing'
 import { usersApi } from '../api/users'
 import { bookingsApi } from '../api/bookings'
 import { motorcyclesApi } from '../api/motorcycles'
+import { roomsApi } from '../api/rooms'
 import {
   LayoutDashboard,
   CalendarDays,
@@ -57,7 +58,7 @@ const ADMIN_NAV: NavItem[] = [
   { label: 'Motor Rent', view: 'staff-motorcycles', icon: Bike },
   { label: 'Pickleball Court', view: 'staff-pickleball', icon: Trophy },
   { label: 'Check-In / Out', view: 'admin-checkinout', icon: ArrowLeftRight, badgeKey: 'checkin-out', badgeVariant: 'emerald' },
-  { label: 'Housekeeping', view: 'admin-housekeeping', icon: ClipboardCheck },
+  { label: 'Housekeeping', view: 'admin-housekeeping', icon: ClipboardCheck, badgeKey: 'housekeeping', badgeVariant: 'amber' },
   { label: 'User Management', view: 'admin-users', icon: UserCog, badgeKey: 'pending-users', badgeVariant: 'amber' },
   { label: 'Billing & Payments', view: 'admin-billing', icon: Receipt, badgeKey: 'outstanding-bills', badgeVariant: 'rose' },
   { label: 'Reports & Analytics', view: 'admin-reports', icon: BarChart3 },
@@ -73,7 +74,7 @@ const STAFF_NAV: NavItem[] = [
   { label: 'Bookings', view: 'staff-bookings', icon: CalendarDays },
   { label: 'Rooms', view: 'staff-rooms', icon: BedDouble },
   { label: 'Check-In / Out', view: 'staff-checkinout', icon: ArrowLeftRight, badgeKey: 'checkin-out', badgeVariant: 'emerald' },
-  { label: 'Housekeeping', view: 'staff-housekeeping', icon: ClipboardCheck },
+  { label: 'Housekeeping', view: 'staff-housekeeping', icon: ClipboardCheck, badgeKey: 'housekeeping', badgeVariant: 'amber' },
   { label: 'Walk-In Registration', view: 'staff-walkin', icon: UserPlus },
   { label: 'Motor Rent', view: 'staff-motorcycles', icon: Bike },
   { label: 'Pickleball Court', view: 'staff-pickleball', icon: Trophy },
@@ -164,12 +165,14 @@ export default function Sidebar({
       const pendingUsersPromise = role === 'admin' ? usersApi.getPendingUsers().catch(() => []) : Promise.resolve([])
       const bookingsPromise = bookingsApi.getAllBookings().catch(() => [])
       const motorRentalsPromise = motorcyclesApi.getRentals().catch(() => [])
+      const roomsPromise = roomsApi.getRooms().catch(() => [])
 
-      const [bills, pendingUsers, bookings, motorRentals] = await Promise.all([
+      const [bills, pendingUsers, bookings, motorRentals, rooms] = await Promise.all([
         billsPromise,
         pendingUsersPromise,
         bookingsPromise,
         motorRentalsPromise,
+        roomsPromise,
       ])
 
       let outCount = 0
@@ -212,12 +215,22 @@ export default function Sidebar({
         }
       }
 
+      // Calculate Housekeeping badge count (rooms needing cleaning or maintenance)
+      let housekeepingCount = 0
+      for (const room of rooms) {
+        const rs = String(room.status || '').toUpperCase()
+        if (rs === 'CLEANING' || rs === 'MAINTENANCE') {
+          housekeepingCount++
+        }
+      }
+
       setBadgeCounts((prev) => {
         if (
           prev['outstanding-bills'] === outCount &&
           prev['unverified-bills'] === unverifiedCount &&
           prev['pending-users'] === pendingUsersCount &&
-          prev['checkin-out'] === checkInOutCount
+          prev['checkin-out'] === checkInOutCount &&
+          prev['housekeeping'] === housekeepingCount
         ) {
           return prev
         }
@@ -227,6 +240,7 @@ export default function Sidebar({
           'unverified-bills': unverifiedCount,
           'pending-users': pendingUsersCount,
           'checkin-out': checkInOutCount,
+          'housekeeping': housekeepingCount,
         }
       })
     } catch {

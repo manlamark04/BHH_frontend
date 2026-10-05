@@ -225,6 +225,7 @@ export type View =
   | 'admin-audit'
   | 'admin-services'
   | 'admin-checkinout'
+  | 'admin-billing'
   | 'admin-payments'
   | 'admin-profile'
   | 'admin-reviews'

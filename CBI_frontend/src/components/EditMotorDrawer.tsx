@@ -48,12 +48,29 @@ export default function EditMotorDrawer({
   const [status, setStatus] = useState<Motorcycle['status']>('AVAILABLE')
   const [description, setDescription] = useState('')
   const [imageUrl, setImageUrl] = useState('')
+  const [engineNumber, setEngineNumber] = useState('')
+  const [chassisNumber, setChassisNumber] = useState('')
+  const [yearModel, setYearModel] = useState('')
+  const [color, setColor] = useState('')
+  const [displacement, setDisplacement] = useState('')
+  const [registeredOwner, setRegisteredOwner] = useState('')
+  const [registrationExpiryDate, setRegistrationExpiryDate] = useState('')
+  const [insuranceProvider, setInsuranceProvider] = useState('')
+  const [insurancePolicyNumber, setInsurancePolicyNumber] = useState('')
+  const [insuranceExpiryDate, setInsuranceExpiryDate] = useState('')
 
   // Photo Upload State
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string>('')
+  const [orSelectedFile, setOrSelectedFile] = useState<File | null>(null)
+  const [orPreviewUrl, setOrPreviewUrl] = useState<string>('')
+  const [crSelectedFile, setCrSelectedFile] = useState<File | null>(null)
+  const [crPreviewUrl, setCrPreviewUrl] = useState<string>('')
+  
   const [isDragging, setIsDragging] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const orFileInputRef = useRef<HTMLInputElement>(null)
+  const crFileInputRef = useRef<HTMLInputElement>(null)
 
   // Status & Validation
   const [saving, setSaving] = useState(false)
@@ -74,8 +91,22 @@ export default function EditMotorDrawer({
       setStatus(motor.status || 'AVAILABLE')
       setDescription(motor.description || '')
       setImageUrl(motor.image_url || '')
+      setEngineNumber(motor.engine_number || '')
+      setChassisNumber(motor.chassis_number || '')
+      setYearModel(motor.year_model ? String(motor.year_model) : '')
+      setColor(motor.color || '')
+      setDisplacement(motor.displacement || '')
+      setRegisteredOwner(motor.registered_owner || '')
+      setRegistrationExpiryDate(motor.registration_expiry_date || '')
+      setInsuranceProvider(motor.insurance_provider || '')
+      setInsurancePolicyNumber(motor.insurance_policy_number || '')
+      setInsuranceExpiryDate(motor.insurance_expiry_date || '')
       setSelectedFile(null)
       setPreviewUrl(motor.image_url || '')
+      setOrSelectedFile(null)
+      setOrPreviewUrl(motor.or_image_url || '')
+      setCrSelectedFile(null)
+      setCrPreviewUrl(motor.cr_image_url || '')
       setError('')
       setFieldErrors({})
     } else if (!motor && isOpen) {
@@ -89,8 +120,22 @@ export default function EditMotorDrawer({
       setStatus('AVAILABLE')
       setDescription('')
       setImageUrl('')
+      setEngineNumber('')
+      setChassisNumber('')
+      setYearModel('')
+      setColor('')
+      setDisplacement('')
+      setRegisteredOwner('')
+      setRegistrationExpiryDate('')
+      setInsuranceProvider('')
+      setInsurancePolicyNumber('')
+      setInsuranceExpiryDate('')
       setSelectedFile(null)
       setPreviewUrl('')
+      setOrSelectedFile(null)
+      setOrPreviewUrl('')
+      setCrSelectedFile(null)
+      setCrPreviewUrl('')
       setError('')
       setFieldErrors({})
     }
@@ -104,6 +149,15 @@ export default function EditMotorDrawer({
         plateNumber.trim() ||
         description.trim() ||
         previewUrl ||
+        orPreviewUrl ||
+        crPreviewUrl ||
+        engineNumber.trim() ||
+        chassisNumber.trim() ||
+        registeredOwner.trim() ||
+        registrationExpiryDate ||
+        insuranceProvider.trim() ||
+        insurancePolicyNumber.trim() ||
+        insuranceExpiryDate ||
         rentalRate !== '500' ||
         brand !== 'Honda' ||
         type !== 'Scooter' ||
@@ -120,9 +174,21 @@ export default function EditMotorDrawer({
       rateType !== (motor.rate_type || 'daily') ||
       status !== (motor.status || 'AVAILABLE') ||
       description.trim() !== (motor.description || '').trim() ||
-      previewUrl !== (motor.image_url || '')
+      engineNumber.trim() !== (motor.engine_number || '').trim() ||
+      chassisNumber.trim() !== (motor.chassis_number || '').trim() ||
+      yearModel.trim() !== (motor.year_model ? String(motor.year_model) : '') ||
+      color.trim() !== (motor.color || '').trim() ||
+      displacement.trim() !== (motor.displacement || '').trim() ||
+      registeredOwner.trim() !== (motor.registered_owner || '').trim() ||
+      registrationExpiryDate !== (motor.registration_expiry_date || '') ||
+      insuranceProvider.trim() !== (motor.insurance_provider || '').trim() ||
+      insurancePolicyNumber.trim() !== (motor.insurance_policy_number || '').trim() ||
+      insuranceExpiryDate !== (motor.insurance_expiry_date || '') ||
+      previewUrl !== (motor.image_url || '') ||
+      orPreviewUrl !== (motor.or_image_url || '') ||
+      crPreviewUrl !== (motor.cr_image_url || '')
     )
-  }, [motor, brand, model, type, plateNumber, rentalRate, rateType, status, description, previewUrl])
+  }, [motor, brand, model, type, plateNumber, rentalRate, rateType, status, description, previewUrl, orPreviewUrl, crPreviewUrl, engineNumber, chassisNumber, yearModel, color, displacement, registeredOwner, registrationExpiryDate, insuranceProvider, insurancePolicyNumber, insuranceExpiryDate])
 
   // Handle ESC key press
   useEffect(() => {
@@ -144,31 +210,37 @@ export default function EditMotorDrawer({
   if (!isOpen) return null
 
   // Photo selection & validation (Max 5MB)
-  const handleFileChange = (file: File) => {
+  const handleFileChangeGeneric = (file: File, type: 'main' | 'or' | 'cr') => {
     setError('')
-    setFieldErrors((prev) => ({ ...prev, photo: '' }))
+    if (type === 'main') setFieldErrors((prev) => ({ ...prev, photo: '' }))
 
     // Validate file type
     const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg']
     if (!validTypes.includes(file.type)) {
-      setFieldErrors((prev) => ({
-        ...prev,
-        photo: 'Invalid format. Please select a JPG, PNG, or WebP image.',
-      }))
+      if (type === 'main') {
+        setFieldErrors((prev) => ({
+          ...prev,
+          photo: 'Invalid format. Please select a JPG, PNG, or WebP image.',
+        }))
+      }
       return
     }
 
     // Validate max file size (5MB)
     const MAX_SIZE = 5 * 1024 * 1024 // 5MB
     if (file.size > MAX_SIZE) {
-      setFieldErrors((prev) => ({
-        ...prev,
-        photo: `File size exceeds 5MB limit (${(file.size / (1024 * 1024)).toFixed(1)}MB). Please choose a smaller photo.`,
-      }))
+      if (type === 'main') {
+        setFieldErrors((prev) => ({
+          ...prev,
+          photo: `File size exceeds 5MB limit (${(file.size / (1024 * 1024)).toFixed(1)}MB). Please choose a smaller photo.`,
+        }))
+      }
       return
     }
 
-    setSelectedFile(file)
+    if (type === 'main') setSelectedFile(file)
+    else if (type === 'or') setOrSelectedFile(file)
+    else if (type === 'cr') setCrSelectedFile(file)
 
     // Create optimized base64 data URL via canvas
     const reader = new FileReader()
@@ -202,18 +274,26 @@ export default function EditMotorDrawer({
         if (ctx) {
           ctx.drawImage(img, 0, 0, width, height)
           const optimizedDataUrl = canvas.toDataURL('image/jpeg', 0.88)
-          setPreviewUrl(optimizedDataUrl)
+          if (type === 'main') setPreviewUrl(optimizedDataUrl)
+          else if (type === 'or') setOrPreviewUrl(optimizedDataUrl)
+          else if (type === 'cr') setCrPreviewUrl(optimizedDataUrl)
         } else {
-          setPreviewUrl(src)
+          if (type === 'main') setPreviewUrl(src)
+          else if (type === 'or') setOrPreviewUrl(src)
+          else if (type === 'cr') setCrPreviewUrl(src)
         }
       }
       img.onerror = () => {
-        setPreviewUrl(src)
+        if (type === 'main') setPreviewUrl(src)
+        else if (type === 'or') setOrPreviewUrl(src)
+        else if (type === 'cr') setCrPreviewUrl(src)
       }
       img.src = src
     }
     reader.readAsDataURL(file)
   }
+
+  const handleFileChange = (file: File) => handleFileChangeGeneric(file, 'main')
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
@@ -281,6 +361,18 @@ export default function EditMotorDrawer({
         status: status,
         description: description.trim() || undefined,
         image_url: previewUrl || undefined,
+        or_image_url: orPreviewUrl || undefined,
+        cr_image_url: crPreviewUrl || undefined,
+        registration_expiry_date: registrationExpiryDate || undefined,
+        year_model: yearModel ? parseInt(yearModel, 10) : undefined,
+        color: color.trim() || undefined,
+        displacement: displacement.trim() || undefined,
+        engine_number: engineNumber.trim() || undefined,
+        chassis_number: chassisNumber.trim() || undefined,
+        registered_owner: registeredOwner.trim() || undefined,
+        insurance_provider: insuranceProvider.trim() || undefined,
+        insurance_policy_number: insurancePolicyNumber.trim() || undefined,
+        insurance_expiry_date: insuranceExpiryDate || undefined,
       }
 
       if (motor) {
@@ -517,6 +609,243 @@ export default function EditMotorDrawer({
                   <p className="text-[10px] text-red-600 font-medium mt-1">{fieldErrors.plateNumber}</p>
                 )}
               </div>
+            </div>
+          </div>
+
+          {/* ─── 2.5 OR / CR DOCUMENT UPLOADS ─── */}
+          <div className="space-y-4 pt-3 border-t border-stone/15">
+            <div className="grid grid-cols-2 gap-4">
+              {/* ── Official Receipt (OR) ── */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block">
+                  Official Receipt (OR) <span className="text-red-500">*</span>
+                </label>
+                <div
+                  onClick={() => !orPreviewUrl && orFileInputRef.current?.click()}
+                  className={`relative aspect-[4/3] rounded-xl overflow-hidden border-2 transition-all ${
+                    orPreviewUrl ? 'border-stone/25' : 'border-dashed border-stone/30 cursor-pointer hover:border-[#6B7A5E]/60'
+                  } bg-sand/40 flex flex-col items-center justify-center`}
+                >
+                  {orPreviewUrl ? (
+                    <img src={orPreviewUrl} alt="Official Receipt" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="text-center p-4 space-y-1.5">
+                      <div className="w-10 h-10 rounded-xl bg-white/80 border border-stone/20 text-[#6B7A5E] flex items-center justify-center mx-auto shadow-xs">
+                        <Upload className="w-4 h-4" strokeWidth={1.5} />
+                      </div>
+                      <span className="text-[10px] font-bold text-ink block">Upload OR</span>
+                      <span className="text-[9px] text-ink-muted block">JPG, PNG, WebP</span>
+                    </div>
+                  )}
+                </div>
+                {orPreviewUrl ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-ink-muted truncate flex-1">OR Photo Attached</span>
+                    <button type="button" onClick={() => orFileInputRef.current?.click()} className="px-2.5 py-1 rounded-lg border border-stone/30 text-[10px] font-semibold text-ink hover:bg-sand/60 transition-colors">
+                      Change Photo
+                    </button>
+                    <button type="button" onClick={() => { setOrPreviewUrl(''); setOrSelectedFile(null) }} className="px-2.5 py-1 rounded-lg text-[10px] font-semibold text-red-600 hover:bg-red-50 transition-colors">
+                      Remove
+                    </button>
+                  </div>
+                ) : null}
+                <input
+                  ref={orFileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/jpg"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      handleFileChangeGeneric(e.target.files[0], 'or')
+                    }
+                  }}
+                  className="hidden"
+                />
+              </div>
+
+              {/* ── Certificate of Registration (CR) ── */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block">
+                  Certificate of Registration (CR) <span className="text-red-500">*</span>
+                </label>
+                <div
+                  onClick={() => !crPreviewUrl && crFileInputRef.current?.click()}
+                  className={`relative aspect-[4/3] rounded-xl overflow-hidden border-2 transition-all ${
+                    crPreviewUrl ? 'border-stone/25' : 'border-dashed border-stone/30 cursor-pointer hover:border-[#6B7A5E]/60'
+                  } bg-sand/40 flex flex-col items-center justify-center`}
+                >
+                  {crPreviewUrl ? (
+                    <img src={crPreviewUrl} alt="Certificate of Registration" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="text-center p-4 space-y-1.5">
+                      <div className="w-10 h-10 rounded-xl bg-white/80 border border-stone/20 text-[#6B7A5E] flex items-center justify-center mx-auto shadow-xs">
+                        <Upload className="w-4 h-4" strokeWidth={1.5} />
+                      </div>
+                      <span className="text-[10px] font-bold text-ink block">Upload CR</span>
+                      <span className="text-[9px] text-ink-muted block">JPG, PNG, WebP</span>
+                    </div>
+                  )}
+                </div>
+                {crPreviewUrl ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-ink-muted truncate flex-1">CR Photo Attached</span>
+                    <button type="button" onClick={() => crFileInputRef.current?.click()} className="px-2.5 py-1 rounded-lg border border-stone/30 text-[10px] font-semibold text-ink hover:bg-sand/60 transition-colors">
+                      Change Photo
+                    </button>
+                    <button type="button" onClick={() => { setCrPreviewUrl(''); setCrSelectedFile(null) }} className="px-2.5 py-1 rounded-lg text-[10px] font-semibold text-red-600 hover:bg-red-50 transition-colors">
+                      Remove
+                    </button>
+                  </div>
+                ) : null}
+                <input
+                  ref={crFileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/jpg"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      handleFileChangeGeneric(e.target.files[0], 'cr')
+                    }
+                  }}
+                  className="hidden"
+                />
+              </div>
+            </div>
+
+            {/* Registration Expiry Date */}
+            <div>
+              <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block mb-1.5">
+                Registration Expiry Date <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="date"
+                value={registrationExpiryDate}
+                onChange={(e) => setRegistrationExpiryDate(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-white text-xs text-ink font-semibold focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40 focus:border-[#6B7A5E] transition-all"
+              />
+            </div>
+          </div>
+
+          {/* ─── 2.6 VEHICLE DETAILS (From OR/CR) ─── */}
+          <div className="space-y-4 pt-3 border-t border-stone/15">
+            <h3 className="text-xs font-bold text-ink">Vehicle Details (From OR/CR)</h3>
+            <div className="grid grid-cols-3 gap-3.5">
+              <div>
+                <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block mb-1.5">
+                  Year Model
+                </label>
+                <input
+                  type="text"
+                  value={yearModel}
+                  onChange={(e) => setYearModel(e.target.value)}
+                  placeholder="e.g. 2024"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-white text-xs text-ink font-semibold focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40 focus:border-[#6B7A5E] transition-all placeholder:text-ink-faint"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block mb-1.5">
+                  Color
+                </label>
+                <input
+                  type="text"
+                  value={color}
+                  onChange={(e) => setColor(e.target.value)}
+                  placeholder="e.g. Matte Black"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-white text-xs text-ink font-semibold focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40 focus:border-[#6B7A5E] transition-all placeholder:text-ink-faint"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block mb-1.5">
+                  Displacement
+                </label>
+                <input
+                  type="text"
+                  value={displacement}
+                  onChange={(e) => setDisplacement(e.target.value)}
+                  placeholder="e.g. 155cc"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-white text-xs text-ink font-semibold focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40 focus:border-[#6B7A5E] transition-all placeholder:text-ink-faint"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3.5">
+              <div>
+                <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block mb-1.5">
+                  Chassis Number <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={chassisNumber}
+                  onChange={(e) => setChassisNumber(e.target.value.toUpperCase())}
+                  placeholder="e.g. NCP151-1234567"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-white text-xs text-ink font-semibold focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40 focus:border-[#6B7A5E] transition-all placeholder:text-ink-faint uppercase"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block mb-1.5">
+                  Engine Number <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={engineNumber}
+                  onChange={(e) => setEngineNumber(e.target.value.toUpperCase())}
+                  placeholder="e.g. 2NR-FE-123456"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-white text-xs text-ink font-semibold focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40 focus:border-[#6B7A5E] transition-all placeholder:text-ink-faint uppercase"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-3.5">
+              <div>
+                <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block mb-1.5">
+                  Registered Owner <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={registeredOwner}
+                  onChange={(e) => setRegisteredOwner(e.target.value.toUpperCase())}
+                  placeholder="e.g. MARIA T. DELA CRUZ"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-white text-xs text-ink font-semibold focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40 focus:border-[#6B7A5E] transition-all placeholder:text-ink-faint uppercase"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* ─── 2.7 COMPREHENSIVE INSURANCE ─── */}
+          <div className="space-y-4 pt-3 border-t border-stone/15">
+            <h3 className="text-xs font-bold text-ink">Comprehensive Insurance</h3>
+            <div className="grid grid-cols-2 gap-3.5">
+              <div>
+                <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block mb-1.5">
+                  Insurance Provider
+                </label>
+                <input
+                  type="text"
+                  value={insuranceProvider}
+                  onChange={(e) => setInsuranceProvider(e.target.value)}
+                  placeholder="e.g. Standard Insurance"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-white text-xs text-ink font-semibold focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40 focus:border-[#6B7A5E] transition-all placeholder:text-ink-faint"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block mb-1.5">
+                  Policy Number
+                </label>
+                <input
+                  type="text"
+                  value={insurancePolicyNumber}
+                  onChange={(e) => setInsurancePolicyNumber(e.target.value)}
+                  placeholder="e.g. POL-2026-12345"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-white text-xs text-ink font-semibold focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40 focus:border-[#6B7A5E] transition-all placeholder:text-ink-faint"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block mb-1.5">
+                Insurance Expiry Date
+              </label>
+              <input
+                type="date"
+                value={insuranceExpiryDate}
+                onChange={(e) => setInsuranceExpiryDate(e.target.value)}
+                className="w-full max-w-[50%] px-3.5 py-2.5 rounded-xl border border-stone/30 bg-white text-xs text-ink font-semibold focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40 focus:border-[#6B7A5E] transition-all"
+              />
             </div>
           </div>
 

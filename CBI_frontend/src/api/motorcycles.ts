@@ -12,6 +12,18 @@ export interface Motorcycle {
   rate_type: 'hourly' | 'daily'
   description?: string
   image_url?: string
+  or_image_url?: string
+  cr_image_url?: string
+  registration_expiry_date?: string
+  year_model?: number | string
+  color?: string
+  displacement?: string
+  engine_number?: string
+  chassis_number?: string
+  registered_owner?: string
+  insurance_provider?: string
+  insurance_policy_number?: string
+  insurance_expiry_date?: string
   status: 'AVAILABLE' | 'RESERVED' | 'RENTED' | 'MAINTENANCE' | 'INACTIVE'
   created_at?: string
   updated_at?: string

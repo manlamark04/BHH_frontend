@@ -97,6 +97,7 @@ const VIEW_TITLES: Partial<Record<View, { title: string; subtitle?: string }>> =
   'admin-dashboard': { title: 'Admin Dashboard', subtitle: 'Full system overview' },
   'admin-bookings': { title: 'Bookings', subtitle: 'Manage all reservations' },
   'admin-checkinout': { title: 'Check-In / Out', subtitle: 'Arrivals, in-house guests & departures' },
+  'admin-billing': { title: 'Billing & Payments', subtitle: 'Invoices, statements & payment tracking' },
   'admin-payments': { title: 'Payments', subtitle: 'Invoices & transactions' },
   'admin-users': { title: 'User Management', subtitle: 'Manage accounts and approvals' },
   'admin-rooms': { title: 'Room Management', subtitle: 'Manage rooms and availability' },
@@ -296,6 +297,8 @@ export default function App() {
         return <AdminBookings />
       case 'admin-checkinout':
         return <AdminCheckInOut onNavigate={navigate} />
+      case 'admin-billing':
+        return <AdminBilling />
       case 'admin-payments':
         return <AdminPayments />
       case 'admin-users':
