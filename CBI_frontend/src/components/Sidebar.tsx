@@ -54,7 +54,7 @@ const ADMIN_NAV: NavItem[] = [
   { label: 'Dashboard', view: 'admin-dashboard', icon: LayoutDashboard },
   { label: 'Bookings', view: 'admin-bookings', icon: CalendarDays },
   { label: 'Rooms', view: 'admin-rooms', icon: BedDouble },
-  { label: 'Guests', view: 'admin-guests', icon: Users },
+  { label: 'Customer Records', view: 'admin-guests', icon: Users },
   { label: 'Motor Rent', view: 'staff-motorcycles', icon: Bike },
   { label: 'Pickleball Court', view: 'staff-pickleball', icon: Trophy },
   { label: 'Check-In / Out', view: 'admin-checkinout', icon: ArrowLeftRight, badgeKey: 'checkin-out', badgeVariant: 'emerald' },

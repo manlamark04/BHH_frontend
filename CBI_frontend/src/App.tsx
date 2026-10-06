@@ -101,7 +101,7 @@ const VIEW_TITLES: Partial<Record<View, { title: string; subtitle?: string }>> =
   'admin-payments': { title: 'Payments', subtitle: 'Invoices & transactions' },
   'admin-users': { title: 'User Management', subtitle: 'Manage accounts and approvals' },
   'admin-rooms': { title: 'Room Management', subtitle: 'Manage rooms and availability' },
-  'admin-guests': { title: 'Guests', subtitle: 'Manage guest profiles and stay history' },
+  'admin-guests': { title: 'Customer Records', subtitle: 'View and manage guest profiles' },
   'admin-services': { title: 'Services & Motor Rent', subtitle: 'Manage motorcycle fleet, hotel services, and amenities' },
   'admin-reports': { title: 'Reports & Analytics', subtitle: 'Financial and operational insights' },
   'admin-audit': { title: 'Audit Log', subtitle: 'System activity history' },

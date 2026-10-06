@@ -577,10 +577,21 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
         parts.push(`Late fee: ₱${Number(res.late_fee).toLocaleString()}.`)
       }
       parts.push(`Total: ₱${Number(res.final_amount).toLocaleString()}`)
+      
+      const hasUnpaidFees = (hasDamage && Number(damageRepairCost) > 0) || (Number(rRes.late_fee) > 0 && !rRes.late_fee_waived);
+      if (hasUnpaidFees) {
+        parts.push(`Redirecting to Billing...`)
+      }
+
       setSuccessMsg(parts.join(' '))
       setTimeout(() => setSuccessMsg(''), 6000)
       loadData()
       if (tab === 'damage') loadDamageHistory()
+
+      if (hasUnpaidFees) {
+        window.dispatchEvent(new Event('billing-updated'))
+        window.dispatchEvent(new CustomEvent('navigate', { detail: userRole === 'admin' ? 'admin-billing' : 'staff-billing' }))
+      }
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to process return')
     } finally {
