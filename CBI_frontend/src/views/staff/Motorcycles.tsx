@@ -2377,7 +2377,7 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
                   }
                   className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl text-xs font-semibold shadow-sm disabled:opacity-50 transition-all cursor-pointer flex items-center justify-center gap-1.5"
                 >
-                  {processingReturn ? 'Processing...' : hasDamage ? 'Complete Return & Bill Damage' : 'Complete Return'}
+                  {processingReturn ? 'Processing...' : (isOverdue && !waiveLateFee) ? 'Proceed to Billing & Payment' : hasDamage ? 'Complete Return & Bill Damage' : 'Complete Return'}
                 </button>
               </div>
             </div>
