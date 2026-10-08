@@ -2,11 +2,14 @@ import { useState, useEffect } from 'react'
 import { roomsApi, RoomRecord } from '../../api/rooms'
 import { useTheme } from '../../context/ThemeContext'
 import { CheckCircle2, Wrench, Sparkles, BedDouble, AlertTriangle } from 'lucide-react'
+import Modal from '../../components/Modal'
 
 export default function Housekeeping() {
   const [rooms, setRooms] = useState<RoomRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [updatingId, setUpdatingId] = useState<number | null>(null)
+  const [maintenanceModal, setMaintenanceModal] = useState<{ isOpen: boolean; roomId: number | null }>({ isOpen: false, roomId: null })
+  const [maintenanceRemarks, setMaintenanceRemarks] = useState('')
   const { isDarkMode } = useTheme()
 
   const fetchRooms = async () => {
@@ -24,19 +27,28 @@ export default function Housekeeping() {
     fetchRooms()
   }, [])
 
-  const handleStatusChange = async (roomId: number, newStatus: string) => {
+  const handleStatusChange = async (roomId: number, newStatus: string, remarks?: string) => {
     setUpdatingId(roomId)
     try {
-      await roomsApi.updateRoomStatus(roomId, newStatus, 'Updated via Housekeeping Module')
+      await roomsApi.updateRoomStatus(roomId, newStatus, remarks || 'Updated via Housekeeping Module')
       // Optimistic update
       setRooms((prev) =>
         prev.map((r) => (r.id === roomId ? { ...r, status: newStatus } : r))
       )
+      if (newStatus === 'maintenance') {
+        setMaintenanceModal({ isOpen: false, roomId: null })
+        setMaintenanceRemarks('')
+      }
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to update status')
     } finally {
       setUpdatingId(null)
     }
+  }
+
+  const openMaintenanceModal = (roomId: number) => {
+    setMaintenanceModal({ isOpen: true, roomId })
+    setMaintenanceRemarks('')
   }
 
   const cleaningRooms = rooms.filter((r) => String(r.status).toLowerCase() === 'cleaning')
@@ -103,7 +115,7 @@ export default function Housekeeping() {
                   </button>
                   <button
                     disabled={updatingId === room.id}
-                    onClick={() => handleStatusChange(room.id, 'maintenance')}
+                    onClick={() => openMaintenanceModal(room.id)}
                     className="flex items-center justify-center gap-1.5 px-3 py-2 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300 text-xs font-semibold rounded-lg transition-colors disabled:opacity-50"
                     title="Send to Maintenance"
                   >
@@ -169,7 +181,7 @@ export default function Housekeeping() {
                   </button>
                   <button
                     disabled={updatingId === room.id}
-                    onClick={() => handleStatusChange(room.id, 'maintenance')}
+                    onClick={() => openMaintenanceModal(room.id)}
                     className="flex-1 py-1.5 bg-red-100 hover:bg-red-200 text-red-800 dark:bg-red-900/30 dark:hover:bg-red-900/50 dark:text-red-300 text-xs font-semibold rounded-lg transition-colors border border-red-200 dark:border-red-800/50 disabled:opacity-50"
                   >
                     Report Issue
@@ -208,7 +220,7 @@ export default function Housekeeping() {
                   </button>
                   <button
                     disabled={updatingId === room.id}
-                    onClick={() => handleStatusChange(room.id, 'maintenance')}
+                    onClick={() => openMaintenanceModal(room.id)}
                     className="p-1.5 bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-600 dark:text-neutral-300 rounded transition-colors disabled:opacity-50"
                     title="Send to Maintenance"
                   >
@@ -221,6 +233,56 @@ export default function Housekeeping() {
 
         </div>
       </div>
+
+      <Modal
+        isOpen={maintenanceModal.isOpen}
+        onClose={() => setMaintenanceModal({ isOpen: false, roomId: null })}
+        title="Report Maintenance Issue"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-900 dark:text-red-300">
+            <p className="font-semibold flex items-center gap-1.5 text-xs">
+              <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
+              <span>Mark Room as Out of Order</span>
+            </p>
+            <p className="text-[11px] mt-1 opacity-90">
+              This will block the room from being booked by guests until the issue is resolved and the room is marked clean.
+            </p>
+          </div>
+          <div>
+            <label className="block font-semibold text-xs mb-1.5 uppercase tracking-wider opacity-80">
+              Maintenance Notes / Reason
+            </label>
+            <textarea
+              value={maintenanceRemarks}
+              onChange={(e) => setMaintenanceRemarks(e.target.value)}
+              placeholder="e.g. Broken fan, plumbing issue, AC leaking..."
+              rows={3}
+              className="w-full px-3 py-2 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-[#15181D] text-sm resize-none"
+            />
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button
+              onClick={() => setMaintenanceModal({ isOpen: false, roomId: null })}
+              className="flex-1 py-2 rounded-xl border border-neutral-300 dark:border-neutral-700 text-sm font-semibold hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                if (maintenanceModal.roomId) {
+                  handleStatusChange(maintenanceModal.roomId, 'maintenance', maintenanceRemarks)
+                }
+              }}
+              disabled={!maintenanceRemarks.trim()}
+              className="flex-1 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-semibold transition-colors disabled:opacity-50"
+            >
+              Confirm
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }

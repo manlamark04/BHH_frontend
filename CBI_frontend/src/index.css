@@ -344,47 +344,67 @@ html.dark .bhh-skeleton {
   }
 }
 
-/* ─── Official Receipt Print Styles ───────────────────────── */
+/* ─── Global & Document Print Styles ───────────────────────── */
 @media print {
-  /* Hide everything except the receipt */
-  body > *:not(#print-root),
-  .fixed,
+  /* Hide sidebar navigation, mobile navbars, headers, footers, buttons and elements with .no-print */
   aside,
   nav,
   header,
-  footer {
+  footer,
+  .no-print,
+  button:not(.allow-print) {
     display: none !important;
   }
 
-  /* Show receipt, voucher, and EOD shift report */
-  #bhh-receipt-print,
-  #official-receipt-print-area,
-  #booking-voucher-print-area,
-  #cashier-eod-print-area {
-    display: block !important;
-    position: static !important;
+  /* Ensure root and app body expand cleanly to full width without scrollbar traps */
+  html, body, #root {
+    width: 100% !important;
+    height: auto !important;
+    min-height: 100% !important;
     overflow: visible !important;
     background: white !important;
     color: black !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  main, div {
+    overflow: visible !important;
+  }
+
+  /* Show and format all printable documents cleanly */
+  #bhh-receipt-print,
+  #official-receipt-print-area,
+  #booking-voucher-print-area,
+  #cashier-eod-print-area,
+  #financial-statement-print-area {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+    background: white !important;
+    color: black !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
   }
 
   #bhh-receipt-print *,
   #official-receipt-print-area *,
   #booking-voucher-print-area *,
-  #cashier-eod-print-area * {
+  #cashier-eod-print-area *,
+  #financial-statement-print-area * {
     color: black !important;
-    background: white !important;
-    border-color: #ccc !important;
+    background: transparent !important;
+    border-color: #d1d5db !important;
     box-shadow: none !important;
   }
 
-  .no-print {
-    display: none !important;
-  }
-
-
   @page {
-    margin: 1.5cm;
-    size: A5 portrait;
+    margin: 1.2cm;
+    size: auto;
   }
 }
+

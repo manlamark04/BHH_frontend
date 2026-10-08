@@ -19,6 +19,7 @@ import { billingApi, type InvoiceItem, type OfficialReceiptData } from '../../ap
 import StatusBadge from '../../components/StatusBadge'
 import Modal from '../../components/Modal'
 import { OfficialReceiptModal } from '../../components/OfficialReceiptModal'
+import CashierEODModal from '../../components/CashierEODModal'
 
 export default function StaffBilling() {
   const [bills, setBills] = useState<InvoiceItem[]>([])
@@ -32,6 +33,7 @@ export default function StaffBilling() {
   const [submitting, setSubmitting] = useState(false)
   const [toast, setToast] = useState('')
   const [idVerified, setIdVerified] = useState(false)
+  const [showEodModal, setShowEodModal] = useState(false)
 
   const load = () => {
     setLoading(true)
@@ -216,6 +218,13 @@ export default function StaffBilling() {
           <h1 className="font-display text-lg sm:text-xl font-bold text-neutral-900 dark:text-white tracking-tight">Billing & Folios</h1>
           <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">Guest invoices, settlement ledger, and cash desk payments</p>
         </div>
+        <button
+          onClick={() => setShowEodModal(true)}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 rounded-lg text-xs font-semibold hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors shadow-sm self-start sm:self-auto"
+        >
+          <Receipt className="w-3.5 h-3.5" />
+          <span>Shift Report (EOD)</span>
+        </button>
       </div>
 
       {/* ─── 2. SUMMARY METRICS ─── */}
@@ -646,6 +655,10 @@ export default function StaffBilling() {
         receipt={activeReceipt}
       />
 
+      <CashierEODModal
+        isOpen={showEodModal}
+        onClose={() => setShowEodModal(false)}
+      />
     </div>
   )
 }

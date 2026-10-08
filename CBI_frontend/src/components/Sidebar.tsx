@@ -61,7 +61,8 @@ const ADMIN_NAV: NavItem[] = [
   { label: 'Housekeeping', view: 'admin-housekeeping', icon: ClipboardCheck, badgeKey: 'housekeeping', badgeVariant: 'amber' },
   { label: 'User Management', view: 'admin-users', icon: UserCog, badgeKey: 'pending-users', badgeVariant: 'amber' },
   { label: 'Billing & Payments', view: 'admin-billing', icon: Receipt, badgeKey: 'outstanding-bills', badgeVariant: 'rose' },
-  { label: 'Reports & Analytics', view: 'admin-reports', icon: BarChart3 },
+  { label: 'Lost & Found', view: 'admin-lost-and-found', icon: PackageSearch },
+  { label: 'Financial Analytics and Reports', view: 'admin-reports', icon: BarChart3 },
   { label: 'Audit Log', view: 'admin-audit', icon: History },
   { label: 'Guest Reviews', view: 'admin-reviews', icon: MessageSquare },
   { label: 'Promo & Discounts', view: 'admin-promos', icon: Tag },
@@ -80,6 +81,7 @@ const STAFF_NAV: NavItem[] = [
   { label: 'Pickleball Court', view: 'staff-pickleball', icon: Trophy },
   { label: 'Customer Records', view: 'staff-customers', icon: Users },
   { label: 'Billing & Payments', view: 'staff-billing', icon: Receipt, badgeKey: 'outstanding-bills', badgeVariant: 'rose' },
+  { label: 'Lost & Found', view: 'staff-lost-and-found', icon: PackageSearch },
   { label: 'My Profile', view: 'staff-profile', icon: User },
 ]
 

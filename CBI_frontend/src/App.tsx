@@ -48,7 +48,7 @@ const AdminUsers = lazy(() => import('./views/admin/Users'))
 const AdminRooms = lazy(() => import('./views/admin/Rooms'))
 const AdminGuests = lazy(() => import('./views/admin/Guests'))
 const AdminServices = lazy(() => import('./views/admin/Services'))
-const AdminReports = lazy(() => import('./views/admin/Reports'))
+const AdminReports = lazy(() => import('./views/admin/FinancialDashboard'))
 const AdminAuditLog = lazy(() => import('./views/admin/AuditLog'))
 const AdminCheckInOut = lazy(() => import('./views/admin/CheckInOut'))
 const AdminBilling = lazy(() => import('./views/admin/Billing'))
@@ -56,6 +56,8 @@ const AdminPayments = lazy(() => import('./views/admin/Payments'))
 const AdminProfile = lazy(() => import('./views/admin/Profile'))
 const AdminReviews = lazy(() => import('./views/admin/GuestReviews'))
 const AdminPromos = lazy(() => import('./views/admin/Promos'))
+const AdminLostAndFound = lazy(() => import('./views/admin/LostAndFound'))
+const StaffLostAndFound = lazy(() => import('./views/staff/LostAndFound'))
 
 const ViewLoading = () => (
   <div className="flex items-center justify-center min-h-[50vh] py-16">
@@ -103,10 +105,12 @@ const VIEW_TITLES: Partial<Record<View, { title: string; subtitle?: string }>> =
   'admin-rooms': { title: 'Room Management', subtitle: 'Manage rooms and availability' },
   'admin-guests': { title: 'Customer Records', subtitle: 'View and manage guest profiles' },
   'admin-services': { title: 'Services & Motor Rent', subtitle: 'Manage motorcycle fleet, hotel services, and amenities' },
-  'admin-reports': { title: 'Reports & Analytics', subtitle: 'Financial and operational insights' },
+  'admin-reports': { title: 'Financial Analytics', subtitle: 'Revenue, expenses, and profit margins' },
   'admin-audit': { title: 'Audit Log', subtitle: 'System activity history' },
   'admin-reviews': { title: 'Guest Reviews', subtitle: 'Manage and moderate guest feedback' },
   'admin-promos': { title: 'Promo & Discounts', subtitle: 'Manage seasonal discounts and coupon codes' },
+  'admin-lost-and-found': { title: 'Lost & Found', subtitle: 'Track and manage items left behind by guests' },
+  'staff-lost-and-found': { title: 'Lost & Found', subtitle: 'Track and manage items left behind by guests' },
   'customer-reviews': { title: 'My Reviews', subtitle: 'Your experience and feedback' },
 }
 
@@ -289,6 +293,8 @@ export default function App() {
         return <StaffProfile userName={name} userId={userId} onPasswordChanged={handlePasswordChanged} />
       case 'staff-housekeeping':
         return <Housekeeping />
+      case 'staff-lost-and-found':
+        return <StaffLostAndFound />
 
       // Admin
       case 'admin-dashboard':
@@ -321,6 +327,8 @@ export default function App() {
         return <AdminProfile userName={name} userId={userId} onPasswordChanged={handlePasswordChanged} />
       case 'admin-housekeeping':
         return <Housekeeping />
+      case 'admin-lost-and-found':
+        return <AdminLostAndFound />
 
       default:
         return (

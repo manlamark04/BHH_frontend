@@ -211,6 +211,18 @@ export const billingApi = {
   /** GET /api/bills/eod-report — Staff/Admin: daily cashier shift reconciliation */
   getEODReport: (date?: string) =>
     api.get<EODReportData>(`/api/bills/eod-report${date ? `?date=${date}` : ''}`),
+
+  /** POST /api/bills/expenses — Staff/Admin: log petty cash expense */
+  addExpense: async (data: { amount: number; category: string; description?: string; expense_date?: string }) => {
+    const res = await api.post<{ success: boolean; message: string; id: number }>('/api/bills/expenses', data)
+    return res
+  },
+
+  /** DELETE /api/bills/expenses/:id — Staff/Admin: delete / void petty cash expense */
+  deleteExpense: async (id: number) => {
+    const res = await api.delete<{ success: boolean; message: string }>(`/api/bills/expenses/${id}`)
+    return res
+  },
 }
 
 export interface EODReportData {
@@ -221,6 +233,8 @@ export interface EODReportData {
     grossTotal: number
     netTotal: number
     cashTotal: number
+    netCashTotal: number
+    expensesTotal: number
     gcashTotal: number
     cardTotal: number
     bankTotal: number
@@ -240,6 +254,15 @@ export interface EODReportData {
     bill_description?: string
     customer_name?: string
     cashier_name?: string
+  }>
+  expenses: Array<{
+    id: number
+    amount: number
+    category: string
+    description?: string
+    expense_date: string
+    created_at: string
+    logged_by_name?: string
   }>
 }
 

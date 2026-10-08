@@ -235,3 +235,5 @@ export type View =
   | 'admin-housekeeping'
   | 'staff-housekeeping'
   | 'admin-promos'
+  | 'admin-lost-and-found'
+  | 'staff-lost-and-found'

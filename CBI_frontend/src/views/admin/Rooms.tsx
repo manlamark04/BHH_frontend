@@ -4,6 +4,7 @@ import {
   Plus,
   LayoutGrid,
   List,
+  Map as MapIcon,
   Users,
   Trash2,
   Building2,
@@ -18,9 +19,10 @@ import { roomsApi, type RoomRecord } from '../../api/rooms'
 import StatusBadge from '../../components/StatusBadge'
 import Modal from '../../components/Modal'
 import ConfirmDialog from '../../components/ConfirmDialog'
+import InteractiveMap from '../../components/InteractiveMap'
 
 type FilterTab = 'all' | 'available' | 'occupied' | 'cleaning' | 'maintenance'
-type ViewMode = 'grid' | 'list'
+type ViewMode = 'grid' | 'list' | 'map'
 type SortOption = 'number_asc' | 'number_desc' | 'price_asc' | 'price_desc' | 'type' | 'status'
 
 const ROOM_TYPES = [
@@ -586,6 +588,19 @@ export default function AdminRooms({ userRole = 'admin' }: AdminRoomsProps) {
                 <List className="w-3.5 h-3.5" strokeWidth={1.5} />
                 <span>List</span>
               </button>
+              <button
+                onClick={() => setViewMode('map')}
+                className={`flex items-center gap-1.5 p-1.5 px-2.5 rounded-lg font-bold transition-all cursor-pointer ${
+                  viewMode === 'map'
+                    ? 'bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white shadow-2xs'
+                    : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white'
+                }`}
+                title="Map View"
+                aria-label="Map View"
+              >
+                <MapIcon className="w-3.5 h-3.5" strokeWidth={1.5} />
+                <span>Map</span>
+              </button>
             </div>
 
           </div>
@@ -620,6 +635,13 @@ export default function AdminRooms({ userRole = 'admin' }: AdminRoomsProps) {
             </select>
           </div>
         </div>
+
+        {/* ─── MAP VIEW ─── */}
+        {viewMode === 'map' && (
+          <div className="py-4">
+            <InteractiveMap rooms={filteredRooms} onRoomClick={(r) => setViewRoom(r)} />
+          </div>
+        )}
 
         {/* ─── GRID VIEW ─── */}
         {viewMode === 'grid' && (
