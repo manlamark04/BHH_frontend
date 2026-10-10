@@ -1,4 +1,13 @@
 import { useState, useEffect, useId } from 'react'
+import {
+  ShieldCheck,
+  Sparkles,
+  Palmtree,
+  Lock,
+  CheckCircle2,
+  AlertCircle,
+  Hotel,
+} from 'lucide-react'
 import type { Role } from '../types'
 import { ROLE_LABELS } from './Sidebar'
 import logo from '../imports/logo.png'
@@ -90,22 +99,20 @@ export function getWelcomeGreeting(
   return null
 }
 
-const DEFAULT_STATUS: Record<Role, string> = {
-  admin: 'Preparing your command center',
-  staff: 'Loading your task console',
-  customer: 'Preparing your stay',
-}
-
-// 8 floating light particles with randomized natural parameters
+// 12 floating warm golden particles with staggered float speeds & drift
 const PARTICLES = [
-  { id: 1, left: '16%', size: 4.5, driftX: '18px', duration: '5.8s', delay: '0s' },
-  { id: 2, left: '28%', size: 3.5, driftX: '-20px', duration: '6.6s', delay: '1.2s' },
-  { id: 3, left: '42%', size: 5.0, driftX: '14px', duration: '5.1s', delay: '0.4s' },
-  { id: 4, left: '58%', size: 3.0, driftX: '-16px', duration: '7.2s', delay: '2.0s' },
-  { id: 5, left: '71%', size: 4.0, driftX: '22px', duration: '6.0s', delay: '1.5s' },
-  { id: 6, left: '83%', size: 3.5, driftX: '-12px', duration: '6.4s', delay: '2.8s' },
-  { id: 7, left: '22%', size: 5.5, driftX: '16px', duration: '5.4s', delay: '3.4s' },
-  { id: 8, left: '64%', size: 4.0, driftX: '-18px', duration: '6.9s', delay: '0.8s' },
+  { id: 1, left: '12%', size: 4.5, driftX: '22px', duration: '5.6s', delay: '0s' },
+  { id: 2, left: '24%', size: 3.5, driftX: '-18px', duration: '6.4s', delay: '1.2s' },
+  { id: 3, left: '38%', size: 5.5, driftX: '16px', duration: '5.2s', delay: '0.4s' },
+  { id: 4, left: '52%', size: 3.0, driftX: '-14px', duration: '7.0s', delay: '2.0s' },
+  { id: 5, left: '68%', size: 4.2, driftX: '24px', duration: '6.1s', delay: '1.5s' },
+  { id: 6, left: '80%', size: 3.8, driftX: '-16px', duration: '6.5s', delay: '2.8s' },
+  { id: 7, left: '18%', size: 5.0, driftX: '18px', duration: '5.4s', delay: '3.4s' },
+  { id: 8, left: '62%', size: 4.0, driftX: '-20px', duration: '6.8s', delay: '0.8s' },
+  { id: 9, left: '32%', size: 3.2, driftX: '14px', duration: '7.5s', delay: '4.1s' },
+  { id: 10, left: '74%', size: 4.8, driftX: '-12px', duration: '5.9s', delay: '2.2s' },
+  { id: 11, left: '46%', size: 3.6, driftX: '20px', duration: '6.3s', delay: '3.0s' },
+  { id: 12, left: '88%', size: 4.2, driftX: '-15px', duration: '7.1s', delay: '1.7s' },
 ]
 
 export default function AuthLoadingScreen({
@@ -118,27 +125,47 @@ export default function AuthLoadingScreen({
   onExitComplete,
 }: AuthLoadingScreenProps) {
   const [internalState, setInternalState] = useState<'loading' | 'success-pop' | 'exiting' | 'error'>('loading')
-  const [logoDrawn, setLogoDrawn] = useState(false)
+  const [progress, setProgress] = useState(15)
+  const [stepIndex, setStepIndex] = useState(0)
   const gradId = useId()
 
-  // Track logo stroke draw completion (~1000ms) to trigger ripple rings
+  // Dynamic multi-stage loading progression over the 4-second authentication window
   useEffect(() => {
-    const drawTimer = setTimeout(() => {
-      setLogoDrawn(true)
-    }, 1050)
-    return () => clearTimeout(drawTimer)
+    // Step 0: 0ms -> 15%
+    const t1 = setTimeout(() => {
+      setProgress(42)
+      setStepIndex(1)
+    }, 1100)
+
+    const t2 = setTimeout(() => {
+      setProgress(78)
+      setStepIndex(2)
+    }, 2300)
+
+    const t3 = setTimeout(() => {
+      setProgress(95)
+      setStepIndex(3)
+    }, 3400)
+
+    return () => {
+      clearTimeout(t1)
+      clearTimeout(t2)
+      clearTimeout(t3)
+    }
   }, [])
 
-  // Handle success transition
+  // Handle success / error transitions from parent
   useEffect(() => {
     if (phase === 'success') {
+      setProgress(100)
+      setStepIndex(3)
       setInternalState('success-pop')
       const popTimer = setTimeout(() => {
         setInternalState('exiting')
-      }, 160)
+      }, 240)
       const exitTimer = setTimeout(() => {
         onExitComplete()
-      }, 510) // 160ms pop + 350ms luxury crossfade
+      }, 620) // 240ms pop + 380ms curtain exit
       return () => {
         clearTimeout(popTimer)
         clearTimeout(exitTimer)
@@ -147,7 +174,7 @@ export default function AuthLoadingScreen({
       setInternalState('error')
       const exitTimer = setTimeout(() => {
         onExitComplete()
-      }, 1600)
+      }, 1800)
       return () => clearTimeout(exitTimer)
     }
   }, [phase, onExitComplete])
@@ -156,41 +183,99 @@ export default function AuthLoadingScreen({
   const isExiting = internalState === 'exiting'
   const isError = internalState === 'error'
 
-  // Role-aware welcome greeting computation (Admin, Staff, Customer)
+  // Personalized Greeting
   const greetingText = getWelcomeGreeting(role, fullName, gender, civilStatus)
-  const baseStatus = role && DEFAULT_STATUS[role] ? DEFAULT_STATUS[role] : 'Signing you in'
 
-  // Letters of the wordmark with respective indices for the wave animation
-  const cambacayLetters = 'Cambacay'.split('')
-  const breezeLetters = 'Breeze'.split('')
-  const innLetters = 'Inn'.split('')
+  // Contextual loading step descriptions
+  const getStepText = () => {
+    if (isError) return errorMessage || 'Authentication failed'
+    if (isSuccessPop || phase === 'success') return 'Access granted • Welcome aboard!'
+
+    if (stepIndex === 0) return 'Verifying security credentials…'
+    if (stepIndex === 1) {
+      if (role === 'admin') return 'Synchronizing financial & admin ledger…'
+      if (role === 'staff') return 'Loading front desk register & reservations…'
+      if (role === 'customer') return 'Preparing your personalized guest suite…'
+      return 'Authorizing session privileges…'
+    }
+    if (stepIndex === 2) return 'Preparing console & interface…'
+    return 'Ready • Launching workspace…'
+  }
+
+  // Role tag details
+  const getRoleBadge = () => {
+    if (role === 'admin') {
+      return {
+        label: 'Administrator Suite',
+        icon: <ShieldCheck className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />,
+        badgeCls: 'bg-amber-500/10 text-amber-800 dark:text-amber-300 border-amber-500/25',
+      }
+    }
+    if (role === 'staff') {
+      return {
+        label: 'Front Desk Hospitality Console',
+        icon: <Sparkles className="w-3.5 h-3.5 text-[#6B7A5E] dark:text-[#9BB08C]" />,
+        badgeCls: 'bg-[#6B7A5E]/10 text-[#434F3A] dark:text-[#AFC1A2] border-[#6B7A5E]/25',
+      }
+    }
+    if (role === 'customer') {
+      return {
+        label: 'Resort Guest Portal',
+        icon: <Palmtree className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />,
+        badgeCls: 'bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border-emerald-500/25',
+      }
+    }
+    return {
+      label: 'Cambacay Hospitality System',
+      icon: <Hotel className="w-3.5 h-3.5 text-[#6B7A5E] dark:text-[#9BB08C]" />,
+      badgeCls: 'bg-[#6B7A5E]/10 text-[#434F3A] dark:text-[#AFC1A2] border-[#6B7A5E]/25',
+    }
+  }
+
+  const roleBadge = getRoleBadge()
 
   return (
     <div
-      className={`fixed inset-0 z-[100] flex items-center justify-center select-none overflow-hidden ${
-        isExiting ? 'first-light-screen-exit' : 'opacity-100'
+      className={`fixed inset-0 z-[100] flex items-center justify-center select-none overflow-hidden transition-opacity duration-380 ${
+        isExiting ? 'opacity-0 scale-[1.03] transition-all duration-380' : 'opacity-100'
       }`}
     >
-      {/* ─── Layer 1: Ambient Background (First Light Gradient Shift) ─── */}
-      <div className="absolute inset-0 first-light-sky pointer-events-none" />
+      {/* ─── Layer 1: Ambient Multi-Tone Resort Gradient ─── */}
+      <div className="absolute inset-0 cbi-loading-bg pointer-events-none" />
 
-      {/* Layer 1: Horizontal Drifting Tide / Horizon Line */}
-      <div className="absolute inset-x-0 bottom-1/4 h-32 pointer-events-none first-light-tide" />
+      {/* ─── Layer 1B: Soft Radiant Center Halo ─── */}
+      <div className="absolute w-[580px] h-[580px] rounded-full pointer-events-none cbi-loading-halo" />
 
-      {/* ─── Layer 2: Floating Light Particles ─── */}
+      {/* ─── Layer 1C: Subtle Botanical Watermark Accents (Corners) ─── */}
+      <div className="absolute -top-16 -left-16 w-80 h-80 opacity-[0.045] pointer-events-none text-[#6B7A5E]">
+        <svg viewBox="0 0 200 200" fill="currentColor">
+          <path d="M40,160 C50,110 80,70 140,50 C110,90 90,130 80,180 Z" />
+          <path d="M60,170 C90,120 130,90 180,80 C140,110 110,140 95,190 Z" />
+          <path d="M20,150 C40,90 80,40 160,20 C120,60 90,110 60,170 Z" />
+        </svg>
+      </div>
+      <div className="absolute -bottom-20 -right-20 w-96 h-96 opacity-[0.045] pointer-events-none text-[#6B7A5E] rotate-180">
+        <svg viewBox="0 0 200 200" fill="currentColor">
+          <path d="M40,160 C50,110 80,70 140,50 C110,90 90,130 80,180 Z" />
+          <path d="M60,170 C90,120 130,90 180,80 C140,110 110,140 95,190 Z" />
+          <path d="M20,150 C40,90 80,40 160,20 C120,60 90,110 60,170 Z" />
+        </svg>
+      </div>
+
+      {/* ─── Layer 2: Floating Golden Dust Particles ─── */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         {PARTICLES.map((p) => (
           <div
             key={p.id}
-            className="absolute rounded-full first-light-particle"
+            className="absolute rounded-full cbi-particle"
             style={{
               left: p.left,
               bottom: '-20px',
               width: `${p.size}px`,
               height: `${p.size}px`,
               backgroundColor: '#C99A6B',
-              boxShadow: '0 0 8px rgba(201, 154, 107, 0.6)',
-              // @ts-expect-error CSS custom properties
+              boxShadow: '0 0 10px rgba(201, 154, 107, 0.75)',
+              // @ts-expect-error CSS custom property
               '--drift-x': p.driftX,
               animationDuration: p.duration,
               animationDelay: p.delay,
@@ -199,409 +284,328 @@ export default function AuthLoadingScreen({
         ))}
       </div>
 
-      {/* ─── Center Experience Container ─── */}
+      {/* ─── Layer 3: Central Glassmorphic Sanctuary Showcase Card ─── */}
       <div
-        className={`relative z-10 flex flex-col items-center px-6 transition-transform duration-300 ${
-          isSuccessPop ? 'scale-[1.03]' : 'scale-100'
-        }`}
+        className={`relative z-20 w-full max-w-[480px] mx-4 rounded-3xl p-8 sm:p-10 flex flex-col items-center text-center transition-all duration-300 cbi-loading-card ${
+          isSuccessPop ? 'scale-[1.025] shadow-2xl' : 'scale-100'
+        } ${isError ? 'border-red-400/50 shadow-red-500/10' : ''}`}
       >
-        {/* ─── Layer 3 & 4: Signature SVG Logo Draw-In & Concentric Ripple Rings ─── */}
-        <div className="relative w-28 h-28 sm:w-32 sm:h-32 flex items-center justify-center">
-          
-          {/* Layer 4: Terracotta Ripple Ring 1 (emanates after stroke draw completes) */}
-          <div
-            className={`absolute w-24 h-24 sm:w-28 sm:h-28 rounded-full pointer-events-none first-light-ripple-ring ${
-              logoDrawn && !isExiting && !isSuccessPop ? 'first-light-ripple-active-1' : 'opacity-0'
-            } ${isSuccessPop || isExiting ? 'first-light-ripple-accelerate' : ''}`}
-          />
+        {/* Top luminous gold hairline highlight */}
+        <div className="absolute -top-[1px] inset-x-8 h-[2px] bg-gradient-to-r from-transparent via-[#C99A6B]/80 to-transparent rounded-full" />
 
-          {/* Layer 4: Terracotta Ripple Ring 2 (Staggered by 1.2s) */}
-          <div
-            className={`absolute w-24 h-24 sm:w-28 sm:h-28 rounded-full pointer-events-none first-light-ripple-ring ${
-              logoDrawn && !isExiting && !isSuccessPop ? 'first-light-ripple-active-2' : 'opacity-0'
-            } ${isSuccessPop || isExiting ? 'first-light-ripple-accelerate' : ''}`}
-          />
+        {/* ─── Medallion: Rotating Aura, Shimmer Orbit & Emblem ─── */}
+        <div className="relative w-32 h-32 sm:w-36 sm:h-36 flex items-center justify-center mb-5">
+          {/* Breathing ambient radial aura behind medallion */}
+          <div className="absolute inset-0 rounded-full cbi-medallion-aura" />
 
-          {/* Logo with SVG Line Draw-In + Blooming Color Fill */}
-          <div className="relative z-10 w-20 h-20 sm:w-22 sm:h-22 flex items-center justify-center">
-            
-            {/* SVG Hand-Drawn Stroke Animation */}
-            <svg
-              viewBox="0 0 100 100"
-              className="absolute inset-0 w-full h-full pointer-events-none"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <defs>
-                <linearGradient id={`goldGrad-${gradId}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#6B7A5E" />
-                  <stop offset="50%" stopColor="#8A9A7C" />
-                  <stop offset="100%" stopColor="#4F5D45" />
-                </linearGradient>
-              </defs>
+          {/* Outer Rotating Dashed Orbit Ring */}
+          <div className="absolute inset-1 rounded-full border-2 border-dashed border-[#C99A6B]/45 dark:border-[#C99A6B]/35 cbi-orbit-spin" />
 
-              {/* Outer Arch / Sanctuary Frame */}
-              <path
-                d="M 18,78 C 18,36 32,18 50,18 C 68,18 82,36 82,78 Z"
-                stroke={`url(#goldGrad-${gradId})`}
-                strokeWidth="2.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="first-light-stroke path-arch"
-              />
+          {/* Middle Concentric Sage Ring with 4 Accent Studs */}
+          <div className="absolute inset-3 rounded-full border border-[#6B7A5E]/30 dark:border-[#8A9A7C]/30 cbi-ripple-pulse">
+            <span className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-[#C99A6B] shadow-[0_0_8px_#C99A6B]" />
+            <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-[#6B7A5E] shadow-[0_0_8px_#6B7A5E]" />
+            <span className="absolute top-1/2 -left-1 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-[#C99A6B]/80" />
+            <span className="absolute top-1/2 -right-1 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-[#C99A6B]/80" />
+          </div>
 
-              {/* Sun Dawn Rays */}
-              <path
-                d="M 50,28 L 50,38 M 38,33 L 44,40 M 62,33 L 56,40"
-                stroke={`url(#goldGrad-${gradId})`}
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                className="first-light-stroke path-rays"
-              />
-
-              {/* Palm Fronds & Mountain Contour */}
-              <path
-                d="M 50,75 C 50,56 42,46 30,48 M 50,75 C 50,54 58,44 70,46 M 50,75 L 50,52"
-                stroke={`url(#goldGrad-${gradId})`}
-                strokeWidth="2.0"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="first-light-stroke path-palm"
-              />
-
-              {/* Breeze Waves Base */}
-              <path
-                d="M 26,82 C 34,79 42,85 50,82 C 58,79 66,85 74,82"
-                stroke={`url(#goldGrad-${gradId})`}
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                className="first-light-stroke path-waves"
-              />
-            </svg>
-
-            {/* Inked Logo Image Bloom / Fill (fades in smoothly over 350ms after stroke outline completes) */}
+          {/* Inner Pedestal with Cambacay Breeze Inn Logo */}
+          <div className="relative z-10 w-22 h-22 sm:w-24 sm:h-24 rounded-full bg-white dark:bg-[#1C2219] shadow-xl ring-4 ring-white/90 dark:ring-white/10 flex items-center justify-center p-2.5 transition-transform duration-300">
             <img
               src={logo}
               alt="Cambacay Breeze Inn"
-              className="relative z-10 w-full h-full object-contain pointer-events-none first-light-fill-bloom"
+              className="w-full h-full object-contain pointer-events-none drop-shadow-sm cbi-logo-float"
             />
+
+            {/* Success Bloom Badge */}
+            {(isSuccessPop || phase === 'success') && (
+              <div className="absolute inset-0 rounded-full bg-emerald-600/95 flex items-center justify-center text-white shadow-lg animate-scaleIn">
+                <CheckCircle2 className="w-10 h-10 animate-bounce" />
+              </div>
+            )}
+
+            {/* Error Badge */}
+            {isError && (
+              <div className="absolute inset-0 rounded-full bg-red-600/95 flex items-center justify-center text-white shadow-lg animate-scaleIn">
+                <AlertCircle className="w-10 h-10" />
+              </div>
+            )}
           </div>
         </div>
 
-        {/* ─── Layer 5: Typography Reveal with Fraunces & Gentle Breeze Wave Motion ─── */}
-        <div className="mt-6 first-light-wordmark">
+        {/* ─── Resort Wordmark & Typography ─── */}
+        <div className="mb-2">
           <h2
-            className="text-2xl sm:text-3xl tracking-[-0.01em] select-none flex items-center justify-center gap-2"
-            style={{
-              fontFamily: "'Fraunces', 'Cormorant Garamond', serif",
-            }}
+            className="text-2xl sm:text-3xl tracking-tight select-none flex items-center justify-center gap-2"
+            style={{ fontFamily: "'Fraunces', 'Cormorant Garamond', Georgia, serif" }}
           >
-            {/* "Cambacay" (Fraunces Regular 400-500, Charcoal) */}
-            <span className="font-normal text-[#2A2822] inline-flex">
-              {cambacayLetters.map((char, i) => (
-                <span
-                  key={`c-${i}`}
-                  className="letter-wave-char inline-block"
-                  style={{
-                    // @ts-expect-error CSS variable
-                    '--letter-index': i,
-                  }}
-                >
-                  {char}
-                </span>
-              ))}
+            <span className="font-semibold text-[#22281D] dark:text-[#F3F5F0]">
+              Cambacay
             </span>
-
-            {/* "Breeze" (Fraunces Italic, Sage Green Accent with amplified wave) */}
-            <span
-              className="font-normal italic text-[#6B7A5E] inline-flex"
-              style={{
-                fontStyle: 'italic',
-              }}
-            >
-              {breezeLetters.map((char, i) => (
-                <span
-                  key={`b-${i}`}
-                  className="breeze-wave-char inline-block"
-                  style={{
-                    // @ts-expect-error CSS variable
-                    '--letter-index': cambacayLetters.length + 1 + i,
-                  }}
-                >
-                  {char}
-                </span>
-              ))}
+            <span className="italic font-normal text-[#6B7A5E] dark:text-[#9BB08C]">
+              Breeze
             </span>
-
-            {/* "Inn" (Fraunces Regular 400-500, Charcoal) */}
-            <span className="font-normal text-[#2A2822] inline-flex">
-              {innLetters.map((char, i) => (
-                <span
-                  key={`i-${i}`}
-                  className="letter-wave-char inline-block"
-                  style={{
-                    // @ts-expect-error CSS variable
-                    '--letter-index': cambacayLetters.length + 1 + breezeLetters.length + 1 + i,
-                  }}
-                >
-                  {char}
-                </span>
-              ))}
+            <span className="font-semibold text-[#22281D] dark:text-[#F3F5F0]">
+              Inn
             </span>
           </h2>
+          <p className="text-[10px] sm:text-[11px] font-semibold tracking-[0.26em] text-[#98845D] dark:text-[#C5B38D] uppercase mt-1">
+            ✦ CAMBACAY, BATUAN, BOHOL ✦
+          </p>
         </div>
 
-        {/* ─── Layer 5: Staggered Status & Personalized Shimmer Greeting Across All Roles ─── */}
-        <div className="mt-3 min-h-[30px] flex items-center justify-center first-light-status">
-          {isError ? (
-            <p className="text-xs font-semibold text-red-600 text-center tracking-wide animate-fadeIn">
-              {errorMessage || 'Something went wrong. Returning to sign in…'}
-            </p>
-          ) : greetingText ? (
-            /* Role-Aware Welcome Greeting with One-Time Light Shimmer Sweep */
-            <p className="text-[13.5px] sm:text-[15px] font-sans font-medium text-center tracking-normal first-light-shimmer-sweep">
-              {greetingText}
-            </p>
+        {/* ─── Role / Greeting Pill Badge ─── */}
+        <div className="mt-3 min-h-[46px] flex flex-col items-center justify-center">
+          {greetingText ? (
+            <div className="flex flex-col items-center gap-1.5 animate-fadeIn">
+              <div
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold tracking-wide border shadow-xs ${roleBadge.badgeCls}`}
+              >
+                {roleBadge.icon}
+                <span>{roleBadge.label}</span>
+              </div>
+              <p
+                className="text-[14px] sm:text-[15.5px] font-medium text-[#2C3325] dark:text-[#E2E8DC] cbi-shimmer-sweep"
+                style={{ fontFamily: "'Inter', sans-serif" }}
+              >
+                {greetingText}
+              </p>
+            </div>
           ) : (
-            /* Fallback / Initial Status with Subtle Ambient Ellipsis */
-            <p className="text-[10.5px] sm:text-[11.5px] uppercase font-bold text-[#6B7A5E]/85 text-center tracking-[0.18em] inline-flex items-center">
-              <span>{baseStatus}</span>
-              <span className="inline-flex tracking-wider ml-1.5">
-                <span className="first-light-dot dot-1">.</span>
-                <span className="first-light-dot dot-2">.</span>
-                <span className="first-light-dot dot-3">.</span>
-              </span>
-            </p>
+            <div
+              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold tracking-wide border shadow-xs ${roleBadge.badgeCls}`}
+            >
+              {roleBadge.icon}
+              <span>{roleBadge.label}</span>
+            </div>
           )}
+        </div>
+
+        {/* ─── Multi-Stage Progress Tracker & Animated Bar ─── */}
+        <div className="w-full max-w-[300px] mt-5 flex flex-col items-center">
+          {/* Progress Track */}
+          <div className="w-full h-1.5 rounded-full bg-neutral-200/90 dark:bg-neutral-800/90 overflow-hidden relative shadow-inner">
+            <div
+              className={`h-full rounded-full transition-all duration-700 ease-out relative ${
+                isError
+                  ? 'bg-red-500 w-full'
+                  : 'bg-gradient-to-r from-[#6B7A5E] via-[#C99A6B] to-[#8A9A7C]'
+              }`}
+              style={{ width: `${progress}%` }}
+            >
+              {/* Traveling shimmer gleam across bar */}
+              <div className="absolute inset-0 cbi-bar-gleam" />
+            </div>
+          </div>
+
+          {/* Dynamic Progress Caption & Percentage */}
+          <div className="w-full mt-2.5 flex items-center justify-between text-[11.5px] font-medium">
+            <span
+              className={`truncate max-w-[230px] flex items-center gap-1.5 ${
+                isError
+                  ? 'text-red-600 dark:text-red-400 font-semibold'
+                  : 'text-[#646A5B] dark:text-neutral-400'
+              }`}
+            >
+              {!isError && (
+                <span className="w-1.5 h-1.5 rounded-full bg-[#6B7A5E] dark:bg-[#9BB08C] animate-ping" />
+              )}
+              {getStepText()}
+            </span>
+            <span className="text-[11px] font-mono font-semibold text-[#8C7A58] dark:text-[#C5B38D]">
+              {progress}%
+            </span>
+          </div>
+        </div>
+
+        {/* ─── Security Footnote ─── */}
+        <div className="mt-6 pt-4 border-t border-neutral-200/60 dark:border-neutral-800/60 w-full flex items-center justify-center gap-1.5 text-[10.5px] text-[#868A7E] dark:text-neutral-500 font-medium tracking-wide">
+          <Lock className="w-3 h-3 text-[#6B7A5E] dark:text-[#8A9A7C]" />
+          <span>Encrypted Session • Cambacay Breeze Inn Suite</span>
         </div>
       </div>
 
-      {/* ─── First Light Motion Styles & Keyframes ─── */}
+      {/* ─── CSS Keyframes & Specialized Motion ─── */}
       <style>{`
-        /* 1. Ambient Background Gradient Shift (6-8s continuous loop) */
-        .first-light-sky {
-          background: linear-gradient(135deg, #F6F2E8 0%, #EDE7D8 30%, #F6F2E8 60%, #E2DCD0 100%);
-          background-size: 260% 260%;
-          animation: skyGradientShift 7.5s ease-in-out infinite;
+        /* 1. Multi-Tone Ambient Resort Sky */
+        .cbi-loading-bg {
+          background: radial-gradient(ellipse 90% 80% at 50% 35%, #FBF8F1 0%, #F4ECE0 45%, #E9DFCFA0 85%, #E2D6C2 100%);
+          background-size: 200% 200%;
+          animation: skyBreezeShift 9s ease-in-out infinite alternate;
         }
 
-        @keyframes skyGradientShift {
+        :is(.dark .cbi-loading-bg) {
+          background: radial-gradient(ellipse 90% 80% at 50% 35%, #161D15 0%, #0F140E 50%, #090C09 100%);
+        }
+
+        @keyframes skyBreezeShift {
+          0% {
+            background-position: 0% 40%;
+          }
+          100% {
+            background-position: 100% 60%;
+          }
+        }
+
+        /* 1B. Radiant Warm Sun Halo */
+        .cbi-loading-halo {
+          background: radial-gradient(circle, rgba(201, 154, 107, 0.24) 0%, rgba(107, 122, 94, 0.14) 40%, transparent 70%);
+          animation: haloBreath 5.5s ease-in-out infinite;
+          filter: blur(20px);
+        }
+
+        :is(.dark .cbi-loading-halo) {
+          background: radial-gradient(circle, rgba(201, 154, 107, 0.18) 0%, rgba(107, 122, 94, 0.22) 45%, transparent 75%);
+        }
+
+        @keyframes haloBreath {
           0%, 100% {
-            background-position: 0% 50%;
+            transform: scale(0.92);
+            opacity: 0.7;
           }
           50% {
-            background-position: 100% 50%;
+            transform: scale(1.16);
+            opacity: 1;
           }
         }
 
-        /* 1. Drifting Tide / Horizon Line */
-        .first-light-tide {
-          background: radial-gradient(ellipse at 50% 50%, rgba(107, 122, 94, 0.08) 0%, rgba(107, 122, 94, 0.02) 50%, transparent 80%);
-          filter: blur(12px);
-          animation: tideDrift 6s ease-in-out infinite;
-        }
-
-        @keyframes tideDrift {
-          0%, 100% {
-            transform: translateY(0px) scaleY(1);
-          }
-          50% {
-            transform: translateY(-8px) scaleY(1.08);
-          }
-        }
-
-        /* 2. Floating Light Particles */
-        .first-light-particle {
-          animation: particleAscend ease-in-out infinite;
+        /* 2. Floating Golden Light Particles */
+        .cbi-particle {
+          animation: particleFloat ease-in-out infinite;
           will-change: transform, opacity;
         }
 
-        @keyframes particleAscend {
+        @keyframes particleFloat {
           0% {
             transform: translateY(0) translateX(0) scale(0.6);
             opacity: 0;
           }
           20% {
-            opacity: 0.55;
-          }
-          75% {
-            opacity: 0.35;
-          }
-          100% {
-            transform: translateY(-110vh) translateX(var(--drift-x)) scale(1.15);
-            opacity: 0;
-          }
-        }
-
-        /* 3. SVG Stroke Drawing Animation (0 -> 1000ms) */
-        .first-light-stroke {
-          stroke-dasharray: 200;
-          stroke-dashoffset: 200;
-          animation: strokeDraw 1000ms cubic-bezier(0.25, 1, 0.5, 1) forwards;
-        }
-
-        .path-arch  { animation-delay: 50ms; }
-        .path-rays  { animation-delay: 200ms; }
-        .path-palm  { animation-delay: 350ms; }
-        .path-waves { animation-delay: 450ms; }
-
-        @keyframes strokeDraw {
-          to {
-            stroke-dashoffset: 0;
-          }
-        }
-
-        /* 3. Logo Color Fill / Inked Bloom (Fades in over 350ms after stroke completes) */
-        .first-light-fill-bloom {
-          opacity: 0;
-          animation: fillBloom 400ms cubic-bezier(0.16, 1, 0.3, 1) 900ms forwards;
-          will-change: opacity, transform;
-        }
-
-        @keyframes fillBloom {
-          0% {
-            opacity: 0;
-            transform: scale(0.96);
-          }
-          100% {
-            opacity: 1;
-            transform: scale(1);
-          }
-        }
-
-        /* 4. Ripple Rings (Emanate outward after logo is drawn) */
-        .first-light-ripple-ring {
-          border: 1.5px solid rgba(107, 122, 94, 0.38);
-          box-shadow: 0 0 16px rgba(107, 122, 94, 0.14);
-          will-change: transform, opacity;
-        }
-
-        .first-light-ripple-active-1 {
-          animation: rippleExpand 2400ms cubic-bezier(0.16, 1, 0.3, 1) infinite;
-        }
-
-        .first-light-ripple-active-2 {
-          animation: rippleExpand 2400ms cubic-bezier(0.16, 1, 0.3, 1) 1200ms infinite;
-        }
-
-        @keyframes rippleExpand {
-          0% {
-            transform: scale(0.82);
             opacity: 0.65;
           }
+          75% {
+            opacity: 0.45;
+          }
           100% {
-            transform: scale(1.85);
+            transform: translateY(-110vh) translateX(var(--drift-x)) scale(1.2);
             opacity: 0;
           }
         }
 
-        .first-light-ripple-accelerate {
-          opacity: 0 !important;
-          transition: opacity 220ms ease-out !important;
+        /* 3. Showcase Card Styling */
+        .cbi-loading-card {
+          backdrop-filter: blur(28px);
+          -webkit-backdrop-filter: blur(28px);
+          background-color: rgba(255, 255, 255, 0.85);
+          border: 1px solid rgba(107, 122, 94, 0.22);
+          box-shadow:
+            0 25px 60px -15px rgba(50, 60, 42, 0.16),
+            0 1px 2px 0 rgba(0, 0, 0, 0.05),
+            inset 0 0 0 1px rgba(255, 255, 255, 0.75);
+          animation: cardEnter 480ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
 
-        /* 5. Typography Blur-to-Focus Reveal */
-        .first-light-wordmark {
-          opacity: 0;
-          filter: blur(8px);
-          animation: blurToFocus 550ms cubic-bezier(0.16, 1, 0.3, 1) 300ms forwards;
-          will-change: filter, opacity;
+        :is(.dark .cbi-loading-card) {
+          background-color: rgba(22, 28, 21, 0.88);
+          border-color: rgba(138, 154, 124, 0.25);
+          box-shadow:
+            0 30px 70px -15px rgba(0, 0, 0, 0.75),
+            inset 0 0 0 1px rgba(255, 255, 255, 0.08);
         }
 
-        .first-light-status {
-          opacity: 0;
-          filter: blur(6px);
-          animation: blurToFocus 500ms cubic-bezier(0.16, 1, 0.3, 1) 500ms forwards;
-          will-change: filter, opacity;
-        }
-
-        @keyframes blurToFocus {
-          0% {
+        @keyframes cardEnter {
+          from {
             opacity: 0;
-            filter: blur(8px);
-            transform: translateY(6px);
+            transform: translateY(14px) scale(0.97);
           }
-          100% {
+          to {
             opacity: 1;
-            filter: blur(0px);
-            transform: translateY(0);
+            transform: translateY(0) scale(1);
           }
         }
 
-        /* 5. Letter-by-Letter Continuous Breeze Wave Motion */
-        @keyframes letterWave {
-          0%, 100% {
-            transform: translateY(0);
-          }
-          50% {
-            transform: translateY(-4px);
-          }
+        /* 4. Medallion Rings */
+        .cbi-medallion-aura {
+          background: radial-gradient(circle, rgba(201, 154, 107, 0.3) 0%, rgba(107, 122, 94, 0.15) 55%, transparent 75%);
+          filter: blur(10px);
+          animation: auraPulse 3s ease-in-out infinite;
         }
 
-        @keyframes breezeLetterWave {
-          0%, 100% {
-            transform: translateY(0);
-          }
-          50% {
-            transform: translateY(-5.5px);
-          }
+        @keyframes auraPulse {
+          0%, 100% { transform: scale(0.95); opacity: 0.6; }
+          50% { transform: scale(1.12); opacity: 1; }
         }
 
-        .letter-wave-char {
-          animation: letterWave 2.4s ease-in-out infinite;
-          animation-delay: calc(850ms + var(--letter-index) * 60ms);
-          will-change: transform;
+        .cbi-orbit-spin {
+          animation: orbitSpin 20s linear infinite;
         }
 
-        .breeze-wave-char {
-          animation: breezeLetterWave 2.4s ease-in-out infinite;
-          animation-delay: calc(850ms + var(--letter-index) * 60ms);
-          will-change: transform;
+        @keyframes orbitSpin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
         }
 
-        /* 5. One-Time Golden Light Shimmer Sweep on Welcome Line */
-        .first-light-shimmer-sweep {
+        .cbi-ripple-pulse {
+          animation: ripplePulse 3.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes ripplePulse {
+          0%, 100% { transform: scale(1); opacity: 0.8; }
+          50% { transform: scale(1.04); opacity: 1; }
+        }
+
+        .cbi-logo-float {
+          animation: logoFloat 4s ease-in-out infinite;
+        }
+
+        @keyframes logoFloat {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-3px); }
+        }
+
+        /* 5. Shimmer Sweep on Greeting */
+        .cbi-shimmer-sweep {
           background: linear-gradient(
             110deg,
-            #8F5F32 0%,
-            #8F5F32 36%,
-            #E5C07B 50%,
-            #8F5F32 64%,
-            #8F5F32 100%
+            currentColor 0%,
+            currentColor 38%,
+            #C99A6B 50%,
+            currentColor 62%,
+            currentColor 100%
           );
-          background-size: 240% 100%;
+          background-size: 220% 100%;
           -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          animation: singleShimmerSweep 1300ms cubic-bezier(0.16, 1, 0.3, 1) 950ms 1 forwards;
+          animation: shimmerSweep 3.2s ease-in-out infinite;
         }
 
-        @keyframes singleShimmerSweep {
-          0% {
-            background-position: 140% 0;
-          }
-          100% {
-            background-position: -40% 0;
-          }
+        @keyframes shimmerSweep {
+          0% { background-position: 120% 0; }
+          100% { background-position: -80% 0; }
         }
 
-        /* 5. Ambient Three-Dot Pulse */
-        .first-light-dot {
-          display: inline-block;
-          animation: dotShimmer 1200ms ease-in-out infinite;
-        }
-        .first-light-dot.dot-1 { animation-delay: 0ms; }
-        .first-light-dot.dot-2 { animation-delay: 200ms; }
-        .first-light-dot.dot-3 { animation-delay: 400ms; }
-
-        @keyframes dotShimmer {
-          0%, 100% { opacity: 0.25; transform: translateY(0); }
-          50% { opacity: 1; transform: translateY(-1.5px); }
+        /* 6. Gleam across Progress Bar */
+        .cbi-bar-gleam {
+          background: linear-gradient(
+            90deg,
+            transparent 0%,
+            rgba(255, 255, 255, 0.65) 50%,
+            transparent 100%
+          );
+          animation: barGleam 1.8s ease-in-out infinite;
         }
 
-        /* 6. Success / Exit Screen Curtain Lift */
-        .first-light-screen-exit {
-          opacity: 0;
-          transition: opacity 350ms cubic-bezier(0.16, 1, 0.3, 1);
+        @keyframes barGleam {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(200%); }
+        }
+
+        @keyframes scaleIn {
+          from { transform: scale(0.6); opacity: 0; }
+          to { transform: scale(1); opacity: 1; }
+        }
+
+        .animate-scaleIn {
+          animation: scaleIn 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
       `}</style>
     </div>

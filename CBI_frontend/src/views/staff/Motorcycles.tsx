@@ -22,12 +22,16 @@ import {
   Search,
   StickyNote,
   ArrowRight,
+  Printer,
+  Gauge,
+  Fuel,
 } from 'lucide-react'
 import {
   motorcyclesApi,
   type Motorcycle,
   type MotorRental,
   type PickupChecklist,
+  type ReturnChecklist,
   type DamageAssessmentRecord,
 } from '../../api/motorcycles'
 import { usersApi } from '../../api/users'
@@ -36,6 +40,23 @@ import Modal from '../../components/Modal'
 import EditMotorDrawer from '../../components/EditMotorDrawer'
 import { formatDateTimeWithAmPm, PH_RESTRICTION_CODES, COMMON_COUNTRIES } from '../../components/MotorRentSection'
 import { validateDriverLicense, formatDriverLicense, DRIVER_LICENSE_ERROR_MSG } from '../../utils/license.util'
+import logo from '../../imports/logo.png'
+
+const FUEL_LEVEL_OPTIONS = [
+  { id: 'Full', label: 'Full Tank (100%)', rank: 4 },
+  { id: '75%', label: '3/4 Tank (75%)', rank: 3 },
+  { id: '50%', label: 'Half Tank (50%)', rank: 2 },
+  { id: '25%', label: '1/4 Tank (25%)', rank: 1 },
+  { id: 'Empty', label: 'Empty (<10%)', rank: 0 },
+]
+
+const FUEL_RANKS: Record<string, number> = {
+  'Full': 4,
+  '75%': 3,
+  '50%': 2,
+  '25%': 1,
+  'Empty': 0,
+}
 
 interface Props {
   userRole?: 'staff' | 'admin' | 'customer'
@@ -138,13 +159,26 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
 
   const staffIsLicenseValid = staffLicenseType === 'FOREIGN' ? staffIsForeignValid : staffIsPhValid
 
-  // Return Motor Modal
+  // Return Motor Modal & Inspection Checklist
   const [returnRentalModal, setReturnRentalModal] = useState<MotorRental | null>(null)
   const [returnRemarks, setReturnRemarks] = useState('')
   const [maintenanceNeeded, setMaintenanceNeeded] = useState(false)
   const [waiveLateFee, setWaiveLateFee] = useState(false)
   const [waiverReason, setWaiverReason] = useState('')
   const [processingReturn, setProcessingReturn] = useState(false)
+
+  // Return Fuel / Mileage / Equipment
+  const [returnFuelLevel, setReturnFuelLevel] = useState<string>('Full')
+  const [waiveFuelSurcharge, setWaiveFuelSurcharge] = useState(false)
+  const [returnOdometer, setReturnOdometer] = useState<string>('')
+  const [returnHelmets, setReturnHelmets] = useState<number>(1)
+  const [waiveHelmetFee, setWaiveHelmetFee] = useState(false)
+  const [toolKitReturned, setToolKitReturned] = useState(true)
+  const [returnTiresGood, setReturnTiresGood] = useState(true)
+  const [returnMirrorsIntact, setReturnMirrorsIntact] = useState(true)
+  const [returnLightsWorking, setReturnLightsWorking] = useState(true)
+  const [returnBrakesFunctional, setReturnBrakesFunctional] = useState(true)
+  const [returnPhotos, setReturnPhotos] = useState<string[]>([])
 
   // Damage Assessment in Return Modal
   const [hasDamage, setHasDamage] = useState(false)
@@ -163,6 +197,8 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
     tires_good: true,
     fuel_level: 'Full',
     helmets_count: 1,
+    odometer_start: '',
+    tool_kit_ok: true,
     notes: '',
   })
   const [pickupPhotos, setPickupPhotos] = useState<string[]>([])
@@ -224,7 +260,7 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
     }
   }, [tab, filterDamageMotorId, filterDamageSeverity])
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>, target: 'pickup' | 'damage') => {
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>, target: 'pickup' | 'damage' | 'return') => {
     const files = e.target.files
     if (!files || files.length === 0) return
     Array.from(files).forEach((file) => {
@@ -242,8 +278,10 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
         if (base64) {
           if (target === 'pickup') {
             setPickupPhotos((prev) => [...prev, base64])
-          } else {
+          } else if (target === 'damage') {
             setDamagePhotos((prev) => [...prev, base64])
+          } else {
+            setReturnPhotos((prev) => [...prev, base64])
           }
         }
       }
@@ -265,15 +303,54 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
     }
   }
 
+  const handleOpenReturnModal = (r: MotorRental) => {
+    setReturnRentalModal(r)
+    let pChecklist: PickupChecklist | null = null
+    if (r.pickup_checklist) {
+      try {
+        pChecklist = typeof r.pickup_checklist === 'string' ? JSON.parse(r.pickup_checklist) : r.pickup_checklist
+      } catch {
+        pChecklist = null
+      }
+    }
+    const issuedFuel = pChecklist?.fuel_level || 'Full'
+    const issuedHelmets = pChecklist?.helmets_count ?? 1
+    const startOdo = pChecklist?.odometer_start ? String(pChecklist.odometer_start) : ''
+
+    setReturnFuelLevel(issuedFuel)
+    setWaiveFuelSurcharge(false)
+    setReturnHelmets(issuedHelmets)
+    setWaiveHelmetFee(false)
+    setReturnOdometer(startOdo)
+    setToolKitReturned(pChecklist?.tool_kit_ok ?? true)
+    setReturnTiresGood(true)
+    setReturnMirrorsIntact(true)
+    setReturnLightsWorking(true)
+    setReturnBrakesFunctional(true)
+    setReturnRemarks('')
+    setMaintenanceNeeded(false)
+    setWaiveLateFee(false)
+    setWaiverReason('')
+    setHasDamage(false)
+    setDamageSeverity('minor')
+    setDamageDescription('')
+    setDamageRepairCost('')
+    setDamagePhotos([])
+    setReturnPhotos([])
+  }
+
   const handleSavePickupInspection = async () => {
     if (!pickupRentalModal) return
     setSavingPickup(true)
     try {
       await motorcyclesApi.savePickupInspection(pickupRentalModal.id, {
-        checklist: pickupChecklist,
+        checklist: {
+          ...pickupChecklist,
+          odometer_start: pickupChecklist.odometer_start ? Number(pickupChecklist.odometer_start) : undefined,
+        },
         photos: pickupPhotos,
       })
-      setSuccessMsg(`✓ Pickup inspection documented for ${pickupRentalModal.rental_id}! Baseline condition recorded.`)
+      setSuccessMsg(`✓ Pickup inspection documented for ${pickupRentalModal.rental_id}! Vehicle baseline recorded.`)
       setTimeout(() => setSuccessMsg(''), 5000)
       setPickupRentalModal(null)
       loadData()
@@ -548,13 +625,61 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
           }
         : undefined
 
+      let pData: PickupChecklist | null = null
+      if (returnRentalModal.pickup_checklist) {
+        try {
+          pData = typeof returnRentalModal.pickup_checklist === 'string'
+            ? JSON.parse(returnRentalModal.pickup_checklist)
+            : returnRentalModal.pickup_checklist
+        } catch {
+          pData = null
+        }
+      }
+
+      // Fuel surcharge calculation (₱150 per missing quarter tank)
+      const startRank = FUEL_RANKS[pData?.fuel_level || 'Full'] ?? 4
+      const endRank = FUEL_RANKS[returnFuelLevel] ?? 4
+      const fuelDeficit = Math.max(0, startRank - endRank)
+      const calculatedFuelFee = waiveFuelSurcharge ? 0 : fuelDeficit * 150
+
+      // Helmets fee calculation (₱500 per missing helmet)
+      const issuedHelmets = pData?.helmets_count ?? 1
+      const missingHelmets = Math.max(0, issuedHelmets - returnHelmets)
+      const calculatedHelmetFee = waiveHelmetFee ? 0 : missingHelmets * 500
+
+      // Odometer calculation
+      const startOdo = pData?.odometer_start ? Number(pData.odometer_start) : undefined
+      const endOdo = returnOdometer ? Number(returnOdometer) : undefined
+      const kmDriven = startOdo && endOdo && endOdo >= startOdo ? endOdo - startOdo : undefined
+
       const res = await motorcyclesApi.processReturn(returnRentalModal.id, {
         remarks: returnRemarks.trim() || undefined,
         maintenance_needed: hasDamage ? true : maintenanceNeeded,
         waive_late_fee: waiveLateFee,
         waiver_reason: waiveLateFee ? waiverReason.trim() : undefined,
+        fuel_surcharge: calculatedFuelFee,
+        missing_helmets_fee: calculatedHelmetFee,
+        return_checklist: {
+          odometer_end: endOdo,
+          kilometers_driven: kmDriven,
+          fuel_level: returnFuelLevel,
+          fuel_surcharge: calculatedFuelFee,
+          fuel_surcharge_waived: waiveFuelSurcharge,
+          helmets_returned: returnHelmets,
+          missing_helmets_count: missingHelmets,
+          missing_helmets_fee: calculatedHelmetFee,
+          missing_helmets_waived: waiveHelmetFee,
+          tool_kit_returned: toolKitReturned,
+          tires_good: returnTiresGood,
+          mirrors_intact: returnMirrorsIntact,
+          lights_working: returnLightsWorking,
+          brakes_functional: returnBrakesFunctional,
+          condition_notes: returnRemarks.trim() || undefined,
+        },
+        return_photos: returnPhotos,
         damage: damagePayload,
       })
+
       setReturnRentalModal(null)
       setReturnRemarks('')
       setMaintenanceNeeded(false)
@@ -565,11 +690,19 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
       setDamageDescription('')
       setDamageRepairCost('')
       setDamagePhotos([])
+      setReturnPhotos([])
+
       const rRes = res as any
       const parts: string[] = []
       parts.push(`Return processed for ${res.rental.rental_id}!`)
       if (hasDamage) {
         parts.push(`Damage reported (${damageSeverity.toUpperCase()}) — ₱${Number(damageRepairCost).toLocaleString()} added to guest folio. Motor locked in MAINTENANCE.`)
+      }
+      if (calculatedFuelFee > 0) {
+        parts.push(`Refueling Surcharge: ₱${calculatedFuelFee.toLocaleString()}.`)
+      }
+      if (calculatedHelmetFee > 0) {
+        parts.push(`Missing Helmet Fee: ₱${calculatedHelmetFee.toLocaleString()}.`)
       }
       if (rRes.late_fee_waived) {
         parts.push(`Late fee waived.`)
@@ -578,13 +711,13 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
       }
       parts.push(`Total: ₱${Number(res.final_amount).toLocaleString()}`)
       
-      const hasUnpaidFees = (hasDamage && Number(damageRepairCost) > 0) || (Number(rRes.late_fee) > 0 && !rRes.late_fee_waived);
+      const hasUnpaidFees = (hasDamage && Number(damageRepairCost) > 0) || (Number(rRes.late_fee) > 0 && !rRes.late_fee_waived) || calculatedFuelFee > 0 || calculatedHelmetFee > 0;
       if (hasUnpaidFees) {
         parts.push(`Redirecting to Billing...`)
       }
 
       setSuccessMsg(parts.join(' '))
-      setTimeout(() => setSuccessMsg(''), 6000)
+      setTimeout(() => setSuccessMsg(''), 7000)
       loadData()
       if (tab === 'damage') loadDamageHistory()
 
@@ -840,6 +973,8 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
                                   tires_good: cl.tires_good ?? true,
                                   fuel_level: cl.fuel_level || 'Full',
                                   helmets_count: cl.helmets_count ?? 1,
+                                  odometer_start: cl.odometer_start ? String(cl.odometer_start) : '',
+                                  tool_kit_ok: cl.tool_kit_ok ?? true,
                                   notes: cl.notes || '',
                                 })
                               } else {
@@ -851,6 +986,8 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
                                   tires_good: true,
                                   fuel_level: 'Full',
                                   helmets_count: 1,
+                                  odometer_start: '',
+                                  tool_kit_ok: true,
                                   notes: '',
                                 })
                               }
@@ -881,14 +1018,7 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
                         )}
                         {(r.status === 'ACTIVE' || r.status === 'OVERDUE' || r.status === 'RESERVED') && (
                           <button
-                            onClick={() => {
-                              setReturnRentalModal(r)
-                              setHasDamage(false)
-                              setDamageSeverity('minor')
-                              setDamageDescription('')
-                              setDamageRepairCost('')
-                              setDamagePhotos([])
-                            }}
+                            onClick={() => handleOpenReturnModal(r)}
                             className="px-2.5 py-1 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-lg text-xs font-semibold shadow-xs transition-all cursor-pointer flex items-center gap-1"
                           >
                             <RotateCcw className="w-3 h-3" />
@@ -2018,7 +2148,6 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
           const baseAmount = Number(returnRentalModal.total_amount || 0)
           const lateAmount = waiveLateFee ? 0 : calculatedFee
           const damageAmount = hasDamage ? (Number(damageRepairCost) || 0) : 0
-          const finalAmount = baseAmount + lateAmount + damageAmount
 
           let pickupData: PickupChecklist | null = null
           if (returnRentalModal.pickup_checklist) {
@@ -2030,6 +2159,25 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
               pickupData = null
             }
           }
+
+          const startRank = FUEL_RANKS[pickupData?.fuel_level || 'Full'] ?? 4
+          const endRank = FUEL_RANKS[returnFuelLevel] ?? 4
+          const fuelDeficit = Math.max(0, startRank - endRank)
+          const rawFuelFee = fuelDeficit * 150
+          const fuelAmount = waiveFuelSurcharge ? 0 : rawFuelFee
+
+          const issuedHelmets = pickupData?.helmets_count ?? 1
+          const missingHelmets = Math.max(0, issuedHelmets - returnHelmets)
+          const rawHelmetFee = missingHelmets * 500
+          const helmetAmount = waiveHelmetFee ? 0 : rawHelmetFee
+
+          const startOdo = pickupData?.odometer_start !== undefined && pickupData?.odometer_start !== ''
+            ? Number(pickupData.odometer_start)
+            : null
+          const endOdo = returnOdometer.trim() !== '' ? Number(returnOdometer) : null
+          const kmDriven = startOdo !== null && endOdo !== null && endOdo >= startOdo ? endOdo - startOdo : null
+
+          const finalAmount = baseAmount + lateAmount + damageAmount + fuelAmount + helmetAmount
 
           return (
             <div className="space-y-4 text-xs font-sans max-h-[80vh] overflow-y-auto pr-1">
@@ -2052,22 +2200,291 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
                   <span className="font-mono font-semibold text-ink dark:text-white">{formatDateTimeWithAmPm(returnRentalModal.expected_return_datetime)}</span>
                 </div>
                 {pickupData && (
-                  <div className="mt-2 pt-2 border-t border-stone/15 dark:border-neutral-700 text-[11px] text-emerald-800 dark:text-emerald-300 bg-emerald-500/10 p-2 rounded-xl flex items-start gap-2">
+                  <div className="mt-2 pt-2 border-t border-stone/15 dark:border-neutral-700 text-[11px] text-emerald-800 dark:text-emerald-300 bg-emerald-500/10 p-2.5 rounded-xl flex items-start gap-2">
                     <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                    <div>
-                      <span className="font-bold">Baseline condition documented at pickup:</span>
-                      <p className="text-[10px] text-emerald-700 dark:text-emerald-400 mt-0.5">
-                        Fuel: {pickupData.fuel_level || 'Full'} · Helmets: {pickupData.helmets_count ?? 1} · {pickupData.notes || 'No pre-existing defects noted'}
+                    <div className="space-y-0.5 flex-1">
+                      <div className="flex justify-between items-center">
+                        <span className="font-bold">Baseline condition documented at pickup:</span>
+                        {pickupData.odometer_start && (
+                          <span className="font-mono text-[10px] bg-emerald-500/20 px-1.5 py-0.5 rounded font-bold">
+                            Start Odo: {Number(pickupData.odometer_start).toLocaleString()} km
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[10px] text-emerald-700 dark:text-emerald-400">
+                        Fuel: <strong>{pickupData.fuel_level || 'Full'}</strong> · Helmets Issued: <strong>{pickupData.helmets_count ?? 1}</strong> · Tool Kit: <strong>{pickupData.tool_kit_ok !== false ? 'Present' : 'Missing'}</strong>
                       </p>
+                      {pickupData.notes && (
+                        <p className="text-[10px] italic text-emerald-800/80 dark:text-emerald-300/80">
+                          Pre-existing flaws: {pickupData.notes}
+                        </p>
+                      )}
                     </div>
                   </div>
                 )}
               </div>
 
+              {/* ─── RETURN AUDIT SECTION 1: ODOMETER & MILEAGE ─── */}
+              <div className="p-3.5 bg-white dark:bg-[#15181D] border border-stone/20 dark:border-neutral-700 rounded-2xl space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-xs text-ink dark:text-white flex items-center gap-1.5">
+                    <Gauge className="w-4 h-4 text-[#6B7A5E]" />
+                    Odometer & Distance Log
+                  </span>
+                  {kmDriven !== null && (
+                    <span className="font-mono text-[11px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                      +{kmDriven.toLocaleString()} km driven
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-semibold text-ink-muted uppercase tracking-wider text-[10px] mb-1">
+                      Start Odometer
+                    </label>
+                    <div className="px-3 py-2 bg-neutral-100 dark:bg-neutral-800 rounded-xl font-mono text-xs text-ink-muted border border-neutral-200 dark:border-neutral-700">
+                      {startOdo !== null ? `${startOdo.toLocaleString()} km` : 'Not documented'}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-ink dark:text-white uppercase tracking-wider text-[10px] mb-1">
+                      Return Odometer (km) *
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min={startOdo || 0}
+                        step="1"
+                        value={returnOdometer}
+                        onChange={(e) => setReturnOdometer(e.target.value)}
+                        placeholder={startOdo ? String(startOdo) : "e.g. 15420"}
+                        className="w-full pl-3 pr-8 py-2 rounded-xl border border-stone/30 bg-[#F6F2E8] dark:bg-[#15181D] font-mono text-xs font-bold text-ink dark:text-white focus:outline-none focus:ring-1 focus:ring-[#6B7A5E]"
+                      />
+                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-mono text-ink-muted">km</span>
+                    </div>
+                  </div>
+                </div>
+
+                {endOdo !== null && startOdo !== null && endOdo < startOdo && (
+                  <p className="text-[10px] text-rose-600 dark:text-rose-400 font-medium">
+                    ⚠️ Return odometer ({endOdo} km) is lower than start reading ({startOdo} km). Please verify gauge.
+                  </p>
+                )}
+              </div>
+
+              {/* ─── RETURN AUDIT SECTION 2: FUEL LEVEL & DEFICIT ─── */}
+              <div className="p-3.5 bg-white dark:bg-[#15181D] border border-stone/20 dark:border-neutral-700 rounded-2xl space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-xs text-ink dark:text-white flex items-center gap-1.5">
+                    <Fuel className="w-4 h-4 text-[#6B7A5E]" />
+                    Return Fuel Level
+                  </span>
+                  <span className="text-[10px] text-ink-muted">
+                    Pickup: <strong className="text-ink dark:text-white">{pickupData?.fuel_level || 'Full'}</strong>
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-5 gap-1.5">
+                  {FUEL_LEVEL_OPTIONS.map((opt) => {
+                    const isSelected = returnFuelLevel === opt.id
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setReturnFuelLevel(opt.id)}
+                        className={`py-2 px-1 rounded-xl text-center text-xs font-semibold transition-all border cursor-pointer ${
+                          isSelected
+                            ? 'border-[#6B7A5E] bg-[#6B7A5E] text-white shadow-xs'
+                            : 'border-stone/25 bg-neutral-50 dark:bg-neutral-800 text-ink dark:text-white hover:border-[#6B7A5E]/50'
+                        }`}
+                      >
+                        <span className="block font-bold">{opt.id}</span>
+                        <span className={`text-[9px] block ${isSelected ? 'text-stone-200' : 'text-ink-muted'}`}>
+                          {opt.rank === 4 ? '100%' : opt.rank === 3 ? '75%' : opt.rank === 2 ? '50%' : opt.rank === 1 ? '25%' : '<10%'}
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+
+                {fuelDeficit > 0 ? (
+                  <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/60 text-xs space-y-1.5">
+                    <div className="flex justify-between items-center text-amber-900 dark:text-amber-200">
+                      <span className="font-semibold flex items-center gap-1.5">
+                        <Fuel className="w-3.5 h-3.5 text-amber-600" />
+                        Fuel Deficit: {fuelDeficit} quarter{fuelDeficit > 1 ? 's' : ''} ({pickupData?.fuel_level || 'Full'} → {returnFuelLevel})
+                      </span>
+                      <strong className={`font-mono ${waiveFuelSurcharge ? 'line-through text-ink-muted' : 'text-amber-700 dark:text-amber-400'}`}>
+                        +₱{rawFuelFee.toLocaleString()} (₱150/quarter)
+                      </strong>
+                    </div>
+                    <label className="flex items-center gap-2 cursor-pointer pt-0.5">
+                      <input
+                        type="checkbox"
+                        checked={waiveFuelSurcharge}
+                        onChange={(e) => setWaiveFuelSurcharge(e.target.checked)}
+                        className="w-3.5 h-3.5 text-emerald-600 rounded border-stone focus:ring-emerald-500"
+                      />
+                      <span className="text-[10px] font-semibold text-emerald-800 dark:text-emerald-300">
+                        Waive Refueling Surcharge (Guest refueled externally or courtesy waiver)
+                      </span>
+                    </label>
+                  </div>
+                ) : (
+                  <div className="p-2 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/50 text-[11px] text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5 font-medium">
+                    <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <span>Fuel level compliant (Dispatched {pickupData?.fuel_level || 'Full'} · Returned {returnFuelLevel} — No refueling fee).</span>
+                  </div>
+                )}
+              </div>
+
+              {/* ─── RETURN AUDIT SECTION 3: EQUIPMENT & CONDITION ─── */}
+              <div className="p-3.5 bg-white dark:bg-[#15181D] border border-stone/20 dark:border-neutral-700 rounded-2xl space-y-3">
+                <span className="font-bold text-xs text-ink dark:text-white flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-[#6B7A5E]" />
+                  Equipment & Handover Verification
+                </span>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-semibold text-ink dark:text-white uppercase tracking-wider text-[10px] mb-1.5">
+                      Helmets Returned (Issued: {issuedHelmets})
+                    </label>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {[0, 1, 2].map((num) => {
+                        const isSelected = returnHelmets === num
+                        return (
+                          <button
+                            key={num}
+                            type="button"
+                            onClick={() => setReturnHelmets(num)}
+                            className={`py-2 rounded-xl text-center text-xs font-semibold border transition-all cursor-pointer ${
+                              isSelected
+                                ? 'border-[#6B7A5E] bg-[#6B7A5E] text-white shadow-xs font-bold'
+                                : 'border-stone/25 bg-neutral-50 dark:bg-neutral-800 text-ink dark:text-white hover:border-[#6B7A5E]/50'
+                            }`}
+                          >
+                            {num} Helmet{num !== 1 ? 's' : ''}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-ink dark:text-white uppercase tracking-wider text-[10px] mb-1.5">
+                      Tool Kit Under Seat
+                    </label>
+                    <label className="flex items-center gap-2 p-2.5 rounded-xl border border-stone/25 bg-neutral-50 dark:bg-neutral-800 cursor-pointer hover:bg-sand/30 transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={toolKitReturned}
+                        onChange={(e) => setToolKitReturned(e.target.checked)}
+                        className="w-4 h-4 text-[#6B7A5E] rounded border-stone focus:ring-[#6B7A5E]"
+                      />
+                      <span className="text-xs font-medium text-ink dark:text-white">
+                        Tool Kit present & complete
+                      </span>
+                    </label>
+                  </div>
+                </div>
+
+                {missingHelmets > 0 && (
+                  <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/60 text-xs space-y-1.5">
+                    <div className="flex justify-between items-center text-amber-900 dark:text-amber-200">
+                      <span className="font-semibold flex items-center gap-1.5">
+                        <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
+                        Missing Equipment: {missingHelmets} helmet{missingHelmets > 1 ? 's' : ''} unreturned
+                      </span>
+                      <strong className={`font-mono ${waiveHelmetFee ? 'line-through text-ink-muted' : 'text-amber-700 dark:text-amber-400'}`}>
+                        +₱{rawHelmetFee.toLocaleString()} (₱500/helmet)
+                      </strong>
+                    </div>
+                    <label className="flex items-center gap-2 cursor-pointer pt-0.5">
+                      <input
+                        type="checkbox"
+                        checked={waiveHelmetFee}
+                        onChange={(e) => setWaiveHelmetFee(e.target.checked)}
+                        className="w-3.5 h-3.5 text-emerald-600 rounded border-stone focus:ring-emerald-500"
+                      />
+                      <span className="text-[10px] font-semibold text-emerald-800 dark:text-emerald-300">
+                        Waive Missing Helmet Fee (Guest replaced unit or authorized waiver)
+                      </span>
+                    </label>
+                  </div>
+                )}
+
+                {/* Return Walkaround Checkboxes */}
+                <div>
+                  <label className="block font-semibold text-ink dark:text-white uppercase tracking-wider text-[10px] mb-1.5">
+                    Return Walkaround Checklist
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {[
+                      { checked: returnTiresGood, setChecked: setReturnTiresGood, label: 'Tires Intact' },
+                      { checked: returnMirrorsIntact, setChecked: setReturnMirrorsIntact, label: 'Mirrors Intact' },
+                      { checked: returnLightsWorking, setChecked: setReturnLightsWorking, label: 'Lights Working' },
+                      { checked: returnBrakesFunctional, setChecked: setReturnBrakesFunctional, label: 'Brakes Responsive' },
+                    ].map((item, idx) => (
+                      <label key={idx} className="flex items-center gap-1.5 p-2 rounded-xl border border-stone/20 bg-neutral-50 dark:bg-neutral-800 text-[11px] cursor-pointer hover:bg-sand/30">
+                        <input
+                          type="checkbox"
+                          checked={item.checked}
+                          onChange={(e) => item.setChecked(e.target.checked)}
+                          className="w-3.5 h-3.5 text-[#6B7A5E] rounded border-stone/40"
+                        />
+                        <span className="font-medium text-ink dark:text-white">{item.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Return Photos */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="font-semibold text-ink dark:text-white uppercase tracking-wider text-[10px]">
+                      Return Walkaround Photos
+                    </label>
+                    <span className="text-[10px] text-ink-muted">{returnPhotos.length} photo(s) attached</span>
+                  </div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <label className="px-3 py-1.5 bg-neutral-50 dark:bg-neutral-800 hover:bg-sand/50 border border-stone/25 rounded-xl font-semibold text-xs cursor-pointer flex items-center gap-1.5 transition-colors">
+                      <Camera className="w-3.5 h-3.5 text-[#6B7A5E]" />
+                      <span>Attach Return Photos</span>
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/png,image/jpeg,image/webp"
+                        className="hidden"
+                        onChange={(e) => handlePhotoUpload(e, 'return')}
+                      />
+                    </label>
+                  </div>
+                  {returnPhotos.length > 0 && (
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                      {returnPhotos.map((url, idx) => (
+                        <div key={idx} className="relative group rounded-lg overflow-hidden border border-stone/25 aspect-video bg-black/5">
+                          <img src={url} alt={`Return photo ${idx + 1}`} className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => setReturnPhotos((prev) => prev.filter((_, i) => i !== idx))}
+                            className="absolute top-1 right-1 p-1 bg-black/70 hover:bg-rose-600 text-white rounded-full opacity-80 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* Step: Condition at Return Selector */}
               <div>
                 <label className="block font-semibold text-ink dark:text-white uppercase tracking-wider mb-2 text-[10px]">
-                  Vehicle Return Condition
+                  Physical Condition Assessment
                 </label>
                 <div className="grid grid-cols-2 gap-3">
                   <button
@@ -2340,8 +2757,32 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
                 </div>
                 {lateAmount > 0 && (
                   <div className="flex justify-between text-rose-700 dark:text-rose-400">
-                    <span>Late Penalty Fee:</span>
+                    <span>Late Penalty Fee ({hoursLate} hr{hoursLate > 1 ? 's' : ''}):</span>
                     <span className="font-mono font-semibold">+₱{lateAmount.toLocaleString()}</span>
+                  </div>
+                )}
+                {fuelAmount > 0 && (
+                  <div className="flex justify-between text-amber-800 dark:text-amber-400">
+                    <span>Refueling Surcharge ({fuelDeficit} quarter{fuelDeficit > 1 ? 's' : ''}):</span>
+                    <span className="font-mono font-semibold">+₱{fuelAmount.toLocaleString()}</span>
+                  </div>
+                )}
+                {waiveFuelSurcharge && rawFuelFee > 0 && (
+                  <div className="flex justify-between text-emerald-700 dark:text-emerald-400 text-[11px] italic">
+                    <span>Refueling Surcharge (Waived):</span>
+                    <span className="font-mono line-through">₱{rawFuelFee.toLocaleString()}</span>
+                  </div>
+                )}
+                {helmetAmount > 0 && (
+                  <div className="flex justify-between text-amber-800 dark:text-amber-400">
+                    <span>Missing Equipment Fee ({missingHelmets} helmet{missingHelmets > 1 ? 's' : ''}):</span>
+                    <span className="font-mono font-semibold">+₱{helmetAmount.toLocaleString()}</span>
+                  </div>
+                )}
+                {waiveHelmetFee && rawHelmetFee > 0 && (
+                  <div className="flex justify-between text-emerald-700 dark:text-emerald-400 text-[11px] italic">
+                    <span>Missing Equipment Fee (Waived):</span>
+                    <span className="font-mono line-through">₱{rawHelmetFee.toLocaleString()}</span>
                   </div>
                 )}
                 {damageAmount > 0 && (
@@ -2377,7 +2818,7 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
                   }
                   className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl text-xs font-semibold shadow-sm disabled:opacity-50 transition-all cursor-pointer flex items-center justify-center gap-1.5"
                 >
-                  {processingReturn ? 'Processing...' : (isOverdue && !waiveLateFee) ? 'Proceed to Billing & Payment' : hasDamage ? 'Complete Return & Bill Damage' : 'Complete Return'}
+                  {processingReturn ? 'Processing...' : (isOverdue && !waiveLateFee) || fuelAmount > 0 || helmetAmount > 0 ? 'Proceed to Billing & Payment' : hasDamage ? 'Complete Return & Bill Damage' : 'Complete Return'}
                 </button>
               </div>
             </div>
@@ -2436,32 +2877,97 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
               ))}
             </div>
 
-            {/* Fuel & Helmets */}
+            {/* Odometer & Tool Kit */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block font-semibold text-ink dark:text-white uppercase tracking-wider text-[10px] mb-1">Fuel Level</label>
-                <select
-                  value={pickupChecklist.fuel_level || 'Full'}
-                  onChange={(e) => setPickupChecklist(prev => ({ ...prev, fuel_level: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-white dark:bg-[#15181D] text-xs font-semibold"
-                >
-                  <option value="Full">Full (100%)</option>
-                  <option value="75%">3/4 Tank (75%)</option>
-                  <option value="50%">Half Tank (50%)</option>
-                  <option value="25%">1/4 Tank (25%)</option>
-                </select>
+                <label className="block font-semibold text-ink dark:text-white uppercase tracking-wider text-[10px] mb-1">
+                  Starting Odometer (km) *
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={pickupChecklist.odometer_start || ''}
+                    onChange={(e) => setPickupChecklist(prev => ({ ...prev, odometer_start: e.target.value }))}
+                    placeholder="e.g. 12450"
+                    className="w-full pl-3 pr-8 py-2 rounded-xl border border-stone/30 bg-white dark:bg-[#15181D] font-mono text-xs font-semibold"
+                  />
+                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-mono text-ink-muted">km</span>
+                </div>
               </div>
               <div>
-                <label className="block font-semibold text-ink dark:text-white uppercase tracking-wider text-[10px] mb-1">Helmets Issued</label>
-                <select
-                  value={pickupChecklist.helmets_count ?? 1}
-                  onChange={(e) => setPickupChecklist(prev => ({ ...prev, helmets_count: Number(e.target.value) }))}
-                  className="w-full px-3 py-2 rounded-xl border border-stone/30 bg-white dark:bg-[#15181D] text-xs font-semibold"
-                >
-                  <option value={0}>0 Helmets</option>
-                  <option value={1}>1 Helmet</option>
-                  <option value={2}>2 Helmets</option>
-                </select>
+                <label className="block font-semibold text-ink dark:text-white uppercase tracking-wider text-[10px] mb-1">
+                  Under-Seat Equipment
+                </label>
+                <label className="flex items-center gap-2 p-2 rounded-xl border border-stone/30 bg-white dark:bg-[#15181D] cursor-pointer hover:bg-sand/30 transition-colors h-[38px]">
+                  <input
+                    type="checkbox"
+                    checked={pickupChecklist.tool_kit_ok !== false}
+                    onChange={(e) => setPickupChecklist(prev => ({ ...prev, tool_kit_ok: e.target.checked }))}
+                    className="w-4 h-4 text-[#6B7A5E] rounded border-stone/40 focus:ring-[#6B7A5E]"
+                  />
+                  <span className="text-[11px] font-medium text-ink dark:text-white">Tool Kit & Docs Present</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Fuel & Helmets */}
+            <div className="space-y-3">
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block font-semibold text-ink dark:text-white uppercase tracking-wider text-[10px]">
+                    Starting Fuel Level
+                  </label>
+                  <span className="text-[10px] text-ink-muted">Current: <strong>{pickupChecklist.fuel_level || 'Full'}</strong></span>
+                </div>
+                <div className="grid grid-cols-5 gap-1.5">
+                  {FUEL_LEVEL_OPTIONS.map((opt) => {
+                    const isSelected = (pickupChecklist.fuel_level || 'Full') === opt.id
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setPickupChecklist(prev => ({ ...prev, fuel_level: opt.id }))}
+                        className={`py-1.5 px-1 rounded-xl text-center text-xs font-semibold transition-all border cursor-pointer ${
+                          isSelected
+                            ? 'border-[#6B7A5E] bg-[#6B7A5E] text-white shadow-xs font-bold'
+                            : 'border-stone/25 bg-neutral-50 dark:bg-neutral-800 text-ink dark:text-white hover:border-[#6B7A5E]/50'
+                        }`}
+                      >
+                        <span className="block font-bold text-[11px]">{opt.id}</span>
+                        <span className={`text-[8px] block ${isSelected ? 'text-stone-200' : 'text-ink-muted'}`}>
+                          {opt.rank === 4 ? '100%' : opt.rank === 3 ? '75%' : opt.rank === 2 ? '50%' : opt.rank === 1 ? '25%' : '<10%'}
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-ink dark:text-white uppercase tracking-wider text-[10px] mb-1.5">
+                  Helmets Issued
+                </label>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {[0, 1, 2].map((num) => {
+                    const isSelected = (pickupChecklist.helmets_count ?? 1) === num
+                    return (
+                      <button
+                        key={num}
+                        type="button"
+                        onClick={() => setPickupChecklist(prev => ({ ...prev, helmets_count: num }))}
+                        className={`py-1.5 rounded-xl text-center text-xs font-semibold border transition-all cursor-pointer ${
+                          isSelected
+                            ? 'border-[#6B7A5E] bg-[#6B7A5E] text-white shadow-xs font-bold'
+                            : 'border-stone/25 bg-neutral-50 dark:bg-neutral-800 text-ink dark:text-white hover:border-[#6B7A5E]/50'
+                        }`}
+                      >
+                        {num} Helmet{num !== 1 ? 's' : ''}
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
             </div>
 
@@ -2567,6 +3073,29 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
             }
           }
 
+          let rChecklist: ReturnChecklist | null = null
+          if (viewRentalDetails.return_checklist) {
+            try {
+              rChecklist = typeof viewRentalDetails.return_checklist === 'string'
+                ? JSON.parse(viewRentalDetails.return_checklist)
+                : viewRentalDetails.return_checklist
+            } catch {
+              rChecklist = null
+            }
+          }
+
+          let rPhotos: string[] = []
+          if (viewRentalDetails.return_photos) {
+            try {
+              const parsed = typeof viewRentalDetails.return_photos === 'string'
+                ? JSON.parse(viewRentalDetails.return_photos)
+                : viewRentalDetails.return_photos
+              rPhotos = Array.isArray(parsed) ? parsed : []
+            } catch {
+              rPhotos = []
+            }
+          }
+
           return (
             <div className="space-y-4 text-xs font-sans max-h-[80vh] overflow-y-auto pr-1">
               {/* Top Overview */}
@@ -2589,11 +3118,22 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
                   </p>
                 </div>
 
-                <div className="text-right">
-                  <span className="text-[10px] text-ink-muted block uppercase font-bold">Total Folio Charge</span>
-                  <span className="font-display text-lg font-bold text-[#6B7A5E]">
-                    ₱{Number(viewRentalDetails.final_amount || viewRentalDetails.total_amount || 0).toLocaleString()}
-                  </span>
+                <div className="flex items-center gap-3">
+                  <div className="text-right">
+                    <span className="text-[10px] text-ink-muted block uppercase font-bold">Total Folio Charge</span>
+                    <span className="font-display text-lg font-bold text-[#6B7A5E]">
+                      ₱{Number(viewRentalDetails.final_amount || viewRentalDetails.total_amount || 0).toLocaleString()}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => window.print()}
+                    className="px-3.5 py-2 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl text-xs font-semibold shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                    title="Print Handover & Inspection Slip"
+                  >
+                    <Printer className="w-3.5 h-3.5" />
+                    <span>Print Slip</span>
+                  </button>
                 </div>
               </div>
 
@@ -2617,7 +3157,13 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
 
                 {pChecklist ? (
                   <div className="space-y-2 text-[11px]">
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      <div className="p-2 bg-neutral-50 dark:bg-neutral-800 rounded-lg">
+                        <span className="text-neutral-500 block text-[10px]">Start Odometer:</span>
+                        <strong className="text-neutral-900 dark:text-white font-semibold">
+                          {pChecklist.odometer_start ? `${Number(pChecklist.odometer_start).toLocaleString()} km` : 'Not logged'}
+                        </strong>
+                      </div>
                       <div className="p-2 bg-neutral-50 dark:bg-neutral-800 rounded-lg">
                         <span className="text-neutral-500 block text-[10px]">Fuel Level:</span>
                         <strong className="text-neutral-900 dark:text-white font-semibold">{pChecklist.fuel_level || 'Full'}</strong>
@@ -2626,11 +3172,20 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
                         <span className="text-neutral-500 block text-[10px]">Helmets Issued:</span>
                         <strong className="text-neutral-900 dark:text-white font-semibold">{pChecklist.helmets_count ?? 1}</strong>
                       </div>
-                      <div className="p-2 bg-neutral-50 dark:bg-neutral-800 rounded-lg col-span-2 sm:col-span-1">
-                        <span className="text-neutral-500 block text-[10px]">Pre-existing Notes:</span>
-                        <strong className="text-neutral-900 dark:text-white font-medium">{pChecklist.notes || 'None noted'}</strong>
+                      <div className="p-2 bg-neutral-50 dark:bg-neutral-800 rounded-lg">
+                        <span className="text-neutral-500 block text-[10px]">Tool Kit:</span>
+                        <strong className="text-neutral-900 dark:text-white font-semibold">
+                          {pChecklist.tool_kit_ok !== false ? 'Present' : 'Missing'}
+                        </strong>
                       </div>
                     </div>
+
+                    {pChecklist.notes && (
+                      <div className="p-2 bg-neutral-50 dark:bg-neutral-800 rounded-lg">
+                        <span className="text-neutral-500 block text-[10px]">Pre-existing Notes:</span>
+                        <p className="text-neutral-900 dark:text-white font-medium">{pChecklist.notes}</p>
+                      </div>
+                    )}
 
                     <div className="flex flex-wrap gap-2 pt-1">
                       {[
@@ -2681,6 +3236,140 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
                   </p>
                 )}
               </div>
+
+              {/* Return Inspection Card (if returned or completed) */}
+              {(rChecklist || viewRentalDetails.actual_return_datetime || viewRentalDetails.status === 'COMPLETED' || viewRentalDetails.status === 'RETURNED') && (
+                <div className="bg-white dark:bg-[#15181D] p-4 rounded-2xl border border-stone/20 dark:border-neutral-700 space-y-2.5">
+                  <div className="flex items-center justify-between pb-2 border-b border-stone/15 dark:border-neutral-700">
+                    <span className="font-bold text-xs text-ink dark:text-white flex items-center gap-1.5">
+                      <RotateCcw className="w-4 h-4 text-[#6B7A5E]" />
+                      Return Inspection Audit
+                    </span>
+                    {viewRentalDetails.actual_return_datetime ? (
+                      <span className="text-[10px] font-mono text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded font-semibold">
+                        ✓ Returned {formatDateTimeWithAmPm(viewRentalDetails.actual_return_datetime)}
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-mono text-neutral-600 bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 rounded font-semibold">
+                        Rental Concluded
+                      </span>
+                    )}
+                  </div>
+
+                  {rChecklist ? (
+                    <div className="space-y-2 text-[11px]">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        <div className="p-2 bg-neutral-50 dark:bg-neutral-800 rounded-lg">
+                          <span className="text-neutral-500 block text-[10px]">Ending Odometer:</span>
+                          <strong className="text-neutral-900 dark:text-white font-semibold">
+                            {rChecklist.odometer_end ? `${Number(rChecklist.odometer_end).toLocaleString()} km` : 'N/A'}
+                          </strong>
+                          {rChecklist.kilometers_driven !== undefined && (
+                            <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-mono block">
+                              (+{Number(rChecklist.kilometers_driven).toLocaleString()} km driven)
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="p-2 bg-neutral-50 dark:bg-neutral-800 rounded-lg">
+                          <span className="text-neutral-500 block text-[10px]">Return Fuel:</span>
+                          <strong className="text-neutral-900 dark:text-white font-semibold">
+                            {rChecklist.fuel_level || 'N/A'}
+                          </strong>
+                          {Number(rChecklist.fuel_surcharge || 0) > 0 && (
+                            <span className="text-[10px] text-amber-700 dark:text-amber-400 font-mono block">
+                              +₱{Number(rChecklist.fuel_surcharge).toLocaleString()} surcharge
+                            </span>
+                          )}
+                          {rChecklist.fuel_surcharge_waived && (
+                            <span className="text-[10px] text-emerald-600 font-medium block">
+                              (Waived)
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="p-2 bg-neutral-50 dark:bg-neutral-800 rounded-lg">
+                          <span className="text-neutral-500 block text-[10px]">Helmets Returned:</span>
+                          <strong className="text-neutral-900 dark:text-white font-semibold">
+                            {rChecklist.helmets_returned ?? 'N/A'}
+                          </strong>
+                          {Number(rChecklist.missing_helmets_fee || 0) > 0 && (
+                            <span className="text-[10px] text-amber-700 dark:text-amber-400 font-mono block">
+                              +₱{Number(rChecklist.missing_helmets_fee).toLocaleString()} missing fee
+                            </span>
+                          )}
+                          {rChecklist.missing_helmets_waived && (
+                            <span className="text-[10px] text-emerald-600 font-medium block">
+                              (Waived)
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="p-2 bg-neutral-50 dark:bg-neutral-800 rounded-lg">
+                          <span className="text-neutral-500 block text-[10px]">Tool Kit:</span>
+                          <strong className="text-neutral-900 dark:text-white font-semibold">
+                            {rChecklist.tool_kit_returned !== false ? 'Returned Intact' : 'Missing'}
+                          </strong>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        {[
+                          { key: 'tires_good', label: 'Tires Good' },
+                          { key: 'mirrors_intact', label: 'Mirrors Intact' },
+                          { key: 'lights_working', label: 'Lights Functional' },
+                          { key: 'brakes_functional', label: 'Brakes Functional' },
+                        ].map(({ key, label }) => {
+                          const passed = (rChecklist as any)[key] !== false
+                          return (
+                            <span
+                              key={key}
+                              className={`px-2 py-0.5 rounded text-[10px] font-semibold flex items-center gap-1 ${
+                                passed
+                                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
+                                  : 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300'
+                              }`}
+                            >
+                              {passed ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                              <span>{label}</span>
+                            </span>
+                          )
+                        })}
+                      </div>
+
+                      {rChecklist.condition_notes && (
+                        <p className="text-[11px] text-ink dark:text-white pt-1">
+                          <span className="text-ink-muted">Remarks: </span>{rChecklist.condition_notes}
+                        </p>
+                      )}
+
+                      {rPhotos.length > 0 && (
+                        <div className="pt-2">
+                          <span className="text-[10px] uppercase font-bold text-ink-muted block mb-1">
+                            Return Photos ({rPhotos.length})
+                          </span>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {rPhotos.map((url, idx) => (
+                              <button
+                                key={idx}
+                                type="button"
+                                onClick={() => setPreviewPhotoUrl(url)}
+                                className="w-12 h-12 rounded-lg border border-stone/25 overflow-hidden hover:opacity-80 transition-opacity"
+                              >
+                                <img src={url} alt={`Return photo ${idx}`} className="w-full h-full object-cover" />
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-ink-muted text-xs italic">
+                      Return audit checklist details not documented for this rental.
+                    </p>
+                  )}
+                </div>
+              )}
 
               {/* Damage Assessments Card (if recorded) */}
               {rentalAssessments.length > 0 ? (
@@ -2807,6 +3496,223 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
                 >
                   Close
                 </button>
+              </div>
+
+              {/* ─── PRINTABLE OFFICIAL INSPECTION & HANDOVER SLIP ─── */}
+              <div id="motor-inspection-print-area" className="hidden print:block p-8 bg-white text-black font-sans text-xs">
+                {/* Header */}
+                <div className="flex items-center justify-between pb-4 border-b-2 border-black/80 mb-4">
+                  <div className="flex items-center gap-3">
+                    <img src={logo} alt="Cambacay Breeze Inn" className="h-14 w-auto object-contain" />
+                    <div>
+                      <h1 className="text-xl font-black uppercase tracking-wider font-display text-black">CAMBACAY BREEZE INN</h1>
+                      <p className="text-[11px] text-black/70">✦ Cambacay, Batuan, Bohol, Philippines ✦</p>
+                      <p className="text-[10px] text-black/60">Motorcycle Fleet Management & Rental Services</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="inline-block bg-black text-white px-2.5 py-1 text-[11px] font-bold rounded">
+                      HANDOVER & INSPECTION SLIP
+                    </span>
+                    <p className="font-mono text-xs font-bold mt-1 text-black">Ref: {viewRentalDetails.rental_id}</p>
+                    <p className="text-[10px] text-black/70">{new Date().toLocaleDateString('en-PH', { dateStyle: 'long' })}</p>
+                  </div>
+                </div>
+
+                {/* Rental & Guest Information Grid */}
+                <div className="grid grid-cols-2 gap-4 mb-4 p-3 bg-neutral-50 rounded-lg border border-neutral-300 text-[11px]">
+                  <div className="space-y-1">
+                    <p className="text-xs font-bold uppercase text-black border-b border-neutral-300 pb-0.5">Guest & Driver Information</p>
+                    <div className="flex justify-between">
+                      <span className="text-neutral-600">Guest Name:</span>
+                      <strong className="text-black">{viewRentalDetails.customer_name}</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-neutral-600">Contact Phone:</span>
+                      <strong className="text-black">{viewRentalDetails.customer_phone || 'N/A'}</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-neutral-600">License / IDP:</span>
+                      <strong className="text-black">{viewRentalDetails.driver_license_number || 'On File'}</strong>
+                    </div>
+                    {viewRentalDetails.driver_license_restrictions && (
+                      <div className="flex justify-between">
+                        <span className="text-neutral-600">Restrictions:</span>
+                        <strong className="text-black">{viewRentalDetails.driver_license_restrictions}</strong>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-1">
+                    <p className="text-xs font-bold uppercase text-black border-b border-neutral-300 pb-0.5">Vehicle & Rental Schedule</p>
+                    <div className="flex justify-between">
+                      <span className="text-neutral-600">Vehicle Unit:</span>
+                      <strong className="text-black">{viewRentalDetails.brand} {viewRentalDetails.model}</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-neutral-600">Plate Number:</span>
+                      <strong className="font-mono text-black">{viewRentalDetails.plate_number}</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-neutral-600">Dispatch Time:</span>
+                      <strong className="text-black">{formatDateTimeWithAmPm(viewRentalDetails.start_datetime)}</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-neutral-600">Actual Return:</span>
+                      <strong className="text-black">
+                        {viewRentalDetails.actual_return_datetime ? formatDateTimeWithAmPm(viewRentalDetails.actual_return_datetime) : 'Active'}
+                      </strong>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Side-by-Side Condition Inspection Matrix */}
+                <div className="mb-4">
+                  <h2 className="text-xs font-bold uppercase tracking-wider text-black mb-1.5 pb-1 border-b border-black">
+                    Vehicle Condition & Equipment Audit Checklist
+                  </h2>
+                  <table className="w-full text-[11px] border-collapse border border-neutral-300">
+                    <thead>
+                      <tr className="bg-neutral-100">
+                        <th className="border border-neutral-300 p-1.5 text-left font-bold text-black">Inspection Item</th>
+                        <th className="border border-neutral-300 p-1.5 text-left font-bold text-black">Dispatch Baseline</th>
+                        <th className="border border-neutral-300 p-1.5 text-left font-bold text-black">Return Audit</th>
+                        <th className="border border-neutral-300 p-1.5 text-left font-bold text-black">Audit Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td className="border border-neutral-300 p-1.5 font-semibold">Odometer Reading</td>
+                        <td className="border border-neutral-300 p-1.5 font-mono">{pChecklist?.odometer_start ? `${Number(pChecklist.odometer_start).toLocaleString()} km` : 'N/A'}</td>
+                        <td className="border border-neutral-300 p-1.5 font-mono">{rChecklist?.odometer_end ? `${Number(rChecklist.odometer_end).toLocaleString()} km` : 'Pending'}</td>
+                        <td className="border border-neutral-300 p-1.5 font-mono">
+                          {rChecklist?.kilometers_driven !== undefined ? `+${Number(rChecklist.kilometers_driven).toLocaleString()} km driven` : '—'}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="border border-neutral-300 p-1.5 font-semibold">Fuel Level</td>
+                        <td className="border border-neutral-300 p-1.5">{pChecklist?.fuel_level || 'Full'}</td>
+                        <td className="border border-neutral-300 p-1.5">{rChecklist?.fuel_level || 'Pending'}</td>
+                        <td className="border border-neutral-300 p-1.5">
+                          {Number(rChecklist?.fuel_surcharge || 0) > 0 ? (
+                            rChecklist?.fuel_surcharge_waived ? 'Waived deficit' : `Deficit fee: ₱${Number(rChecklist?.fuel_surcharge || 0).toLocaleString()}`
+                          ) : 'Compliant'}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="border border-neutral-300 p-1.5 font-semibold">Safety Helmets</td>
+                        <td className="border border-neutral-300 p-1.5">{pChecklist?.helmets_count ?? 1} unit(s) issued</td>
+                        <td className="border border-neutral-300 p-1.5">{rChecklist?.helmets_returned !== undefined ? `${rChecklist.helmets_returned} unit(s) returned` : 'Pending'}</td>
+                        <td className="border border-neutral-300 p-1.5">
+                          {Number(rChecklist?.missing_helmets_fee || 0) > 0 ? (
+                            rChecklist?.missing_helmets_waived ? 'Waived fee' : `Missing fee: ₱${Number(rChecklist?.missing_helmets_fee || 0).toLocaleString()}`
+                          ) : 'All accounted'}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="border border-neutral-300 p-1.5 font-semibold">Tool Kit & Registration Docs</td>
+                        <td className="border border-neutral-300 p-1.5">{pChecklist?.tool_kit_ok !== false ? 'Verified Present' : 'N/A'}</td>
+                        <td className="border border-neutral-300 p-1.5">{rChecklist?.tool_kit_returned !== false ? 'Returned Complete' : 'Missing'}</td>
+                        <td className="border border-neutral-300 p-1.5">{rChecklist?.tool_kit_returned !== false ? 'OK' : 'Defect'}</td>
+                      </tr>
+                      <tr>
+                        <td className="border border-neutral-300 p-1.5 font-semibold">Tires Condition & Pressure</td>
+                        <td className="border border-neutral-300 p-1.5">{pChecklist?.tires_good !== false ? 'Properly Inflated' : 'Defect'}</td>
+                        <td className="border border-neutral-300 p-1.5">{rChecklist?.tires_good !== false ? 'Properly Inflated' : 'Defect'}</td>
+                        <td className="border border-neutral-300 p-1.5">{rChecklist?.tires_good !== false ? 'OK' : 'Defect'}</td>
+                      </tr>
+                      <tr>
+                        <td className="border border-neutral-300 p-1.5 font-semibold">Rearview Mirrors</td>
+                        <td className="border border-neutral-300 p-1.5">{pChecklist?.mirrors_intact !== false ? 'Intact & Clear' : 'Defect'}</td>
+                        <td className="border border-neutral-300 p-1.5">{rChecklist?.mirrors_intact !== false ? 'Intact & Clear' : 'Defect'}</td>
+                        <td className="border border-neutral-300 p-1.5">{rChecklist?.mirrors_intact !== false ? 'OK' : 'Defect'}</td>
+                      </tr>
+                      <tr>
+                        <td className="border border-neutral-300 p-1.5 font-semibold">Lights & Turn Signals</td>
+                        <td className="border border-neutral-300 p-1.5">{pChecklist?.lights_working !== false ? 'Functional' : 'Defect'}</td>
+                        <td className="border border-neutral-300 p-1.5">{rChecklist?.lights_working !== false ? 'Functional' : 'Defect'}</td>
+                        <td className="border border-neutral-300 p-1.5">{rChecklist?.lights_working !== false ? 'OK' : 'Defect'}</td>
+                      </tr>
+                      <tr>
+                        <td className="border border-neutral-300 p-1.5 font-semibold">Brake Response & Controls</td>
+                        <td className="border border-neutral-300 p-1.5">{pChecklist?.brakes_functional !== false ? 'Firm & Responsive' : 'Defect'}</td>
+                        <td className="border border-neutral-300 p-1.5">{rChecklist?.brakes_functional !== false ? 'Firm & Responsive' : 'Defect'}</td>
+                        <td className="border border-neutral-300 p-1.5">{rChecklist?.brakes_functional !== false ? 'OK' : 'Defect'}</td>
+                      </tr>
+                      <tr>
+                        <td className="border border-neutral-300 p-1.5 font-semibold">Flaws / Remarks Notes</td>
+                        <td className="border border-neutral-300 p-1.5 text-black/70 italic">{pChecklist?.notes || 'None noted'}</td>
+                        <td className="border border-neutral-300 p-1.5 text-black/70 italic" colSpan={2}>
+                          {rChecklist?.condition_notes || (viewRentalDetails.has_damage ? 'Damage reported' : 'Clean return')}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Financial Charges Folio Breakdown */}
+                <div className="mb-6 p-3 bg-neutral-50 rounded-lg border border-neutral-300">
+                  <h3 className="text-xs font-bold uppercase text-black border-b border-neutral-300 pb-1 mb-2">
+                    Itemized Folio Financial Summary
+                  </h3>
+                  <div className="space-y-1 text-[11px]">
+                    <div className="flex justify-between">
+                      <span>Base Rental Charge:</span>
+                      <span className="font-mono">₱{Number(viewRentalDetails.total_amount || 0).toLocaleString()}</span>
+                    </div>
+                    {Number(viewRentalDetails.late_fee || 0) > 0 && (
+                      <div className="flex justify-between">
+                        <span>Late Return Penalty:</span>
+                        <span className="font-mono">+₱{Number(viewRentalDetails.late_fee).toLocaleString()}</span>
+                      </div>
+                    )}
+                    {Number(viewRentalDetails.fuel_surcharge || 0) > 0 && (
+                      <div className="flex justify-between">
+                        <span>Refueling Surcharge Deficit:</span>
+                        <span className="font-mono">+₱{Number(viewRentalDetails.fuel_surcharge).toLocaleString()}</span>
+                      </div>
+                    )}
+                    {Number(viewRentalDetails.missing_helmets_fee || 0) > 0 && (
+                      <div className="flex justify-between">
+                        <span>Missing Equipment Replacement Fee:</span>
+                        <span className="font-mono">+₱{Number(viewRentalDetails.missing_helmets_fee).toLocaleString()}</span>
+                      </div>
+                    )}
+                    {Number(viewRentalDetails.damage_fee || 0) > 0 && (
+                      <div className="flex justify-between font-bold">
+                        <span>Vehicle Damage Assessment Fee:</span>
+                        <span className="font-mono">+₱{Number(viewRentalDetails.damage_fee).toLocaleString()}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between pt-2 border-t border-neutral-400 font-bold text-xs">
+                      <span>TOTAL FOLIO CHARGE:</span>
+                      <span className="font-mono text-sm">
+                        ₱{Number(viewRentalDetails.final_amount || viewRentalDetails.total_amount || 0).toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Handover Agreement Acknowledgement & Signature Lines */}
+                <div className="space-y-4 pt-2 border-t border-neutral-300">
+                  <p className="text-[10px] text-neutral-600 leading-relaxed text-justify">
+                    <strong>Acknowledgement & Certification:</strong> The renter certifies receipt of the motorcycle in roadworthy condition with the documented baseline equipment and fuel level. Upon return, both parties have conducted a mutual walkaround inspection. The renter agrees to all itemized fuel, equipment, damage, or late penalty fees recorded on this inspection slip in accordance with Cambacay Breeze Inn motorcycle rental policies.
+                  </p>
+
+                  <div className="grid grid-cols-2 gap-12 pt-6">
+                    <div className="text-center">
+                      <div className="border-b border-black w-4/5 mx-auto mb-1"></div>
+                      <p className="font-bold text-[11px] text-black">{viewRentalDetails.customer_name}</p>
+                      <p className="text-[10px] text-neutral-600">Renter / Guest Signature & Date</p>
+                    </div>
+
+                    <div className="text-center">
+                      <div className="border-b border-black w-4/5 mx-auto mb-1"></div>
+                      <p className="font-bold text-[11px] text-black">Authorized Staff / Inspector</p>
+                      <p className="text-[10px] text-neutral-600">Cambacay Breeze Inn Representative & Date</p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           )

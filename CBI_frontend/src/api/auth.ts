@@ -11,6 +11,7 @@ export interface LoginResponse {
     gender?: string | null
     civil_status?: string | null
     must_change_password: boolean
+    profile_photo_url?: string | null
   }
 }
 
@@ -30,6 +31,7 @@ export interface MeResponse {
   dob?: string | null
   status: string
   must_change_password: boolean
+  profile_photo_url?: string | null
   created_at: string
 }
 

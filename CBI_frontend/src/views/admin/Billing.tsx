@@ -19,7 +19,14 @@ import {
   ShieldCheck,
   CheckCircle2,
   Globe,
-  Tag
+  Tag,
+  Download,
+  RefreshCw,
+  ChevronLeft,
+  ChevronRight,
+  Wallet,
+  DollarSign,
+  Filter,
 } from 'lucide-react'
 import { billingApi, type InvoiceItem, type PaymentTransaction, type OfficialReceiptData } from '../../api/billing'
 import { bookingsApi, type BookingItem } from '../../api/bookings'
@@ -33,21 +40,23 @@ import { SkeletonTable } from '../../components/SkeletonLoader'
 import { useToast } from '../../context/ToastContext'
 import { useDebounce } from '../../hooks/useDebounce'
 
-type FilterOption = 'All' | 'Paid' | 'Partially Paid' | 'Pending' | 'Refunded'
+type FilterOption = 'All' | 'Paid' | 'Partially Paid' | 'Pending' | 'Cancelled' | 'Refunded'
 type SortOption = 'newest' | 'oldest' | 'amount_desc' | 'amount_asc' | 'guest_asc' | 'invoice_asc'
-
-const ITEMS_PER_PAGE = 8
 
 export default function AdminBilling() {
   const [invoices, setInvoices] = useState<InvoiceItem[]>([])
   const [bookings, setBookings] = useState<BookingItem[]>([])
   const [loading, setLoading] = useState(true)
   const [activeFilter, setActiveFilter] = useState<FilterOption>('All')
+  const [serviceFilter, setServiceFilter] = useState<'All' | 'Room' | 'Motor' | 'Court' | 'Other'>('All')
+  const [methodFilter, setMethodFilter] = useState<string>('All')
   const [searchQuery, setSearchQuery] = useState('')
   const [sortBy, setSortBy] = useState<SortOption>('newest')
   const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState<number>(8)
   const [showEODModal, setShowEODModal] = useState(false)
   const toast = useToast()
+
 
   const debouncedSearch = useDebounce(searchQuery, 300)
 
@@ -210,13 +219,23 @@ export default function AdminBilling() {
   }
 
   // ─── 1. DYNAMIC SUMMARY CALCULATIONS ───
-  const { totalCollected, totalOutstanding, outstandingCount, invoicesIssuedCount } = useMemo(() => {
+  const { totalCollected, totalOutstanding, outstandingCount, invoicesIssuedCount, cashCollected, cashlessCollected } = useMemo(() => {
     let collected = 0
     let outstanding = 0
     let outCount = 0
+    let cash = 0
+    let cashless = 0
 
     for (const inv of invoices) {
-      collected += Number(inv.paid_amount || 0)
+      const paid = Number(inv.paid_amount || 0)
+      collected += paid
+      const m = String(inv.method || 'cash').toLowerCase()
+      if (m === 'cash') {
+        cash += paid
+      } else {
+        cashless += paid
+      }
+
       const rem = Number(inv.remaining_balance || 0)
       const s = String(inv.status || '').toUpperCase().replace('-', '_').replace(' ', '_')
       // Count actionable unpaid balances (including No-Show / cancellation penalty fees)
@@ -235,7 +254,26 @@ export default function AdminBilling() {
       totalOutstanding: outstanding,
       outstandingCount: outCount,
       invoicesIssuedCount: invoices.length,
+      cashCollected: cash,
+      cashlessCollected: cashless,
     }
+  }, [invoices])
+
+  // Live Status Counts for Badges
+  const statusCounts = useMemo(() => {
+    const counts = { All: invoices.length, Paid: 0, 'Partially Paid': 0, Pending: 0, Cancelled: 0 }
+    for (const inv of invoices) {
+      const s = String(inv.status || '').toUpperCase().replace('-', '_').replace(' ', '_')
+      const rem = Number(inv.remaining_balance || 0)
+      if (s === 'PAID') counts.Paid += 1
+      else if (s === 'PARTIALLY_PAID' || s === 'PARTIALLY PAID') counts['Partially Paid'] += 1
+      else if (s === 'CANCELLED' || s === 'REFUNDED') counts.Cancelled += 1
+
+      if ((s === 'PENDING' || s === 'UNPAID' || (s === 'CANCELLED' && rem > 0) || rem > 0) && s !== 'PAID' && s !== 'REFUNDED') {
+        counts.Pending += 1
+      }
+    }
+    return counts
   }, [invoices])
 
   // ─── 2. FILTERING & SEARCHING ───
@@ -250,11 +288,36 @@ export default function AdminBilling() {
         if (activeFilter === 'Paid') return s === 'PAID'
         if (activeFilter === 'Partially Paid') return s === 'PARTIALLY_PAID' || s === 'PARTIALLY PAID'
         if (activeFilter === 'Pending') {
-          // Include pending/unpaid and any unpaid cancellation penalty fee balances
           return (s === 'PENDING' || s === 'UNPAID' || (s === 'CANCELLED' && rem > 0) || rem > 0) && s !== 'PAID' && s !== 'REFUNDED'
         }
+        if (activeFilter === 'Cancelled') return s === 'CANCELLED' || s === 'REFUNDED'
         if (activeFilter === 'Refunded') return s === 'REFUNDED'
         return true
+      })
+    }
+
+    // Service Filter
+    if (serviceFilter !== 'All') {
+      list = list.filter((inv) => {
+        const sType = String(inv.service_type || '').toLowerCase()
+        const sName = String(inv.service_name || '').toLowerCase()
+        const bNum = String(inv.bill_number || '').toLowerCase()
+        const isMtr = sType.includes('motor') || sName.includes('yamaha') || sName.includes('honda') || bNum.startsWith('bill-mtr') || Boolean(inv.motor_rental_id)
+        const isCrt = sType.includes('pickleball') || sName.includes('pickleball') || Boolean(inv.activity_rental_id)
+        const isRm = sType.includes('room') || Boolean(inv.booking_id) || Boolean(inv.room_number) || Boolean(inv.room_type)
+        if (serviceFilter === 'Room') return isRm
+        if (serviceFilter === 'Motor') return isMtr
+        if (serviceFilter === 'Court') return isCrt
+        if (serviceFilter === 'Other') return !isRm && !isMtr && !isCrt
+        return true
+      })
+    }
+
+    // Payment Method Filter
+    if (methodFilter !== 'All') {
+      list = list.filter((inv) => {
+        const m = String(inv.method || 'cash').toLowerCase()
+        return m === methodFilter.toLowerCase()
       })
     }
 
@@ -296,14 +359,71 @@ export default function AdminBilling() {
     })
 
     return list
-  }, [invoices, activeFilter, debouncedSearch, sortBy])
+  }, [invoices, activeFilter, serviceFilter, methodFilter, debouncedSearch, sortBy])
 
   // Pagination
-  const totalPages = Math.max(1, Math.ceil(filteredInvoices.length / ITEMS_PER_PAGE))
+  const totalPages = Math.max(1, Math.ceil(filteredInvoices.length / itemsPerPage))
   const paginatedInvoices = useMemo(() => {
-    const start = (currentPage - 1) * ITEMS_PER_PAGE
-    return filteredInvoices.slice(start, start + ITEMS_PER_PAGE)
-  }, [filteredInvoices, currentPage])
+    const start = (currentPage - 1) * itemsPerPage
+    return filteredInvoices.slice(start, start + itemsPerPage)
+  }, [filteredInvoices, currentPage, itemsPerPage])
+
+  // Smart Pagination Range (with ellipsis)
+  const getPaginationPages = (current: number, total: number) => {
+    if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+    if (current <= 4) return [1, 2, 3, 4, 5, '...', total]
+    if (current >= total - 3) return [1, '...', total - 4, total - 3, total - 2, total - 1, total]
+    return [1, '...', current - 1, current, current + 1, '...', total]
+  }
+
+  // Export Invoices CSV
+  const handleExportCSV = () => {
+    if (!filteredInvoices || filteredInvoices.length === 0) {
+      alert('No invoices available to export.')
+      return
+    }
+
+    const headers = [
+      'Invoice No',
+      'Bill No',
+      'Customer Name',
+      'Email / Contact',
+      'Availed Service',
+      'Service Details',
+      'Payment Method',
+      'Date Issued',
+      'Total Amount (PHP)',
+      'Paid Amount (PHP)',
+      'Remaining Balance (PHP)',
+      'Status',
+    ]
+
+    const rows = filteredInvoices.map((inv) => [
+      `"${inv.invoice_number || ''}"`,
+      `"${inv.bill_number || ''}"`,
+      `"${inv.customer_name || ''}"`,
+      `"${inv.customer_email || inv.customer_phone || ''}"`,
+      `"${inv.service_type || inv.service_name || ''}"`,
+      `"${inv.service_details || ''}"`,
+      `"${inv.method || 'Cash'}"`,
+      `"${formatDate(inv.issued_at)}"`,
+      Number(inv.total_amount || 0).toFixed(2),
+      Number(inv.paid_amount || 0).toFixed(2),
+      Number(inv.remaining_balance || 0).toFixed(2),
+      `"${inv.status || ''}"`,
+    ])
+
+    const csvContent =
+      'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n')
+    const encodedUri = encodeURI(csvContent)
+    const link = document.createElement('a')
+    link.setAttribute('href', encodedUri)
+    link.setAttribute('download', `Invoices_Audit_Log_${new Date().toISOString().split('T')[0]}.csv`)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
 
   // Selected Invoice for Payment
   const selectedInvoice = useMemo(() => {
@@ -571,95 +691,258 @@ export default function AdminBilling() {
     <div className="p-4 sm:p-5 max-w-7xl mx-auto space-y-4 font-sans">
 
 
-      {/* ─── 1. SUMMARY STATISTIC CARDS (3 CARDS) ─── */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+      {/* ─── 1. SUMMARY STATISTIC CARDS (4 ENHANCED CARDS) ─── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
         
         {/* Card 1: Collected */}
-        <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.04)] transition-all flex flex-col justify-between">
+        <div
+          onClick={() => { setActiveFilter('Paid'); setCurrentPage(1); }}
+          className="bg-white dark:bg-[#181B20] p-4 rounded-2xl border border-black/[0.07] dark:border-neutral-800 shadow-xs hover:border-[#6B7A5E]/50 hover:shadow-sm transition-all cursor-pointer group flex flex-col justify-between"
+          title="Click to view Paid invoices"
+        >
           <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase font-bold tracking-wider text-[#6B7A5E]">COLLECTED</span>
-            <div className="w-6 h-6 rounded-lg bg-[#6B7A5E]/10 text-[#6B7A5E] flex items-center justify-center">
-              <Receipt className="w-3.5 h-3.5" strokeWidth={1.5} />
-            </div>
+            <span className="text-[10px] uppercase font-bold tracking-wider text-[#6B7A5E] flex items-center gap-1.5">
+              <Receipt className="w-3.5 h-3.5" /> COLLECTED
+            </span>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200/80 dark:border-emerald-800/40">
+              {statusCounts.Paid} Paid
+            </span>
           </div>
-          <div className="mt-1.5">
-            <p className="font-display text-xl sm:text-2xl font-bold text-neutral-900 dark:text-white leading-tight">
+          <div className="mt-2.5">
+            <p className="font-display text-2xl font-bold text-neutral-900 dark:text-white leading-tight font-mono">
               ₱{totalCollected.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
             </p>
-            <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5 block">Total settled revenue</span>
+            <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-1 block">
+              Total settled customer revenue
+            </span>
           </div>
         </div>
 
         {/* Card 2: Outstanding */}
-        <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.04)] transition-all flex flex-col justify-between">
+        <div
+          onClick={() => { setActiveFilter('Pending'); setCurrentPage(1); }}
+          className="bg-white dark:bg-[#181B20] p-4 rounded-2xl border border-black/[0.07] dark:border-neutral-800 shadow-xs hover:border-amber-500/50 hover:shadow-sm transition-all cursor-pointer group flex flex-col justify-between"
+          title="Click to view Pending/Unpaid invoices"
+        >
           <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase font-bold tracking-wider text-amber-700 dark:text-amber-400">OUTSTANDING</span>
-            <span className="text-[10px] bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/40 px-2 py-0.5 rounded-md font-semibold">
-              {outstandingCount} invoices
+            <span className="text-[10px] uppercase font-bold tracking-wider text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+              <AlertCircle className="w-3.5 h-3.5 text-amber-600" /> OUTSTANDING
+            </span>
+            <span className="text-[10px] bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/40 px-2 py-0.5 rounded-full font-bold">
+              {outstandingCount} {outstandingCount === 1 ? 'Invoice' : 'Invoices'}
             </span>
           </div>
-          <div className="mt-1.5">
-            <p className="font-display text-xl sm:text-2xl font-bold text-amber-800 dark:text-amber-300 leading-tight">
+          <div className="mt-2.5">
+            <p className="font-display text-2xl font-bold text-amber-800 dark:text-amber-300 leading-tight font-mono">
               ₱{totalOutstanding.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
             </p>
-            <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5 block">Pending balance</span>
+            <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-1 block">
+              Actionable pending balances
+            </span>
           </div>
         </div>
 
-        {/* Card 3: Invoices Issued */}
-        <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.04)] transition-all flex flex-col justify-between">
+        {/* Card 3: Payment Channel Collections Split */}
+        <div className="bg-white dark:bg-[#181B20] p-4 rounded-2xl border border-black/[0.07] dark:border-neutral-800 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase font-bold tracking-wider text-neutral-500 dark:text-neutral-400">INVOICES ISSUED</span>
-            <div className="w-6 h-6 rounded-lg bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 flex items-center justify-center">
-              <CreditCard className="w-3.5 h-3.5" strokeWidth={1.5} />
+            <span className="text-[10px] uppercase font-bold tracking-wider text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
+              <Wallet className="w-3.5 h-3.5" /> PAYMENT CHANNELS
+            </span>
+            <span className="text-[10px] font-bold text-neutral-400 font-mono">
+              {totalCollected > 0 ? ((cashCollected / totalCollected) * 100).toFixed(0) : 100}% Cash
+            </span>
+          </div>
+          <div className="mt-2.5">
+            <div className="flex items-baseline justify-between text-xs font-mono font-bold">
+              <span className="text-emerald-700 dark:text-emerald-400">
+                ₱{cashCollected.toLocaleString()} <span className="text-[10px] font-normal text-neutral-400">Cash</span>
+              </span>
+              <span className="text-blue-700 dark:text-blue-400">
+                ₱{cashlessCollected.toLocaleString()} <span className="text-[10px] font-normal text-neutral-400">Digital</span>
+              </span>
+            </div>
+            {/* Visual ratio bar */}
+            <div className="w-full bg-neutral-200 dark:bg-neutral-700 rounded-full h-1.5 mt-2 overflow-hidden flex">
+              <div
+                className="bg-emerald-500 h-full transition-all"
+                style={{ width: `${totalCollected > 0 ? (cashCollected / totalCollected) * 100 : 100}%` }}
+              />
+              <div
+                className="bg-blue-500 h-full transition-all"
+                style={{ width: `${totalCollected > 0 ? (cashlessCollected / totalCollected) * 100 : 0}%` }}
+              />
+            </div>
+            <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-1 block">
+              Drawer cash vs e-wallets & cards
+            </span>
+          </div>
+        </div>
+
+        {/* Card 4: Invoices Issued */}
+        <div
+          onClick={() => { setActiveFilter('All'); setServiceFilter('All'); setCurrentPage(1); }}
+          className="bg-white dark:bg-[#181B20] p-4 rounded-2xl border border-black/[0.07] dark:border-neutral-800 shadow-xs hover:border-neutral-400 transition-all cursor-pointer flex flex-col justify-between"
+          title="Click to view All invoices"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-neutral-500 dark:text-neutral-400 flex items-center gap-1.5">
+              <CreditCard className="w-3.5 h-3.5" /> INVOICES ISSUED
+            </span>
+            <div className="w-5 h-5 rounded-md bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 flex items-center justify-center">
+              <Check className="w-3 h-3" />
             </div>
           </div>
-          <div className="mt-1.5">
-            <p className="font-display text-xl sm:text-2xl font-bold text-neutral-900 dark:text-white leading-tight">
+          <div className="mt-2.5">
+            <p className="font-display text-2xl font-bold text-neutral-900 dark:text-white leading-tight font-mono">
               {invoicesIssuedCount}
             </p>
-            <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5 block">Total billing invoices</span>
+            <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-1 block">
+              Total billing statements logged
+            </span>
           </div>
         </div>
 
       </div>
 
       {/* ─── 2. INVOICES & TRANSACTIONS SECTION ─── */}
-      <div className="bg-white dark:bg-[#181B20] rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden space-y-3.5 p-4 sm:p-5">
+      <div className="bg-white dark:bg-[#181B20] rounded-2xl border border-black/[0.07] dark:border-neutral-800 shadow-xs overflow-hidden space-y-4 p-4 sm:p-5">
         
-        {/* Controls Row: Title, Filters & Action Button */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-stone/15">
+        {/* Controls Row: Title, Quick Actions */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-black/[0.06] dark:border-neutral-800">
           <div>
-            <h2 className="font-display text-2xl font-bold text-ink">Invoices & Statements</h2>
-            <p className="text-xs text-ink-muted mt-0.5">Comprehensive audit trail of customer bills</p>
+            <div className="flex items-center gap-2">
+              <h2 className="font-display text-xl sm:text-2xl font-bold text-neutral-900 dark:text-white">
+                Invoices & Statements
+              </h2>
+              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#6B7A5E]/10 text-[#6B7A5E]">
+                {filteredInvoices.length} {filteredInvoices.length === 1 ? 'record' : 'records'}
+              </span>
+            </div>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
+              Audit trail of customer bills, folios, payment channels & settlements
+            </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
+          {/* Action Buttons Toolbar */}
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => {
+                setSelectedBillId('')
+                setSelectedBookingId('')
+                setPayAmount('')
+                setRecordModalOpen(true)
+              }}
+              className="px-3.5 py-2 bg-[#6B7A5E] hover:bg-[#59664E] text-white rounded-xl text-xs font-semibold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Record Payment</span>
+            </button>
+
             <button
               onClick={() => setShowEODModal(true)}
-              className="px-3.5 py-1.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl text-xs font-semibold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
-              title="Daily Cashier Shift Reconciliation"
+              className="px-3.5 py-2 bg-white dark:bg-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-800 dark:text-neutral-200 border border-black/[0.08] dark:border-neutral-700 rounded-xl text-xs font-semibold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+              title="Daily Cashier Shift Reconciliation & Petty Cash"
             >
-              <Printer className="w-3.5 h-3.5" />
+              <Printer className="w-3.5 h-3.5 text-neutral-500" />
               <span>Cashier Shift Report</span>
             </button>
-            
-            {/* Filter Tabs */}
-            <div className="flex flex-wrap gap-1 p-1 bg-sand/40 rounded-xl border border-stone/20 text-xs">
-              {(['All', 'Paid', 'Partially Paid', 'Pending', 'Cancelled'] as const).map((tab) => (
+
+            <button
+              onClick={handleExportCSV}
+              className="px-3.5 py-2 bg-white dark:bg-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-800 dark:text-neutral-200 border border-black/[0.08] dark:border-neutral-700 rounded-xl text-xs font-semibold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+              title="Export Current Invoices to CSV"
+            >
+              <Download className="w-3.5 h-3.5 text-neutral-500" />
+              <span>Export CSV</span>
+            </button>
+
+            <button
+              onClick={loadData}
+              disabled={loading}
+              className="p-2 bg-white dark:bg-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-700 border border-black/[0.08] dark:border-neutral-700 text-neutral-600 dark:text-neutral-300 rounded-xl shadow-xs transition-all cursor-pointer"
+              title="Refresh Invoices List"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-[#6B7A5E]' : ''}`} />
+            </button>
+          </div>
+        </div>
+
+        {/* Secondary Filter & Search Row */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          
+          {/* Status Tabs with Live Badges */}
+          <div className="flex flex-wrap gap-1 p-1 bg-neutral-100 dark:bg-neutral-900 rounded-xl border border-black/[0.06] dark:border-neutral-800 text-xs">
+            {(['All', 'Paid', 'Partially Paid', 'Pending', 'Cancelled'] as const).map((tab) => {
+              const count = statusCounts[tab]
+              const isActive = activeFilter === tab
+              return (
                 <button
                   key={tab}
                   onClick={() => { setActiveFilter(tab as FilterOption); setCurrentPage(1); }}
-                  className={`px-3.5 py-1.5 rounded-lg font-semibold transition-all ${
-                    activeFilter === tab
-                      ? 'bg-[#6B7A5E] text-white shadow-sm'
-                      : 'text-ink-muted hover:text-ink hover:bg-white/60'
+                  className={`px-3 py-1.5 rounded-lg font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
+                    isActive
+                      ? 'bg-[#6B7A5E] text-white shadow-xs'
+                      : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-neutral-800'
                   }`}
                 >
-                  {tab}
+                  <span>{tab}</span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                    isActive ? 'bg-white/25 text-white' : 'bg-neutral-200 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400'
+                  }`}>
+                    {count}
+                  </span>
                 </button>
-              ))}
-            </div>
+              )
+            })}
+          </div>
+
+          {/* Filters & Search */}
+          <div className="flex flex-wrap items-center gap-2">
+            
+            {/* Service Category Filter */}
+            <select
+              value={serviceFilter}
+              onChange={(e) => {
+                setServiceFilter(e.target.value as any)
+                setCurrentPage(1)
+              }}
+              className="px-2.5 py-1.5 bg-white dark:bg-neutral-800 border border-black/[0.08] dark:border-neutral-700 rounded-xl text-xs font-semibold text-neutral-700 dark:text-neutral-200 focus:outline-none shadow-2xs cursor-pointer"
+            >
+              <option value="All">All Categories</option>
+              <option value="Room">🏨 Rooms</option>
+              <option value="Motor">🏍️ Motorcycles</option>
+              <option value="Court">🏓 Pickleball</option>
+              <option value="Other">🧾 Other Services</option>
+            </select>
+
+            {/* Payment Method Filter */}
+            <select
+              value={methodFilter}
+              onChange={(e) => {
+                setMethodFilter(e.target.value)
+                setCurrentPage(1)
+              }}
+              className="px-2.5 py-1.5 bg-white dark:bg-neutral-800 border border-black/[0.08] dark:border-neutral-700 rounded-xl text-xs font-semibold text-neutral-700 dark:text-neutral-200 focus:outline-none shadow-2xs cursor-pointer"
+            >
+              <option value="All">All Methods</option>
+              <option value="cash">💵 Cash</option>
+              <option value="gcash">📱 GCash</option>
+              <option value="card">💳 Card & Bank</option>
+            </select>
+
+            {/* Sort Order Selector */}
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as SortOption)}
+              className="px-2.5 py-1.5 bg-white dark:bg-neutral-800 border border-black/[0.08] dark:border-neutral-700 rounded-xl text-xs font-semibold text-neutral-700 dark:text-neutral-200 focus:outline-none shadow-2xs cursor-pointer"
+            >
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+              <option value="amount_desc">Highest Amount</option>
+              <option value="amount_asc">Lowest Amount</option>
+              <option value="guest_asc">Guest (A–Z)</option>
+              <option value="invoice_asc">Invoice # (A–Z)</option>
+            </select>
 
             {/* Search Input Bar */}
             <div className="relative flex items-center">
@@ -671,8 +954,8 @@ export default function AdminBilling() {
                   setSearchQuery(e.target.value)
                   setCurrentPage(1)
                 }}
-                placeholder="Search invoice #, guest, room..."
-                className="pl-8.5 pr-8 py-1.5 rounded-xl border border-black/[0.08] dark:border-neutral-700/80 bg-[#F6F2E8] dark:bg-[#20252E] text-xs font-medium text-neutral-900 dark:text-white placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40 w-52 sm:w-64 transition-all"
+                placeholder="Search invoice, guest, room..."
+                className="pl-8.5 pr-8 py-1.5 rounded-xl border border-black/[0.08] dark:border-neutral-700/80 bg-neutral-50 dark:bg-neutral-900 text-xs font-medium text-neutral-900 dark:text-white placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40 w-48 sm:w-60 transition-all shadow-2xs"
               />
               {searchQuery && (
                 <button
@@ -688,14 +971,15 @@ export default function AdminBilling() {
                 </button>
               )}
             </div>
+
           </div>
         </div>
 
         {/* ─── 4. PAYMENT & INVOICE TABLE ─── */}
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto border border-black/[0.06] dark:border-neutral-800 rounded-xl">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-stone/20 bg-sand/30 text-[10px] uppercase font-bold text-ink-muted tracking-wider">
+              <tr className="border-b border-black/[0.06] dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/80 text-[10px] uppercase font-bold text-neutral-600 dark:text-neutral-400 tracking-wider">
                 <th className="px-4 py-3.5">INVOICE</th>
                 <th className="px-4 py-3.5">GUEST</th>
                 <th className="px-4 py-3.5">AVAILED SERVICE / BOOKING</th>
@@ -706,7 +990,7 @@ export default function AdminBilling() {
                 <th className="px-4 py-3.5 text-right">ACTIONS</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-stone/15">
+            <tbody className="divide-y divide-black/[0.04] dark:divide-neutral-800">
               {paginatedInvoices.map((inv) => {
                 const latestPayment = inv.payments[0]
                 const datePaid = latestPayment ? formatDate(latestPayment.paid_at) : formatDate(inv.issued_at)
@@ -718,57 +1002,60 @@ export default function AdminBilling() {
                 const isCourt = sType.includes('Pickleball') || sName.toLowerCase().includes('pickleball') || inv.activity_rental_id
                 const isRoom = sType.includes('Room') || inv.booking_id || inv.room_type || inv.booking_ref
 
+                const methodStr = String(inv.method || 'cash').toLowerCase()
+
                 return (
-                  <tr key={inv.id} className="hover:bg-sand/20 transition-colors">
+                  <tr key={inv.id} className="hover:bg-neutral-50/70 dark:hover:bg-neutral-800/40 transition-colors">
                     
                     {/* INVOICE */}
-                    <td className="px-4 py-4 font-mono">
+                    <td className="px-4 py-3.5 font-mono">
                       <div className="font-bold text-[#6B7A5E] text-xs">{inv.invoice_number}</div>
+                      <div className="text-[10px] text-neutral-400 font-normal">{inv.bill_number}</div>
                     </td>
 
                     {/* GUEST */}
-                    <td className="px-4 py-4">
+                    <td className="px-4 py-3.5">
                       <div className="flex items-center gap-2.5">
                         <div className="w-8 h-8 rounded-full bg-[#6B7A5E]/15 text-[#6B7A5E] font-display font-bold text-xs flex items-center justify-center shrink-0">
                           {getInitials(inv.customer_name)}
                         </div>
                         <div>
-                          <p className="font-semibold text-ink text-xs">{inv.customer_name}</p>
-                          <p className="text-[10px] text-ink-muted">{inv.customer_email || inv.customer_phone || 'Direct Guest'}</p>
+                          <p className="font-semibold text-neutral-900 dark:text-white text-xs">{inv.customer_name}</p>
+                          <p className="text-[10px] text-neutral-500 dark:text-neutral-400">{inv.customer_email || inv.customer_phone || 'Direct Guest'}</p>
                         </div>
                       </div>
                     </td>
 
                     {/* AVAILED SERVICE / BOOKING */}
-                    <td className="px-4 py-4">
+                    <td className="px-4 py-3.5">
                       {isMotor ? (
                         <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center shrink-0">
+                          <div className="w-7 h-7 rounded-lg bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 flex items-center justify-center shrink-0">
                             <Bike className="w-3.5 h-3.5" strokeWidth={1.5} />
                           </div>
                           <div>
-                            <p className="font-bold text-ink text-xs">{inv.service_name || 'Motorcycle Rental'}</p>
-                            <p className="text-[10px] text-ink-muted">{inv.service_details || 'Motor Rent'}</p>
+                            <p className="font-bold text-neutral-900 dark:text-white text-xs">{inv.service_name || 'Motorcycle Rental'}</p>
+                            <p className="text-[10px] text-neutral-500 dark:text-neutral-400">{inv.service_details || 'Motor Rent'}</p>
                           </div>
                         </div>
                       ) : isCourt ? (
                         <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0">
+                          <div className="w-7 h-7 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 flex items-center justify-center shrink-0">
                             <Activity className="w-3.5 h-3.5" strokeWidth={1.5} />
                           </div>
                           <div>
-                            <p className="font-bold text-ink text-xs">{inv.service_name || 'Pickleball Court Reservation'}</p>
-                            <p className="text-[10px] text-ink-muted">{inv.service_details || 'Court Match Play'}</p>
+                            <p className="font-bold text-neutral-900 dark:text-white text-xs">{inv.service_name || 'Pickleball Court Reservation'}</p>
+                            <p className="text-[10px] text-neutral-500 dark:text-neutral-400">{inv.service_details || 'Court Match Play'}</p>
                           </div>
                         </div>
                       ) : isRoom ? (
                         <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-lg bg-blue-100 text-blue-800 flex items-center justify-center shrink-0">
+                          <div className="w-7 h-7 rounded-lg bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 flex items-center justify-center shrink-0">
                             <BedDouble className="w-3.5 h-3.5" strokeWidth={1.5} />
                           </div>
                           <div>
                             <div className="flex items-center gap-1.5">
-                              <p className="font-bold text-ink text-xs font-mono">{inv.booking_ref || 'Room Accommodation'}</p>
+                              <p className="font-bold text-neutral-900 dark:text-white text-xs font-mono">{inv.booking_ref || 'Room Accommodation'}</p>
                               {(() => {
                                 const avail = getAvailmentType(inv)
                                 return avail ? (
@@ -778,50 +1065,72 @@ export default function AdminBilling() {
                                 ) : null
                               })()}
                             </div>
-                            <p className="text-[10px] text-ink-muted">{inv.room_type ? `${inv.room_type} · Room ${inv.room_number || ''}` : (inv.service_name || 'Hotel Stay')}</p>
+                            <p className="text-[10px] text-neutral-500 dark:text-neutral-400">{inv.room_type ? `${inv.room_type} · Room ${inv.room_number || ''}` : (inv.service_name || 'Hotel Stay')}</p>
                           </div>
                         </div>
                       ) : (
                         <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-lg bg-sand text-ink flex items-center justify-center shrink-0">
+                          <div className="w-7 h-7 rounded-lg bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 flex items-center justify-center shrink-0">
                             <Receipt className="w-3.5 h-3.5" strokeWidth={1.5} />
                           </div>
                           <div>
-                            <p className="font-semibold text-ink text-xs">{inv.service_name || 'Hotel Service'}</p>
-                            <p className="text-[10px] text-ink-muted">{inv.service_details || 'Direct Settlement'}</p>
+                            <p className="font-semibold text-neutral-900 dark:text-white text-xs">{inv.service_name || 'Hotel Service'}</p>
+                            <p className="text-[10px] text-neutral-500 dark:text-neutral-400">{inv.service_details || 'Direct Settlement'}</p>
                           </div>
                         </div>
                       )}
                     </td>
 
                     {/* METHOD */}
-                    <td className="px-4 py-4">
-                      <span className="capitalize font-medium text-ink bg-white px-2.5 py-1 rounded-lg border border-stone/20 shadow-xs">
-                        {inv.method || 'Cash'}
-                      </span>
+                    <td className="px-4 py-3.5">
+                      {String(inv.status).toUpperCase() === 'CANCELLED' ? (
+                        <span className="text-neutral-400 font-mono">—</span>
+                      ) : methodStr === 'cash' ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/40">
+                          <DollarSign className="w-3 h-3 text-emerald-600" /> Cash
+                        </span>
+                      ) : methodStr.includes('gcash') || methodStr.includes('maya') || methodStr.includes('wallet') ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800/40">
+                          <Wallet className="w-3 h-3 text-blue-600" /> {inv.method || 'GCash'}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200/60 dark:border-purple-800/40">
+                          <CreditCard className="w-3 h-3 text-purple-600" /> {inv.method || 'Card'}
+                        </span>
+                      )}
                     </td>
 
                     {/* DATE PAID */}
-                    <td className="px-4 py-4 font-mono text-ink-muted">
-                      {datePaid}
+                    <td className="px-4 py-3.5 font-mono text-neutral-600 dark:text-neutral-400 text-xs">
+                      {String(inv.status).toUpperCase() === 'CANCELLED' ? '—' : datePaid}
                     </td>
 
                     {/* AMOUNT */}
-                    <td className="px-4 py-4">
+                    <td className="px-4 py-3.5">
                       <div className="font-mono">
-                        <p className="font-display font-bold text-ink text-sm">
-                          {`₱${Number(inv.paid_amount || inv.total_amount || 0).toLocaleString()}`}
+                        <p className="font-bold text-neutral-900 dark:text-white text-xs">
+                          ₱{Number(inv.paid_amount || inv.total_amount || 0).toLocaleString()}
                         </p>
-                        {isPartiallyPaid ? (
-                          <p className="text-[10px] text-amber-800 font-semibold font-sans">
-                            Bal: ₱{Number(inv.remaining_balance).toLocaleString()} of ₱{Number(inv.total_amount).toLocaleString()}
-                          </p>
-                        ) : null}
+                        {isPartiallyPaid && (
+                          <div className="mt-0.5">
+                            <span className="text-[10px] text-amber-700 dark:text-amber-400 font-semibold font-sans block">
+                              Bal: ₱{Number(inv.remaining_balance).toLocaleString()}
+                            </span>
+                            <div className="w-16 bg-neutral-200 dark:bg-neutral-700 h-1 rounded-full overflow-hidden mt-0.5">
+                              <div
+                                className="bg-amber-500 h-full rounded-full"
+                                style={{
+                                  width: `${Math.min(100, Math.max(0, (Number(inv.paid_amount || 0) / Number(inv.total_amount || 1)) * 100))}%`
+                                }}
+                              />
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </td>
 
                     {/* STATUS */}
-                    <td className="px-4 py-4">
+                    <td className="px-4 py-3.5">
                       <StatusBadge status={inv.status} />
                     </td>
 
@@ -831,12 +1140,10 @@ export default function AdminBilling() {
                         {/* 1. VIEW */}
                         <button
                           onClick={() => setViewInvoice(inv)}
-                          className="px-2.5 py-1 text-xs text-ink dark:text-white font-semibold bg-sand/60 dark:bg-neutral-800 border border-stone/30 dark:border-neutral-700 rounded-lg hover:bg-stone/20 dark:hover:bg-neutral-700 transition-all shadow-xs shrink-0 cursor-pointer"
+                          className="px-2.5 py-1 text-xs text-neutral-700 dark:text-neutral-200 font-semibold bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 border border-black/[0.08] dark:border-neutral-700 rounded-lg transition-all shadow-2xs shrink-0 cursor-pointer"
                         >
                           View
                         </button>
-
-                        {/* Receipt button removed for Billing module */}
 
                         {/* Pay */}
                         {Number(inv.remaining_balance || inv.balance || 0) > 0 && String(inv.status).toUpperCase() !== 'CANCELLED' && String(inv.status).toUpperCase() !== 'NO_SHOW' && (
@@ -845,9 +1152,10 @@ export default function AdminBilling() {
                               setRecordModalOpen(true)
                               handleInvoiceSelect(inv.id)
                             }}
-                            className="px-2.5 py-1 text-xs text-emerald-700 bg-emerald-100 hover:bg-emerald-200 border border-emerald-300 rounded-lg font-semibold transition-all shadow-xs shrink-0 cursor-pointer"
+                            className="px-2.5 py-1 text-xs text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg font-semibold transition-all shadow-2xs shrink-0 cursor-pointer flex items-center gap-1"
                           >
-                            Pay
+                            <CreditCard className="w-3 h-3" />
+                            <span>Pay</span>
                           </button>
                         )}
 
@@ -855,7 +1163,8 @@ export default function AdminBilling() {
                         {String(inv.status).toUpperCase() !== 'PAID' && String(inv.status).toUpperCase() !== 'CANCELLED' && String(inv.status).toUpperCase() !== 'NO_SHOW' && (
                           <button
                             onClick={() => setCancelInvoiceTarget(inv)}
-                            className="px-2.5 py-1 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 border border-rose-200 dark:border-rose-800/60 rounded-lg font-semibold transition-all flex items-center gap-1 cursor-pointer shrink-0"
+                            className="px-2 py-1 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 border border-rose-200 dark:border-rose-800/60 rounded-lg font-semibold transition-all flex items-center gap-1 cursor-pointer shrink-0"
+                            title="Cancel / Void Invoice"
                           >
                             <X className="w-3 h-3" />
                             <span>Cancel</span>
@@ -879,46 +1188,80 @@ export default function AdminBilling() {
           <EmptyState
             icon={Receipt}
             title="No invoices found"
-            subtitle="Try searching with another keyword or changing the filter tab."
+            subtitle="Try searching with another keyword or resetting your filter options."
           />
         )}
 
-        {/* ─── 5. PAGINATION CONTROLS ─── */}
+        {/* ─── 5. SMART PAGINATION CONTROLS ─── */}
         {!loading && filteredInvoices.length > 0 && (
-          <div className="px-6 py-4 border-t border-stone/15 bg-[#F6F2E8] flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs">
-            <span className="text-ink-muted font-medium">
-              Showing <strong className="text-ink">{(currentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, filteredInvoices.length)}</strong> of <strong className="text-ink">{filteredInvoices.length}</strong> transactions
-            </span>
+          <div className="pt-3 border-t border-black/[0.06] dark:border-neutral-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-3">
+              <span className="text-neutral-500 dark:text-neutral-400 font-medium">
+                Showing <strong className="text-neutral-900 dark:text-white">{(currentPage - 1) * itemsPerPage + 1}–{Math.min(currentPage * itemsPerPage, filteredInvoices.length)}</strong> of <strong className="text-neutral-900 dark:text-white">{filteredInvoices.length}</strong> invoices
+              </span>
 
-            <div className="flex items-center gap-1.5 self-center">
+              {/* Items Per Page Selector */}
+              <div className="flex items-center gap-1">
+                <span className="text-neutral-400 text-[11px]">Show:</span>
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => {
+                    setItemsPerPage(Number(e.target.value))
+                    setCurrentPage(1)
+                  }}
+                  className="px-2 py-1 bg-white dark:bg-neutral-800 border border-black/[0.08] dark:border-neutral-700 rounded-lg text-xs font-semibold text-neutral-700 dark:text-neutral-300 focus:outline-none shadow-2xs cursor-pointer"
+                >
+                  <option value={8}>8</option>
+                  <option value={15}>15</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Smart Numbered Navigation with Ellipsis */}
+            <div className="flex items-center gap-1 self-center sm:self-auto">
               <button
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
-                className="px-3 py-1.5 rounded-xl border border-stone/30 bg-[#F6F2E8] text-ink font-semibold disabled:opacity-40 hover:bg-sand transition-all"
+                className="px-2.5 py-1.5 rounded-xl border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-700 dark:text-neutral-200 font-semibold disabled:opacity-40 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-all flex items-center gap-1 cursor-pointer"
               >
-                Previous
+                <ChevronLeft className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Prev</span>
               </button>
 
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((pg) => (
-                <button
-                  key={pg}
-                  onClick={() => setCurrentPage(pg)}
-                  className={`w-8 h-8 rounded-xl font-semibold transition-all ${
-                    currentPage === pg
-                      ? 'bg-[#6B7A5E] text-white shadow-sm'
-                      : 'border border-stone/30 bg-[#F6F2E8] text-ink hover:bg-sand'
-                  }`}
-                >
-                  {pg}
-                </button>
-              ))}
+              {getPaginationPages(currentPage, totalPages).map((pg, idx) => {
+                if (pg === '...') {
+                  return (
+                    <span key={`dots-${idx}`} className="px-2 text-neutral-400 select-none">
+                      …
+                    </span>
+                  )
+                }
+                const pageNum = Number(pg)
+                const isCurrent = currentPage === pageNum
+                return (
+                  <button
+                    key={`pg-${pageNum}`}
+                    onClick={() => setCurrentPage(pageNum)}
+                    className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl font-semibold text-xs transition-all cursor-pointer ${
+                      isCurrent
+                        ? 'bg-[#6B7A5E] text-white shadow-xs font-bold'
+                        : 'border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700'
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                )
+              })}
 
               <button
                 onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                 disabled={currentPage === totalPages}
-                className="px-3 py-1.5 rounded-xl border border-stone/30 bg-[#F6F2E8] text-ink font-semibold disabled:opacity-40 hover:bg-sand transition-all"
+                className="px-2.5 py-1.5 rounded-xl border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-700 dark:text-neutral-200 font-semibold disabled:opacity-40 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-all flex items-center gap-1 cursor-pointer"
               >
-                Next
+                <span className="hidden sm:inline">Next</span>
+                <ChevronRight className="w-3.5 h-3.5" />
               </button>
             </div>
           </div>

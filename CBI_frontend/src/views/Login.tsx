@@ -43,6 +43,7 @@ export default function Login({ onLogin, onNavigate }: LoginProps) {
     gender?: string | null
     civilStatus?: string | null
     mustChangePassword?: boolean
+    photoUrl?: string | null
   } | null>(null)
   const [authRole, setAuthRole] = useState<Role | undefined>(undefined)
   const [loadingError, setLoadingError] = useState('')

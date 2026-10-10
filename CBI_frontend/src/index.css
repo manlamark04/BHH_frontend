@@ -377,7 +377,8 @@ html.dark .bhh-skeleton {
   #official-receipt-print-area,
   #booking-voucher-print-area,
   #cashier-eod-print-area,
-  #financial-statement-print-area {
+  #financial-statement-print-area,
+  #motor-inspection-print-area {
     display: block !important;
     position: static !important;
     width: 100% !important;
@@ -395,7 +396,8 @@ html.dark .bhh-skeleton {
   #official-receipt-print-area *,
   #booking-voucher-print-area *,
   #cashier-eod-print-area *,
-  #financial-statement-print-area * {
+  #financial-statement-print-area *,
+  #motor-inspection-print-area * {
     color: black !important;
     background: transparent !important;
     border-color: #d1d5db !important;

@@ -7,6 +7,8 @@ import { ThemeProvider } from './context/ThemeContext'
 import { ToastProvider } from './context/ToastContext'
 import ErrorBoundary from './components/ErrorBoundary'
 
+import logo from './imports/logo.png'
+
 // Public views (lazy loaded)
 const Landing = lazy(() => import('./views/Landing'))
 const Login = lazy(() => import('./views/Login'))
@@ -62,17 +64,33 @@ const StaffLostAndFound = lazy(() => import('./views/staff/LostAndFound'))
 const ViewLoading = () => (
   <div className="flex items-center justify-center min-h-[50vh] py-16">
     <div className="flex flex-col items-center gap-3">
-      <div className="w-8 h-8 border-3 border-[#6B7A5E] border-t-transparent rounded-full animate-spin" />
-      <span className="text-xs text-neutral-400 dark:text-neutral-500 font-medium tracking-wide">Loading view...</span>
+      <div className="relative w-10 h-10 flex items-center justify-center">
+        <div className="absolute inset-0 rounded-full border-2 border-dashed border-[#C99A6B]/50 animate-[spin_8s_linear_infinite]" />
+        <div className="w-7 h-7 rounded-full border-2 border-[#6B7A5E] border-t-transparent animate-spin" />
+      </div>
+      <span className="text-xs text-neutral-500 dark:text-neutral-400 font-medium tracking-wide">Loading view…</span>
     </div>
   </div>
 )
 
 const PageLoading = () => (
-  <div className="flex items-center justify-center h-screen bg-[#FDFBF7] dark:bg-[#121418]">
-    <div className="flex flex-col items-center gap-3">
-      <div className="w-9 h-9 border-3 border-[#6B7A5E] border-t-transparent rounded-full animate-spin" />
-      <span className="text-xs text-neutral-500 font-medium tracking-wide">Loading Cambacay Breeze Inn...</span>
+  <div className="flex items-center justify-center h-screen bg-[#FBF8F1] dark:bg-[#121612]">
+    <div className="relative flex flex-col items-center p-8 rounded-3xl bg-white/75 dark:bg-[#181E15]/85 backdrop-blur-xl border border-[#6B7A5E]/20 shadow-xl max-w-xs w-full text-center">
+      <div className="relative w-20 h-20 flex items-center justify-center mb-3">
+        <div className="absolute inset-0 rounded-full border-2 border-dashed border-[#C99A6B]/50 animate-[spin_16s_linear_infinite]" />
+        <div className="w-16 h-16 rounded-full bg-white dark:bg-[#1E251B] ring-2 ring-[#6B7A5E]/20 shadow-md flex items-center justify-center p-2">
+          <img src={logo} alt="Cambacay Breeze Inn" className="w-full h-full object-contain" />
+        </div>
+      </div>
+      <h3 className="font-serif text-lg font-semibold text-[#22281D] dark:text-[#F3F5F0]">
+        Cambacay <span className="italic text-[#6B7A5E]">Breeze</span> Inn
+      </h3>
+      <div className="w-24 h-1 bg-neutral-200 dark:bg-neutral-800 rounded-full overflow-hidden mt-3">
+        <div className="w-full h-full bg-gradient-to-r from-[#6B7A5E] to-[#C99A6B] rounded-full animate-pulse" />
+      </div>
+      <span className="text-[11px] text-[#7A7E73] dark:text-neutral-400 mt-2 font-medium tracking-wide">
+        Loading hospitality suite…
+      </span>
     </div>
   </div>
 )
@@ -204,13 +222,26 @@ export default function App() {
     }
   }, [view, auth])
 
-  // Show a loading spinner while checking existing session
+  // Show a loading screen while checking existing session
   if (authLoading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-cream">
-        <div className="text-center">
-          <div className="w-10 h-10 border-4 border-forest border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-ink-muted text-sm">Loading...</p>
+      <div className="flex items-center justify-center h-screen bg-[#FBF8F1] dark:bg-[#121612]">
+        <div className="relative flex flex-col items-center p-8 rounded-3xl bg-white/80 dark:bg-[#181E15]/85 backdrop-blur-xl border border-[#6B7A5E]/20 shadow-xl max-w-xs w-full text-center">
+          <div className="relative w-22 h-22 flex items-center justify-center mb-3">
+            <div className="absolute inset-0 rounded-full border-2 border-dashed border-[#C99A6B]/50 animate-[spin_16s_linear_infinite]" />
+            <div className="w-18 h-18 rounded-full bg-white dark:bg-[#1E251B] ring-2 ring-[#6B7A5E]/20 shadow-md flex items-center justify-center p-2">
+              <img src={logo} alt="Cambacay Breeze Inn" className="w-full h-full object-contain" />
+            </div>
+          </div>
+          <h3 className="font-serif text-lg font-semibold text-[#22281D] dark:text-[#F3F5F0]">
+            Cambacay <span className="italic text-[#6B7A5E]">Breeze</span> Inn
+          </h3>
+          <div className="w-28 h-1.5 bg-neutral-200 dark:bg-neutral-800 rounded-full overflow-hidden mt-3">
+            <div className="w-full h-full bg-gradient-to-r from-[#6B7A5E] to-[#C99A6B] rounded-full animate-pulse" />
+          </div>
+          <span className="text-[11.5px] text-[#7A7E73] dark:text-neutral-400 mt-2.5 font-medium tracking-wide">
+            Restoring session…
+          </span>
         </div>
       </div>
     )

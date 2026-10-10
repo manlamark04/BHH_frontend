@@ -82,6 +82,10 @@ export interface MotorRental {
   pickup_inspected_by?: number | null
   pickup_inspected_at?: string | null
   pickup_inspector_name?: string | null
+  return_checklist?: ReturnChecklist | string | null
+  return_photos?: string[] | string | null
+  fuel_surcharge?: number
+  missing_helmets_fee?: number
   has_damage?: boolean | number
   damage_fee?: number
   damage_fee_waived?: boolean | number
@@ -97,7 +101,27 @@ export interface PickupChecklist {
   tires_good?: boolean
   fuel_level?: string
   helmets_count?: number
+  odometer_start?: number | string
+  tool_kit_ok?: boolean
   notes?: string
+}
+
+export interface ReturnChecklist {
+  odometer_end?: number | string
+  kilometers_driven?: number
+  fuel_level?: string
+  fuel_surcharge?: number
+  fuel_surcharge_waived?: boolean
+  helmets_returned?: number
+  missing_helmets_count?: number
+  missing_helmets_fee?: number
+  missing_helmets_waived?: boolean
+  tool_kit_returned?: boolean
+  tires_good?: boolean
+  mirrors_intact?: boolean
+  lights_working?: boolean
+  brakes_functional?: boolean
+  condition_notes?: string
 }
 
 export interface PickupInspectionPayload {
@@ -169,6 +193,10 @@ export interface ReturnMotorPayload {
   waive_late_fee?: boolean
   late_fee_override?: number
   waiver_reason?: string
+  fuel_surcharge?: number
+  missing_helmets_fee?: number
+  return_checklist?: ReturnChecklist
+  return_photos?: string[]
   damage?: DamageAssessmentPayload
 }
 
