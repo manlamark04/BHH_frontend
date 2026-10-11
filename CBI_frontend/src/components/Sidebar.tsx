@@ -47,7 +47,7 @@ interface NavItem {
   view: View
   icon: LucideIcon
   badgeKey?: string
-  badgeVariant?: 'amber' | 'rose' | 'emerald' | 'gold'
+  badgeVariant?: 'amber' | 'rose' | 'emerald' | 'gold' | 'red'
 }
 
 const ADMIN_NAV: NavItem[] = [
@@ -57,10 +57,10 @@ const ADMIN_NAV: NavItem[] = [
   { label: 'Customer Records', view: 'admin-guests', icon: Users },
   { label: 'Motor Rent', view: 'staff-motorcycles', icon: Bike },
   { label: 'Pickleball Court', view: 'staff-pickleball', icon: Trophy },
-  { label: 'Check-In / Out', view: 'admin-checkinout', icon: ArrowLeftRight, badgeKey: 'checkin-out', badgeVariant: 'emerald' },
-  { label: 'Housekeeping', view: 'admin-housekeeping', icon: ClipboardCheck, badgeKey: 'housekeeping', badgeVariant: 'amber' },
-  { label: 'User Management', view: 'admin-users', icon: UserCog, badgeKey: 'pending-users', badgeVariant: 'amber' },
-  { label: 'Billing & Payments', view: 'admin-billing', icon: Receipt, badgeKey: 'outstanding-bills', badgeVariant: 'rose' },
+  { label: 'Check-In / Out', view: 'admin-checkinout', icon: ArrowLeftRight, badgeKey: 'checkin-out', badgeVariant: 'red' },
+  { label: 'Housekeeping', view: 'admin-housekeeping', icon: ClipboardCheck, badgeKey: 'housekeeping', badgeVariant: 'red' },
+  { label: 'User Management', view: 'admin-users', icon: UserCog, badgeKey: 'pending-users', badgeVariant: 'red' },
+  { label: 'Billing & Payments', view: 'admin-billing', icon: Receipt, badgeKey: 'outstanding-bills', badgeVariant: 'red' },
   { label: 'Lost & Found', view: 'admin-lost-and-found', icon: PackageSearch },
   { label: 'Financial Analytics and Reports', view: 'admin-reports', icon: BarChart3 },
   { label: 'Audit Log', view: 'admin-audit', icon: History },
@@ -74,13 +74,13 @@ const STAFF_NAV: NavItem[] = [
 
   { label: 'Bookings', view: 'staff-bookings', icon: CalendarDays },
   { label: 'Rooms', view: 'staff-rooms', icon: BedDouble },
-  { label: 'Check-In / Out', view: 'staff-checkinout', icon: ArrowLeftRight, badgeKey: 'checkin-out', badgeVariant: 'emerald' },
-  { label: 'Housekeeping', view: 'staff-housekeeping', icon: ClipboardCheck, badgeKey: 'housekeeping', badgeVariant: 'amber' },
+  { label: 'Check-In / Out', view: 'staff-checkinout', icon: ArrowLeftRight, badgeKey: 'checkin-out', badgeVariant: 'red' },
+  { label: 'Housekeeping', view: 'staff-housekeeping', icon: ClipboardCheck, badgeKey: 'housekeeping', badgeVariant: 'red' },
   { label: 'Walk-In Registration', view: 'staff-walkin', icon: UserPlus },
   { label: 'Motor Rent', view: 'staff-motorcycles', icon: Bike },
   { label: 'Pickleball Court', view: 'staff-pickleball', icon: Trophy },
   { label: 'Customer Records', view: 'staff-customers', icon: Users },
-  { label: 'Billing & Payments', view: 'staff-billing', icon: Receipt, badgeKey: 'outstanding-bills', badgeVariant: 'rose' },
+  { label: 'Billing & Payments', view: 'staff-billing', icon: Receipt, badgeKey: 'outstanding-bills', badgeVariant: 'red' },
   { label: 'Lost & Found', view: 'staff-lost-and-found', icon: PackageSearch },
   { label: 'My Profile', view: 'staff-profile', icon: User },
 ]
@@ -418,9 +418,7 @@ export default function Sidebar({
                 <Icon className="w-4 h-4" strokeWidth={1.5} />
                 {collapsed && badgeCount > 0 && (
                   <span
-                    className={`absolute -top-1.5 -right-2 min-w-[14px] h-[14px] px-0.5 ${
-                      item.badgeVariant === 'rose' ? 'bg-rose-600' : 'bg-amber-600 dark:bg-amber-500'
-                    } text-white text-[9px] font-bold rounded-full flex items-center justify-center leading-none shadow-xs border border-[#2A3126]`}
+                    className="absolute -top-1.5 -right-2 min-w-[14px] h-[14px] px-0.5 bg-red-600 text-white text-[9px] font-bold rounded-full flex items-center justify-center leading-none shadow-xs border border-[#2A3126]"
                   >
                     {badgeCount > 99 ? '99+' : badgeCount}
                   </span>
@@ -434,7 +432,7 @@ export default function Sidebar({
               {!collapsed && badgeCount > 0 && (
                 <SidebarBadge
                   count={badgeCount}
-                  variant={item.badgeVariant || 'amber'}
+                  variant={item.badgeVariant || 'red'}
                   title={
                     item.badgeKey === 'pending-users'
                       ? `${badgeCount} pending registration approval${badgeCount > 1 ? 's' : ''}`

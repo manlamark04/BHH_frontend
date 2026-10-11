@@ -3127,7 +3127,16 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
                   </div>
                   <button
                     type="button"
-                    onClick={() => window.print()}
+                    onClick={() => {
+                      const prevTitle = document.title
+                      document.title = ''
+                      setTimeout(() => {
+                        window.print()
+                        setTimeout(() => {
+                          document.title = prevTitle || 'Cambacay Breeze Inn'
+                        }, 500)
+                      }, 150)
+                    }}
                     className="px-3.5 py-2 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl text-xs font-semibold shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
                     title="Print Handover & Inspection Slip"
                   >

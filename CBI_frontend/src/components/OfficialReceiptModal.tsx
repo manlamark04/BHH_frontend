@@ -2,6 +2,7 @@ import React, { useRef } from 'react'
 import { Printer, Download, Mail, CheckCircle2, X } from 'lucide-react'
 import Modal from './Modal'
 import { OfficialReceiptData } from '../api/billing'
+import logo from '../imports/logo.png'
 
 interface OfficialReceiptModalProps {
   isOpen: boolean
@@ -21,7 +22,14 @@ export const OfficialReceiptModal: React.FC<OfficialReceiptModalProps> = ({
   if (!receipt) return null
 
   const handlePrint = () => {
-    window.print()
+    const prevTitle = document.title
+    document.title = ''
+    setTimeout(() => {
+      window.print()
+      setTimeout(() => {
+        document.title = prevTitle || 'Cambacay Breeze Inn'
+      }, 500)
+    }, 150)
   }
 
   const handleEmail = () => {
@@ -113,16 +121,19 @@ export const OfficialReceiptModal: React.FC<OfficialReceiptModalProps> = ({
         >
           {/* Header Branding */}
           <div className="text-center border-b-2 border-dashed border-neutral-300 pb-5 mb-5">
-            <div className="flex items-center justify-center gap-2 mb-1">
-              <span className="text-lg font-black tracking-widest text-[#6B7A5E] uppercase font-display">
-                CAMBACAY BREEZE INN
-              </span>
+            <div className="flex items-center justify-center gap-3 mb-1.5">
+              <img src={logo} alt="Cambacay Breeze Inn Logo" className="h-12 w-auto object-contain shrink-0" />
+              <div className="text-left">
+                <span className="text-lg font-black tracking-widest text-[#6B7A5E] uppercase font-display block leading-tight">
+                  CAMBACAY BREEZE INN
+                </span>
+                <p className="text-[11px] text-neutral-600 uppercase tracking-wider font-semibold">
+                  Resort, Leisure & Hospitality Services
+                </p>
+              </div>
             </div>
-            <p className="text-[11px] text-neutral-600 uppercase tracking-wider font-semibold">
-              Beachfront Resort & Leisure Services
-            </p>
-            <p className="text-[10px] text-neutral-500 mt-0.5 font-mono">
-              Cambacay, Bacacay, Albay 4514 · +63 912 345 6789 · info@cambacaybreezeinn.com
+            <p className="text-[10px] text-neutral-500 mt-1 font-mono">
+              ✦ Cambacay, Batuan, Bohol, Philippines ✦ Phone: +63 917 123 4567 · info@cambacaybreezeinn.com
             </p>
             <div className="mt-3 inline-block px-3 py-1 bg-neutral-100 rounded-full border border-neutral-300">
               <span className="text-[11px] font-black tracking-widest uppercase text-neutral-800">

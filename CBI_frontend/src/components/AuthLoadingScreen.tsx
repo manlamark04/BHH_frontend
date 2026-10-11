@@ -43,7 +43,7 @@ export function getHonorificGreeting(
   gender?: string | null,
   civilStatus?: string | null
 ): string {
-  const name = fullName.trim()
+  const name = fullName.replace(/\s*\(\s*walk-in\s*\)/gi, '').trim()
   if (!name) return 'Welcome back'
 
   const g = gender ? gender.trim().toLowerCase() : ''

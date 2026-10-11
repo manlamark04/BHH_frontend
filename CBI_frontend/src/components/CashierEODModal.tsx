@@ -24,6 +24,7 @@ import {
 } from 'lucide-react'
 import Modal from './Modal'
 import { billingApi, type EODReportData } from '../api/billing'
+import logo from '../imports/logo.png'
 
 interface CashierEODModalProps {
   isOpen: boolean
@@ -165,7 +166,14 @@ export default function CashierEODModal({ isOpen, onClose }: CashierEODModalProp
   }
 
   const handlePrint = () => {
-    window.print()
+    const prevTitle = document.title
+    document.title = ''
+    setTimeout(() => {
+      window.print()
+      setTimeout(() => {
+        document.title = prevTitle || 'Cambacay Breeze Inn'
+      }, 500)
+    }, 150)
   }
 
   // Financial calculations
@@ -409,18 +417,21 @@ export default function CashierEODModal({ isOpen, onClose }: CashierEODModalProp
         >
           {/* Resort Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b-2 border-neutral-800 pb-4">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xl font-black tracking-widest text-[#6B7A5E] uppercase font-display">
-                  CAMBACAY BREEZE INN
-                </span>
-                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#6B7A5E]/10 text-[#6B7A5E]">
-                  OFFICIAL SHIFT RECORD
-                </span>
+            <div className="flex items-center gap-3.5">
+              <img src={logo} alt="Cambacay Breeze Inn Logo" className="h-14 w-auto object-contain shrink-0" />
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xl font-black tracking-widest text-[#6B7A5E] uppercase font-display leading-tight">
+                    CAMBACAY BREEZE INN
+                  </span>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#6B7A5E]/10 text-[#6B7A5E]">
+                    OFFICIAL SHIFT RECORD
+                  </span>
+                </div>
+                <p className="text-[11px] text-neutral-500 mt-0.5">
+                  ✦ Cambacay, Batuan, Bohol ✦ Front Office & Cashier Operations · Daily Shift Settlement
+                </p>
               </div>
-              <p className="text-[11px] text-neutral-500 mt-0.5">
-                Front Office & Cashier Operations · Daily Shift Settlement & Cash Turnover
-              </p>
             </div>
 
             <div className="text-left sm:text-right">

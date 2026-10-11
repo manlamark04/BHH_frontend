@@ -387,7 +387,7 @@ html.dark .bhh-skeleton {
     background: white !important;
     color: black !important;
     margin: 0 auto !important;
-    padding: 0 !important;
+    padding: 1.2cm 1.5cm !important;
     border: none !important;
     box-shadow: none !important;
   }
@@ -404,9 +404,21 @@ html.dark .bhh-skeleton {
     box-shadow: none !important;
   }
 
-  @page {
-    margin: 1.2cm;
-    size: auto;
+  #bhh-receipt-print img,
+  #official-receipt-print-area img,
+  #booking-voucher-print-area img,
+  #cashier-eod-print-area img,
+  #financial-statement-print-area img,
+  #motor-inspection-print-area img {
+    display: inline-block !important;
+    object-fit: contain !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
+}
+
+@page {
+  size: auto;
+  margin: 0mm;
 }
 

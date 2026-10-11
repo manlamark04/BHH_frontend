@@ -2,7 +2,7 @@ import React from 'react'
 
 export interface SidebarBadgeProps {
   count?: number | null
-  variant?: 'amber' | 'rose' | 'emerald' | 'gold'
+  variant?: 'amber' | 'rose' | 'emerald' | 'gold' | 'red'
   className?: string
   title?: string
 }
@@ -13,7 +13,7 @@ export interface SidebarBadgeProps {
  */
 export default function SidebarBadge({
   count,
-  variant = 'amber',
+  variant = 'red',
   className = '',
   title,
 }: SidebarBadgeProps) {
@@ -24,10 +24,11 @@ export default function SidebarBadge({
   const displayCount = count > 99 ? '99+' : count
 
   const variantStyles = {
-    amber: 'bg-amber-600 dark:bg-amber-500 text-white shadow-xs',
-    rose: 'bg-rose-600 text-white shadow-xs',
-    emerald: 'bg-emerald-600 text-white shadow-xs',
-    gold: 'bg-[#C9A66B] text-white shadow-xs',
+    red: 'bg-red-600 text-white shadow-xs',
+    amber: 'bg-red-600 text-white shadow-xs',
+    rose: 'bg-red-600 text-white shadow-xs',
+    emerald: 'bg-red-600 text-white shadow-xs',
+    gold: 'bg-red-600 text-white shadow-xs',
   }
 
   return (
@@ -35,7 +36,7 @@ export default function SidebarBadge({
       title={title || `${count} pending`}
       aria-label={`${count} pending`}
       className={`inline-flex items-center justify-center min-w-[18px] h-[18px] px-1.5 rounded-full text-[10px] font-bold font-sans leading-none select-none tracking-tight transition-all duration-200 ${
-        variantStyles[variant] || variantStyles.amber
+        variantStyles[variant] || 'bg-red-600 text-white shadow-xs'
       } ${className}`}
     >
       {displayCount}

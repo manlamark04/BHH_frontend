@@ -14,6 +14,7 @@ import {
   UserCheck,
   UserX,
   Ban,
+  ArrowLeftRight,
 } from 'lucide-react'
 import { bookingsApi, type BookingItem } from '../../api/bookings'
 import { billingApi } from '../../api/billing'
@@ -22,6 +23,7 @@ import type { View } from '../../types'
 import StatusBadge from '../../components/StatusBadge'
 import Modal from '../../components/Modal'
 import ConfirmDialog from '../../components/ConfirmDialog'
+import SwitchRoomModal from '../../components/SwitchRoomModal'
 
 type FilterOption = 'all' | 'arrivals' | 'inhouse' | 'departures' | 'upcoming' | 'overdue'
 
@@ -52,6 +54,9 @@ export default function AdminCheckInOut({ onNavigate }: { onNavigate?: (view: Vi
 
   // View Arrival Details Modal
   const [viewArrivalTarget, setViewArrivalTarget] = useState<BookingItem | null>(null)
+
+  // Switch Room Modal
+  const [switchRoomBooking, setSwitchRoomBooking] = useState<BookingItem | null>(null)
 
   // Check-Out Modal (with payment calculation)
   const [checkOutTarget, setCheckOutTarget] = useState<BookingItem | null>(null)
@@ -434,90 +439,124 @@ export default function AdminCheckInOut({ onNavigate }: { onNavigate?: (view: Vi
               {displayArrivals.map((b) => (
                 <div
                   key={b.id}
-                  className="p-4 rounded-xl bg-[#F6F2E8] border border-stone/20 hover:border-[#6B7A5E]/40 transition-all space-y-2.5 shadow-xs"
+                  className="p-4 rounded-xl bg-white dark:bg-[#1C2027] border border-stone/20 dark:border-neutral-800 hover:border-[#6B7A5E]/40 transition-all space-y-3 shadow-xs"
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-[#6B7A5E]/15 text-[#6B7A5E] font-display font-bold text-sm flex items-center justify-center shrink-0">
+                  {/* 1. Header with Avatar, Name, and Room Pill */}
+                  <div className="flex items-start justify-between gap-2.5">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-10 h-10 rounded-full bg-[#6B7A5E]/15 text-[#6B7A5E] font-display font-bold text-sm flex items-center justify-center shrink-0 border border-[#6B7A5E]/20">
                         {getInitials(b.customer_name)}
                       </div>
-                      <div>
-                        <h4 className="font-display font-bold text-ink text-base leading-tight">
+                      <div className="min-w-0">
+                        <h4 className="font-display font-bold text-ink dark:text-white text-base leading-tight truncate">
                           {b.customer_name}
                         </h4>
-                        <p className="text-xs text-ink-muted">
+                        <p className="text-xs text-ink-muted dark:text-neutral-400 truncate mt-0.5">
                           Room {b.room_number} · {b.room_type} · {b.nights} {b.nights === 1 ? 'night' : 'nights'}
                         </p>
                       </div>
                     </div>
+                    <span className="shrink-0 px-2 py-0.5 rounded-md text-[10px] font-bold font-mono bg-neutral-100 dark:bg-neutral-800 text-[#6B7A5E] dark:text-[#9BB08C] border border-black/[0.05] dark:border-neutral-700">
+                      Rm {b.room_number}
+                    </span>
                   </div>
 
-                  <p className="text-[11px] font-mono text-ink-muted">
-                    {formatDate(b.check_in)} → {formatDate(b.check_out)} · <strong className="text-[#6B7A5E]">{b.booking_ref || `#BK-${b.id}`}</strong>
-                  </p>
+                  {/* 2. Dates & Booking Reference */}
+                  <div className="flex items-center justify-between text-[11px] font-mono text-ink-muted dark:text-neutral-400 bg-sand/30 dark:bg-neutral-800/40 px-2.5 py-1.5 rounded-lg border border-black/[0.04] dark:border-neutral-700/60">
+                    <span>{formatDate(b.check_in)} → {formatDate(b.check_out)}</span>
+                    <strong className="text-[#6B7A5E] dark:text-[#9BB08C] font-semibold">{b.booking_ref || `#BK-${b.id}`}</strong>
+                  </div>
 
-                  <div className="flex items-center justify-between pt-1 border-t border-stone/15">
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-display font-bold text-ink text-xs">
-                          ₱{Number(b.total_price || 0).toLocaleString()}
-                        </span>
-                        {(() => {
-                          const isPaid = String(b.payment_status || '').toUpperCase() === 'PAID' || Number(b.remaining_balance || 0) === 0
-                          const isPartiallyPaid = String(b.payment_status || '').toUpperCase() === 'PARTIALLY PAID'
-                          const rem = Number(b.remaining_balance || 0)
-                          if (isPaid) {
-                            return <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50">Fully Paid</span>
-                          }
-                          if (isPartiallyPaid) {
-                            return <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50">Bal: ₱{rem.toLocaleString()}</span>
-                          }
-                          return <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/50">Due: ₱{rem > 0 ? rem.toLocaleString() : Number(b.total_price || 0).toLocaleString()}</span>
-                        })()}
+                  {/* 3. Financial & Payment Status Strip */}
+                  <div className="flex items-center justify-between pt-1 border-t border-stone/15 dark:border-neutral-800">
+                    <span className="font-display font-bold text-ink dark:text-white text-xs">
+                      ₱{Number(b.total_price || 0).toLocaleString()}
+                    </span>
+                    {(() => {
+                      const isPaid = String(b.payment_status || '').toUpperCase() === 'PAID' || Number(b.remaining_balance || 0) === 0
+                      const isPartiallyPaid = String(b.payment_status || '').toUpperCase() === 'PARTIALLY PAID'
+                      const rem = Number(b.remaining_balance || 0)
+                      if (isPaid) {
+                        return <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50">Fully Paid</span>
+                      }
+                      if (isPartiallyPaid) {
+                        return <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50">Bal: ₱{rem.toLocaleString()}</span>
+                      }
+                      return <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/50">Due: ₱{rem > 0 ? rem.toLocaleString() : Number(b.total_price || 0).toLocaleString()}</span>
+                    })()}
+                  </div>
+
+                  {/* 4. Dedicated Action Buttons Row (Full width) */}
+                  <div className="pt-2 border-t border-stone/15 dark:border-neutral-800">
+                    {b.is_arrived ? (
+                      <div className="grid grid-cols-12 gap-1.5 items-center">
+                        <button
+                          onClick={() => setViewArrivalTarget(b)}
+                          className="col-span-2 py-2 bg-sand dark:bg-[#20252E] hover:bg-stone/30 dark:hover:bg-neutral-700 text-ink dark:text-white rounded-xl text-xs font-semibold border border-stone/30 dark:border-neutral-700 shadow-2xs transition-all flex items-center justify-center cursor-pointer"
+                          title="View Details"
+                        >
+                          <Eye className="w-3.5 h-3.5 text-ink-muted dark:text-neutral-400" />
+                        </button>
+
+                        <button
+                          onClick={() => setSwitchRoomBooking(b)}
+                          className="col-span-3 py-2 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:hover:bg-amber-900/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50 rounded-xl text-xs font-semibold shadow-2xs transition-all flex items-center justify-center gap-1 cursor-pointer"
+                          title="Switch / Transfer to another room"
+                        >
+                          <ArrowLeftRight className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                          <span>Switch</span>
+                        </button>
+
+                        <button
+                          onClick={() => openArrivedPayment(b)}
+                          className="col-span-7 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-semibold shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                          title="Guest Arrived — Proceed to Payment / Check-In"
+                        >
+                          <Check className="w-3.5 h-3.5 shrink-0" />
+                          <span className="truncate">Pay & Check In</span>
+                        </button>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="grid grid-cols-12 gap-1.5 items-center">
+                        <button
+                          onClick={() => setViewArrivalTarget(b)}
+                          className="col-span-2 py-2 bg-sand dark:bg-[#20252E] hover:bg-stone/30 dark:hover:bg-neutral-700 text-ink dark:text-white rounded-xl text-xs font-semibold border border-stone/30 dark:border-neutral-700 shadow-2xs transition-all flex items-center justify-center cursor-pointer"
+                          title="View Details"
+                        >
+                          <Eye className="w-3.5 h-3.5 text-ink-muted dark:text-neutral-400" />
+                        </button>
 
-                    <div className="flex items-center gap-1.5">
-                      <div className="flex gap-1.5 w-full">
-                        {b.is_arrived ? (
-                          <div className="px-2.5 py-1.5 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50 rounded-lg text-[11px] font-semibold flex items-center gap-1 w-full justify-center">
-                            <Check className="w-3.5 h-3.5" />
-                            <span>Arrived — Awaiting Payment</span>
-                          </div>
-                        ) : (
-                          <>
-                            <button
-                              onClick={() => setViewArrivalTarget(b)}
-                              className="px-2 py-1.5 bg-sand dark:bg-[#20252E] hover:bg-stone/30 dark:hover:bg-neutral-700 text-ink dark:text-white rounded-lg text-[11px] font-semibold border border-stone/30 dark:border-neutral-700 shadow-2xs transition-all flex items-center justify-center cursor-pointer flex-1"
-                              title="View Details"
-                            >
-                              <Eye className="w-3.5 h-3.5 text-ink-muted dark:text-neutral-400" />
-                            </button>
+                        <button
+                          onClick={() => setSwitchRoomBooking(b)}
+                          className="col-span-3 py-2 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:hover:bg-amber-900/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50 rounded-xl text-xs font-semibold shadow-2xs transition-all flex items-center justify-center gap-1 cursor-pointer"
+                          title="Switch / Transfer to another room"
+                        >
+                          <ArrowLeftRight className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                          <span>Switch</span>
+                        </button>
 
-                            <button
-                              onClick={() => openArrivedPayment(b)}
-                              className="px-2 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-semibold shadow-xs transition-all flex items-center gap-1 cursor-pointer flex-2 justify-center"
-                              title="Guest has arrived — Process Payment & Check In"
-                            >
-                              <UserCheck className="w-3.5 h-3.5" strokeWidth={2} />
-                              <span>Arrived</span>
-                            </button>
-                            
-                            <button
-                              onClick={() => {
-                                setNoShowBooking(b)
-                                setNoShowReason('Guest failed to arrive/check in on scheduled check-in date')
-                              }}
-                              className="px-2 py-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/50 rounded-lg text-[11px] font-semibold transition-all flex items-center gap-1 cursor-pointer flex-2 justify-center"
-                              title="Mark guest as No-Show & release room"
-                            >
-                              <UserX className="w-3.5 h-3.5" strokeWidth={2} />
-                              <span>No-Show</span>
-                            </button>
-                          </>
-                        )}
+                        <button
+                          onClick={() => openArrivedPayment(b)}
+                          className="col-span-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-all flex items-center justify-center gap-1 cursor-pointer"
+                          title="Guest has arrived — Process Payment & Check In"
+                        >
+                          <UserCheck className="w-3.5 h-3.5 shrink-0" strokeWidth={2} />
+                          <span>Arrived</span>
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setNoShowBooking(b)
+                            setNoShowReason('Guest failed to arrive/check in on scheduled check-in date')
+                          }}
+                          className="col-span-3 py-2 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/50 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1 cursor-pointer"
+                          title="Mark guest as No-Show & release room"
+                        >
+                          <UserX className="w-3.5 h-3.5 shrink-0" strokeWidth={2} />
+                          <span className="truncate">No-Show</span>
+                        </button>
                       </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -559,79 +598,131 @@ export default function AdminCheckInOut({ onNavigate }: { onNavigate?: (view: Vi
                 const cOut = String(b.check_out || '').split('T')[0]
                 const isDueToday = cOut === todayStr
                 const isOverdue = cOut < todayStr
+                const rem = Number(b.remaining_balance || 0)
 
                 return (
                   <div
                     key={b.id}
-                    className={`p-4 rounded-xl border transition-all space-y-2.5 shadow-xs ${
+                    className={`p-4 rounded-xl border transition-all space-y-3 shadow-xs ${
                       isOverdue
-                        ? 'bg-rose-50/40 border-rose-200'
+                        ? 'bg-rose-50/30 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900/40'
                         : isDueToday
-                        ? 'bg-amber-50/40 border-amber-200'
-                        : 'bg-[#F6F2E8] border-stone/20'
+                        ? 'bg-amber-50/30 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900/40'
+                        : 'bg-white dark:bg-[#1C2027] border-stone/20 dark:border-neutral-800 hover:border-[#6B7A5E]/40'
                     }`}
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-800 font-display font-bold text-sm flex items-center justify-center shrink-0">
+                    {/* 1. Header with Avatar, Name, and Room Pill */}
+                    <div className="flex items-start justify-between gap-2.5">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className={`w-10 h-10 rounded-full font-display font-bold text-sm flex items-center justify-center shrink-0 border ${
+                          isOverdue
+                            ? 'bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300 border-rose-200 dark:border-rose-800'
+                            : isDueToday
+                            ? 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800'
+                            : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/50'
+                        }`}>
                           {getInitials(b.customer_name)}
                         </div>
-                        <div>
-                          <h4 className="font-display font-bold text-ink text-base leading-tight">
+                        <div className="min-w-0">
+                          <h4 className="font-display font-bold text-ink dark:text-white text-base leading-tight truncate">
                             {b.customer_name}
                           </h4>
-                          <p className="text-xs text-ink-muted">
+                          <p className="text-xs text-ink-muted dark:text-neutral-400 truncate mt-0.5">
                             Room {b.room_number} · {b.room_type} · {b.nights} {b.nights === 1 ? 'night' : 'nights'}
                           </p>
                         </div>
                       </div>
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold font-mono bg-neutral-100 dark:bg-neutral-800 text-[#6B7A5E] dark:text-[#9BB08C] border border-black/[0.05] dark:border-neutral-700">
+                          Rm {b.room_number}
+                        </span>
+                        {isOverdue ? (
+                          <span className="text-[9px] bg-rose-100 dark:bg-rose-900/40 text-rose-800 dark:text-rose-300 font-bold px-1.5 py-0.5 rounded uppercase">Overdue</span>
+                        ) : isDueToday ? (
+                          <span className="text-[9px] bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 font-bold px-1.5 py-0.5 rounded uppercase">Due Today</span>
+                        ) : null}
+                      </div>
                     </div>
 
-                    <p className="text-[11px] font-mono text-ink-muted">
-                      {formatDate(b.check_in)} → <strong className={isDueToday ? 'text-amber-800 font-bold' : isOverdue ? 'text-rose-700 font-bold' : 'text-ink'}>{formatDate(b.check_out)}</strong> · <strong className="text-[#6B7A5E]">{b.booking_ref || `#BK-${b.id}`}</strong>
-                    </p>
+                    {/* 2. Dates & Booking Reference */}
+                    <div className="flex items-center justify-between text-[11px] font-mono text-ink-muted dark:text-neutral-400 bg-sand/30 dark:bg-neutral-800/40 px-2.5 py-1.5 rounded-lg border border-black/[0.04] dark:border-neutral-700/60">
+                      <span>
+                        {formatDate(b.check_in)} → <strong className={isDueToday ? 'text-amber-700 dark:text-amber-400 font-bold' : isOverdue ? 'text-rose-700 dark:text-rose-400 font-bold' : 'text-ink dark:text-white'}>{formatDate(b.check_out)}</strong>
+                      </span>
+                      <strong className="text-[#6B7A5E] dark:text-[#9BB08C] font-semibold">{b.booking_ref || `#BK-${b.id}`}</strong>
+                    </div>
 
-                    {/* Balance & Action */}
-                    <div className="flex items-center justify-between pt-1 border-t border-stone/15">
-                      <div className="text-xs">
-                        {isOverdue ? (
-                          <span className="text-rose-700 font-bold uppercase text-[10px] bg-rose-100 px-2 py-0.5 rounded-md">OVERDUE</span>
-                        ) : isDueToday ? (
-                          <span className="text-amber-800 font-bold uppercase text-[10px] bg-amber-100 px-2 py-0.5 rounded-md">DUE TODAY</span>
-                        ) : Number(b.remaining_balance || 0) > 0 ? (
-                          <span className="text-amber-800 font-semibold">Bal: ₱{Number(b.remaining_balance).toLocaleString()}</span>
-                        ) : (
-                          <span className="text-emerald-700 font-medium text-[11px]">Fully Paid</span>
-                        )}
-                      </div>
-                      <div className="flex gap-2 items-center">
+                    {/* 3. Financial & Payment Status Strip */}
+                    <div className="flex items-center justify-between pt-1 border-t border-stone/15 dark:border-neutral-800">
+                      <span className="font-display font-bold text-ink dark:text-white text-xs">
+                        ₱{Number(b.total_price || 0).toLocaleString()}
+                      </span>
+                      {rem > 0 ? (
+                        <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50">
+                          Bal: ₱{rem.toLocaleString()}
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50">
+                          Fully Paid
+                        </span>
+                      )}
+                    </div>
+
+                    {/* 4. Dedicated Action Buttons Row (Full width) */}
+                    <div className="pt-2 border-t border-stone/15 dark:border-neutral-800">
+                      <div className="grid grid-cols-12 gap-1.5 items-center">
+                        <button
+                          onClick={() => setViewArrivalTarget(b)}
+                          className="col-span-2 py-2 bg-sand dark:bg-[#20252E] hover:bg-stone/30 dark:hover:bg-neutral-700 text-ink dark:text-white rounded-xl text-xs font-semibold border border-stone/30 dark:border-neutral-700 shadow-2xs transition-all flex items-center justify-center cursor-pointer"
+                          title="View Details"
+                        >
+                          <Eye className="w-3.5 h-3.5 text-ink-muted dark:text-neutral-400" />
+                        </button>
+
+                        <button
+                          onClick={() => setSwitchRoomBooking(b)}
+                          className={`py-2 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:hover:bg-amber-900/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50 rounded-xl text-xs font-semibold shadow-2xs transition-all flex items-center justify-center gap-1 cursor-pointer ${
+                            isOverdue ? 'col-span-3' : 'col-span-4'
+                          }`}
+                          title="Switch / Transfer to another room"
+                        >
+                          <ArrowLeftRight className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                          <span>Switch</span>
+                        </button>
+
                         {isOverdue && (
                           <button
                             onClick={() => {
                               setNoShowBooking(b)
                               setNoShowReason('Guest failed to arrive/check in on scheduled check-in date')
                             }}
-                            className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-[11px] font-semibold transition-all flex items-center gap-1 cursor-pointer"
-                            title="Mark guest as No-Show & release room"
+                            className="col-span-3 py-2 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/50 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1 cursor-pointer"
+                            title="Mark as No-Show & release room"
                           >
-                            <UserX className="w-3.5 h-3.5" strokeWidth={2} />
-                            <span>No-Show</span>
+                            <UserX className="w-3.5 h-3.5 shrink-0" strokeWidth={2} />
+                            <span className="truncate">No-Show</span>
                           </button>
                         )}
-                        {Number(b.remaining_balance || 0) > 0 ? (
+
+                        {rem > 0 ? (
                           <button
                             onClick={() => onNavigate && onNavigate('staff-billing')}
-                            className="px-4 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-200 rounded-xl text-xs font-semibold shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+                            className={`py-2 bg-amber-100 hover:bg-amber-200 dark:bg-amber-900/50 dark:hover:bg-amber-800/50 text-amber-900 dark:text-amber-200 border border-amber-300/70 dark:border-amber-700 rounded-xl text-xs font-semibold shadow-2xs transition-all flex items-center justify-center gap-1 cursor-pointer ${
+                              isOverdue ? 'col-span-4' : 'col-span-6'
+                            }`}
                             title="Go to Billing to settle balance"
                           >
-                            <span>Awaiting Payment</span>
+                            <span className="truncate">Settle Bill</span>
                           </button>
                         ) : (
                           <button
                             onClick={() => { setCheckOutTarget(b); setAdditionalCharges('0'); setChargesRemarks('') }}
-                            className="px-4 py-1.5 bg-stone-800 hover:bg-black text-white rounded-xl text-xs font-semibold shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+                            className={`py-2 bg-stone-900 hover:bg-black dark:bg-stone-700 dark:hover:bg-stone-600 text-white rounded-xl text-xs font-semibold shadow-xs transition-all flex items-center justify-center gap-1 cursor-pointer ${
+                              isOverdue ? 'col-span-4' : 'col-span-6'
+                            }`}
+                            title="Process Guest Check-Out"
                           >
-                            <span>Check Out</span>
+                            <span className="truncate">Check Out</span>
                           </button>
                         )}
                       </div>
@@ -677,99 +768,146 @@ export default function AdminCheckInOut({ onNavigate }: { onNavigate?: (view: Vi
                 const cIn = toLocalDateStr(b.check_in)
                 const isToday = cIn === todayStr
                 const daysAway = Math.max(0, Math.ceil((new Date(String(b.check_in)).getTime() - new Date(todayStr).getTime()) / (1000 * 60 * 60 * 24)))
+                const rem = Number(b.remaining_balance || 0)
+                const isPaid = String(b.payment_status || '').toUpperCase() === 'PAID' || rem === 0
 
                 return (
                   <div
                     key={b.id}
-                    className={`p-4 rounded-xl border transition-all space-y-2.5 shadow-xs ${
+                    className={`p-4 rounded-xl border transition-all space-y-3 shadow-xs ${
                       isToday
-                        ? 'bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/50 hover:border-emerald-400'
-                        : 'bg-[#F6F2E8] border-stone/20 hover:border-[#6B7A5E]/40'
+                        ? 'bg-emerald-50/30 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/50 hover:border-emerald-400'
+                        : 'bg-white dark:bg-[#1C2027] border-stone/20 dark:border-neutral-800 hover:border-[#6B7A5E]/40'
                     }`}
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-full font-display font-bold text-sm flex items-center justify-center shrink-0 ${
-                          isToday ? 'bg-emerald-100 text-emerald-800' : 'bg-sand text-ink-muted'
+                    {/* 1. Header with Avatar, Name, and Room Pill */}
+                    <div className="flex items-start justify-between gap-2.5">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className={`w-10 h-10 rounded-full font-display font-bold text-sm flex items-center justify-center shrink-0 border ${
+                          isToday
+                            ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+                            : 'bg-[#6B7A5E]/15 text-[#6B7A5E] dark:text-[#9BB08C] border-[#6B7A5E]/20'
                         }`}>
                           {getInitials(b.customer_name)}
                         </div>
-                        <div>
-                          <h4 className="font-display font-bold text-ink text-base leading-tight">
+                        <div className="min-w-0">
+                          <h4 className="font-display font-bold text-ink dark:text-white text-base leading-tight truncate">
                             {b.customer_name}
                           </h4>
-                          <p className="text-xs text-ink-muted">
+                          <p className="text-xs text-ink-muted dark:text-neutral-400 truncate mt-0.5">
                             Room {b.room_number} · {b.room_type} · {b.nights} {b.nights === 1 ? 'night' : 'nights'}
                           </p>
                         </div>
                       </div>
-                      {isToday && (
-                        <span className="text-[9px] bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-700 px-2 py-0.5 rounded-full font-bold uppercase shrink-0">
-                          Today
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold font-mono bg-neutral-100 dark:bg-neutral-800 text-[#6B7A5E] dark:text-[#9BB08C] border border-black/[0.05] dark:border-neutral-700">
+                          Rm {b.room_number}
+                        </span>
+                        {isToday ? (
+                          <span className="text-[9px] bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 font-bold px-1.5 py-0.5 rounded uppercase">
+                            Today
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-ink-muted dark:text-neutral-400 font-medium">
+                            in {daysAway}d
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* 2. Dates & Booking Reference */}
+                    <div className="flex items-center justify-between text-[11px] font-mono text-ink-muted dark:text-neutral-400 bg-sand/30 dark:bg-neutral-800/40 px-2.5 py-1.5 rounded-lg border border-black/[0.04] dark:border-neutral-700/60">
+                      <span>{formatDate(b.check_in)} → {formatDate(b.check_out)}</span>
+                      <strong className="text-[#6B7A5E] dark:text-[#9BB08C] font-semibold">{b.booking_ref || `#BK-${b.id}`}</strong>
+                    </div>
+
+                    {/* 3. Financial & Payment Status Strip */}
+                    <div className="flex items-center justify-between pt-1 border-t border-stone/15 dark:border-neutral-800">
+                      <span className="font-display font-bold text-ink dark:text-white text-xs">
+                        ₱{Number(b.total_price || 0).toLocaleString()}
+                      </span>
+                      {isPaid ? (
+                        <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50">
+                          Fully Paid
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50">
+                          Due: ₱{rem > 0 ? rem.toLocaleString() : Number(b.total_price || 0).toLocaleString()}
                         </span>
                       )}
                     </div>
 
-                    <p className="text-[11px] font-mono text-ink-muted">
-                      {formatDate(b.check_in)} → {formatDate(b.check_out)} · <strong className="text-[#6B7A5E]">{b.booking_ref || `#BK-${b.id}`}</strong>
-                    </p>
+                    {/* 4. Dedicated Action Buttons Row (Full width) */}
+                    <div className="pt-2 border-t border-stone/15 dark:border-neutral-800">
+                      {b.is_arrived ? (
+                        <div className="grid grid-cols-12 gap-1.5 items-center">
+                          <button
+                            onClick={() => setViewArrivalTarget(b)}
+                            className="col-span-2 py-2 bg-sand dark:bg-[#20252E] hover:bg-stone/30 dark:hover:bg-neutral-700 text-ink dark:text-white rounded-xl text-xs font-semibold border border-stone/30 dark:border-neutral-700 shadow-2xs transition-all flex items-center justify-center cursor-pointer"
+                            title="View Details"
+                          >
+                            <Eye className="w-3.5 h-3.5 text-ink-muted dark:text-neutral-400" />
+                          </button>
 
-                    {/* Payment Status */}
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-display font-bold text-ink text-xs">
-                        ₱{Number(b.total_price || 0).toLocaleString()}
-                      </span>
-                      {(() => {
-                        const isPaid = String(b.payment_status || '').toUpperCase() === 'PAID' || Number(b.remaining_balance || 0) === 0
-                        const rem = Number(b.remaining_balance || 0)
-                        if (isPaid) {
-                          return <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50">Fully Paid</span>
-                        }
-                        return <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50">Due: ₱{rem > 0 ? rem.toLocaleString() : Number(b.total_price || 0).toLocaleString()}</span>
-                      })()}
-                    </div>
+                          <button
+                            onClick={() => setSwitchRoomBooking(b)}
+                            className="col-span-3 py-2 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:hover:bg-amber-900/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50 rounded-xl text-xs font-semibold shadow-2xs transition-all flex items-center justify-center gap-1 cursor-pointer"
+                            title="Switch / Transfer to another room"
+                          >
+                            <ArrowLeftRight className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                            <span>Switch</span>
+                          </button>
 
-                    {/* Actions: Guest Arrived + No-Show */}
-                    <div className="flex items-center justify-between pt-2 border-t border-stone/15">
-                      <div className="flex items-center gap-1">
-                        <StatusBadge status={String(b.status || 'CONFIRMED').toUpperCase()} />
-                        {!isToday && (
-                          <span className="text-[10px] text-ink-muted font-medium ml-1">
-                            in {daysAway} day{daysAway !== 1 ? 's' : ''}
-                          </span>
-                        )}
-                      </div>
+                          <button
+                            onClick={() => openArrivedPayment(b)}
+                            className="col-span-7 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-semibold shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                            title="Guest Arrived Early — Proceed to Payment / Check-In"
+                          >
+                            <Check className="w-3.5 h-3.5 shrink-0" />
+                            <span className="truncate">Pay & Check In</span>
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-12 gap-1.5 items-center">
+                          <button
+                            onClick={() => setViewArrivalTarget(b)}
+                            className="col-span-2 py-2 bg-sand dark:bg-[#20252E] hover:bg-stone/30 dark:hover:bg-neutral-700 text-ink dark:text-white rounded-xl text-xs font-semibold border border-stone/30 dark:border-neutral-700 shadow-2xs transition-all flex items-center justify-center cursor-pointer"
+                            title="View Details"
+                          >
+                            <Eye className="w-3.5 h-3.5 text-ink-muted dark:text-neutral-400" />
+                          </button>
 
-                      <div className="flex items-center gap-1.5">
-                        {b.is_arrived ? (
-                          <div className="px-2.5 py-1.5 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50 rounded-lg text-[11px] font-semibold flex items-center gap-1">
-                            <Check className="w-3.5 h-3.5" />
-                            <span>Arrived — Awaiting Payment</span>
-                          </div>
-                        ) : (
-                          <>
-                            <button
-                              onClick={() => setViewArrivalTarget(b)}
-                              className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-semibold shadow-xs transition-all flex items-center gap-1 cursor-pointer"
-                              title="Guest has arrived — View details & proceed to billing"
-                            >
-                              <UserCheck className="w-3.5 h-3.5" strokeWidth={2} />
-                              <span>Guest Arrived</span>
-                            </button>
-                            <button
-                              onClick={() => {
-                                setNoShowBooking(b)
-                                setNoShowReason('Guest failed to arrive/check in on scheduled check-in date')
-                              }}
-                              className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/50 rounded-lg text-[11px] font-semibold transition-all flex items-center gap-1 cursor-pointer"
-                              title="Mark guest as No-Show & release room"
-                            >
-                              <UserX className="w-3.5 h-3.5" strokeWidth={2} />
-                              <span>No-Show</span>
-                            </button>
-                          </>
-                        )}
-                      </div>
+                          <button
+                            onClick={() => setSwitchRoomBooking(b)}
+                            className="col-span-3 py-2 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:hover:bg-amber-900/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50 rounded-xl text-xs font-semibold shadow-2xs transition-all flex items-center justify-center gap-1 cursor-pointer"
+                            title="Switch / Transfer to another room"
+                          >
+                            <ArrowLeftRight className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                            <span>Switch</span>
+                          </button>
+
+                          <button
+                            onClick={() => openArrivedPayment(b)}
+                            className="col-span-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-all flex items-center justify-center gap-1 cursor-pointer"
+                            title="Guest has arrived — Process Payment & Check In"
+                          >
+                            <UserCheck className="w-3.5 h-3.5 shrink-0" strokeWidth={2} />
+                            <span>Arrived</span>
+                          </button>
+
+                          <button
+                            onClick={() => {
+                              setNoShowBooking(b)
+                              setNoShowReason('Guest failed to arrive/check in on scheduled check-in date')
+                            }}
+                            className="col-span-3 py-2 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/50 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1 cursor-pointer"
+                            title="Mark guest as No-Show & release room"
+                          >
+                            <UserX className="w-3.5 h-3.5 shrink-0" strokeWidth={2} />
+                            <span className="truncate">No-Show</span>
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )
@@ -1197,6 +1335,17 @@ export default function AdminCheckInOut({ onNavigate }: { onNavigate?: (view: Vi
           </div>
         )}
       </Modal>
+
+      {/* ─── SWITCH / TRANSFER ROOM MODAL ─── */}
+      <SwitchRoomModal
+        isOpen={!!switchRoomBooking}
+        onClose={() => setSwitchRoomBooking(null)}
+        booking={switchRoomBooking}
+        onSuccess={(msg) => {
+          fireToast(msg)
+          loadData()
+        }}
+      />
 
     </div>
   )

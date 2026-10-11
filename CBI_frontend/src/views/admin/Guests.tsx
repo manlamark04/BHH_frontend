@@ -205,11 +205,6 @@ export default function AdminGuests() {
                         <div>
                           <div className="flex items-center gap-2">
                             <p className="font-semibold text-ink">{fullName}</p>
-                            {(c as any).created_by_role === 'staff' || (c as any).created_by_role === 'admin' ? (
-                              <span className="px-1.5 py-0.5 bg-blue-100/80 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800 rounded text-[9px] font-bold uppercase tracking-widest shadow-xs">
-                                Walk-In
-                              </span>
-                            ) : null}
                           </div>
                           <p className="text-[10px] text-ink-muted mt-0.5">{String(c.city || c.address || 'Guest')}</p>
                         </div>

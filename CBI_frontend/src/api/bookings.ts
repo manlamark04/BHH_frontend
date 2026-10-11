@@ -167,6 +167,22 @@ export const bookingsApi = {
     notes?: string
   }) => api.put<{ message: string; total_price: number }>(`/api/bookings/${id}`, data),
 
+  /** POST /api/bookings/:id/transfer-room — Staff/Admin: Switch / Transfer Room */
+  transferRoom: (id: number, data: {
+    new_room_id: number
+    old_room_action: 'cleaning' | 'available'
+    reason: string
+    rate_difference_action?: 'charge' | 'waive'
+  }) => api.post<{
+    success: boolean
+    message: string
+    from_room: string
+    to_room: string
+    price_difference: number
+    old_room_status: string
+    new_room_status: string
+  }>(`/api/bookings/${id}/transfer-room`, data),
+
   /** PATCH /api/bookings/:id/status — Staff/Admin */
   updateBookingStatus: (id: number, status: string, remarks?: string) =>
     api.patch<{ message: string; status: string }>(`/api/bookings/${id}/status`, { status, remarks }),

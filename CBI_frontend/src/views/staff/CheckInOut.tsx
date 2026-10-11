@@ -11,12 +11,14 @@ import {
   Eye,
   Banknote,
   AlertCircle,
+  ArrowLeftRight,
 } from 'lucide-react'
 import { bookingsApi } from '../../api/bookings'
 import { roomsApi } from '../../api/rooms'
 import StatusBadge from '../../components/StatusBadge'
 import Modal from '../../components/Modal'
 import ConfirmDialog from '../../components/ConfirmDialog'
+import SwitchRoomModal from '../../components/SwitchRoomModal'
 
 const PRE_CHECKIN_STATUSES = ['confirmed', 'reserved', 'pending', 'pending_payment', 'requested']
 
@@ -41,6 +43,9 @@ export default function StaffCheckInOut() {
 
   // View Arrival Details Modal
   const [viewArrivalTarget, setViewArrivalTarget] = useState<Record<string, unknown> | null>(null)
+
+  // Switch Room Modal
+  const [switchRoomBooking, setSwitchRoomBooking] = useState<Record<string, unknown> | null>(null)
 
   const todayStr = useMemo(() => toLocalDateStr(new Date()), [])
 
@@ -278,7 +283,17 @@ export default function StaffCheckInOut() {
                       <td className="px-5 py-4 font-mono text-xs text-ink-muted">{String(b.check_out || '')}</td>
                       <td className="px-5 py-4"><StatusBadge status={status.toUpperCase().replace('_', '-')} /></td>
                       <td className="px-5 py-4 text-right">
-                        <div className="flex gap-2 justify-end items-center">
+                        <div className="flex gap-1.5 justify-end items-center">
+                          {!['cancelled', 'checked_out', 'rejected'].includes(status.toLowerCase()) && (
+                            <button
+                              onClick={() => setSwitchRoomBooking(b)}
+                              className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 shadow-2xs transition-all flex items-center gap-1 cursor-pointer"
+                              title="Switch / Transfer to another room"
+                            >
+                              <ArrowLeftRight className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                              <span className="hidden sm:inline">Switch Room</span>
+                            </button>
+                          )}
                           {tab === 'arrivals' && (() => {
                             const isPaid = String(b.payment_status || '').toUpperCase() === 'PAID' || Number(b.remaining_balance || 0) === 0
                             return (
@@ -467,6 +482,18 @@ export default function StaffCheckInOut() {
           )
         })()}
       </Modal>
+
+      {/* ─── SWITCH / TRANSFER ROOM MODAL ─── */}
+      <SwitchRoomModal
+        isOpen={!!switchRoomBooking}
+        onClose={() => setSwitchRoomBooking(null)}
+        booking={switchRoomBooking}
+        onSuccess={(msg) => {
+          setToast(msg)
+          setTimeout(() => setToast(''), 4000)
+          load()
+        }}
+      />
 
       <ConfirmDialog
         isOpen={!!confirmAction}

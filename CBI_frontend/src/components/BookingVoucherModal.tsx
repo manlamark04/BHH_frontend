@@ -14,6 +14,7 @@ import {
   Info,
 } from 'lucide-react'
 import Modal from './Modal'
+import logo from '../imports/logo.png'
 
 export interface BookingVoucherData {
   id: number
@@ -48,7 +49,14 @@ export default function BookingVoucherModal({ isOpen, onClose, booking }: Bookin
   if (!booking) return null
 
   const handlePrint = () => {
-    window.print()
+    const prevTitle = document.title
+    document.title = ''
+    setTimeout(() => {
+      window.print()
+      setTimeout(() => {
+        document.title = prevTitle || 'Cambacay Breeze Inn'
+      }, 500)
+    }, 150)
   }
 
   const formatDate = (dateStr?: string) => {
@@ -109,14 +117,17 @@ export default function BookingVoucherModal({ isOpen, onClose, booking }: Bookin
         >
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b-2 border-dashed border-neutral-300 pb-5">
-            <div>
-              <span className="text-xl font-black tracking-widest text-[#6B7A5E] uppercase font-display">
-                CAMBACAY BREEZE INN
-              </span>
-              <p className="text-[11px] text-neutral-500 mt-0.5">
-                Brgy. Cambacay, Batuan, Bohol, Philippines · Phone: +63 917 123 4567
-              </p>
-              <p className="text-[10px] text-neutral-400">reservations@cambacaybreezeinn.com</p>
+            <div className="flex items-center gap-3.5">
+              <img src={logo} alt="Cambacay Breeze Inn Logo" className="h-14 w-auto object-contain shrink-0" />
+              <div>
+                <span className="text-xl font-black tracking-widest text-[#6B7A5E] uppercase font-display block leading-tight">
+                  CAMBACAY BREEZE INN
+                </span>
+                <p className="text-[11px] text-neutral-500 mt-0.5">
+                  ✦ Brgy. Cambacay, Batuan, Bohol, Philippines ✦ Phone: +63 917 123 4567
+                </p>
+                <p className="text-[10px] text-neutral-400">reservations@cambacaybreezeinn.com</p>
+              </div>
             </div>
 
             <div className="text-left sm:text-right border-t sm:border-t-0 pt-2 sm:pt-0 border-neutral-200">

@@ -39,6 +39,7 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 import { reportsApi } from '../../api/reports'
+import logo from '../../imports/logo.png'
 
 const REVENUE_COLORS = ['#6B7A5E', '#D4A373', '#E07A5F', '#3D405B', '#8C6239', '#A5A58D']
 const EXPENSE_COLORS = ['#EF4444', '#F97316', '#F59E0B', '#10B981', '#6366F1', '#EC4899']
@@ -156,7 +157,14 @@ export default function FinancialDashboard() {
   }
 
   const handlePrint = () => {
-    window.print()
+    const prevTitle = document.title
+    document.title = ''
+    setTimeout(() => {
+      window.print()
+      setTimeout(() => {
+        document.title = prevTitle || 'Cambacay Breeze Inn'
+      }, 500)
+    }, 150)
   }
 
   if (loading && !data) {
@@ -187,6 +195,10 @@ export default function FinancialDashboard() {
       
       {/* ─── PRINT-SPECIFIC CSS INJECTION ─── */}
       <style>{`
+        @page {
+          size: auto;
+          margin: 0mm;
+        }
         @media print {
           .no-print {
             display: none !important;
@@ -199,14 +211,22 @@ export default function FinancialDashboard() {
             width: 100% !important;
             background: white !important;
             color: black !important;
-            padding: 0 !important;
-            margin: 0 !important;
+            padding: 1.2cm 1.5cm !important;
+            margin: 0 auto !important;
           }
           #financial-statement-print-area * {
             color: black !important;
             background: transparent !important;
             border-color: #cbd5e1 !important;
             box-shadow: none !important;
+          }
+          #financial-statement-print-area img {
+            display: block !important;
+            max-height: 4.5rem !important;
+            width: auto !important;
+            object-fit: contain !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
           }
           table {
             page-break-inside: auto !important;
@@ -228,19 +248,26 @@ export default function FinancialDashboard() {
         
         {/* Resort Letterhead */}
         <div className="border-b-2 border-neutral-900 pb-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-black uppercase tracking-wider text-[#6B7A5E] font-display">
-                CAMBACAY BREEZE INN
-              </h1>
-              <p className="text-xs font-semibold text-neutral-600 mt-0.5">
-                Executive Financial Performance & Performance Audit Statement
-              </p>
-              <p className="text-[10px] text-neutral-500">
-                Front Office, Cashier & Resort Management Operations
-              </p>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <img
+                src={logo}
+                alt="Cambacay Breeze Inn Logo"
+                className="h-16 w-auto object-contain shrink-0"
+              />
+              <div>
+                <h1 className="text-2xl font-black uppercase tracking-wider text-[#6B7A5E] font-display leading-tight">
+                  CAMBACAY BREEZE INN
+                </h1>
+                <p className="text-xs font-semibold text-neutral-600 mt-0.5">
+                  Executive Financial Performance & Performance Audit Statement
+                </p>
+                <p className="text-[10px] text-neutral-500">
+                  ✦ Cambacay, Batuan, Bohol, Philippines ✦ Front Office, Cashier & Resort Management Operations
+                </p>
+              </div>
             </div>
-            <div className="text-right">
+            <div className="text-right shrink-0">
               <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-500 block">
                 REPORTING PERIOD
               </span>
