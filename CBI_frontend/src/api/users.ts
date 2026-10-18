@@ -37,9 +37,9 @@ export const usersApi = {
     return api.get<Record<string, unknown>[]>(`/api/users/customers${qs ? `?${qs}` : ''}`)
   },
 
-  /** GET /api/users/customers/:id — Get customer by id */
+  /** GET /api/users/customers/:id — Get customer by id with stay history */
   getCustomerById: (id: number) =>
-    api.get<{ customer: Record<string, unknown>; audit_logs: Record<string, unknown>[] }>(`/api/users/customers/${id}`),
+    api.get<{ customer: Record<string, unknown>; audit_logs: Record<string, unknown>[]; recent_stays?: Record<string, unknown>[] }>(`/api/users/customers/${id}`),
 
   /** GET /api/users/customers/:id/audit — Get audit history */
   getCustomerAuditHistory: (id: number) =>

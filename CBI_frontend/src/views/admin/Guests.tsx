@@ -4,14 +4,19 @@ import {
   Users,
   UserCheck,
   Clock,
-  UserX,
-  FileText,
+  Star,
+  Sparkles,
+  BedDouble,
+  CreditCard,
+  Calendar,
+  CheckCircle2,
 } from 'lucide-react'
 import { usersApi } from '../../api/users'
 import StatusBadge from '../../components/StatusBadge'
 import Modal from '../../components/Modal'
 import Avatar from '../../components/Avatar'
 import GuestTransactionsModal from '../../components/GuestTransactionsModal'
+import GuestVipBadge from '../../components/GuestVipBadge'
 
 export default function AdminGuests() {
   const [customers, setCustomers] = useState<Record<string, unknown>[]>([])
@@ -21,10 +26,12 @@ export default function AdminGuests() {
   const [viewCustomer, setViewCustomer] = useState<Record<string, unknown> | null>(null)
   const [txnCustomer, setTxnCustomer] = useState<Record<string, unknown> | null>(null)
   const [auditLogs, setAuditLogs] = useState<Record<string, unknown>[]>([])
+  const [recentStays, setRecentStays] = useState<Record<string, unknown>[]>([])
 
   const loadCustomers = (q?: string, status?: string) => {
     setLoading(true)
-    usersApi.getCustomers({ q: q || undefined, status: status !== 'All' ? status : undefined })
+    const apiStatus = (status === 'VIP' || status === 'Repeat' || status === 'All') ? undefined : status
+    usersApi.getCustomers({ q: q || undefined, status: apiStatus })
       .then((data) => {
         const filtered = data.filter((c: any) => c.created_by_role !== 'staff' && c.created_by_role !== 'admin')
         setCustomers(filtered)
@@ -50,22 +57,29 @@ export default function AdminGuests() {
   const handleViewCustomer = async (c: Record<string, unknown>) => {
     setViewCustomer(c)
     try {
-      const audit = await usersApi.getCustomerAuditHistory(Number(c.id))
-      setAuditLogs(audit)
+      const res = await usersApi.getCustomerById(Number(c.id))
+      if (res?.customer) {
+        setViewCustomer(res.customer)
+      }
+      setAuditLogs(res?.audit_logs || [])
+      setRecentStays(res?.recent_stays || [])
     } catch {
       setAuditLogs([])
+      setRecentStays([])
     }
-  }
-
-  const getInitials = (name?: string) => {
-    if (!name) return 'G'
-    const parts = name.trim().split(' ')
-    if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase()
-    return name.substring(0, 2).toUpperCase()
   }
 
   const activeCount = customers.filter((c) => String(c.status).toLowerCase() === 'active').length
   const pendingCount = customers.filter((c) => String(c.status).toLowerCase() === 'pending').length
+  const vipCount = customers.filter((c) => String(c.guest_tier).toUpperCase() === 'VIP').length
+  const repeatCount = customers.filter((c) => String(c.guest_tier).toUpperCase() === 'REPEAT').length
+
+  const displayedCustomers = useMemo(() => {
+    if (statusFilter === 'All') return customers
+    if (statusFilter === 'VIP') return customers.filter((c) => String(c.guest_tier).toUpperCase() === 'VIP')
+    if (statusFilter === 'Repeat') return customers.filter((c) => String(c.guest_tier).toUpperCase() === 'REPEAT')
+    return customers.filter((c) => String(c.status).toLowerCase() === statusFilter.toLowerCase())
+  }, [customers, statusFilter])
 
   return (
     <div className="p-4 sm:p-5 max-w-7xl mx-auto space-y-4 sm:space-y-5 font-sans">
@@ -73,8 +87,16 @@ export default function AdminGuests() {
       {/* ─── 1. PAGE HEADER ─── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-black/[0.06] dark:border-neutral-800">
         <div>
-          <h1 className="font-display text-lg sm:text-xl font-bold text-neutral-900 dark:text-white tracking-tight">Customer Records</h1>
-          <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">Directory of registered guests, profile details & audit history</p>
+          <div className="flex items-center gap-2">
+            <h1 className="font-display text-lg sm:text-xl font-bold text-neutral-900 dark:text-white tracking-tight">Customer Records</h1>
+            {vipCount > 0 && (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-400/30 flex items-center gap-1">
+                <Star className="w-2.5 h-2.5 fill-amber-500 text-amber-500" />
+                {vipCount} VIP Patrons
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">Directory of registered guests, loyalty tier history & audit activity</p>
         </div>
 
         {/* Global Search Bar */}
@@ -84,7 +106,7 @@ export default function AdminGuests() {
             type="text"
             value={search}
             onChange={(e) => handleSearch(e.target.value)}
-            placeholder="Search customer ID, name, email..."
+            placeholder="Search customer ID, name, email, phone..."
             className="w-full pl-8.5 pr-3.5 py-1.5 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
           />
         </div>
@@ -103,6 +125,27 @@ export default function AdminGuests() {
           <div>
             <p className="font-display text-xl sm:text-2xl font-bold text-neutral-900 dark:text-white mt-1 leading-tight">{customers.length}</p>
             <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5 block">Guest accounts on file</span>
+          </div>
+        </div>
+
+        {/* VIP & Repeat Card */}
+        <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-amber-500/20 dark:border-amber-500/30 shadow-[0_1px_3px_rgba(0,0,0,0.04)] flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-amber-700 dark:text-amber-400 flex items-center gap-1">
+              <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
+              VIP & RETURNING
+            </span>
+            <div className="w-6 h-6 rounded-lg bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+              <Sparkles className="w-3.5 h-3.5" strokeWidth={1.5} />
+            </div>
+          </div>
+          <div>
+            <p className="font-display text-xl sm:text-2xl font-bold text-amber-700 dark:text-amber-400 mt-1 leading-tight">
+              {vipCount + repeatCount}
+            </p>
+            <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5 block">
+              {vipCount} VIP · {repeatCount} Repeat
+            </span>
           </div>
         </div>
 
@@ -132,34 +175,29 @@ export default function AdminGuests() {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase font-bold tracking-wider text-blue-600 dark:text-blue-400">SEARCH RESULTS</span>
-            <div className="w-6 h-6 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-              <Search className="w-3.5 h-3.5" strokeWidth={1.5} />
-            </div>
-          </div>
-          <div>
-            <p className="font-display text-xl sm:text-2xl font-bold text-blue-700 dark:text-blue-400 mt-1 leading-tight">{customers.length}</p>
-            <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5 block">Matching current filters</span>
-          </div>
-        </div>
-
       </div>
 
       {/* ─── 3. FILTER TABS BAR ─── */}
       <div className="flex flex-wrap gap-1 p-1 bg-neutral-100/70 dark:bg-[#20252E] rounded-lg border border-black/[0.06] dark:border-neutral-700/80 text-xs w-fit">
-        {['All', 'active', 'pending', 'rejected', 'suspended'].map((st) => (
+        {[
+          { id: 'All', label: 'All Guests' },
+          { id: 'VIP', label: `⭐ VIP (${vipCount})` },
+          { id: 'Repeat', label: `Repeat (${repeatCount})` },
+          { id: 'active', label: 'Active' },
+          { id: 'pending', label: 'Pending' },
+          { id: 'rejected', label: 'Rejected' },
+          { id: 'suspended', label: 'Suspended' },
+        ].map((tab) => (
           <button
-            key={st}
-            onClick={() => handleStatusFilter(st)}
+            key={tab.id}
+            onClick={() => handleStatusFilter(tab.id)}
             className={`px-3 py-1 rounded-md font-semibold uppercase text-[10px] tracking-wider transition-all cursor-pointer ${
-              statusFilter === st
+              statusFilter === tab.id
                 ? 'bg-[#6B7A5E] text-white shadow-2xs'
                 : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-white dark:hover:bg-neutral-800'
             }`}
           >
-            {st === 'All' ? 'All Statuses' : st}
+            {tab.label}
           </button>
         ))}
       </div>
@@ -169,9 +207,9 @@ export default function AdminGuests() {
         <div className="px-4 py-3 border-b border-black/[0.06] dark:border-neutral-800 bg-neutral-50/60 dark:bg-[#14171C] flex items-center justify-between">
           <div>
             <h3 className="font-display font-bold text-base text-neutral-900 dark:text-white">Guest Profiles Directory</h3>
-            <p className="text-[11px] text-neutral-500 dark:text-neutral-400">Master database of all guest accounts</p>
+            <p className="text-[11px] text-neutral-500 dark:text-neutral-400">Master database of all registered guests & loyalty profiles</p>
           </div>
-          <span className="text-xs font-mono font-bold text-[#6B7A5E]">{customers.length} records</span>
+          <span className="text-xs font-mono font-bold text-[#6B7A5E]">{displayedCustomers.length} records</span>
         </div>
 
         <div className="overflow-x-auto">
@@ -179,54 +217,84 @@ export default function AdminGuests() {
             <thead>
               <tr className="border-b border-stone/20 bg-sand/30 text-[10px] uppercase font-bold text-ink-muted tracking-wider">
                 <th className="px-5 py-3.5">CUSTOMER ID</th>
-                <th className="px-5 py-3.5">GUEST NAME</th>
+                <th className="px-5 py-3.5">GUEST & LOYALTY TIER</th>
+                <th className="px-5 py-3.5">STAYS & SPENT</th>
                 <th className="px-5 py-3.5">CONTACT NUMBER</th>
-                <th className="px-5 py-3.5">EMAIL ADDRESS</th>
                 <th className="px-5 py-3.5">STATUS</th>
                 <th className="px-5 py-3.5">REGISTERED</th>
                 <th className="px-5 py-3.5 text-right">ACTION</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-stone/15">
-              {customers.map((c) => {
+              {displayedCustomers.map((c) => {
                 const uniqueId = String(c.unique_id || c.id)
                 const fullName = String(c.full_name || `${c.first_name || ''} ${c.last_name || ''}`).trim()
                 const phone = String(c.phone || '—')
-                const email = String(c.email || '—')
                 const status = String(c.status || 'pending').toUpperCase()
                 const createdAt = String(c.created_at || '').substring(0, 10)
+                const stays = Number(c.completed_stays || c.total_bookings || 0)
+                const spent = Number(c.total_spent || 0)
 
                 return (
                   <tr key={String(c.id)} className="hover:bg-sand/20 transition-colors">
                     <td className="px-5 py-4 font-mono font-bold text-[#6B7A5E]">{uniqueId}</td>
+                    
+                    {/* Guest Name & VIP Badge */}
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
                         <Avatar name={fullName} photoUrl={(c as any).profile_photo_url} size="md" />
                         <div>
-                          <div className="flex items-center gap-2">
-                            <p className="font-semibold text-ink">{fullName}</p>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <p className="font-semibold text-ink dark:text-white">{fullName}</p>
+                            <GuestVipBadge
+                              tier={c.guest_tier as string}
+                              stays={stays}
+                              spent={spent}
+                              size="xs"
+                            />
                           </div>
-                          <p className="text-[10px] text-ink-muted mt-0.5">{String(c.city || c.address || 'Guest')}</p>
+                          <div className="flex items-center gap-2 text-[10px] text-ink-muted mt-0.5">
+                            <span>{String(c.city || c.address || 'Guest')}</span>
+                            {Boolean(c.favorite_room) && (
+                              <>
+                                <span>•</span>
+                                <span className="font-mono text-[#6B7A5E] font-medium">Fav: Rm {String(c.favorite_room)}</span>
+                              </>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </td>
+
+                    {/* Stays & Total Spent */}
+                    <td className="px-5 py-4">
+                      <div className="font-mono text-xs">
+                        <span className="font-bold text-ink dark:text-neutral-200">{stays} stay(s)</span>
+                        <p className="text-[11px] text-emerald-700 dark:text-emerald-400 font-semibold">
+                          ₱{spent.toLocaleString()}
+                        </p>
+                      </div>
+                    </td>
+
                     <td className="px-5 py-4 font-mono text-ink-muted">{phone}</td>
-                    <td className="px-5 py-4 font-mono text-ink-muted">{email}</td>
+                    
                     <td className="px-5 py-4">
                       <StatusBadge status={status} />
                     </td>
+                    
                     <td className="px-5 py-4 font-mono text-ink-muted text-xs">{createdAt}</td>
+                    
                     <td className="px-5 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => handleViewCustomer(c)}
-                          className="px-3.5 py-1.5 bg-[#F6F2E8] hover:bg-sand border border-stone/30 text-ink rounded-lg text-[11px] font-semibold shadow-xs transition-all whitespace-nowrap"
+                          className="px-3.5 py-1.5 bg-[#F6F2E8] dark:bg-neutral-800 hover:bg-sand dark:hover:bg-neutral-700 border border-stone/30 dark:border-neutral-700 text-ink dark:text-white rounded-lg text-[11px] font-semibold shadow-xs transition-all whitespace-nowrap cursor-pointer"
                         >
                           View Profile
                         </button>
                         <button
                           onClick={() => setTxnCustomer(c)}
-                          className="px-2.5 py-1.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-lg text-[11px] font-semibold shadow-xs transition-all whitespace-nowrap"
+                          className="px-2.5 py-1.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-lg text-[11px] font-semibold shadow-xs transition-all whitespace-nowrap cursor-pointer"
                         >
                           Transactions
                         </button>
@@ -239,7 +307,7 @@ export default function AdminGuests() {
           </table>
         </div>
 
-        {customers.length === 0 && !loading && (
+        {displayedCustomers.length === 0 && !loading && (
           <div className="py-16 text-center text-xs text-ink-muted">
             <div className="w-12 h-12 rounded-2xl bg-sand/60 border border-stone/20 flex items-center justify-center mx-auto mb-3 text-ink-muted">
               <Users className="w-6 h-6" strokeWidth={1.5} />
@@ -254,13 +322,13 @@ export default function AdminGuests() {
         isOpen={Boolean(viewCustomer)}
         onClose={() => setViewCustomer(null)}
         title={viewCustomer ? `${String(viewCustomer.full_name || 'Guest Profile')}` : 'Customer Profile'}
-        size="md"
+        size="lg"
       >
         {viewCustomer && (
           <div className="space-y-5 text-xs font-sans">
             
-            {/* Header Banner */}
-            <div className="bg-[#F6F2E8] border border-stone/20 rounded-2xl p-5 flex items-center justify-between">
+            {/* Header Banner with VIP Tier */}
+            <div className="bg-[#F6F2E8] dark:bg-neutral-800/60 border border-stone/20 dark:border-neutral-700 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-center gap-4">
                 <Avatar 
                   name={String(viewCustomer.full_name || viewCustomer.first_name || 'Guest')} 
@@ -268,51 +336,126 @@ export default function AdminGuests() {
                   size="xl" 
                 />
                 <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#6B7A5E]">CUSTOMER ID</span>
-                  <p className="font-mono text-xl font-bold text-ink">{String(viewCustomer.unique_id || viewCustomer.id)}</p>
-                  <p className="text-xs text-ink-muted mt-0.5">{String(viewCustomer.email || '')}</p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#6B7A5E]">CUSTOMER ID</span>
+                    <GuestVipBadge
+                      tier={viewCustomer.guest_tier as string}
+                      stays={Number(viewCustomer.completed_stays || viewCustomer.total_bookings || 0)}
+                      spent={Number(viewCustomer.total_spent || 0)}
+                      size="sm"
+                    />
+                  </div>
+                  <p className="font-mono text-xl font-bold text-ink dark:text-white mt-0.5">{String(viewCustomer.unique_id || viewCustomer.id)}</p>
+                  <p className="text-xs text-ink-muted dark:text-neutral-400">{String(viewCustomer.email || '')}</p>
                 </div>
               </div>
               <StatusBadge status={String(viewCustomer.status || 'ACTIVE').toUpperCase()} />
             </div>
 
+            {/* ─── LOYALTY & STAY HISTORY SNAPSHOT ─── */}
+            <div className="p-4 bg-white dark:bg-[#181B20] border border-stone/20 dark:border-neutral-800 rounded-2xl space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="font-display font-bold text-xs uppercase tracking-wider text-ink dark:text-white flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-[#6B7A5E]" />
+                  Loyalty & Stay History
+                </span>
+                <span className="text-[11px] font-mono text-ink-muted">
+                  Last Stay: {viewCustomer.last_visit ? String(viewCustomer.last_visit).substring(0, 10) : '—'}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 font-mono text-center">
+                <div className="p-2.5 bg-sand/30 dark:bg-neutral-800/40 rounded-xl">
+                  <span className="text-[10px] text-ink-muted block uppercase font-bold">TOTAL STAYS</span>
+                  <strong className="text-sm font-bold text-ink dark:text-white">
+                    {Number(viewCustomer.completed_stays || viewCustomer.total_bookings || 0)}
+                  </strong>
+                </div>
+
+                <div className="p-2.5 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl">
+                  <span className="text-[10px] text-emerald-800 dark:text-emerald-400 block uppercase font-bold">LIFETIME SPENT</span>
+                  <strong className="text-sm font-bold text-emerald-700 dark:text-emerald-300">
+                    ₱{Number(viewCustomer.total_spent || 0).toLocaleString()}
+                  </strong>
+                </div>
+
+                <div className="p-2.5 bg-sand/30 dark:bg-neutral-800/40 rounded-xl">
+                  <span className="text-[10px] text-ink-muted block uppercase font-bold">FAVORITE ROOM</span>
+                  <strong className="text-sm font-bold text-ink dark:text-white">
+                    {viewCustomer.favorite_room ? `Rm ${viewCustomer.favorite_room}` : '—'}
+                  </strong>
+                </div>
+
+                <div className="p-2.5 bg-sand/30 dark:bg-neutral-800/40 rounded-xl">
+                  <span className="text-[10px] text-ink-muted block uppercase font-bold">LAST ROOM</span>
+                  <strong className="text-sm font-bold text-ink dark:text-white">
+                    {viewCustomer.last_room_number ? `Rm ${viewCustomer.last_room_number}` : '—'}
+                  </strong>
+                </div>
+              </div>
+
+              {/* Recent Bookings preview */}
+              {recentStays.length > 0 && (
+                <div className="pt-2 border-t border-stone/15 dark:border-neutral-800 space-y-1.5">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-ink-muted block">Recent Reservations</span>
+                  <div className="space-y-1">
+                    {recentStays.map((s, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-2 rounded-lg bg-neutral-50 dark:bg-neutral-800/50 text-[11px] font-mono">
+                        <div className="flex items-center gap-2">
+                          <BedDouble className="w-3.5 h-3.5 text-[#6B7A5E]" />
+                          <span className="font-bold text-ink dark:text-white">{String(s.booking_ref)}</span>
+                          <span className="text-ink-muted">· Rm {String(s.room_number)} ({String(s.room_type)})</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-ink-muted text-[10px]">{String(s.check_in)} → {String(s.check_out)}</span>
+                          <span className="px-1.5 py-0.5 rounded text-[9px] uppercase font-bold bg-neutral-200 dark:bg-neutral-700 text-neutral-800 dark:text-neutral-200">
+                            {String(s.status)}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Profile Grid */}
             <div className="grid grid-cols-2 gap-3 text-xs">
-              <div className="p-3.5 bg-[#F6F2E8] border border-stone/20 rounded-xl">
+              <div className="p-3.5 bg-[#F6F2E8] dark:bg-neutral-800/60 border border-stone/20 dark:border-neutral-700 rounded-xl">
                 <span className="text-[10px] text-ink-muted uppercase font-bold block">FULL NAME</span>
-                <strong className="text-ink">{String(viewCustomer.full_name || '—')}</strong>
+                <strong className="text-ink dark:text-white">{String(viewCustomer.full_name || '—')}</strong>
               </div>
 
-              <div className="p-3.5 bg-[#F6F2E8] border border-stone/20 rounded-xl">
+              <div className="p-3.5 bg-[#F6F2E8] dark:bg-neutral-800/60 border border-stone/20 dark:border-neutral-700 rounded-xl">
                 <span className="text-[10px] text-ink-muted uppercase font-bold block">CONTACT NUMBER</span>
-                <strong className="text-ink font-mono">{String(viewCustomer.phone || '—')}</strong>
+                <strong className="text-ink dark:text-white font-mono">{String(viewCustomer.phone || '—')}</strong>
               </div>
 
-              <div className="p-3.5 bg-[#F6F2E8] border border-stone/20 rounded-xl">
+              <div className="p-3.5 bg-[#F6F2E8] dark:bg-neutral-800/60 border border-stone/20 dark:border-neutral-700 rounded-xl">
                 <span className="text-[10px] text-ink-muted uppercase font-bold block">GENDER & STATUS</span>
-                <span className="text-ink">{String(viewCustomer.gender || '—')} · {String(viewCustomer.civil_status || '—')}</span>
+                <span className="text-ink dark:text-white">{String(viewCustomer.gender || '—')} · {String(viewCustomer.civil_status || '—')}</span>
               </div>
 
-              <div className="p-3.5 bg-[#F6F2E8] border border-stone/20 rounded-xl">
+              <div className="p-3.5 bg-[#F6F2E8] dark:bg-neutral-800/60 border border-stone/20 dark:border-neutral-700 rounded-xl">
                 <span className="text-[10px] text-ink-muted uppercase font-bold block">REGISTERED DATE</span>
-                <span className="font-mono text-ink">{String(viewCustomer.created_at || '').substring(0, 10)}</span>
+                <span className="font-mono text-ink dark:text-white">{String(viewCustomer.created_at || '').substring(0, 10)}</span>
               </div>
             </div>
 
             {/* Address */}
-            <div className="p-3.5 bg-[#F6F2E8] border border-stone/20 rounded-xl">
+            <div className="p-3.5 bg-[#F6F2E8] dark:bg-neutral-800/60 border border-stone/20 dark:border-neutral-700 rounded-xl">
               <span className="text-[10px] text-ink-muted uppercase font-bold block">REGISTERED ADDRESS</span>
-              <p className="text-ink mt-0.5">{String(viewCustomer.address || 'No address on file.')}</p>
+              <p className="text-ink dark:text-white mt-0.5">{String(viewCustomer.address || 'No address on file.')}</p>
             </div>
 
             {/* Audit Trail */}
             <div>
-              <h4 className="font-display font-bold text-sm text-ink mb-2">Account Activity Trail</h4>
+              <h4 className="font-display font-bold text-sm text-ink dark:text-white mb-2">Account Activity Trail</h4>
               <div className="max-h-36 overflow-y-auto space-y-1.5 pr-1">
                 {auditLogs.map((log, i) => (
-                  <div key={i} className="p-2.5 bg-[#F6F2E8] border border-stone/15 rounded-xl text-[11px] flex justify-between">
+                  <div key={i} className="p-2.5 bg-[#F6F2E8] dark:bg-neutral-800/60 border border-stone/15 dark:border-neutral-700 rounded-xl text-[11px] flex justify-between">
                     <div>
-                      <p className="font-semibold text-ink">{String(log.action || log.description)}</p>
+                      <p className="font-semibold text-ink dark:text-white">{String(log.action || log.description)}</p>
                       <p className="text-[10px] text-ink-muted">{String(log.user_name || 'System')}</p>
                     </div>
                     <span className="font-mono text-ink-muted text-[10px]">{String(log.created_at || '').substring(0, 16).replace('T', ' ')}</span>
@@ -326,7 +469,7 @@ export default function AdminGuests() {
 
             <button
               onClick={() => setViewCustomer(null)}
-              className="w-full py-2.5 border border-stone/30 rounded-xl font-semibold text-ink hover:bg-sand transition-all"
+              className="w-full py-2.5 border border-stone/30 dark:border-neutral-700 rounded-xl font-semibold text-ink dark:text-white hover:bg-sand dark:hover:bg-neutral-700 transition-all cursor-pointer"
             >
               Close
             </button>
@@ -344,7 +487,10 @@ export default function AdminGuests() {
           customerId: String(txnCustomer.unique_id || txnCustomer.id),
           fullName: String(txnCustomer.full_name || `${txnCustomer.first_name || ''} ${txnCustomer.last_name || ''}`).trim(),
           email: String(txnCustomer.email || '—'),
-          joined: String(txnCustomer.created_at || '').substring(0, 10)
+          joined: String(txnCustomer.created_at || '').substring(0, 10),
+          stays: Number(txnCustomer.completed_stays || txnCustomer.total_bookings || 0),
+          totalSpent: Number(txnCustomer.total_spent || 0),
+          lastStay: txnCustomer.last_visit ? String(txnCustomer.last_visit).substring(0, 10) : undefined,
         } : null}
       />
     </div>

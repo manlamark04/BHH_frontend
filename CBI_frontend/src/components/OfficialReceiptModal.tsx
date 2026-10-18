@@ -46,7 +46,7 @@ export const OfficialReceiptModal: React.FC<OfficialReceiptModalProps> = ({
         `Remaining Balance: ₱${Number(receipt.remaining_balance).toLocaleString()}\n` +
         `Payment Method: ${receipt.method.toUpperCase()}\n` +
         `Date: ${new Date(receipt.paid_at).toLocaleString()}\n\n` +
-        `Cambacay Breeze Inn\nCambacay, Bacacay, Albay, Philippines`
+        `Cambacay Breeze Inn\nCambacay, Batuan, Bohol, Philippines`
       )
       window.open(`mailto:${receipt.customer_email}?subject=${subject}&body=${body}`, '_blank')
     } else {

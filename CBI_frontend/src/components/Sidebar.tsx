@@ -200,13 +200,15 @@ export default function Sidebar({
 
       // Calculate Check-In/Out badge count
       let checkInOutCount = 0
-      const todayStr = new Date().toISOString().split('T')[0]
+      const now = new Date()
+      const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
       for (const b of bookings) {
-        const cIn = String(b.check_in || '').split('T')[0]
-        const cOut = String(b.check_out || '').split('T')[0]
+        const cIn = String(b.check_in || '').split('T')[0].split(' ')[0]
+        const cOut = String(b.check_out || '').split('T')[0].split(' ')[0]
         const st = String(b.status || '').toLowerCase().replace('-', '_').replace(' ', '_')
+        const isActiveArrival = cIn === todayStr || (cIn <= todayStr && cOut >= todayStr)
         
-        if (cIn === todayStr && ['confirmed', 'reserved', 'pending', 'pending_payment', 'requested'].includes(st)) {
+        if (isActiveArrival && ['confirmed', 'reserved', 'pending', 'pending_payment', 'requested'].includes(st)) {
           if (!b.is_arrived) {
             checkInOutCount++ // Today's arrivals unprocessed
           }

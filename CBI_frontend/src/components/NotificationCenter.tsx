@@ -13,6 +13,7 @@ import {
   AlertCircle,
 } from 'lucide-react'
 import { io } from 'socket.io-client'
+import { getToken } from '../api/client'
 import { notificationsApi, type NotificationSummary } from '../api/notifications'
 import type { View, Role } from '../types'
 
@@ -50,12 +51,22 @@ export default function NotificationCenter({ role, onNavigate }: NotificationCen
     fetchNotifications()
 
     if (role === 'staff' || role === 'admin') {
-      const socket = io('http://localhost:5000', {
+      const token = getToken()
+      if (!token) return
+
+      const socketUrl = import.meta.env.VITE_WS_URL || (import.meta.env.DEV ? 'http://localhost:5000' : window.location.origin)
+      const socket = io(socketUrl, {
+        auth: { token },
         withCredentials: true,
+        transports: ['websocket', 'polling'],
       })
 
       socket.on('connect', () => {
         socket.emit('join_role', role)
+      })
+
+      socket.on('connect_error', (err) => {
+        console.warn('Socket connection error:', err.message)
       })
 
       socket.on('notification_update', () => {

@@ -50,6 +50,9 @@ export interface BookingItem {
   is_arrived?: number | boolean
   discount_amount?: number
   promo_code?: string
+  customer_tier?: 'VIP' | 'REPEAT' | 'NEW' | string
+  customer_total_stays?: number
+  customer_total_spent?: number
 }
 
 export interface ActivityRentalItem {

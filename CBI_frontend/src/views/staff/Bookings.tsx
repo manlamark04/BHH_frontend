@@ -24,6 +24,7 @@ import { ApiError } from '../../api/client'
 import StatusBadge from '../../components/StatusBadge'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import Modal from '../../components/Modal'
+import GuestVipBadge from '../../components/GuestVipBadge'
 
 const REJECTION_REASONS = [
   'Room unavailable for requested dates',
@@ -502,7 +503,15 @@ export default function StaffBookings() {
                     <tr key={b.id} className="hover:bg-amber-50/20 transition-colors">
                       <td className="px-5 py-4 font-mono font-bold text-xs text-amber-800">{b.booking_ref || `BK-${b.id}`}</td>
                       <td className="px-5 py-4">
-                        <div className="font-semibold text-ink text-xs">{b.customer_name}</div>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-semibold text-ink text-xs">{b.customer_name}</span>
+                          <GuestVipBadge
+                            tier={b.customer_tier}
+                            stays={Number(b.customer_total_stays || 0)}
+                            spent={Number(b.customer_total_spent || 0)}
+                            size="xs"
+                          />
+                        </div>
                         <div className="text-[11px] text-ink-muted">{b.customer_phone || b.customer_email || '—'}</div>
                       </td>
                       <td className="px-5 py-4">
@@ -608,7 +617,17 @@ export default function StaffBookings() {
                   return (
                     <tr key={id} className="hover:bg-sand/20 transition-colors">
                       <td className="px-5 py-4 font-mono font-bold text-xs text-[#6B7A5E]">{b.booking_ref || `BK-${b.id}`}</td>
-                      <td className="px-5 py-4 font-semibold text-ink text-xs">{b.customer_name}</td>
+                      <td className="px-5 py-4 font-semibold text-ink text-xs">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span>{b.customer_name}</span>
+                          <GuestVipBadge
+                            tier={b.customer_tier}
+                            stays={Number(b.customer_total_stays || 0)}
+                            spent={Number(b.customer_total_spent || 0)}
+                            size="xs"
+                          />
+                        </div>
+                      </td>
                       <td className="px-5 py-4 text-ink-muted text-xs">
                         {b.room_type} ({b.room_number})
                         {b.booking_type === 'short_time' && (

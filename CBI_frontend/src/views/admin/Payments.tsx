@@ -208,6 +208,38 @@ export default function AdminPayments() {
     }
   }
 
+  // ─── HELPER: Construct & Display Official Payment Receipt ───
+  const openReceiptForInvoice = (inv: InvoiceItem, payment?: PaymentTransaction) => {
+    const p = payment || inv.payments?.[0]
+    const receiptObj: OfficialReceiptData = {
+      receipt_number: p?.receipt_number && p?.receipt_number !== '—'
+        ? p.receipt_number
+        : (inv.receipt_number && inv.receipt_number !== '—' ? inv.receipt_number : `OR-${inv.invoice_number.replace('INV-', '')}`),
+      invoice_number: inv.invoice_number,
+      bill_id: inv.id,
+      payment_id: p?.id || 0,
+      customer_name: inv.customer_name || 'Guest',
+      customer_email: inv.customer_email,
+      customer_phone: inv.customer_phone,
+      service_name: inv.service_name,
+      service_details: inv.service_details,
+      service_type: inv.service_type,
+      total_amount: Number(inv.total_amount),
+      previous_paid: payment ? Math.max(0, Number(inv.paid_amount) - Number(payment.amount)) : 0,
+      amount_paid: Number(p?.amount || inv.paid_amount || inv.total_amount),
+      remaining_balance: Number(inv.remaining_balance || 0),
+      status: inv.status,
+      method: p?.method || inv.method || 'cash',
+      notes: p?.notes,
+      ref_number: p?.receipt_number,
+      staff_name: p?.staff_name || inv.issued_by_name || 'Front Desk Staff',
+      paid_at: p?.paid_at || inv.issued_at || new Date().toISOString(),
+      discount_amount: inv.discount_amount,
+      promo_code: inv.promo_code,
+    }
+    setActiveReceipt(receiptObj)
+  }
+
   // ─── 1. DYNAMIC SUMMARY CALCULATIONS ───
   const { totalCollected, totalOutstanding, outstandingCount, invoicesIssuedCount } = useMemo(() => {
     let collected = 0
@@ -838,35 +870,9 @@ export default function AdminPayments() {
                         </button>
 
                         {/* 2. RECEIPT */}
-                        {inv.payments.length > 0 && (
+                        {(inv.payments?.length > 0 || Number(inv.paid_amount || 0) > 0 || String(inv.status).toUpperCase() === 'PAID') && (
                           <button
-                            onClick={() => {
-                              const p = inv.payments[0]
-                              const receiptObj: OfficialReceiptData = {
-                                receipt_number: p?.receipt_number && p?.receipt_number !== '—' ? p.receipt_number : (inv.receipt_number || '—'),
-                                invoice_number: inv.invoice_number,
-                                bill_id: inv.id,
-                                payment_id: p?.id || 0,
-                                customer_name: inv.customer_name,
-                                customer_email: inv.customer_email,
-                                customer_phone: inv.customer_phone,
-                                service_name: inv.service_name,
-                                service_details: inv.service_details,
-                                service_type: inv.service_type,
-                                total_amount: Number(inv.total_amount),
-                                previous_paid: 0,
-                                amount_paid: Number(p?.amount || inv.paid_amount),
-                                remaining_balance: Number(inv.remaining_balance),
-                                status: inv.status,
-                                method: p?.method || inv.method || 'cash',
-                                notes: p?.notes,
-                                staff_name: p?.staff_name || inv.issued_by_name || 'Front Desk Staff',
-                                paid_at: p?.paid_at || inv.issued_at,
-                                discount_amount: inv.discount_amount,
-                                promo_code: inv.promo_code,
-                              }
-                              setActiveReceipt(receiptObj)
-                            }}
+                            onClick={() => openReceiptForInvoice(inv)}
                             className="px-2.5 py-1 text-xs text-[#6B7A5E] bg-[#6B7A5E]/10 hover:bg-[#6B7A5E]/20 border border-[#6B7A5E]/30 rounded-lg font-semibold transition-all shadow-xs shrink-0 cursor-pointer flex items-center gap-1"
                             title="View and print official payment receipt"
                           >
@@ -1354,9 +1360,20 @@ export default function AdminPayments() {
                   </p>
                 )}
               </div>
-              <div className="text-right">
+              <div className="text-right flex flex-col items-end">
                 <StatusBadge status={viewInvoice.status} size="md" />
                 <p className="text-[10px] font-mono text-ink-muted mt-1">Issued: {formatDate(viewInvoice.issued_at)}</p>
+                {(viewInvoice.payments?.length > 0 || Number(viewInvoice.paid_amount || 0) > 0 || String(viewInvoice.status).toUpperCase() === 'PAID') && (
+                  <button
+                    type="button"
+                    onClick={() => openReceiptForInvoice(viewInvoice)}
+                    className="mt-2 px-3 py-1 bg-[#6B7A5E] hover:bg-[#59664E] text-white rounded-lg text-xs font-semibold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+                    title="View and print official payment receipt"
+                  >
+                    <Printer className="w-3.5 h-3.5" />
+                    <span>Print Receipt</span>
+                  </button>
+                )}
               </div>
             </div>
 
@@ -1677,33 +1694,9 @@ export default function AdminPayments() {
                         </span>
 
                         <button
-                          onClick={() => {
-                            const pastReceipt: OfficialReceiptData = {
-                              receipt_number: p.receipt_number && p.receipt_number !== '—' ? p.receipt_number : `OR-${String(p.id).padStart(6, '0')}`,
-                              invoice_number: viewInvoice.invoice_number,
-                              bill_id: viewInvoice.id,
-                              payment_id: p.id,
-                              customer_name: viewInvoice.customer_name,
-                              customer_email: viewInvoice.customer_email,
-                              customer_phone: viewInvoice.customer_phone,
-                              service_name: viewInvoice.service_name,
-                              service_details: viewInvoice.service_details,
-                              service_type: viewInvoice.service_type,
-                              total_amount: Number(viewInvoice.total_amount),
-                              previous_paid: 0,
-                              amount_paid: Number(p.amount),
-                              remaining_balance: Number(viewInvoice.remaining_balance),
-                              status: viewInvoice.status,
-                              method: p.method,
-                              notes: p.notes,
-                              staff_name: p.staff_name || 'Front Desk Staff',
-                              paid_at: p.paid_at,
-                              discount_amount: viewInvoice.discount_amount,
-                              promo_code: viewInvoice.promo_code,
-                            }
-                            setActiveReceipt(pastReceipt)
-                          }}
-                          className="px-2.5 py-1 text-[11px] text-[#6B7A5E] border border-[#6B7A5E]/40 bg-[#6B7A5E]/5 rounded-lg hover:bg-sand/40 font-semibold transition-all cursor-pointer flex items-center gap-1"
+                          type="button"
+                          onClick={() => openReceiptForInvoice(viewInvoice, p)}
+                          className="px-2.5 py-1 text-[11px] text-[#6B7A5E] border border-[#6B7A5E]/40 bg-[#6B7A5E]/5 rounded-lg hover:bg-sand/40 font-semibold transition-all cursor-pointer flex items-center gap-1 shadow-2xs"
                           title="View and print official payment receipt"
                         >
                           <Printer className="w-3 h-3" />

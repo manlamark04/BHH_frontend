@@ -13,7 +13,10 @@ import {
   HelpCircle,
   ArrowRight,
   Info,
-  Printer
+  Printer,
+  Check,
+  Loader2,
+  BedDouble,
 } from 'lucide-react'
 import { billingApi } from '../../api/billing'
 import { bookingsApi, type BookingItem } from '../../api/bookings'
@@ -23,6 +26,39 @@ import { SkeletonTable } from '../../components/SkeletonLoader'
 import EmptyState from '../../components/EmptyState'
 import { useDebounce } from '../../hooks/useDebounce'
 import BookingVoucherModal, { type BookingVoucherData } from '../../components/BookingVoucherModal'
+
+const CANCELLATION_REASONS = [
+  {
+    id: 'change_room',
+    label: 'Change to other rooms / room type',
+    description: 'Want to select a different cottage, standard, deluxe, or private suite',
+  },
+  {
+    id: 'change_dates',
+    label: 'Change of travel dates or schedule',
+    description: 'Trip schedule changed or rescheduling for another date',
+  },
+  {
+    id: 'mistake',
+    label: 'Booked by mistake / duplicate reservation',
+    description: 'Accidental reservation or duplicated booking request',
+  },
+  {
+    id: 'emergency',
+    label: 'Personal emergency / unforeseen circumstances',
+    description: 'Unable to travel due to personal or family reasons',
+  },
+  {
+    id: 'found_better',
+    label: 'Found a better option or rate',
+    description: 'Alternative accommodation or arrangement found',
+  },
+  {
+    id: 'others',
+    label: 'Other reasons',
+    description: 'Please specify your reason below',
+  },
+]
 
 export default function CustomerTransactions() {
   const [bills, setBills] = useState<Record<string, unknown>[]>([])
@@ -36,7 +72,20 @@ export default function CustomerTransactions() {
   // Payment Instruction Modal
   const [selectedBookingForPay, setSelectedBookingForPay] = useState<BookingItem | null>(null)
 
-  useEffect(() => {
+  // Cancellation Modal State
+  const [cancellingBooking, setCancellingBooking] = useState<BookingItem | null>(null)
+  const [cancelReasonCategory, setCancelReasonCategory] = useState<string>('Change to other rooms / room type')
+  const [cancelCustomNotes, setCancelCustomNotes] = useState<string>('')
+  const [cancelSubmitting, setCancelSubmitting] = useState(false)
+  const [cancelError, setCancelError] = useState('')
+  const [toast, setToast] = useState('')
+
+  const fireToast = (msg: string) => {
+    setToast(msg)
+    setTimeout(() => setToast(''), 4500)
+  }
+
+  const loadData = () => {
     setLoading(true)
     Promise.all([
       billingApi.getMyBills().catch(() => []),
@@ -45,6 +94,17 @@ export default function CustomerTransactions() {
       setBills(billsData as Record<string, unknown>[])
       setBookings(bkgsData as BookingItem[])
     }).finally(() => setLoading(false))
+  }
+
+  useEffect(() => {
+    loadData()
+    const handleRefresh = () => loadData()
+    window.addEventListener('booking-updated', handleRefresh)
+    window.addEventListener('billing-updated', handleRefresh)
+    return () => {
+      window.removeEventListener('booking-updated', handleRefresh)
+      window.removeEventListener('billing-updated', handleRefresh)
+    }
   }, [])
 
   const totalPaid = bills.reduce((s, b) => s + Number(b.amount_paid || b.paid_amount || 0), 0)
@@ -104,9 +164,47 @@ export default function CustomerTransactions() {
     }
   }
 
+  const handleConfirmCancel = async () => {
+    if (!cancellingBooking) return
+
+    if (cancelReasonCategory === 'Other reasons' && !cancelCustomNotes.trim()) {
+      setCancelError('Please specify your reason for cancellation.')
+      return
+    }
+
+    const finalReason = cancelReasonCategory === 'Other reasons'
+      ? cancelCustomNotes.trim()
+      : (cancelCustomNotes.trim() ? `${cancelReasonCategory} — ${cancelCustomNotes.trim()}` : cancelReasonCategory)
+
+    setCancelSubmitting(true)
+    setCancelError('')
+    try {
+      await bookingsApi.cancelBooking(cancellingBooking.id, finalReason)
+      fireToast(`Reservation ${cancellingBooking.booking_ref || `#BK-${cancellingBooking.id}`} has been cancelled. Room ${cancellingBooking.room_number} released.`)
+      setCancellingBooking(null)
+      setCancelCustomNotes('')
+      setCancelReasonCategory('Change to other rooms / room type')
+      loadData()
+      window.dispatchEvent(new Event('booking-updated'))
+      window.dispatchEvent(new Event('billing-updated'))
+    } catch (err) {
+      setCancelError(err instanceof Error ? err.message : 'Failed to cancel reservation.')
+    } finally {
+      setCancelSubmitting(false)
+    }
+  }
+
   return (
     <div className="p-4 sm:p-5 max-w-7xl mx-auto space-y-4 font-sans">
       
+      {/* Toast Alert */}
+      {toast && (
+        <div className="fixed top-6 right-6 z-50 px-5 py-3.5 bg-emerald-700 text-white font-medium text-xs rounded-2xl shadow-xl border border-emerald-500 animate-slideDown flex items-center gap-2">
+          <Check className="w-4 h-4 text-emerald-200" strokeWidth={2} />
+          <span>{toast}</span>
+        </div>
+      )}
+
       {/* ─── 1. STATS SUMMARY ─── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
         <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] flex items-center gap-3">
@@ -265,24 +363,55 @@ export default function CustomerTransactions() {
                           </p>
                         </div>
                       </div>
-                      <button
-                        onClick={() => setSelectedBookingForPay(b)}
-                        className="px-4 py-2 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white font-semibold rounded-xl text-xs shadow-xs shrink-0 cursor-pointer"
-                      >
-                        How to Pay
-                      </button>
+                      <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCancellingBooking(b)
+                            setCancelReasonCategory('Change to other rooms / room type')
+                            setCancelCustomNotes('')
+                            setCancelError('')
+                          }}
+                          className="px-3.5 py-2 bg-white/90 dark:bg-[#1E232B] hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-700 dark:text-rose-400 border border-rose-300/80 dark:border-rose-800/70 font-semibold rounded-xl text-xs shadow-2xs transition-all cursor-pointer flex items-center gap-1.5"
+                        >
+                          <XCircle className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
+                          <span>Cancel Reservation</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedBookingForPay(b)}
+                          className="px-4 py-2 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white font-semibold rounded-xl text-xs shadow-xs shrink-0 cursor-pointer"
+                        >
+                          How to Pay
+                        </button>
+                      </div>
                     </div>
                   )}
 
                   {isPendingApprove && (
-                    <div className="p-3.5 bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 rounded-xl flex items-start gap-2.5 text-xs text-indigo-950 dark:text-indigo-200">
-                      <Info className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
-                      <div>
-                        <p className="font-bold text-indigo-900 dark:text-indigo-300">Payment received — awaiting confirmation from our team</p>
-                        <p className="text-indigo-800 dark:text-indigo-400 mt-0.5">
-                          We've verified your payment proof (₱{amountPaid.toLocaleString()}). The front desk staff is reviewing room preparation and will confirm your reservation shortly.
-                        </p>
+                    <div className="p-3.5 bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-indigo-950 dark:text-indigo-200">
+                      <div className="flex items-start gap-2.5">
+                        <Info className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-bold text-indigo-900 dark:text-indigo-300">Payment received — awaiting confirmation from our team</p>
+                          <p className="text-indigo-800 dark:text-indigo-400 mt-0.5">
+                            We've verified your payment proof (₱{amountPaid.toLocaleString()}). The front desk staff is reviewing room preparation and will confirm your reservation shortly.
+                          </p>
+                        </div>
                       </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCancellingBooking(b)
+                          setCancelReasonCategory('Change to other rooms / room type')
+                          setCancelCustomNotes('')
+                          setCancelError('')
+                        }}
+                        className="px-3.5 py-2 bg-white/90 dark:bg-[#1E232B] hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-700 dark:text-rose-400 border border-rose-300/80 dark:border-rose-800/70 font-semibold rounded-xl text-xs shadow-2xs transition-all cursor-pointer flex items-center gap-1.5 shrink-0 self-start sm:self-auto"
+                      >
+                        <XCircle className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
+                        <span>Cancel Reservation</span>
+                      </button>
                     </div>
                   )}
 
@@ -297,29 +426,47 @@ export default function CustomerTransactions() {
                           </p>
                         </div>
                       </div>
-                      <button
-                        onClick={() => setSelectedVoucher({
-                          id: b.id,
-                          booking_ref: b.booking_ref,
-                          customer_name: b.customer_name || 'Valued Guest',
-                          customer_email: b.customer_email,
-                          customer_phone: b.customer_phone,
-                          room_number: b.room_number,
-                          room_type: b.room_type,
-                          check_in: b.check_in,
-                          check_out: b.check_out,
-                          total_price: Number(b.total_price || 0),
-                          paid_amount: amountPaid,
-                          remaining_balance: Math.max(0, Number(b.total_price || 0) - amountPaid),
-                          status: b.status,
-                          booking_type: b.booking_type,
-                          created_at: b.created_at,
-                        })}
-                        className="px-3.5 py-1.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-lg font-semibold text-xs shadow-xs transition-all flex items-center gap-1.5 shrink-0 self-start sm:self-auto cursor-pointer"
-                      >
-                        <Printer className="w-3.5 h-3.5" />
-                        <span>Print Voucher</span>
-                      </button>
+                      <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
+                        {status !== 'CHECKED_IN' && status !== 'CHECKED_OUT' && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCancellingBooking(b)
+                              setCancelReasonCategory('Change to other rooms / room type')
+                              setCancelCustomNotes('')
+                              setCancelError('')
+                            }}
+                            className="px-3 py-1.5 bg-white/90 dark:bg-[#1E232B] hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-700 dark:text-rose-400 border border-rose-300/80 dark:border-rose-800/70 font-semibold rounded-lg text-xs shadow-2xs transition-all cursor-pointer flex items-center gap-1.5"
+                          >
+                            <XCircle className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
+                            <span>Cancel</span>
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => setSelectedVoucher({
+                            id: b.id,
+                            booking_ref: b.booking_ref,
+                            customer_name: b.customer_name || 'Valued Guest',
+                            customer_email: b.customer_email,
+                            customer_phone: b.customer_phone,
+                            room_number: b.room_number,
+                            room_type: b.room_type,
+                            check_in: b.check_in,
+                            check_out: b.check_out,
+                            total_price: Number(b.total_price || 0),
+                            paid_amount: amountPaid,
+                            remaining_balance: Math.max(0, Number(b.total_price || 0) - amountPaid),
+                            status: b.status,
+                            booking_type: b.booking_type,
+                            created_at: b.created_at,
+                          })}
+                          className="px-3.5 py-1.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-lg font-semibold text-xs shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <Printer className="w-3.5 h-3.5" />
+                          <span>Print Voucher</span>
+                        </button>
+                      </div>
                     </div>
                   )}
 
@@ -347,7 +494,12 @@ export default function CustomerTransactions() {
                         <XCircle className="w-4 h-4 text-neutral-500 shrink-0" />
                         <span>Reservation Cancelled {b.auto_cancelled ? '(Auto-expired due to unpaid deadline)' : '(by guest/staff)'}</span>
                       </div>
-                      <div className="pl-6 text-[11px] text-neutral-600 dark:text-neutral-400">
+                      <div className="pl-6 text-[11px] text-neutral-600 dark:text-neutral-400 space-y-1">
+                        {b.rejection_reason && (
+                          <p className="text-neutral-700 dark:text-neutral-300">
+                            Reason: <strong className="text-neutral-900 dark:text-white">{b.rejection_reason}</strong>
+                          </p>
+                        )}
                         {cancellationFee > 0 ? (
                           <p>
                             Cancellation fee applied: <strong className="text-amber-800 dark:text-amber-300 font-mono">₱{cancellationFee.toLocaleString()}</strong>. Remaining obligation: <strong className="text-neutral-900 dark:text-white font-mono">₱{Math.max(0, cancellationFee - amountPaid).toLocaleString()}</strong>.
@@ -570,6 +722,137 @@ export default function CustomerTransactions() {
         onClose={() => setSelectedVoucher(null)}
         booking={selectedVoucher}
       />
+
+      {/* ─── MODAL: CANCEL RESERVATION WITH REASONS ─── */}
+      <Modal
+        isOpen={Boolean(cancellingBooking)}
+        onClose={() => !cancelSubmitting && setCancellingBooking(null)}
+        title="Cancel Room Reservation"
+        size="md"
+      >
+        {cancellingBooking && (
+          <div className="space-y-4 text-xs font-sans">
+            {/* Reservation Summary Strip */}
+            <div className="p-3.5 bg-rose-50/70 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/50 rounded-xl space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="font-mono font-bold text-rose-950 dark:text-rose-200 text-sm">
+                  {cancellingBooking.booking_ref || `#BK-${cancellingBooking.id}`}
+                </span>
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-white dark:bg-[#1E232B] text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
+                  Room {cancellingBooking.room_number} · {cancellingBooking.room_type}
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-xs text-neutral-600 dark:text-neutral-400 pt-1 border-t border-rose-200/60 dark:border-rose-900/60">
+                <span>{formatDate(cancellingBooking.check_in)} → {formatDate(cancellingBooking.check_out)} ({cancellingBooking.nights} night{cancellingBooking.nights > 1 ? 's' : ''})</span>
+                <span className="font-bold text-neutral-900 dark:text-white">₱{Number(cancellingBooking.total_price || 0).toLocaleString()}</span>
+              </div>
+            </div>
+
+            <p className="text-neutral-600 dark:text-neutral-300 leading-relaxed">
+              Are you sure you want to cancel this reservation? Room {cancellingBooking.room_number} will be released back to resort inventory immediately.
+            </p>
+
+            {/* Reason Selector */}
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-neutral-900 dark:text-white uppercase tracking-wider">
+                Reason for Cancellation <span className="text-rose-600">*</span>
+              </label>
+
+              <div className="space-y-1.5 max-h-[220px] overflow-y-auto pr-1">
+                {CANCELLATION_REASONS.map((r) => {
+                  const isSelected = cancelReasonCategory === r.label
+                  return (
+                    <button
+                      key={r.id}
+                      type="button"
+                      onClick={() => {
+                        setCancelReasonCategory(r.label)
+                        setCancelError('')
+                      }}
+                      className={`w-full text-left p-3 rounded-xl border transition-all cursor-pointer flex items-start gap-3 ${
+                        isSelected
+                          ? 'bg-[#6B7A5E]/10 dark:bg-[#6B7A5E]/20 border-[#6B7A5E] text-neutral-900 dark:text-white shadow-2xs'
+                          : 'bg-white dark:bg-[#1C2027] border-black/[0.08] dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 hover:border-neutral-400'
+                      }`}
+                    >
+                      <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 mt-0.5 ${
+                        isSelected ? 'border-[#6B7A5E] bg-[#6B7A5E]' : 'border-neutral-400'
+                      }`}>
+                        {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-xs text-neutral-900 dark:text-white leading-tight">
+                          {r.label}
+                        </p>
+                        <p className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5">
+                          {r.description}
+                        </p>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Custom Notes / Details */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300">
+                {cancelReasonCategory === 'Other reasons' ? (
+                  <span>Please specify your reason <span className="text-rose-600">*</span></span>
+                ) : (
+                  <span>Additional remarks or details <span className="text-neutral-400 font-normal">(optional)</span></span>
+                )}
+              </label>
+              <textarea
+                value={cancelCustomNotes}
+                onChange={(e) => {
+                  setCancelCustomNotes(e.target.value)
+                  if (cancelError) setCancelError('')
+                }}
+                rows={2}
+                placeholder={cancelReasonCategory === 'Other reasons' ? 'Please explain why you need to cancel...' : 'e.g., Interested in booking Room 102 instead...'}
+                className="w-full px-3 py-2 text-xs rounded-xl border border-black/[0.1] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
+              />
+              {cancelError && (
+                <p className="text-rose-600 dark:text-rose-400 text-[11px] font-medium flex items-center gap-1">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>{cancelError}</span>
+                </p>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-black/[0.06] dark:border-neutral-800">
+              <button
+                type="button"
+                disabled={cancelSubmitting}
+                onClick={() => setCancellingBooking(null)}
+                className="px-4 py-2 bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 rounded-xl text-xs font-semibold transition-all cursor-pointer"
+              >
+                Keep Reservation
+              </button>
+              <button
+                type="button"
+                disabled={cancelSubmitting}
+                onClick={handleConfirmCancel}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+              >
+                {cancelSubmitting ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Cancelling...</span>
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="w-3.5 h-3.5" />
+                    <span>Confirm Cancellation</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
 
     </div>
   )

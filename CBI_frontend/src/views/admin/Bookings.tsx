@@ -19,6 +19,7 @@ import StatusBadge from '../../components/StatusBadge'
 import Modal from '../../components/Modal'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import BookingVoucherModal, { type BookingVoucherData } from '../../components/BookingVoucherModal'
+import GuestVipBadge from '../../components/GuestVipBadge'
 
 type FilterTab = 'all' | 'pending_payment' | 'confirmed' | 'checked_in' | 'completed' | 'rejected' | 'cancelled'
 type SortField = 'newest' | 'oldest' | 'checkin' | 'checkout' | 'amount' | 'status'
@@ -497,7 +498,15 @@ export default function AdminBookings({ onNavigate, userRole }: AdminBookingsPro
                           {String(b.customer_name || 'G').charAt(0)}
                         </div>
                         <div>
-                          <p className="font-semibold text-neutral-900 dark:text-white leading-tight">{String(b.customer_name)}</p>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <p className="font-semibold text-neutral-900 dark:text-white leading-tight">{String(b.customer_name)}</p>
+                            <GuestVipBadge
+                              tier={b.customer_tier}
+                              stays={Number(b.customer_total_stays || 0)}
+                              spent={Number(b.customer_total_spent || 0)}
+                              size="xs"
+                            />
+                          </div>
                           <p className="text-[10px] text-neutral-500 dark:text-neutral-400 mt-0.5">
                             {String(b.num_guests || 2)} guests
                           </p>
@@ -703,7 +712,15 @@ export default function AdminBookings({ onNavigate, userRole }: AdminBookingsPro
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div>
                   <span className="text-ink-faint block text-[10px]">Full Name</span>
-                  <span className="font-semibold text-ink">{String(viewBooking.customer_name)}</span>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="font-semibold text-ink">{String(viewBooking.customer_name)}</span>
+                    <GuestVipBadge
+                      tier={viewBooking.customer_tier}
+                      stays={Number(viewBooking.customer_total_stays || 0)}
+                      spent={Number(viewBooking.customer_total_spent || 0)}
+                      size="xs"
+                    />
+                  </div>
                 </div>
                 <div>
                   <span className="text-ink-faint block text-[10px]">Customer ID</span>

@@ -19,14 +19,20 @@ import StatusBadge from '../../components/StatusBadge'
 import Modal from '../../components/Modal'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import SwitchRoomModal from '../../components/SwitchRoomModal'
+import GuestVipBadge from '../../components/GuestVipBadge'
 
 const PRE_CHECKIN_STATUSES = ['confirmed', 'reserved', 'pending', 'pending_payment', 'requested']
 
 const toLocalDateStr = (val?: string | Date | null | unknown) => {
   if (!val) return ''
+  if (typeof val === 'string') {
+    const s = val.trim()
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s
+    if (/^\d{4}-\d{2}-\d{2}\s/.test(s)) return s.split(' ')[0]
+  }
   try {
     const d = new Date(String(val))
-    if (isNaN(d.getTime())) return String(val).split('T')[0]
+    if (isNaN(d.getTime())) return String(val).split('T')[0].split(' ')[0]
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
   } catch (_) {
     return String(val).split('T')[0]
@@ -62,8 +68,10 @@ export default function StaffCheckInOut() {
   const todaysArrivals = useMemo(() =>
     bookings.filter((b) => {
       const cIn = toLocalDateStr(b.check_in)
+      const cOut = toLocalDateStr(b.check_out)
       const st = String(b.status || '').toLowerCase().replace('-', '_').replace(' ', '_')
-      return cIn === todayStr && PRE_CHECKIN_STATUSES.includes(st)
+      const isActiveArrival = cIn === todayStr || (cIn <= todayStr && cOut >= todayStr)
+      return isActiveArrival && PRE_CHECKIN_STATUSES.includes(st)
     }),
     [bookings, todayStr]
   )
@@ -262,7 +270,15 @@ export default function StaffCheckInOut() {
                             {name.charAt(0)}
                           </div>
                           <div>
-                            <p className="font-semibold text-ink text-xs">{name}</p>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <p className="font-semibold text-ink text-xs">{name}</p>
+                              <GuestVipBadge
+                                tier={b.customer_tier as string}
+                                stays={Number(b.customer_total_stays || 0)}
+                                spent={Number(b.customer_total_spent || 0)}
+                                size="xs"
+                              />
+                            </div>
                             <p className="font-mono text-[10px] text-ink-muted">{String(b.customer_unique_id || '')}</p>
                           </div>
                         </div>
@@ -390,7 +406,15 @@ export default function StaffCheckInOut() {
                 <div className="flex justify-between items-start">
                   <div>
                     <span className="text-[10px] uppercase font-bold tracking-wider text-ink-muted dark:text-neutral-400 block">Arrival Summary</span>
-                    <h4 className="font-display font-bold text-ink dark:text-white text-lg">{String(viewArrivalTarget.customer_name)}</h4>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h4 className="font-display font-bold text-ink dark:text-white text-lg">{String(viewArrivalTarget.customer_name)}</h4>
+                      <GuestVipBadge
+                        tier={viewArrivalTarget.customer_tier as string}
+                        stays={Number(viewArrivalTarget.customer_total_stays || 0)}
+                        spent={Number(viewArrivalTarget.customer_total_spent || 0)}
+                        size="sm"
+                      />
+                    </div>
                     <p className="text-xs text-ink-muted dark:text-neutral-300">
                       Room {String(viewArrivalTarget.room_number)} · {String(viewArrivalTarget.room_type)}
                     </p>
