@@ -1,9 +1,25 @@
 /**
  * Standardized API Client with JWT Auth, Typed Envelopes & Toast Integration
- * All API calls go through the Vite proxy (/api → localhost:5000/api).
+ * In development, calls go through the Vite proxy (/api → localhost:5000/api).
+ * In production, calls go to VITE_API_URL (e.g. https://bhh-backend.onrender.com).
  */
 
 import { showToast } from '../context/ToastContext'
+
+/** Backend origin without trailing slash. Empty string = same origin (dev proxy). */
+export const API_BASE_URL: string = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '')
+
+/** Prefix a backend-relative path (e.g. /api/..., /uploads/...) with the backend origin. */
+export function apiUrl(path: string): string {
+  if (!path || /^(https?:|data:|blob:)/i.test(path)) return path
+  return `${API_BASE_URL}${path.startsWith('/') ? '' : '/'}${path}`
+}
+
+/** Resolve an uploaded asset path (e.g. /uploads/x.jpg) to a full URL. */
+export function resolveAssetUrl(path?: string | null): string | undefined {
+  if (!path) return undefined
+  return path.startsWith('/uploads/') ? apiUrl(path) : path
+}
 
 const TOKEN_KEY = 'bhh_token'
 
@@ -103,7 +119,7 @@ async function apiFetch<T = unknown>(
     ...fetchInit
   } = options
 
-  const res = await fetch(url, {
+  const res = await fetch(apiUrl(url), {
     ...fetchInit,
     headers,
     body,

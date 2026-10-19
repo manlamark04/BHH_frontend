@@ -17,6 +17,7 @@ import { roomsApi, type RoomRecord } from '../../api/rooms'
 import { bookingsApi } from '../../api/bookings'
 import { billingApi } from '../../api/billing'
 import { promosApi, type PromoCode } from '../../api/promos'
+import { apiUrl } from '../../api/client'
 import StatusBadge from '../../components/StatusBadge'
 import Modal from '../../components/Modal'
 import ConfirmDialog from '../../components/ConfirmDialog'
@@ -212,7 +213,7 @@ export default function CustomerRooms({ customerName }: Props) {
     setValidatingPromo(true)
     setPromoMessage('')
     try {
-      const res = await fetch('/api/promocodes/validate', {
+      const res = await fetch(apiUrl('/api/promocodes/validate'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: promoCode.trim() })
