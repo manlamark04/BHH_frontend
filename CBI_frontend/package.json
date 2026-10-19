@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "zip": "powershell -NoProfile -Command \"Add-Type -A System.IO.Compression, System.IO.Compression.FileSystem; $src=(Resolve-Path dist).Path; $out=Join-Path (Resolve-Path ..).Path 'BHH_frontend_hostinger.zip'; if (Test-Path $out) { Remove-Item $out }; $zip=[IO.Compression.ZipFile]::Open($out,'Create'); Get-ChildItem $src -Recurse -File -Force | % { $rel=$_.FullName.Substring($src.Length+1).Replace('\\','/'); [void][IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip,$_.FullName,$rel,'Optimal') }; $zip.Dispose(); Write-Host 'Linux-compatible zip created at ../BHH_frontend_hostinger.zip'\"",
+    "build:zip": "npm run build && npm run zip"
   },
   "dependencies": {
     "lucide-react": "^1.31.0",
