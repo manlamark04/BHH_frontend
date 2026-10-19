@@ -15,8 +15,12 @@ export const reviewsApi = {
   /**
    * Get all reviews (public view returns only published, admin/staff returns all)
    */
-  getAll: async (): Promise<Review[]> => {
-    return api.get('/api/reviews')
+  getAll: async (params?: { rating?: number; min_rating?: number }): Promise<Review[]> => {
+    const q = new URLSearchParams()
+    if (params?.rating) q.append('rating', String(params.rating))
+    if (params?.min_rating) q.append('min_rating', String(params.min_rating))
+    const queryStr = q.toString()
+    return api.get(`/api/reviews${queryStr ? `?${queryStr}` : ''}`)
   },
 
   /**

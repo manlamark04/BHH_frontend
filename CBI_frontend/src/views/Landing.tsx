@@ -367,7 +367,7 @@ export default function Landing({ onNavigate }: LandingProps) {
   useEffect(() => {
     roomsApi.getRooms().then(setRooms).catch(() => { })
     catalogApi.getActivities().then(setActivities).catch(() => { })
-    reviewsApi.getAll().then(setReviews).catch(() => { })
+    reviewsApi.getAll({ rating: 5 }).then(setReviews).catch(() => { })
   }, [])
 
   /* Detect prefers-reduced-motion setting */
@@ -585,8 +585,9 @@ export default function Landing({ onNavigate }: LandingProps) {
   }, [activities])
 
   // Merge live guest reviews with curated fallback testimonials so the 3-column layout is always full & balanced
+  // Only display 5-star reviews on the landing page (ratings 1 to 4 are strictly excluded)
   const displayReviews = useMemo(() => {
-    const list = [...(reviews || [])]
+    const list = (reviews || []).filter((r) => Number(r.rating) === 5)
     for (const item of CURATED_TESTIMONIALS) {
       if (list.length >= 3) break
       if (!list.some((r) => String(r.customer_name || '').toLowerCase().includes(item.customer_name.toLowerCase().split(' ')[0]))) {
@@ -1365,7 +1366,7 @@ export default function Landing({ onNavigate }: LandingProps) {
                     <Star key={s} className="w-3.5 h-3.5 fill-[#C9A66B] text-[#C9A66B]" />
                   ))}
                 </div>
-                <span>4.9 / 5.0 Rating · Verified Guest Experiences</span>
+                <span>5.0 / 5.0 Rating · Verified Guest Experiences</span>
               </div>
               <h2 className="font-display text-[clamp(2rem,4vw,3rem)] font-bold text-ink leading-[1.08] tracking-[-0.02em]">
                 What Our Guests Say
