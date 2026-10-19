@@ -93,10 +93,21 @@ export default function Register({ onNavigate }: RegisterProps) {
       setSuccess(res)
     } catch (err: unknown) {
       setShowConfirmModal(false)
-      const msg =
-        err instanceof ApiError
-          ? err.message
-          : 'Registration failed. Please verify your details and try again.'
+      let msg = 'Registration failed. Please verify your details and try again.'
+      if (err instanceof ApiError) {
+        if (
+          err.message &&
+          !err.message.includes('not defined') &&
+          !err.message.includes('SQL') &&
+          !err.message.includes('syntax') &&
+          !err.message.includes('connect') &&
+          !err.message.includes('ECONN')
+        ) {
+          msg = err.message
+        } else {
+          msg = 'Unable to complete registration due to a temporary server issue. Please try again or contact support.'
+        }
+      }
       setError(msg)
     } finally {
       setSubmitting(false)

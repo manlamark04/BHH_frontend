@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Tag, Plus, CheckCircle2, XCircle, Power, Loader2, Calendar, Trash2 } from 'lucide-react'
+import { Tag, Plus, CheckCircle2, XCircle, Power, Loader2, Calendar, Trash2, Users } from 'lucide-react'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import { useToast } from '../../context/ToastContext'
 import { promosApi, PromoCode } from '../../api/promos'
@@ -12,6 +12,7 @@ export default function Promos() {
   const [newCode, setNewCode] = useState('')
   const [newDiscount, setNewDiscount] = useState(10)
   const [newValidUntil, setNewValidUntil] = useState('')
+  const [newMaxUses, setNewMaxUses] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [promoToDelete, setPromoToDelete] = useState<PromoCode | null>(null)
 
@@ -41,13 +42,15 @@ export default function Promos() {
       await promosApi.createPromo({
         code: newCode,
         discount_percentage: newDiscount,
-        valid_until: newValidUntil
+        valid_until: newValidUntil,
+        max_uses: newMaxUses ? parseInt(newMaxUses, 10) : null
       })
       showToast('Promo code created successfully!', 'success')
       setIsModalOpen(false)
       setNewCode('')
       setNewDiscount(10)
       setNewValidUntil('')
+      setNewMaxUses('')
       fetchPromos()
     } catch (err: any) {
       showToast(err.message || 'Failed to create promo code', 'error')
@@ -120,6 +123,7 @@ export default function Promos() {
               <tr className="bg-neutral-50 dark:bg-neutral-800/50 border-b border-black/[0.08] dark:border-white/[0.08]">
                 <th className="px-4 py-3 text-xs font-bold text-neutral-600 dark:text-neutral-400 uppercase tracking-wider">Promo Code</th>
                 <th className="px-4 py-3 text-xs font-bold text-neutral-600 dark:text-neutral-400 uppercase tracking-wider">Discount</th>
+                <th className="px-4 py-3 text-xs font-bold text-neutral-600 dark:text-neutral-400 uppercase tracking-wider">Guest Limit</th>
                 <th className="px-4 py-3 text-xs font-bold text-neutral-600 dark:text-neutral-400 uppercase tracking-wider">Valid Until</th>
                 <th className="px-4 py-3 text-xs font-bold text-neutral-600 dark:text-neutral-400 uppercase tracking-wider">Status</th>
                 <th className="px-4 py-3 text-xs font-bold text-neutral-600 dark:text-neutral-400 uppercase tracking-wider text-right">Actions</th>
@@ -128,7 +132,7 @@ export default function Promos() {
             <tbody className="divide-y divide-black/[0.04] dark:divide-white/[0.04]">
               {promos.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-sm text-neutral-500 dark:text-neutral-400">
+                  <td colSpan={6} className="px-4 py-8 text-center text-sm text-neutral-500 dark:text-neutral-400">
                     No promo codes found. Create one to get started!
                   </td>
                 </tr>
@@ -144,6 +148,23 @@ export default function Promos() {
                     </td>
                     <td className="px-4 py-3 text-sm font-semibold text-neutral-700 dark:text-neutral-300">
                       {promo.discount_percentage}% OFF
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1.5 text-sm">
+                        <Users className="w-3.5 h-3.5 text-neutral-500 dark:text-neutral-400" />
+                        <span className="font-semibold text-neutral-800 dark:text-neutral-200">
+                          {promo.used_count || 0}
+                        </span>
+                        <span className="text-neutral-400 text-xs">/</span>
+                        <span className="text-neutral-600 dark:text-neutral-400 text-xs font-medium">
+                          {promo.max_uses ? `${promo.max_uses} guests` : 'Unlimited'}
+                        </span>
+                        {promo.max_uses && (promo.used_count || 0) >= promo.max_uses ? (
+                          <span className="ml-1 text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
+                            Limit Reached
+                          </span>
+                        ) : null}
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1.5 text-sm text-neutral-600 dark:text-neutral-400">
@@ -224,6 +245,23 @@ export default function Promos() {
                   onChange={(e) => setNewDiscount(Number(e.target.value))}
                   className="w-full px-3 py-2 bg-neutral-50 dark:bg-[#181B20] border border-black/[0.1] dark:border-white/[0.1] rounded-xl text-sm text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]"
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-neutral-600 dark:text-neutral-400 uppercase tracking-wider mb-1">
+                  Guest Availment Limit (Optional)
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  placeholder="e.g. 5 (Leave blank for unlimited)"
+                  value={newMaxUses}
+                  onChange={(e) => setNewMaxUses(e.target.value)}
+                  className="w-full px-3 py-2 bg-neutral-50 dark:bg-[#181B20] border border-black/[0.1] dark:border-white/[0.1] rounded-xl text-sm text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]"
+                />
+                <p className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-1">
+                  First X guests who can avail this promo. Once reached, it will be automatically removed from the guest portal.
+                </p>
               </div>
 
               <div>

@@ -84,9 +84,11 @@ export default function CustomerRooms({ customerName }: Props) {
     // Fetch active promos for the banner
     promosApi.getAllPromos()
       .then((allPromos) => {
-        const active = allPromos.find(
-          (p) => p.status === 'active' && new Date(p.valid_until) >= new Date()
-        )
+        const active = allPromos.find((p) => {
+          const isNotExpired = new Date(p.valid_until) >= new Date()
+          const isNotMaxed = !p.max_uses || p.max_uses <= 0 || ((p.used_count ?? 0) < p.max_uses)
+          return p.status === 'active' && isNotExpired && isNotMaxed
+        })
         setActivePromo(active || null)
       })
       .catch(() => setActivePromo(null))
@@ -331,6 +333,9 @@ export default function CustomerRooms({ customerName }: Props) {
               {activePromo.code}
             </div>
             <div className="px-3 text-[10px] uppercase font-bold text-emerald-100 whitespace-nowrap text-center">
+              {activePromo.max_uses ? (
+                <span>First {activePromo.max_uses} Guests · </span>
+              ) : null}
               Valid until {new Date(activePromo.valid_until).toLocaleDateString()}
             </div>
           </div>

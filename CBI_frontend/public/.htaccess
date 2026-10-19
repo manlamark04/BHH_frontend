@@ -11,8 +11,7 @@ Options -MultiViews -Indexes
   RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
   # Uploaded images live on the backend (Render). Redirect any /uploads/* request there.
-  # Update this URL if your Render service URL is different.
-  RewriteRule ^uploads/(.*)$ https://bhh-backend.onrender.com/uploads/$1 [R=302,L]
+  RewriteRule ^uploads/(.*)$ https://bhh-backend-7vl6.onrender.com/uploads/$1 [R=302,L]
 
   # Serve existing files/folders directly
   RewriteCond %{REQUEST_FILENAME} -f [OR]

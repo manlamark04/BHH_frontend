@@ -7,6 +7,8 @@ export interface PromoCode {
   valid_until: string
   status: 'active' | 'inactive'
   created_at: string
+  max_uses?: number | null
+  used_count?: number
 }
 
 export const promosApi = {
@@ -14,7 +16,12 @@ export const promosApi = {
     return api.get('/api/promocodes')
   },
   
-  createPromo: async (data: { code: string; discount_percentage: number; valid_until: string }): Promise<{ message: string }> => {
+  createPromo: async (data: {
+    code: string
+    discount_percentage: number
+    valid_until: string
+    max_uses?: number | null
+  }): Promise<{ message: string }> => {
     return api.post('/api/promocodes', data)
   },
   
