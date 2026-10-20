@@ -17,6 +17,7 @@ import StatusBadge from './StatusBadge'
 import Modal from './Modal'
 import EditMotorDrawer from './EditMotorDrawer'
 import { validateDriverLicense, formatDriverLicense, DRIVER_LICENSE_ERROR_MSG } from '../utils/license.util'
+import { resolveAssetUrl } from '../api/client'
 
 interface Props {
   userRole?: 'customer' | 'staff' | 'admin'
@@ -546,9 +547,12 @@ export default function MotorRentSection({ userRole = 'customer', customerId, cu
                     <div className="relative h-40 overflow-hidden bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center">
                       {motor.image_url ? (
                         <img
-                          src={motor.image_url}
+                          src={resolveAssetUrl(motor.image_url)}
                           alt={`${motor.brand} ${motor.model}`}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none'
+                          }}
                         />
                       ) : (
                         <div className="text-center p-4">

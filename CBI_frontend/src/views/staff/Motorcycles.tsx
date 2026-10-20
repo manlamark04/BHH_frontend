@@ -41,6 +41,7 @@ import EditMotorDrawer from '../../components/EditMotorDrawer'
 import { formatDateTimeWithAmPm, PH_RESTRICTION_CODES, COMMON_COUNTRIES } from '../../components/MotorRentSection'
 import { validateDriverLicense, formatDriverLicense, DRIVER_LICENSE_ERROR_MSG } from '../../utils/license.util'
 import logo from '../../imports/logo.png'
+import { resolveAssetUrl } from '../../api/client'
 
 const FUEL_LEVEL_OPTIONS = [
   { id: 'Full', label: 'Full Tank (100%)', rank: 4 },
@@ -1261,7 +1262,14 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
               <div>
                 {m.image_url && (
                   <div className="h-44 rounded-xl overflow-hidden mb-3 bg-sand relative">
-                    <img src={m.image_url} alt={m.model} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    <img
+                      src={resolveAssetUrl(m.image_url)}
+                      alt={m.model}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none'
+                      }}
+                    />
                     <div className="absolute top-2 left-2">
                       <StatusBadge status={m.status} />
                     </div>
@@ -3837,9 +3845,12 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
             <div className="p-3.5 bg-[#F6F2E8] dark:bg-[#1f242d] border border-stone/20 dark:border-neutral-700 rounded-2xl flex items-center gap-3">
               {statusModalMotor.image_url ? (
                 <img
-                  src={statusModalMotor.image_url}
+                  src={resolveAssetUrl(statusModalMotor.image_url)}
                   alt={statusModalMotor.model}
                   className="w-12 h-12 rounded-xl object-cover border border-stone/20 shrink-0"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none'
+                  }}
                 />
               ) : (
                 <div className="w-12 h-12 rounded-xl bg-sand flex items-center justify-center text-ink-muted shrink-0">

@@ -11,6 +11,7 @@ import {
   Plus,
 } from 'lucide-react'
 import { motorcyclesApi, type Motorcycle } from '../api/motorcycles'
+import { resolveAssetUrl } from '../api/client'
 import ConfirmDialog from './ConfirmDialog'
 
 interface EditMotorDrawerProps {
@@ -102,11 +103,11 @@ export default function EditMotorDrawer({
       setInsurancePolicyNumber(motor.insurance_policy_number || '')
       setInsuranceExpiryDate(motor.insurance_expiry_date || '')
       setSelectedFile(null)
-      setPreviewUrl(motor.image_url || '')
+      setPreviewUrl(resolveAssetUrl(motor.image_url) || '')
       setOrSelectedFile(null)
-      setOrPreviewUrl(motor.or_image_url || '')
+      setOrPreviewUrl(resolveAssetUrl(motor.or_image_url) || '')
       setCrSelectedFile(null)
-      setCrPreviewUrl(motor.cr_image_url || '')
+      setCrPreviewUrl(resolveAssetUrl(motor.cr_image_url) || '')
       setError('')
       setFieldErrors({})
     } else if (!motor && isOpen) {
@@ -315,7 +316,7 @@ export default function EditMotorDrawer({
 
   const handleRevertPhoto = () => {
     setSelectedFile(null)
-    setPreviewUrl(motor?.image_url || '')
+    setPreviewUrl(resolveAssetUrl(motor?.image_url) || '')
     setFieldErrors((prev) => ({ ...prev, photo: '' }))
   }
 
