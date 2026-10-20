@@ -33,8 +33,8 @@ export default function StaffCustomers() {
     const apiStatus = (status === 'VIP' || status === 'Repeat' || status === 'All') ? undefined : status
     usersApi.getCustomers({ q: q || undefined, status: apiStatus })
       .then((data) => {
-        const filtered = data.filter((c: any) => c.created_by_role !== 'staff' && c.created_by_role !== 'admin')
-        setCustomers(filtered)
+        const customerList = data.filter((c: any) => String(c.role || 'customer').toLowerCase() === 'customer')
+        setCustomers(customerList)
       })
       .catch(() => {})
       .finally(() => setLoading(false))
@@ -73,9 +73,10 @@ export default function StaffCustomers() {
   const pendingCount = customers.filter((c) => String(c.status).toLowerCase() === 'pending').length
   const vipCount = customers.filter((c) => String(c.guest_tier).toUpperCase() === 'VIP').length
   const repeatCount = customers.filter((c) => String(c.guest_tier).toUpperCase() === 'REPEAT').length
+  const registeredCount = customers.filter((c) => String(c.status).toLowerCase() !== 'rejected').length
 
   const displayedCustomers = useMemo(() => {
-    if (statusFilter === 'All') return customers
+    if (statusFilter === 'All') return customers.filter((c) => String(c.status).toLowerCase() !== 'rejected')
     if (statusFilter === 'VIP') return customers.filter((c) => String(c.guest_tier).toUpperCase() === 'VIP')
     if (statusFilter === 'Repeat') return customers.filter((c) => String(c.guest_tier).toUpperCase() === 'REPEAT')
     return customers.filter((c) => String(c.status).toLowerCase() === statusFilter.toLowerCase())
@@ -123,7 +124,7 @@ export default function StaffCustomers() {
             </div>
           </div>
           <div>
-            <p className="font-display text-xl sm:text-2xl font-bold text-neutral-900 dark:text-white mt-1 leading-tight">{customers.length}</p>
+            <p className="font-display text-xl sm:text-2xl font-bold text-neutral-900 dark:text-white mt-1 leading-tight">{registeredCount}</p>
             <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5 block">Guest accounts on file</span>
           </div>
         </div>

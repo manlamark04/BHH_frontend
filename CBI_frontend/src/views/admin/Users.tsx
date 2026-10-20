@@ -29,7 +29,7 @@ import { useToast } from '../../context/ToastContext'
 import { useDebounce } from '../../hooks/useDebounce'
 
 const ROLE_TABS = ['ALL', 'PENDING', 'ADMIN', 'STAFF', 'CUSTOMER'] as const
-const STATUS_FILTERS = ['All', 'ACTIVE', 'PENDING', 'SUSPENDED', 'DISABLED']
+const STATUS_FILTERS = ['All', 'ACTIVE', 'PENDING', 'SUSPENDED', 'DISABLED', 'REJECTED']
 
 export default function AdminUsers() {
   const [users, setUsers] = useState<Record<string, unknown>[]>([])
@@ -247,8 +247,14 @@ export default function AdminUsers() {
       roleMatch = String(u.role || '').toUpperCase() === roleTab
     }
 
-    const statusMatch =
-      statusFilter === 'All' || String(u.status || '').toUpperCase() === statusFilter.toUpperCase()
+    const userStatus = String(u.status || '').toUpperCase()
+    let statusMatch = true
+    if (statusFilter.toUpperCase() === 'ALL') {
+      // Exclude rejected registrations by default from main/general views
+      statusMatch = userStatus !== 'REJECTED'
+    } else {
+      statusMatch = userStatus === statusFilter.toUpperCase()
+    }
     const q = debouncedSearch.toLowerCase().trim()
     const searchMatch =
       !q ||
@@ -325,13 +331,15 @@ export default function AdminUsers() {
 
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as 'ALL' | 'ACTIVE' | 'PENDING' | 'DISABLED')}
+            onChange={(e) => setStatusFilter(e.target.value)}
             className="px-2.5 py-1.5 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-xs font-semibold text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40 cursor-pointer"
           >
-            <option value="ALL">All Statuses</option>
+            <option value="All">All Statuses</option>
             <option value="ACTIVE">Active</option>
             <option value="PENDING">Pending</option>
+            <option value="SUSPENDED">Suspended</option>
             <option value="DISABLED">Disabled</option>
+            <option value="REJECTED">Rejected</option>
           </select>
         </div>
       </div>
@@ -364,10 +372,10 @@ export default function AdminUsers() {
         <div className="px-4 py-3 border-b border-black/[0.06] dark:border-neutral-800 flex items-center justify-between bg-neutral-50/60 dark:bg-[#14171C]">
           <div>
             <h3 className="font-display font-bold text-base text-neutral-900 dark:text-white">
-              {roleTab === 'PENDING' ? 'Customer Registration Approvals' : 'Registered Accounts'}
+              {roleTab === 'PENDING' ? 'Customer Registration Approvals' : statusFilter.toUpperCase() === 'REJECTED' ? 'Rejected Registrations' : 'Registered Accounts'}
             </h3>
             <p className="text-[11px] text-neutral-500 dark:text-neutral-400">
-              {roleTab === 'PENDING' ? 'Pending applications ready for account creation' : 'All active staff and registered customers'}
+              {roleTab === 'PENDING' ? 'Pending applications ready for account creation' : statusFilter.toUpperCase() === 'REJECTED' ? 'Customer registration applications that were denied by administrators' : 'All active staff and registered customers'}
             </p>
           </div>
           <span className="text-xs font-mono font-bold text-[#6B7A5E]">
