@@ -16,6 +16,7 @@ export interface ToastContextValue {
   error:   (message: string, title?: string) => void
   warning: (message: string, title?: string) => void
   info:    (message: string, title?: string) => void
+  showToast?: (arg1: ToastVariant | string, arg2?: string, arg3?: string) => void
 }
 
 /**
@@ -92,6 +93,14 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     error:   (m, t) => push('error',   m, t),
     warning: (m, t) => push('warning', m, t),
     info:    (m, t) => push('info',    m, t),
+    showToast: (arg1, arg2, arg3) => {
+      const validVariants: ToastVariant[] = ['success', 'error', 'warning', 'info']
+      if (validVariants.includes(arg1 as ToastVariant)) {
+        push(arg1 as ToastVariant, arg2 || '', arg3)
+      } else {
+        push((arg2 as ToastVariant) || 'info', arg1, arg3)
+      }
+    },
   }
 
   return (

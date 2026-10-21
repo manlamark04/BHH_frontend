@@ -16,7 +16,7 @@ export default function Promos() {
   const [submitting, setSubmitting] = useState(false)
   const [promoToDelete, setPromoToDelete] = useState<PromoCode | null>(null)
 
-  const { showToast } = useToast()
+  const toast = useToast()
 
   const fetchPromos = async () => {
     try {
@@ -24,7 +24,7 @@ export default function Promos() {
       const data = await promosApi.getAllPromos()
       setPromos(data)
     } catch (err: any) {
-      showToast(err.message || 'Failed to fetch promo codes', 'error')
+      toast.error(err.message || 'Failed to fetch promo codes')
     } finally {
       setLoading(false)
     }
@@ -45,7 +45,7 @@ export default function Promos() {
         valid_until: newValidUntil,
         max_uses: newMaxUses ? parseInt(newMaxUses, 10) : null
       })
-      showToast('Promo code created successfully!', 'success')
+      toast.success('Promo code created successfully!')
       setIsModalOpen(false)
       setNewCode('')
       setNewDiscount(10)
@@ -53,7 +53,7 @@ export default function Promos() {
       setNewMaxUses('')
       fetchPromos()
     } catch (err: any) {
-      showToast(err.message || 'Failed to create promo code', 'error')
+      toast.error(err.message || 'Failed to create promo code')
     } finally {
       setSubmitting(false)
     }
@@ -67,11 +67,11 @@ export default function Promos() {
     
     try {
       await promosApi.updatePromoStatus(promo.id, newStatus)
-      showToast(`Promo code is now ${newStatus}`, 'success')
+      toast.success(`Promo code is now ${newStatus}`)
     } catch (err: any) {
       // Revert if API fails
       setPromos(prev => prev.map(p => p.id == promo.id ? { ...p, status: promo.status } : p))
-      showToast(err.message || 'Failed to update status', 'error')
+      toast.error(err.message || 'Failed to update status')
     }
   }
 
@@ -85,9 +85,9 @@ export default function Promos() {
     
     try {
       await promosApi.deletePromo(idToDelete)
-      showToast('Promo code deleted', 'success')
+      toast.success('Promo code deleted')
     } catch (err: any) {
-      showToast(err.message || 'Failed to delete promo code', 'error')
+      toast.error(err.message || 'Failed to delete promo code')
       fetchPromos() // Re-fetch to restore state if deletion failed
     }
   }
