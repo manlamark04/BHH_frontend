@@ -22,6 +22,7 @@ import {
   Utensils,
   Wallet,
   ReceiptText,
+  ChevronDown,
 } from 'lucide-react'
 import {
   AreaChart,
@@ -44,6 +45,21 @@ import logo from '../../imports/logo.png'
 const REVENUE_COLORS = ['#6B7A5E', '#D4A373', '#E07A5F', '#3D405B', '#8C6239', '#A5A58D']
 const EXPENSE_COLORS = ['#EF4444', '#F97316', '#F59E0B', '#10B981', '#6366F1', '#EC4899']
 
+const MONTH_NAMES = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+]
+
 export default function FinancialDashboard() {
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -51,6 +67,7 @@ export default function FinancialDashboard() {
   const [endDate, setEndDate] = useState('')
   const [groupBy, setGroupBy] = useState('monthly')
   const [selectedYear, setSelectedYear] = useState('')
+  const [selectedMonthPreset, setSelectedMonthPreset] = useState<string>('')
   
   // View mode: 'overview' (charts) or 'statement' (tabular ledger)
   const [viewMode, setViewMode] = useState<'overview' | 'statement'>('overview')
@@ -81,6 +98,7 @@ export default function FinancialDashboard() {
     const mo = now.getMonth()
 
     if (type === 'this-month') {
+      setSelectedMonthPreset(String(mo + 1))
       const s = `${yr}-${String(mo + 1).padStart(2, '0')}-01`
       const lastDay = new Date(yr, mo + 1, 0).getDate()
       const e = `${yr}-${String(mo + 1).padStart(2, '0')}-${lastDay}`
@@ -93,6 +111,7 @@ export default function FinancialDashboard() {
       const prevMoDate = new Date(yr, mo - 1, 1)
       const prevYr = prevMoDate.getFullYear()
       const prevMo = prevMoDate.getMonth()
+      setSelectedMonthPreset(String(prevMo + 1))
       const s = `${prevYr}-${String(prevMo + 1).padStart(2, '0')}-01`
       const lastDay = new Date(prevYr, prevMo + 1, 0).getDate()
       const e = `${prevYr}-${String(prevMo + 1).padStart(2, '0')}-${lastDay}`
@@ -102,6 +121,7 @@ export default function FinancialDashboard() {
       setGroupBy('daily')
       fetchData(s, e, 'daily')
     } else if (type === 'this-year') {
+      setSelectedMonthPreset('all-months')
       const s = `${yr}-01-01`
       const e = `${yr}-12-31`
       setStartDate(s)
@@ -110,12 +130,46 @@ export default function FinancialDashboard() {
       setGroupBy('monthly')
       fetchData(s, e, 'monthly')
     } else if (type === 'all-time') {
+      setSelectedMonthPreset('')
       setStartDate('')
       setEndDate('')
       setSelectedYear('')
       setGroupBy('monthly')
       fetchData('', '', 'monthly')
     }
+  }
+
+  // Handle selecting a specific month or all months from the presets dropdown
+  const handleMonthSelect = (val: string) => {
+    setSelectedMonthPreset(val)
+    if (!val) {
+      handlePreset('this-year')
+      return
+    }
+
+    const yr = Number(selectedYear) || new Date().getFullYear()
+
+    if (val === 'all-months') {
+      const s = `${yr}-01-01`
+      const e = `${yr}-12-31`
+      setStartDate(s)
+      setEndDate(e)
+      setSelectedYear(String(yr))
+      setGroupBy('monthly')
+      fetchData(s, e, 'monthly')
+      return
+    }
+
+    const m = Number(val)
+    const s = `${yr}-${String(m).padStart(2, '0')}-01`
+    const lastDay = new Date(yr, m, 0).getDate()
+    const e = `${yr}-${String(m).padStart(2, '0')}-${lastDay}`
+
+    setStartDate(s)
+    setEndDate(e)
+    setSelectedYear(String(yr))
+    setGroupBy('daily')
+    fetchData(s, e, 'daily')
   }
 
   const handleExportCSV = () => {
@@ -553,7 +607,11 @@ export default function FinancialDashboard() {
             <button
               type="button"
               onClick={() => handlePreset('this-month')}
-              className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-white dark:bg-neutral-800 border border-black/[0.06] dark:border-neutral-700 text-neutral-700 dark:text-neutral-200 hover:border-[#6B7A5E] hover:text-[#6B7A5E] transition-all cursor-pointer shadow-2xs"
+              className={`px-2.5 py-1 text-xs font-semibold rounded-lg border transition-all cursor-pointer shadow-2xs ${
+                selectedMonthPreset === String(new Date().getMonth() + 1) && (!startDate || startDate.startsWith(String(new Date().getFullYear())))
+                  ? 'bg-[#6B7A5E] text-white border-[#6B7A5E]'
+                  : 'bg-white dark:bg-neutral-800 border-black/[0.06] dark:border-neutral-700 text-neutral-700 dark:text-neutral-200 hover:border-[#6B7A5E] hover:text-[#6B7A5E]'
+              }`}
             >
               This Month
             </button>
@@ -564,10 +622,55 @@ export default function FinancialDashboard() {
             >
               Last Month
             </button>
+
+            {/* All Months Dropdown Preset Selector */}
+            <div className="relative inline-flex items-center">
+              <select
+                value={selectedMonthPreset}
+                onChange={(e) => handleMonthSelect(e.target.value)}
+                className={`pl-2.5 pr-7 py-1 text-xs font-semibold rounded-lg border transition-all cursor-pointer shadow-2xs appearance-none focus:outline-none focus:ring-1 focus:ring-[#6B7A5E] ${
+                  selectedMonthPreset && selectedMonthPreset !== 'all-months'
+                    ? 'bg-[#6B7A5E] text-white border-[#6B7A5E]'
+                    : 'bg-white dark:bg-neutral-800 border-black/[0.06] dark:border-neutral-700 text-neutral-700 dark:text-neutral-200 hover:border-[#6B7A5E] hover:text-[#6B7A5E]'
+                }`}
+                title="Select all months or a specific month to trace revenue"
+              >
+                <option value="" className="bg-white dark:bg-neutral-900 text-neutral-800 dark:text-neutral-200">
+                  All Months ▾
+                </option>
+                <option value="all-months" className="bg-white dark:bg-neutral-900 text-neutral-800 dark:text-neutral-200 font-bold">
+                  All 12 Months ({selectedYear || new Date().getFullYear()})
+                </option>
+                <optgroup label="Select Specific Month" className="bg-white dark:bg-neutral-900 text-neutral-800 dark:text-neutral-200">
+                  {MONTH_NAMES.map((name, idx) => {
+                    const mNum = idx + 1
+                    return (
+                      <option
+                        key={mNum}
+                        value={String(mNum)}
+                        className="bg-white dark:bg-neutral-900 text-neutral-800 dark:text-neutral-200"
+                      >
+                        {name} {selectedYear || new Date().getFullYear()}
+                      </option>
+                    )
+                  })}
+                </optgroup>
+              </select>
+              <ChevronDown
+                className={`w-3.5 h-3.5 absolute right-2 pointer-events-none transition-colors ${
+                  selectedMonthPreset && selectedMonthPreset !== 'all-months' ? 'text-white' : 'text-neutral-400'
+                }`}
+              />
+            </div>
+
             <button
               type="button"
               onClick={() => handlePreset('this-year')}
-              className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-white dark:bg-neutral-800 border border-black/[0.06] dark:border-neutral-700 text-neutral-700 dark:text-neutral-200 hover:border-[#6B7A5E] hover:text-[#6B7A5E] transition-all cursor-pointer shadow-2xs"
+              className={`px-2.5 py-1 text-xs font-semibold rounded-lg border transition-all cursor-pointer shadow-2xs ${
+                selectedMonthPreset === 'all-months'
+                  ? 'bg-[#6B7A5E] text-white border-[#6B7A5E]'
+                  : 'bg-white dark:bg-neutral-800 border-black/[0.06] dark:border-neutral-700 text-neutral-700 dark:text-neutral-200 hover:border-[#6B7A5E] hover:text-[#6B7A5E]'
+              }`}
             >
               Year {new Date().getFullYear()}
             </button>
