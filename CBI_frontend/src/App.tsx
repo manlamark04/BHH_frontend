@@ -163,15 +163,20 @@ export default function App() {
 
     authApi.getMe()
       .then((user) => {
+        const mustChange = Boolean(user.must_change_password)
         setAuth({
           role: user.role,
           name: user.full_name,
           userId: user.unique_id,
           dbId: user.id,
-          mustChangePassword: Boolean(user.must_change_password),
+          mustChangePassword: mustChange,
           photoUrl: user.profile_photo_url,
         })
-        setView(DEFAULT_VIEW[user.role])
+        if (mustChange) {
+          setView(user.role === 'customer' ? 'customer-profile' : user.role === 'staff' ? 'staff-profile' : 'admin-profile')
+        } else {
+          setView(DEFAULT_VIEW[user.role])
+        }
       })
       .catch(() => {
         clearToken()
@@ -193,7 +198,11 @@ export default function App() {
 
   const handleLogin = useCallback((role: Role, name: string, userId: string, dbId: number, mustChangePassword = false, photoUrl?: string | null) => {
     setAuth({ role, name, userId, dbId, mustChangePassword, photoUrl })
-    setView(DEFAULT_VIEW[role])
+    if (mustChangePassword) {
+      setView(role === 'customer' ? 'customer-profile' : role === 'staff' ? 'staff-profile' : 'admin-profile')
+    } else {
+      setView(DEFAULT_VIEW[role])
+    }
   }, [])
 
   // Called by Profile after password change
@@ -296,7 +305,7 @@ export default function App() {
       case 'customer-reviews':
         return <CustomerReviews />
       case 'customer-profile':
-        return <CustomerProfile userName={name} userId={userId} onPasswordChanged={handlePasswordChanged} />
+        return <CustomerProfile userName={name} userId={userId} mustChangePassword={auth.mustChangePassword} onPasswordChanged={handlePasswordChanged} />
 
       // Staff
       case 'staff-dashboard':
@@ -321,7 +330,7 @@ export default function App() {
       case 'staff-customers':
         return <StaffCustomers />
       case 'staff-profile':
-        return <StaffProfile userName={name} userId={userId} onPasswordChanged={handlePasswordChanged} />
+        return <StaffProfile userName={name} userId={userId} mustChangePassword={auth.mustChangePassword} onPasswordChanged={handlePasswordChanged} />
       case 'staff-housekeeping':
         return <Housekeeping />
       case 'staff-lost-and-found':
@@ -355,7 +364,7 @@ export default function App() {
       case 'admin-promos':
         return <AdminPromos />
       case 'admin-profile':
-        return <AdminProfile userName={name} userId={userId} onPasswordChanged={handlePasswordChanged} />
+        return <AdminProfile userName={name} userId={userId} mustChangePassword={auth.mustChangePassword} onPasswordChanged={handlePasswordChanged} />
       case 'admin-housekeeping':
         return <Housekeeping />
       case 'admin-lost-and-found':
@@ -416,6 +425,24 @@ export default function App() {
             )}
 
 
+
+            {auth.mustChangePassword && (
+              <div className="bg-amber-500/10 dark:bg-amber-500/15 border-b border-amber-300 dark:border-amber-700/60 px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs text-amber-900 dark:text-amber-200">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping shrink-0" />
+                  <p className="font-medium truncate">
+                    <strong className="font-semibold">Security Notice:</strong> Your password was reset by an Administrator. Please set a new permanent password.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => navigate(role === 'customer' ? 'customer-profile' : role === 'staff' ? 'staff-profile' : 'admin-profile')}
+                  className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-semibold text-[11px] shadow-xs cursor-pointer transition-all shrink-0"
+                >
+                  Change Password Now →
+                </button>
+              </div>
+            )}
 
             <main className="flex-1 overflow-y-auto">
               <ErrorBoundary>

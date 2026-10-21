@@ -7,6 +7,7 @@ import {
   Check,
   CheckCircle2,
   AlertCircle,
+  AlertTriangle,
   ShieldCheck,
   Mail,
   Phone,
@@ -15,6 +16,8 @@ import {
   Heart,
   UserCheck,
   Copy,
+  Eye,
+  EyeOff,
 } from 'lucide-react'
 import AvatarUpload from '../../components/AvatarUpload'
 import { authApi } from '../../api/auth'
@@ -24,10 +27,11 @@ import { useToast } from '../../context/ToastContext'
 interface CustomerProfileProps {
   userName: string
   userId: string
+  mustChangePassword?: boolean
   onPasswordChanged?: () => void
 }
 
-export default function CustomerProfile({ userName, userId, onPasswordChanged }: CustomerProfileProps) {
+export default function CustomerProfile({ userName, userId, mustChangePassword, onPasswordChanged }: CustomerProfileProps) {
   const [editing, setEditing] = useState(false)
   const [firstName, setFirstName] = useState('')
   const [middleName, setMiddleName] = useState('')
@@ -41,7 +45,8 @@ export default function CustomerProfile({ userName, userId, onPasswordChanged }:
   const [status, setStatus] = useState('ACTIVE')
   const [createdAt, setCreatedAt] = useState('')
   const [photoUrl, setPhotoUrl] = useState<string | null>(null)
-  const [changingPassword, setChangingPassword] = useState(false)
+  const [mustChangePasswordState, setMustChangePasswordState] = useState(Boolean(mustChangePassword))
+  const [changingPassword, setChangingPassword] = useState(Boolean(mustChangePassword))
   const [copiedId, setCopiedId] = useState(false)
   const [saving, setSaving] = useState(false)
   const toast = useToast()
@@ -50,7 +55,18 @@ export default function CustomerProfile({ userName, userId, onPasswordChanged }:
   const [newPw, setNewPw] = useState('')
   const [confirmPw, setConfirmPw] = useState('')
   const [pwError, setPwError] = useState('')
+  const [showCurrentPw, setShowCurrentPw] = useState(false)
+  const [showNewPw, setShowNewPw] = useState(false)
+  const [showConfirmPw, setShowConfirmPw] = useState(false)
 
+  useEffect(() => {
+    if (mustChangePassword !== undefined) {
+      setMustChangePasswordState(Boolean(mustChangePassword))
+      if (mustChangePassword) {
+        setChangingPassword(true)
+      }
+    }
+  }, [mustChangePassword])
 
   useEffect(() => {
     authApi.getMe().then((user) => {
@@ -69,6 +85,10 @@ export default function CustomerProfile({ userName, userId, onPasswordChanged }:
       setStatus(user.status || 'ACTIVE')
       setCreatedAt(String(user.created_at || '').substring(0, 10))
       setPhotoUrl(user.profile_photo_url || null)
+      if (user.must_change_password) {
+        setMustChangePasswordState(true)
+        setChangingPassword(true)
+      }
     }).catch(() => {})
   }, [userName])
 
@@ -128,6 +148,7 @@ export default function CustomerProfile({ userName, userId, onPasswordChanged }:
     setSaving(true)
     try {
       await authApi.changePassword({ current_password: currentPw, new_password: newPw })
+      setMustChangePasswordState(false)
       setChangingPassword(false)
       setCurrentPw('')
       setNewPw('')
@@ -149,6 +170,41 @@ export default function CustomerProfile({ userName, userId, onPasswordChanged }:
 
   return (
     <div className="p-4 sm:p-5 max-w-4xl mx-auto space-y-4 font-sans">
+
+      {/* ─── MANDATORY PASSWORD CHANGE NOTICE BANNER ─── */}
+      {mustChangePasswordState && (
+        <div className="p-4 sm:p-5 bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-amber-500/5 dark:from-amber-950/50 dark:to-amber-900/20 border-2 border-amber-500/40 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm animate-fadeIn">
+          <div className="flex items-start gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+              <Key className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="font-display font-bold text-sm sm:text-base text-amber-950 dark:text-amber-100">
+                  Password Change Required
+                </h3>
+                <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-amber-500 text-white">
+                  Security Action
+                </span>
+              </div>
+              <p className="text-xs text-amber-900/90 dark:text-amber-200/90 mt-1 leading-relaxed max-w-2xl">
+                Your account password was reset by an Administrator (or you are currently using a default/temporary password). To protect your account and bookings, please enter your temporary password as the current password below, and set your new permanent password.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setChangingPassword(true)
+              const el = document.getElementById('account-security')
+              if (el) el.scrollIntoView({ behavior: 'smooth' })
+            }}
+            className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-xs whitespace-nowrap cursor-pointer transition-all self-end sm:self-auto shrink-0"
+          >
+            Update Password Below ↓
+          </button>
+        </div>
+      )}
 
       {/* ─── 1. MEMBER OVERVIEW BANNER CARD ─── */}
       <div className="bg-white dark:bg-[#181B20] rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors">
@@ -415,10 +471,24 @@ export default function CustomerProfile({ userName, userId, onPasswordChanged }:
       </div>
 
       {/* ─── 3. CHANGE PASSWORD CARD ─── */}
-      <div className="bg-white dark:bg-[#181B20] rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-4 sm:p-5 space-y-4">
+      <div
+        id="account-security"
+        className={`bg-white dark:bg-[#181B20] rounded-xl border ${
+          mustChangePasswordState
+            ? 'border-amber-400 dark:border-amber-600/70 ring-2 ring-amber-400/20'
+            : 'border-black/[0.07] dark:border-neutral-800'
+        } shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-4 sm:p-5 space-y-4 transition-all`}
+      >
         <div className="pb-2.5 border-b border-black/[0.06] dark:border-neutral-800 flex items-center justify-between">
           <div>
-            <h3 className="font-display font-bold text-base text-neutral-900 dark:text-white">Account Security & Password</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="font-display font-bold text-base text-neutral-900 dark:text-white">Account Security & Password</h3>
+              {mustChangePasswordState && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700/60 animate-pulse">
+                  Action Required
+                </span>
+              )}
+            </div>
             <p className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5">Change your default password or update your login credentials whenever you want</p>
           </div>
 
@@ -435,6 +505,17 @@ export default function CustomerProfile({ userName, userId, onPasswordChanged }:
 
         {changingPassword ? (
           <div className="space-y-3 text-xs">
+            {mustChangePasswordState && (
+              <div className="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/60 rounded-xl text-amber-900 dark:text-amber-200 text-xs flex items-start gap-2.5">
+                <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="font-bold text-xs">Temporary / Reset Password Detected</p>
+                  <p className="text-[11px] text-amber-800/90 dark:text-amber-300/90 leading-relaxed">
+                    Your password was recently reset by an Administrator. Please enter that temporary or default password into the <strong>Current or Default Password</strong> field below, then choose your own secure new password to finalize your account setup.
+                  </p>
+                </div>
+              </div>
+            )}
             {pwError && (
               <div className="p-2.5 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/40 rounded-lg text-rose-800 dark:text-rose-300 font-semibold flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
@@ -446,13 +527,24 @@ export default function CustomerProfile({ userName, userId, onPasswordChanged }:
               <label className="block font-semibold text-neutral-900 dark:text-white uppercase tracking-wider mb-1">
                 Current or Default Password *
               </label>
-              <input
-                type="password"
-                value={currentPw}
-                onChange={(e) => setCurrentPw(e.target.value)}
-                placeholder="Enter your current or default password"
-                className="w-full px-3.5 py-2 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
-              />
+              <div className="relative">
+                <input
+                  type={showCurrentPw ? 'text' : 'password'}
+                  value={currentPw}
+                  onChange={(e) => setCurrentPw(e.target.value)}
+                  placeholder="Enter your current or default password"
+                  className="w-full pl-3.5 pr-10 py-2 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCurrentPw(!showCurrentPw)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 p-1 rounded-md transition-colors cursor-pointer"
+                  title={showCurrentPw ? 'Hide password' : 'Show password'}
+                  aria-label={showCurrentPw ? 'Hide password' : 'Show password'}
+                >
+                  {showCurrentPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
               <p className="text-[10px] text-neutral-500 dark:text-neutral-400 mt-1">
                 If your account was assigned a default password upon registration, enter it here.
               </p>
@@ -461,42 +553,66 @@ export default function CustomerProfile({ userName, userId, onPasswordChanged }:
             <div className="grid sm:grid-cols-2 gap-3">
               <div>
                 <label className="block font-semibold text-neutral-900 dark:text-white uppercase tracking-wider mb-1">New Password *</label>
-                <input
-                  type="password"
-                  value={newPw}
-                  onChange={(e) => setNewPw(e.target.value)}
-                  placeholder="Minimum 6 characters"
-                  className="w-full px-3.5 py-2 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
-                />
+                <div className="relative">
+                  <input
+                    type={showNewPw ? 'text' : 'password'}
+                    value={newPw}
+                    onChange={(e) => setNewPw(e.target.value)}
+                    placeholder="Minimum 6 characters"
+                    className="w-full pl-3.5 pr-10 py-2 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPw(!showNewPw)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 p-1 rounded-md transition-colors cursor-pointer"
+                    title={showNewPw ? 'Hide password' : 'Show password'}
+                    aria-label={showNewPw ? 'Hide password' : 'Show password'}
+                  >
+                    {showNewPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
 
               <div>
                 <label className="block font-semibold text-neutral-900 dark:text-white uppercase tracking-wider mb-1">Confirm New Password *</label>
-                <input
-                  type="password"
-                  value={confirmPw}
-                  onChange={(e) => setConfirmPw(e.target.value)}
-                  placeholder="Re-enter new password"
-                  className="w-full px-3.5 py-2 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
-                />
+                <div className="relative">
+                  <input
+                    type={showConfirmPw ? 'text' : 'password'}
+                    value={confirmPw}
+                    onChange={(e) => setConfirmPw(e.target.value)}
+                    placeholder="Re-enter new password"
+                    className="w-full pl-3.5 pr-10 py-2 rounded-lg border border-black/[0.08] dark:border-neutral-700 bg-white dark:bg-[#20252E] text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPw(!showConfirmPw)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 p-1 rounded-md transition-colors cursor-pointer"
+                    title={showConfirmPw ? 'Hide password' : 'Show password'}
+                    aria-label={showConfirmPw ? 'Hide password' : 'Show password'}
+                  >
+                    {showConfirmPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
             </div>
 
             <div className="flex gap-2.5 pt-2">
-              <button
-                type="button"
-                onClick={() => { setChangingPassword(false); setPwError(''); }}
-                className="flex-1 py-2 border border-black/[0.08] dark:border-neutral-700 rounded-lg font-semibold text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all cursor-pointer"
-              >
-                Cancel
-              </button>
+              {!mustChangePasswordState && (
+                <button
+                  type="button"
+                  onClick={() => { setChangingPassword(false); setPwError(''); }}
+                  className="flex-1 py-2 border border-black/[0.08] dark:border-neutral-700 rounded-lg font-semibold text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+              )}
               <button
                 type="button"
                 onClick={handleChangePassword}
                 disabled={saving}
-                className="flex-1 py-2 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-lg font-semibold shadow-xs disabled:opacity-50 transition-all cursor-pointer"
+                className={`${mustChangePasswordState ? 'w-full' : 'flex-1'} py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-lg font-semibold shadow-xs disabled:opacity-50 transition-all cursor-pointer flex items-center justify-center gap-2`}
               >
-                {saving ? 'Updating Password...' : 'Update Password'}
+                <span>{saving ? 'Updating Password...' : 'Save New Password & Secure Account'}</span>
               </button>
             </div>
           </div>

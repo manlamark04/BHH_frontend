@@ -8,9 +8,10 @@ import CustomerProfile from '../customer/Profile'
 interface AdminProfileProps {
   userName: string
   userId: string
+  mustChangePassword?: boolean
   onPasswordChanged?: () => void
 }
 
-export default function AdminProfile({ userName, userId, onPasswordChanged }: AdminProfileProps) {
-  return <CustomerProfile userName={userName} userId={userId} onPasswordChanged={onPasswordChanged} />
+export default function AdminProfile({ userName, userId, mustChangePassword, onPasswordChanged }: AdminProfileProps) {
+  return <CustomerProfile userName={userName} userId={userId} mustChangePassword={mustChangePassword} onPasswordChanged={onPasswordChanged} />
 }
