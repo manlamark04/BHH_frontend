@@ -1318,6 +1318,43 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
                   }
                   return null
                 })()}
+
+                {/* Registration Expiry Status Badge */}
+                {(() => {
+                  if (!m.registration_expiry_date) return null
+                  const expDate = new Date(`${m.registration_expiry_date}T00:00:00`)
+                  const now = new Date()
+                  now.setHours(0, 0, 0, 0)
+                  const diffDays = Math.round((expDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+
+                  if (diffDays < 0) {
+                    return (
+                      <div className="mt-2.5 p-2 bg-rose-50 border border-rose-200 rounded-lg text-rose-900 text-[11px] flex items-center justify-between">
+                        <span className="font-bold flex items-center gap-1 text-rose-700">
+                          <AlertCircle className="w-3.5 h-3.5 shrink-0 text-rose-600" />
+                          Registration Expired
+                        </span>
+                        <span className="font-mono text-[10px] text-rose-600 font-bold">
+                          {m.registration_expiry_date} ({Math.abs(diffDays)}d ago)
+                        </span>
+                      </div>
+                    )
+                  }
+                  if (diffDays <= 30) {
+                    return (
+                      <div className="mt-2.5 p-2 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 text-[11px] flex items-center justify-between">
+                        <span className="font-bold flex items-center gap-1 text-amber-700">
+                          <AlertCircle className="w-3.5 h-3.5 shrink-0 text-amber-600" />
+                          Reg. Expiring Soon
+                        </span>
+                        <span className="font-mono text-[10px] text-amber-700 font-bold">
+                          {diffDays === 0 ? 'Expires Today!' : `in ${diffDays} day${diffDays === 1 ? '' : 's'}`}
+                        </span>
+                      </div>
+                    )
+                  }
+                  return null
+                })()}
               </div>
 
               <div className="mt-4 pt-3 border-t border-stone/15 space-y-3">

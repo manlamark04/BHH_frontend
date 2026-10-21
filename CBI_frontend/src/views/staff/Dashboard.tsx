@@ -12,10 +12,12 @@ import {
   CheckCircle2,
   Building2,
   CalendarDays,
+  ArrowRight,
 } from 'lucide-react'
 import type { View } from '../../types'
 import { bookingsApi } from '../../api/bookings'
 import { roomsApi, type RoomRecord } from '../../api/rooms'
+import { reportsApi } from '../../api/reports'
 import StatusBadge from '../../components/StatusBadge'
 import Avatar from '../../components/Avatar'
 import NotificationCenter from '../../components/NotificationCenter'
@@ -30,6 +32,16 @@ interface StaffDashboardProps {
 export default function StaffDashboard({ onNavigate, userName, userId, photoUrl }: StaffDashboardProps) {
   const [bookings, setBookings] = useState<Record<string, unknown>[]>([])
   const [rooms, setRooms] = useState<RoomRecord[]>([])
+  const [expiringMotorcycles, setExpiringMotorcycles] = useState<Array<{
+    id: number
+    motor_id: string
+    brand: string
+    model: string
+    plate_number: string
+    status: string
+    registration_expiry_date: string
+    days_left: number
+  }>>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -37,9 +49,13 @@ export default function StaffDashboard({ onNavigate, userName, userId, photoUrl 
     Promise.all([
       bookingsApi.getAllBookings().catch(() => []),
       roomsApi.getRooms().catch(() => []),
-    ]).then(([bkgs, rms]) => {
+      reportsApi.getStaffDashboard().catch(() => ({})),
+    ]).then(([bkgs, rms, staffDash]) => {
       setBookings(bkgs as Record<string, unknown>[])
       setRooms(rms as RoomRecord[])
+      if (staffDash && Array.isArray((staffDash as any).expiring_motorcycles)) {
+        setExpiringMotorcycles((staffDash as any).expiring_motorcycles)
+      }
     }).finally(() => setLoading(false))
   }, [])
 
@@ -121,6 +137,61 @@ export default function StaffDashboard({ onNavigate, userName, userId, photoUrl 
           </p>
         </div>
       </div>
+
+      {/* ─── OPERATIONAL ALERT: MOTORCYCLE REGISTRATION EXPIRATION ─── */}
+      {expiringMotorcycles.length > 0 && (
+        <div className="p-4 rounded-xl border border-rose-300 dark:border-rose-900/60 bg-rose-50/90 dark:bg-rose-950/30 text-rose-900 dark:text-rose-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in duration-200">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-xl bg-rose-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+              <Bike className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h4 className="font-display font-bold text-sm text-rose-950 dark:text-rose-100">
+                  Motorcycle Registration Notice ({expiringMotorcycles.length} unit{expiringMotorcycles.length > 1 ? 's' : ''})
+                </h4>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-600 text-white uppercase tracking-wider">
+                  Needs Attention
+                </span>
+              </div>
+              <p className="text-xs text-rose-800 dark:text-rose-300 mt-0.5">
+                Attention Front Desk: Unit(s) nearing or past OR/CR LTO registration expiry:
+              </p>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {expiringMotorcycles.map((m) => {
+                  const isExpired = m.days_left < 0
+                  const isToday = m.days_left === 0
+                  return (
+                    <span
+                      key={m.id}
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border ${
+                        isExpired
+                          ? 'bg-rose-100 dark:bg-rose-900/40 border-rose-300 dark:border-rose-800 text-rose-900 dark:text-rose-200'
+                          : 'bg-amber-100 dark:bg-amber-900/40 border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200'
+                      }`}
+                    >
+                      <strong className="font-mono">{m.plate_number}</strong> ({m.brand} {m.model}) —{' '}
+                      {isExpired
+                        ? `Expired (${Math.abs(m.days_left)}d ago)`
+                        : isToday
+                        ? 'Expires Today!'
+                        : `Expires in ${m.days_left}d`}
+                    </span>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+
+          <button
+            onClick={() => onNavigate('staff-motorcycles')}
+            className="px-4 py-2 bg-rose-700 hover:bg-rose-800 text-white rounded-xl text-xs font-bold shadow-xs transition-all flex items-center gap-1.5 shrink-0 self-start sm:self-center cursor-pointer"
+          >
+            <span>Check Fleet Status</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
 
       {/* ─── 3. STATISTIC KPI SUMMARY CARDS ─── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">

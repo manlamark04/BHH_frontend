@@ -11,6 +11,7 @@ import {
   ExternalLink,
   ChevronRight,
   AlertCircle,
+  Bike,
 } from 'lucide-react'
 import { io } from 'socket.io-client'
 import { getToken, API_BASE_URL } from '../api/client'
@@ -22,7 +23,7 @@ interface NotificationCenterProps {
   onNavigate: (view: View) => void
 }
 
-type TabType = 'all' | 'schedule' | 'approvals' | 'finance'
+type TabType = 'all' | 'schedule' | 'approvals' | 'finance' | 'fleet'
 
 export default function NotificationCenter({ role, onNavigate }: NotificationCenterProps) {
   const [isOpen, setIsOpen] = useState(false)
@@ -201,6 +202,18 @@ export default function NotificationCenter({ role, onNavigate }: NotificationCen
             >
               Bills ({data?.summary.pendingInvoicesCount || 0})
             </button>
+            <button
+              onClick={() => setActiveTab('fleet')}
+              className={`flex-1 py-1.5 rounded-lg font-semibold text-[11px] transition-all cursor-pointer ${
+                activeTab === 'fleet'
+                  ? 'bg-white dark:bg-neutral-800 text-rose-600 dark:text-rose-400 shadow-xs'
+                  : (data?.summary.expiringMotorcyclesCount || 0) > 0
+                    ? 'text-rose-600 dark:text-rose-400 font-bold'
+                    : 'text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-300'
+              }`}
+            >
+              Fleet ({data?.summary.expiringMotorcyclesCount || 0})
+            </button>
           </div>
 
           {/* List Content */}
@@ -362,6 +375,65 @@ export default function NotificationCenter({ role, onNavigate }: NotificationCen
                     <ChevronRight className="w-4 h-4 text-neutral-400 group-hover:translate-x-0.5 transition-transform shrink-0 self-center" />
                   </div>
                 ))}
+              </>
+            )}
+
+            {/* TAB: FLEET (MOTORCYCLE REGISTRATION EXPIRATION ALERTS) */}
+            {(activeTab === 'all' || activeTab === 'fleet') && (
+              <>
+                {data?.items.expiringMotorcycles?.map((motor) => {
+                  const isExpired = motor.days_left < 0
+                  const isToday = motor.days_left === 0
+
+                  return (
+                    <div
+                      key={`motor-reg-${motor.id}`}
+                      onClick={() => handleItemClick(role === 'admin' ? 'admin-services' : 'staff-motorcycles')}
+                      className="p-3 hover:bg-sand/30 dark:hover:bg-neutral-800/50 rounded-xl transition-colors cursor-pointer group flex items-start gap-3"
+                    >
+                      <div
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
+                          isExpired
+                            ? 'bg-rose-500/10 text-rose-600'
+                            : isToday
+                            ? 'bg-rose-500/10 text-rose-600 animate-pulse'
+                            : 'bg-amber-500/10 text-amber-600'
+                        }`}
+                      >
+                        <Bike className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <span
+                            className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
+                              isExpired
+                                ? 'text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/50'
+                                : isToday
+                                ? 'text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/50'
+                                : 'text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50'
+                            }`}
+                          >
+                            {isExpired
+                              ? `Reg. Expired (${Math.abs(motor.days_left)}d ago)`
+                              : isToday
+                              ? 'Registration Expires Today'
+                              : `Registration in ${motor.days_left}d`}
+                          </span>
+                          <span className="text-[10px] font-mono text-neutral-400 font-bold">
+                            {motor.plate_number}
+                          </span>
+                        </div>
+                        <p className="font-semibold text-neutral-900 dark:text-white mt-1 truncate">
+                          {motor.brand} {motor.model}
+                        </p>
+                        <p className="text-[11px] text-neutral-500 dark:text-neutral-400">
+                          OR/CR Expiry: <strong className={isExpired ? 'text-rose-600' : 'text-amber-600'}>{motor.registration_expiry_date}</strong>
+                        </p>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-neutral-400 group-hover:translate-x-0.5 transition-transform shrink-0 self-center" />
+                    </div>
+                  )
+                })}
               </>
             )}
           </div>

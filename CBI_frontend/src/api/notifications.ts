@@ -8,6 +8,7 @@ export interface NotificationSummary {
     todayArrivalsCount: number
     todayDeparturesCount: number
     pendingInvoicesCount: number
+    expiringMotorcyclesCount?: number
   }
   items: {
     pendingUsers: Array<{
@@ -59,6 +60,17 @@ export interface NotificationSummary {
       status: string
       issued_at: string
       customer_name: string
+    }>
+    expiringMotorcycles?: Array<{
+      id: number
+      motor_id: string
+      brand: string
+      model: string
+      plate_number: string
+      status: string
+      registration_expiry_date: string
+      insurance_expiry_date?: string
+      days_left: number
     }>
   }
   timestamp: string

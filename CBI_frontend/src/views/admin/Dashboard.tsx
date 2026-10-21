@@ -39,6 +39,8 @@ import {
   Building2,
   CalendarCheck,
   Users,
+  AlertTriangle,
+  Bike,
 } from 'lucide-react'
 import StatusBadge from '../../components/StatusBadge'
 import Avatar from '../../components/Avatar'
@@ -70,6 +72,16 @@ interface DashboardData {
   upcoming_arrivals: Record<string, unknown>[]
   recent_bookings: Record<string, unknown>[]
   notifications: { id: string; type: string; title: string; message: string; time: string }[]
+  expiring_motorcycles?: Array<{
+    id: number
+    motor_id: string
+    brand: string
+    model: string
+    plate_number: string
+    status: string
+    registration_expiry_date: string
+    days_left: number
+  }>
   revenue_breakdown?: { name: string; value: number }[]
   bookings_30days?: { date_str: string; bookings: number }[]
 }
@@ -333,6 +345,61 @@ export default function AdminDashboard({ onNavigate, userName = 'Alexandra Reyes
 
       {/* ─── MAIN DASHBOARD CONTENT AREA ─── */}
       <main className="max-w-7xl mx-auto p-4 sm:p-5 space-y-4 sm:space-y-5">
+
+        {/* ─── OPERATIONAL ALERT: MOTORCYCLE REGISTRATION EXPIRATION ─── */}
+        {data?.expiring_motorcycles && data.expiring_motorcycles.length > 0 && (
+          <div className="p-4 rounded-xl border border-rose-300 dark:border-rose-900/60 bg-rose-50/90 dark:bg-rose-950/30 text-rose-900 dark:text-rose-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in duration-200">
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 rounded-xl bg-rose-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                <Bike className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h4 className="font-display font-bold text-sm text-rose-950 dark:text-rose-100">
+                    Motorcycle Registration Alert ({data.expiring_motorcycles.length} unit{data.expiring_motorcycles.length > 1 ? 's' : ''})
+                  </h4>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-600 text-white uppercase tracking-wider">
+                    Action Required
+                  </span>
+                </div>
+                <p className="text-xs text-rose-800 dark:text-rose-300 mt-0.5">
+                  The following vehicle(s) have expired or nearing expiration LTO registration (OR/CR):
+                </p>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {data.expiring_motorcycles.map((m) => {
+                    const isExpired = m.days_left < 0
+                    const isToday = m.days_left === 0
+                    return (
+                      <span
+                        key={m.id}
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border ${
+                          isExpired
+                            ? 'bg-rose-100 dark:bg-rose-900/40 border-rose-300 dark:border-rose-800 text-rose-900 dark:text-rose-200'
+                            : 'bg-amber-100 dark:bg-amber-900/40 border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200'
+                        }`}
+                      >
+                        <strong className="font-mono">{m.plate_number}</strong> ({m.brand} {m.model}) —{' '}
+                        {isExpired
+                          ? `Expired (${Math.abs(m.days_left)}d ago)`
+                          : isToday
+                          ? 'Expires Today!'
+                          : `Expires in ${m.days_left}d`}
+                      </span>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => onNavigate('admin-services')}
+              className="px-4 py-2 bg-rose-700 hover:bg-rose-800 text-white rounded-xl text-xs font-bold shadow-xs transition-all flex items-center gap-1.5 shrink-0 self-start sm:self-center cursor-pointer"
+            >
+              <span>Manage Fleet OR/CR</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
 
         {/* ─── 1. KPI STAT CARDS (4-Column Minimalist Strip) ─── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
