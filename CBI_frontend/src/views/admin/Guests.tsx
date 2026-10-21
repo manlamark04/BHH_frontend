@@ -10,6 +10,7 @@ import {
   CreditCard,
   Calendar,
   CheckCircle2,
+  Key,
 } from 'lucide-react'
 import { usersApi } from '../../api/users'
 import StatusBadge from '../../components/StatusBadge'
@@ -17,6 +18,7 @@ import Modal from '../../components/Modal'
 import Avatar from '../../components/Avatar'
 import GuestTransactionsModal from '../../components/GuestTransactionsModal'
 import GuestVipBadge from '../../components/GuestVipBadge'
+import ResetPasswordModal from '../../components/ResetPasswordModal'
 
 export default function AdminGuests() {
   const [customers, setCustomers] = useState<Record<string, unknown>[]>([])
@@ -25,6 +27,7 @@ export default function AdminGuests() {
   const [loading, setLoading] = useState(true)
   const [viewCustomer, setViewCustomer] = useState<Record<string, unknown> | null>(null)
   const [txnCustomer, setTxnCustomer] = useState<Record<string, unknown> | null>(null)
+  const [resetPasswordCustomer, setResetPasswordCustomer] = useState<Record<string, unknown> | null>(null)
   const [auditLogs, setAuditLogs] = useState<Record<string, unknown>[]>([])
   const [recentStays, setRecentStays] = useState<Record<string, unknown>[]>([])
 
@@ -286,7 +289,7 @@ export default function AdminGuests() {
                     <td className="px-5 py-4 font-mono text-ink-muted text-xs">{createdAt}</td>
                     
                     <td className="px-5 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex items-center justify-end gap-1.5">
                         <button
                           onClick={() => handleViewCustomer(c)}
                           className="px-3.5 py-1.5 bg-[#F6F2E8] dark:bg-neutral-800 hover:bg-sand dark:hover:bg-neutral-700 border border-stone/30 dark:border-neutral-700 text-ink dark:text-white rounded-lg text-[11px] font-semibold shadow-xs transition-all whitespace-nowrap cursor-pointer"
@@ -298,6 +301,15 @@ export default function AdminGuests() {
                           className="px-2.5 py-1.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-lg text-[11px] font-semibold shadow-xs transition-all whitespace-nowrap cursor-pointer"
                         >
                           Transactions
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setResetPasswordCustomer(c)}
+                          title="Reset Password (Admin)"
+                          className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 dark:text-rose-300 border border-rose-200 dark:border-rose-900 rounded-lg text-[11px] font-semibold shadow-xs transition-all flex items-center gap-1 cursor-pointer whitespace-nowrap"
+                        >
+                          <Key className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
+                          <span>Reset Pw</span>
                         </button>
                       </div>
                     </td>
@@ -468,16 +480,44 @@ export default function AdminGuests() {
               </div>
             </div>
 
-            <button
-              onClick={() => setViewCustomer(null)}
-              className="w-full py-2.5 border border-stone/30 dark:border-neutral-700 rounded-xl font-semibold text-ink dark:text-white hover:bg-sand dark:hover:bg-neutral-700 transition-all cursor-pointer"
-            >
-              Close
-            </button>
+            <div className="flex items-center gap-2 pt-2 border-t border-stone/15 dark:border-neutral-800">
+              <button
+                type="button"
+                onClick={() => setResetPasswordCustomer(viewCustomer)}
+                className="flex-1 py-2.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 text-rose-800 dark:text-rose-200 border border-rose-200 dark:border-rose-900 rounded-xl font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+              >
+                <Key className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+                <span>Reset Guest Password</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewCustomer(null)}
+                className="px-6 py-2.5 border border-stone/30 dark:border-neutral-700 rounded-xl font-semibold text-ink dark:text-white hover:bg-sand dark:hover:bg-neutral-700 transition-all cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
 
           </div>
         )}
       </Modal>
+
+      {/* ─── RESET GUEST PASSWORD MODAL ─── */}
+      <ResetPasswordModal
+        isOpen={Boolean(resetPasswordCustomer)}
+        onClose={() => setResetPasswordCustomer(null)}
+        user={resetPasswordCustomer ? {
+          id: Number(resetPasswordCustomer.id),
+          unique_id: String(resetPasswordCustomer.unique_id || resetPasswordCustomer.id),
+          full_name: String(resetPasswordCustomer.full_name || `${resetPasswordCustomer.first_name || ''} ${resetPasswordCustomer.last_name || ''}`).trim(),
+          username: String(resetPasswordCustomer.username || ''),
+          email: String(resetPasswordCustomer.email || ''),
+          first_name: String(resetPasswordCustomer.first_name || ''),
+        } : null}
+        onSuccess={() => {
+          loadCustomers(search, statusFilter)
+        }}
+      />
 
       {/* ─── GUEST TRANSACTIONS MODAL ─── */}
       <GuestTransactionsModal

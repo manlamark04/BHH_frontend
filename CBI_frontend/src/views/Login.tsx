@@ -253,9 +253,24 @@ export default function Login({ onLogin, onNavigate }: LoginProps) {
               )}
 
               {forgotMsg && (
-                <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-xs leading-relaxed flex items-start gap-2">
-                  <Info className="w-4 h-4 mt-0.5 shrink-0" />
-                  <span className="leading-relaxed">For security, password resets are processed by system administrators. Please contact the front desk or use your default password (<code className="font-mono font-bold text-amber-800">firstname123</code>).</span>
+                <div className="mb-4 p-3.5 bg-amber-50/95 border border-amber-300/80 rounded-2xl text-amber-950 text-xs leading-relaxed flex items-start justify-between gap-2.5 animate-fadeIn shadow-xs">
+                  <div className="flex items-start gap-2.5">
+                    <Info className="w-4 h-4 mt-0.5 shrink-0 text-amber-700" />
+                    <div>
+                      <strong className="block font-bold text-amber-900 mb-0.5">Admin-Assisted Password Reset</strong>
+                      <p className="text-[11px] text-amber-800 leading-relaxed">
+                        For security and identity verification, password resets are authorized exclusively by the <strong>Front Desk Administrator</strong>. Please approach the reception with a valid ID, and the Admin will securely issue your temporary login credentials.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setForgotMsg(false)}
+                    className="text-amber-700 hover:text-amber-900 p-1 -mr-1 -mt-1 rounded-lg hover:bg-amber-100/60 cursor-pointer"
+                    aria-label="Dismiss notice"
+                  >
+                    ✕
+                  </button>
                 </div>
               )}
 

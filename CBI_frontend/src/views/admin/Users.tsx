@@ -27,6 +27,7 @@ import EmptyState from '../../components/EmptyState'
 import { SkeletonTable } from '../../components/SkeletonLoader'
 import { useToast } from '../../context/ToastContext'
 import { useDebounce } from '../../hooks/useDebounce'
+import ResetPasswordModal from '../../components/ResetPasswordModal'
 
 const ROLE_TABS = ['ALL', 'PENDING', 'ADMIN', 'STAFF', 'CUSTOMER'] as const
 const STATUS_FILTERS = ['All', 'ACTIVE', 'PENDING', 'SUSPENDED', 'DISABLED', 'REJECTED']
@@ -38,6 +39,7 @@ export default function AdminUsers() {
   const [search, setSearch] = useState('')
   const debouncedSearch = useDebounce(search, 300)
   const [viewUser, setViewUser] = useState<Record<string, unknown> | null>(null)
+  const [resetPasswordTarget, setResetPasswordTarget] = useState<Record<string, unknown> | null>(null)
   const [auditLogs, setAuditLogs] = useState<Record<string, unknown>[]>([])
   const [newStaffModal, setNewStaffModal] = useState(false)
   const [rejectModalUser, setRejectModalUser] = useState<Record<string, unknown> | null>(null)
@@ -460,6 +462,16 @@ export default function AdminUsers() {
                             >
                               View
                             </button>
+                            {status === 'ACTIVE' && (
+                              <button
+                                onClick={() => setResetPasswordTarget(u)}
+                                title="Reset Password (Admin)"
+                                className="text-xs text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 px-2 py-1.5 rounded-lg transition-all font-semibold flex items-center gap-1 cursor-pointer whitespace-nowrap"
+                              >
+                                <Key className="w-3 h-3 text-rose-600" />
+                                <span>Reset Pw</span>
+                              </button>
+                            )}
                             {status === 'ACTIVE' && role !== 'ADMIN' && (
                               <button
                                 onClick={() => { setSuspendModalUser(u); setSuspendReason('') }}
@@ -520,9 +532,19 @@ export default function AdminUsers() {
                   <Key className="w-4 h-4 text-[#6B7A5E]" />
                   <span>Account Login Credentials</span>
                 </h4>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white text-[#6B7A5E] border border-stone/20 uppercase tracking-wider">
-                  Admin Created
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white text-[#6B7A5E] border border-stone/20 uppercase tracking-wider">
+                    Admin Created
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setResetPasswordTarget(viewUser)}
+                    className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 uppercase tracking-wider flex items-center gap-1 cursor-pointer transition-colors shadow-2xs"
+                  >
+                    <Key className="w-3 h-3 text-rose-600" />
+                    <span>Reset Password</span>
+                  </button>
+                </div>
               </div>
 
               <div className="grid sm:grid-cols-2 gap-3">
@@ -998,6 +1020,25 @@ export default function AdminUsers() {
         loading={reactivating}
         onConfirm={handleConfirmReactivate}
         onCancel={() => setReactivateTarget(null)}
+      />
+
+      {/* ─── MODAL: RESET USER/GUEST PASSWORD ─── */}
+      <ResetPasswordModal
+        isOpen={Boolean(resetPasswordTarget)}
+        onClose={() => setResetPasswordTarget(null)}
+        user={resetPasswordTarget ? {
+          id: Number(resetPasswordTarget.id),
+          unique_id: String(resetPasswordTarget.unique_id || resetPasswordTarget.userId || resetPasswordTarget.id),
+          full_name: String(resetPasswordTarget.full_name || resetPasswordTarget.name || ''),
+          username: String(resetPasswordTarget.username || ''),
+          email: String(resetPasswordTarget.email || ''),
+          first_name: String(resetPasswordTarget.first_name || ''),
+          role: String(resetPasswordTarget.role || ''),
+        } : null}
+        onSuccess={() => {
+          loadUsers()
+          toast.success('User password has been successfully reset.')
+        }}
       />
 
     </div>

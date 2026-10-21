@@ -61,6 +61,15 @@ export const usersApi = {
   reactivateCustomer: (id: number) =>
     api.post<{ message: string; customer: Record<string, unknown> }>(`/api/users/customers/${id}/reactivate`),
 
+  /** POST /api/users/customers/:id/reset-password — Admin: Reset user/customer password */
+  resetCustomerPassword: (id: number, temporaryPassword?: string) =>
+    api.post<{
+      message: string
+      temporary_password: string
+      username: string
+      user: Record<string, unknown>
+    }>(`/api/users/customers/${id}/reset-password`, { temporary_password: temporaryPassword }),
+
   /** GET /api/users/customers/search — Search customers */
   searchCustomers: (q?: string) =>
     api.get<Record<string, unknown>[]>(`/api/users/customers/search${q ? `?q=${q}` : ''}`),
