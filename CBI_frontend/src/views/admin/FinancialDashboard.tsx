@@ -139,17 +139,13 @@ export default function FinancialDashboard() {
     }
   }
 
-  // Handle selecting a specific month or all months from the presets dropdown
+  // Handle selecting a specific month from the presets dropdown
   const handleMonthSelect = (val: string) => {
     setSelectedMonthPreset(val)
-    if (!val) {
-      handlePreset('this-year')
-      return
-    }
-
     const yr = Number(selectedYear) || new Date().getFullYear()
 
-    if (val === 'all-months') {
+    if (!val) {
+      // All Months chosen: trace full year
       const s = `${yr}-01-01`
       const e = `${yr}-12-31`
       setStartDate(s)
@@ -177,7 +173,7 @@ export default function FinancialDashboard() {
     setSelectedYear(yrStr)
     const yr = Number(yrStr) || new Date().getFullYear()
 
-    if (selectedMonthPreset && selectedMonthPreset !== 'all-months') {
+    if (selectedMonthPreset) {
       const m = Number(selectedMonthPreset)
       const s = `${yr}-${String(m).padStart(2, '0')}-01`
       const lastDay = new Date(yr, m, 0).getDate()
@@ -187,7 +183,6 @@ export default function FinancialDashboard() {
       setGroupBy('daily')
       fetchData(s, e, 'daily')
     } else {
-      setSelectedMonthPreset('all-months')
       const s = `${yr}-01-01`
       const e = `${yr}-12-31`
       setStartDate(s)
@@ -654,36 +649,31 @@ export default function FinancialDashboard() {
                 value={selectedMonthPreset}
                 onChange={(e) => handleMonthSelect(e.target.value)}
                 className={`pl-2.5 pr-7 py-1 text-xs font-semibold rounded-lg border transition-all cursor-pointer shadow-2xs appearance-none focus:outline-none focus:ring-1 focus:ring-[#6B7A5E] ${
-                  selectedMonthPreset && selectedMonthPreset !== 'all-months'
+                  selectedMonthPreset
                     ? 'bg-[#6B7A5E] text-white border-[#6B7A5E]'
                     : 'bg-white dark:bg-neutral-800 border-black/[0.06] dark:border-neutral-700 text-neutral-700 dark:text-neutral-200 hover:border-[#6B7A5E] hover:text-[#6B7A5E]'
                 }`}
-                title="Select all months or a specific month to trace revenue"
+                title="Select month to trace revenue"
               >
                 <option value="" className="bg-white dark:bg-neutral-900 text-neutral-800 dark:text-neutral-200">
                   All Months ▾
                 </option>
-                <option value="all-months" className="bg-white dark:bg-neutral-900 text-neutral-800 dark:text-neutral-200 font-bold">
-                  All 12 Months
-                </option>
-                <optgroup label="Select Specific Month" className="bg-white dark:bg-neutral-900 text-neutral-800 dark:text-neutral-200">
-                  {MONTH_NAMES.map((name, idx) => {
-                    const mNum = idx + 1
-                    return (
-                      <option
-                        key={mNum}
-                        value={String(mNum)}
-                        className="bg-white dark:bg-neutral-900 text-neutral-800 dark:text-neutral-200"
-                      >
-                        {name}
-                      </option>
-                    )
-                  })}
-                </optgroup>
+                {MONTH_NAMES.map((name, idx) => {
+                  const mNum = idx + 1
+                  return (
+                    <option
+                      key={mNum}
+                      value={String(mNum)}
+                      className="bg-white dark:bg-neutral-900 text-neutral-800 dark:text-neutral-200"
+                    >
+                      {name}
+                    </option>
+                  )
+                })}
               </select>
               <ChevronDown
                 className={`w-3.5 h-3.5 absolute right-2 pointer-events-none transition-colors ${
-                  selectedMonthPreset && selectedMonthPreset !== 'all-months' ? 'text-white' : 'text-neutral-400'
+                  selectedMonthPreset ? 'text-white' : 'text-neutral-400'
                 }`}
               />
             </div>
