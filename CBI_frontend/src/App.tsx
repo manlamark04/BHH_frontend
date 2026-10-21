@@ -210,6 +210,18 @@ export default function App() {
     setAuth((prev) => prev ? { ...prev, mustChangePassword: false } : prev)
   }, [])
 
+  // Called by Profile after name or photo changes
+  const handleProfileUpdated = useCallback((updated: { name?: string; photoUrl?: string | null }) => {
+    setAuth((prev) => {
+      if (!prev) return prev
+      return {
+        ...prev,
+        name: updated.name !== undefined ? updated.name : prev.name,
+        photoUrl: updated.photoUrl !== undefined ? updated.photoUrl : prev.photoUrl,
+      }
+    })
+  }, [])
+
   const handleLogout = useCallback(() => {
     authApi.logout()
     setAuth(null)
@@ -305,7 +317,7 @@ export default function App() {
       case 'customer-reviews':
         return <CustomerReviews />
       case 'customer-profile':
-        return <CustomerProfile userName={name} userId={userId} mustChangePassword={auth.mustChangePassword} onPasswordChanged={handlePasswordChanged} />
+        return <CustomerProfile userName={name} userId={userId} mustChangePassword={auth.mustChangePassword} onPasswordChanged={handlePasswordChanged} onProfileUpdated={handleProfileUpdated} />
 
       // Staff
       case 'staff-dashboard':
@@ -330,7 +342,7 @@ export default function App() {
       case 'staff-customers':
         return <StaffCustomers />
       case 'staff-profile':
-        return <StaffProfile userName={name} userId={userId} mustChangePassword={auth.mustChangePassword} onPasswordChanged={handlePasswordChanged} />
+        return <StaffProfile userName={name} userId={userId} mustChangePassword={auth.mustChangePassword} onPasswordChanged={handlePasswordChanged} onProfileUpdated={handleProfileUpdated} />
       case 'staff-housekeeping':
         return <Housekeeping />
       case 'staff-lost-and-found':
@@ -364,7 +376,7 @@ export default function App() {
       case 'admin-promos':
         return <AdminPromos />
       case 'admin-profile':
-        return <AdminProfile userName={name} userId={userId} mustChangePassword={auth.mustChangePassword} onPasswordChanged={handlePasswordChanged} />
+        return <AdminProfile userName={name} userId={userId} mustChangePassword={auth.mustChangePassword} onPasswordChanged={handlePasswordChanged} onProfileUpdated={handleProfileUpdated} />
       case 'admin-housekeeping':
         return <Housekeeping />
       case 'admin-lost-and-found':

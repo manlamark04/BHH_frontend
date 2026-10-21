@@ -29,9 +29,10 @@ interface CustomerProfileProps {
   userId: string
   mustChangePassword?: boolean
   onPasswordChanged?: () => void
+  onProfileUpdated?: (updated: { name?: string; photoUrl?: string | null }) => void
 }
 
-export default function CustomerProfile({ userName, userId, mustChangePassword, onPasswordChanged }: CustomerProfileProps) {
+export default function CustomerProfile({ userName, userId, mustChangePassword, onPasswordChanged, onProfileUpdated }: CustomerProfileProps) {
   const [editing, setEditing] = useState(false)
   const [firstName, setFirstName] = useState('')
   const [middleName, setMiddleName] = useState('')
@@ -122,6 +123,8 @@ export default function CustomerProfile({ userName, userId, mustChangePassword, 
       setCivilStatus(updated.civil_status || '')
       setAddress(updated.address || '')
       setEditing(false)
+      const updatedFullName = updated.full_name || [updated.first_name || firstName, updated.middle_name || middleName, updated.last_name || lastName].filter(Boolean).join(' ')
+      if (onProfileUpdated) onProfileUpdated({ name: updatedFullName })
       toast.success('Profile details updated successfully.', 'Profile Updated')
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to save profile', 'Update Failed')
@@ -213,8 +216,14 @@ export default function CustomerProfile({ userName, userId, mustChangePassword, 
             name={firstName || fullNameDisplay}
             photoUrl={photoUrl}
             size="xl"
-            onUploadSuccess={(url) => setPhotoUrl(url)}
-            onRemoveSuccess={() => setPhotoUrl(null)}
+            onUploadSuccess={(url) => {
+              setPhotoUrl(url)
+              if (onProfileUpdated) onProfileUpdated({ photoUrl: url })
+            }}
+            onRemoveSuccess={() => {
+              setPhotoUrl(null)
+              if (onProfileUpdated) onProfileUpdated({ photoUrl: null })
+            }}
           />
           <div>
             <div className="flex items-center gap-2">

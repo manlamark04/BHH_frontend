@@ -10,8 +10,9 @@ interface StaffProfileProps {
   userId: string
   mustChangePassword?: boolean
   onPasswordChanged?: () => void
+  onProfileUpdated?: (updated: { name?: string; photoUrl?: string | null }) => void
 }
 
-export default function StaffProfile({ userName, userId, mustChangePassword, onPasswordChanged }: StaffProfileProps) {
-  return <CustomerProfile userName={userName} userId={userId} mustChangePassword={mustChangePassword} onPasswordChanged={onPasswordChanged} />
+export default function StaffProfile({ userName, userId, mustChangePassword, onPasswordChanged, onProfileUpdated }: StaffProfileProps) {
+  return <CustomerProfile userName={userName} userId={userId} mustChangePassword={mustChangePassword} onPasswordChanged={onPasswordChanged} onProfileUpdated={onProfileUpdated} />
 }

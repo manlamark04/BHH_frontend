@@ -10,8 +10,9 @@ interface AdminProfileProps {
   userId: string
   mustChangePassword?: boolean
   onPasswordChanged?: () => void
+  onProfileUpdated?: (updated: { name?: string; photoUrl?: string | null }) => void
 }
 
-export default function AdminProfile({ userName, userId, mustChangePassword, onPasswordChanged }: AdminProfileProps) {
-  return <CustomerProfile userName={userName} userId={userId} mustChangePassword={mustChangePassword} onPasswordChanged={onPasswordChanged} />
+export default function AdminProfile({ userName, userId, mustChangePassword, onPasswordChanged, onProfileUpdated }: AdminProfileProps) {
+  return <CustomerProfile userName={userName} userId={userId} mustChangePassword={mustChangePassword} onPasswordChanged={onPasswordChanged} onProfileUpdated={onProfileUpdated} />
 }
