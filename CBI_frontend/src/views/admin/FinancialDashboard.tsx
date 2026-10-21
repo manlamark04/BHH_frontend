@@ -172,6 +172,31 @@ export default function FinancialDashboard() {
     fetchData(s, e, 'daily')
   }
 
+  // Handle selecting a year from the presets dropdown (2023 to 2026)
+  const handleYearPresetSelect = (yrStr: string) => {
+    setSelectedYear(yrStr)
+    const yr = Number(yrStr) || new Date().getFullYear()
+
+    if (selectedMonthPreset && selectedMonthPreset !== 'all-months') {
+      const m = Number(selectedMonthPreset)
+      const s = `${yr}-${String(m).padStart(2, '0')}-01`
+      const lastDay = new Date(yr, m, 0).getDate()
+      const e = `${yr}-${String(m).padStart(2, '0')}-${lastDay}`
+      setStartDate(s)
+      setEndDate(e)
+      setGroupBy('daily')
+      fetchData(s, e, 'daily')
+    } else {
+      setSelectedMonthPreset('all-months')
+      const s = `${yr}-01-01`
+      const e = `${yr}-12-31`
+      setStartDate(s)
+      setEndDate(e)
+      setGroupBy('monthly')
+      fetchData(s, e, 'monthly')
+    }
+  }
+
   const handleExportCSV = () => {
     if (!data || !data.monthly_trend || data.monthly_trend.length === 0) {
       alert('No data available to export.')
@@ -639,7 +664,7 @@ export default function FinancialDashboard() {
                   All Months ▾
                 </option>
                 <option value="all-months" className="bg-white dark:bg-neutral-900 text-neutral-800 dark:text-neutral-200 font-bold">
-                  All 12 Months ({selectedYear || new Date().getFullYear()})
+                  All 12 Months
                 </option>
                 <optgroup label="Select Specific Month" className="bg-white dark:bg-neutral-900 text-neutral-800 dark:text-neutral-200">
                   {MONTH_NAMES.map((name, idx) => {
@@ -650,7 +675,7 @@ export default function FinancialDashboard() {
                         value={String(mNum)}
                         className="bg-white dark:bg-neutral-900 text-neutral-800 dark:text-neutral-200"
                       >
-                        {name} {selectedYear || new Date().getFullYear()}
+                        {name}
                       </option>
                     )
                   })}
@@ -663,17 +688,35 @@ export default function FinancialDashboard() {
               />
             </div>
 
-            <button
-              type="button"
-              onClick={() => handlePreset('this-year')}
-              className={`px-2.5 py-1 text-xs font-semibold rounded-lg border transition-all cursor-pointer shadow-2xs ${
-                selectedMonthPreset === 'all-months'
-                  ? 'bg-[#6B7A5E] text-white border-[#6B7A5E]'
-                  : 'bg-white dark:bg-neutral-800 border-black/[0.06] dark:border-neutral-700 text-neutral-700 dark:text-neutral-200 hover:border-[#6B7A5E] hover:text-[#6B7A5E]'
-              }`}
-            >
-              Year {new Date().getFullYear()}
-            </button>
+            {/* Year Dropdown Preset Selector (2023 to 2026) */}
+            <div className="relative inline-flex items-center">
+              <select
+                value={selectedYear || '2026'}
+                onChange={(e) => handleYearPresetSelect(e.target.value)}
+                className={`pl-2.5 pr-7 py-1 text-xs font-semibold rounded-lg border transition-all cursor-pointer shadow-2xs appearance-none focus:outline-none focus:ring-1 focus:ring-[#6B7A5E] ${
+                  selectedMonthPreset === 'all-months'
+                    ? 'bg-[#6B7A5E] text-white border-[#6B7A5E]'
+                    : 'bg-white dark:bg-neutral-800 border-black/[0.06] dark:border-neutral-700 text-neutral-700 dark:text-neutral-200 hover:border-[#6B7A5E] hover:text-[#6B7A5E]'
+                }`}
+                title="Select Year (2023 to 2026)"
+              >
+                {[2026, 2025, 2024, 2023].map((y) => (
+                  <option
+                    key={y}
+                    value={String(y)}
+                    className="bg-white dark:bg-neutral-900 text-neutral-800 dark:text-neutral-200"
+                  >
+                    Year {y}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown
+                className={`w-3.5 h-3.5 absolute right-2 pointer-events-none transition-colors ${
+                  selectedMonthPreset === 'all-months' ? 'text-white' : 'text-neutral-400'
+                }`}
+              />
+            </div>
+
             <button
               type="button"
               onClick={() => handlePreset('all-time')}
@@ -708,28 +751,15 @@ export default function FinancialDashboard() {
             <div className="flex items-center gap-1.5">
               <span className="text-[11px] text-neutral-500 font-medium">Year:</span>
               <select
-                value={selectedYear}
+                value={selectedYear || '2026'}
                 onChange={(e) => {
                   const yr = e.target.value
-                  setSelectedYear(yr)
-                  let s = startDate
-                  let e_date = endDate
-                  if (yr) {
-                    s = `${yr}-01-01`
-                    e_date = `${yr}-12-31`
-                  } else {
-                    s = ''
-                    e_date = ''
-                  }
-                  setStartDate(s)
-                  setEndDate(e_date)
-                  fetchData(s, e_date, groupBy)
+                  handleYearPresetSelect(yr)
                 }}
                 className="px-2.5 py-1.5 bg-white dark:bg-neutral-800 border border-black/[0.08] dark:border-neutral-700 rounded-xl text-xs font-semibold text-neutral-800 dark:text-neutral-200 focus:outline-none shadow-2xs cursor-pointer"
               >
-                <option value="">All Years</option>
-                {Array.from({ length: 11 }, (_, i) => 2020 + i).map((y) => (
-                  <option key={y} value={y}>
+                {[2026, 2025, 2024, 2023].map((y) => (
+                  <option key={y} value={String(y)}>
                     {y}
                   </option>
                 ))}
