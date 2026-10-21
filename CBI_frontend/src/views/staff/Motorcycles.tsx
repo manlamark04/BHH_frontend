@@ -25,6 +25,7 @@ import {
   Printer,
   Gauge,
   Fuel,
+  AlertTriangle,
 } from 'lucide-react'
 import {
   motorcyclesApi,
@@ -40,6 +41,7 @@ import Modal from '../../components/Modal'
 import EditMotorDrawer from '../../components/EditMotorDrawer'
 import { formatDateTimeWithAmPm, PH_RESTRICTION_CODES, COMMON_COUNTRIES } from '../../components/MotorRentSection'
 import { validateDriverLicense, formatDriverLicense, DRIVER_LICENSE_ERROR_MSG } from '../../utils/license.util'
+import { getMotorRegistrationExpiry } from '../../utils/motorcycleExpiry'
 import logo from '../../imports/logo.png'
 import { resolveAssetUrl } from '../../api/client'
 
@@ -1257,105 +1259,120 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
       {/* ─── TAB 2: FLEET STATUS CARDS ─── */}
       {tab === 'fleet' && (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {motorcycles.map((m) => (
-            <div key={m.id} className="bg-white rounded-2xl border border-stone/20 shadow-sm overflow-hidden p-5 flex flex-col justify-between hover:shadow-md hover:border-[#6B7A5E]/40 transition-all group">
-              <div>
-                {m.image_url && (
-                  <div className="h-44 rounded-xl overflow-hidden mb-3 bg-sand relative">
-                    <img
-                      src={resolveAssetUrl(m.image_url)}
-                      alt={m.model}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none'
-                      }}
-                    />
-                    <div className="absolute top-2 left-2">
-                      <StatusBadge status={m.status} />
-                    </div>
-                    <div className="absolute top-2 right-2 flex items-center gap-1.5">
-                      <div className="bg-white/95 backdrop-blur-md px-2.5 py-0.5 rounded font-mono text-xs font-bold text-ink shadow-xs">
-                        {m.plate_number}
+          {motorcycles.map((m) => {
+            const expiryInfo = getMotorRegistrationExpiry(m.registration_expiry_date)
+            return (
+              <div
+                key={m.id}
+                className={`bg-white rounded-2xl border shadow-sm overflow-hidden p-5 flex flex-col justify-between hover:shadow-md transition-all group ${
+                  expiryInfo?.isExpired
+                    ? 'border-rose-400 dark:border-rose-800 ring-1 ring-rose-400/40 bg-gradient-to-b from-rose-50/20 to-white'
+                    : expiryInfo?.isExpiringSoon
+                      ? 'border-amber-400 dark:border-amber-700 ring-1 ring-amber-400/40 bg-gradient-to-b from-amber-50/20 to-white'
+                      : 'border-stone/20 hover:border-[#6B7A5E]/40'
+                }`}
+              >
+                <div>
+                  {m.image_url && (
+                    <div className="h-44 rounded-xl overflow-hidden mb-3 bg-sand relative">
+                      <img
+                        src={resolveAssetUrl(m.image_url)}
+                        alt={m.model}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none'
+                        }}
+                      />
+                      <div className="absolute top-2 left-2 flex flex-col gap-1 items-start">
+                        <StatusBadge status={m.status} />
+                        {expiryInfo && (expiryInfo.isExpired || expiryInfo.isExpiringSoon) && (
+                          <span
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-mono text-[10px] font-bold shadow-md backdrop-blur-md border ${
+                              expiryInfo.isExpired
+                                ? 'bg-rose-600/90 text-white border-rose-400/50'
+                                : 'bg-amber-500/95 text-white border-amber-300/60'
+                            }`}
+                          >
+                            <AlertTriangle className="w-3 h-3 shrink-0" />
+                            <span>{expiryInfo.badgeLabel}</span>
+                          </span>
+                        )}
                       </div>
-                      {userRole === 'admin' && (
-                        <button
-                          type="button"
-                          onClick={() => setEditingMotor(m)}
-                          className="w-7 h-7 rounded-full bg-white/90 hover:bg-white text-ink hover:text-[#6B7A5E] shadow-md border border-white/60 backdrop-blur-md flex items-center justify-center transition-all hover:scale-110"
-                          title="Edit Motor Details & Photo (Admin Only)"
-                          aria-label="Edit Motor"
-                        >
-                          <Pencil className="w-3.5 h-3.5" strokeWidth={1.5} />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )}
-                <div className="flex items-start justify-between">
-                  <div>
-                    <span className="text-[11px] font-bold uppercase text-[#6B7A5E]">{m.brand} · {m.type}</span>
-                    <h4 className="font-display font-bold text-ink text-base">{m.model}</h4>
-                  </div>
-                  <div className="text-right">
-                    <span className="font-display font-bold text-[#6B7A5E] text-base">₱{Number(m.rental_rate).toLocaleString()}</span>
-                    <span className="text-[10px] text-ink-muted block">/{m.rate_type}</span>
-                  </div>
-                </div>
-                <p className="text-xs text-ink-muted mt-2 line-clamp-2">{m.description || 'Hostel rental motorcycle.'}</p>
-                
-                {/* Display Current Renter if RENTED */}
-                {(() => {
-                  if (m.status === 'RENTED') {
-                    const activeRental = rentals.find(r => Number(r.motor_id) === Number(m.id) && ['ACTIVE', 'OVERDUE'].includes(String(r.status).toUpperCase()))
-                    if (activeRental) {
-                      return (
-                        <div className="mt-2.5 p-2 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 text-[11px] flex items-center gap-1.5">
-                          <UserCheck className="w-3.5 h-3.5 shrink-0" />
-                          <span className="font-semibold">Rented by {activeRental.customer_name || 'Guest'}</span>
+                      <div className="absolute top-2 right-2 flex items-center gap-1.5">
+                        <div className="bg-white/95 backdrop-blur-md px-2.5 py-0.5 rounded font-mono text-xs font-bold text-ink shadow-xs">
+                          {m.plate_number}
                         </div>
-                      )
+                        {userRole === 'admin' && (
+                          <button
+                            type="button"
+                            onClick={() => setEditingMotor(m)}
+                            className="w-7 h-7 rounded-full bg-white/90 hover:bg-white text-ink hover:text-[#6B7A5E] shadow-md border border-white/60 backdrop-blur-md flex items-center justify-center transition-all hover:scale-110"
+                            title="Edit Motor Details & Photo (Admin Only)"
+                            aria-label="Edit Motor"
+                          >
+                            <Pencil className="w-3.5 h-3.5" strokeWidth={1.5} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <span className="text-[11px] font-bold uppercase text-[#6B7A5E]">{m.brand} · {m.type}</span>
+                      <h4 className="font-display font-bold text-ink text-base">{m.model}</h4>
+                    </div>
+                    <div className="text-right">
+                      <span className="font-display font-bold text-[#6B7A5E] text-base">₱{Number(m.rental_rate).toLocaleString()}</span>
+                      <span className="text-[10px] text-ink-muted block">/{m.rate_type}</span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-ink-muted mt-2 line-clamp-2">{m.description || 'Hostel rental motorcycle.'}</p>
+                  
+                  {/* Display Current Renter if RENTED */}
+                  {(() => {
+                    if (m.status === 'RENTED') {
+                      const activeRental = rentals.find(r => Number(r.motor_id) === Number(m.id) && ['ACTIVE', 'OVERDUE'].includes(String(r.status).toUpperCase()))
+                      if (activeRental) {
+                        return (
+                          <div className="mt-2.5 p-2 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 text-[11px] flex items-center gap-1.5">
+                            <UserCheck className="w-3.5 h-3.5 shrink-0" />
+                            <span className="font-semibold">Rented by {activeRental.customer_name || 'Guest'}</span>
+                          </div>
+                        )
+                      }
                     }
-                  }
-                  return null
-                })()}
+                    return null
+                  })()}
 
-                {/* Registration Expiry Status Badge */}
-                {(() => {
-                  if (!m.registration_expiry_date) return null
-                  const expDate = new Date(`${m.registration_expiry_date}T00:00:00`)
-                  const now = new Date()
-                  now.setHours(0, 0, 0, 0)
-                  const diffDays = Math.round((expDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-
-                  if (diffDays < 0) {
-                    return (
-                      <div className="mt-2.5 p-2 bg-rose-50 border border-rose-200 rounded-lg text-rose-900 text-[11px] flex items-center justify-between">
-                        <span className="font-bold flex items-center gap-1 text-rose-700">
-                          <AlertCircle className="w-3.5 h-3.5 shrink-0 text-rose-600" />
-                          Registration Expired
-                        </span>
-                        <span className="font-mono text-[10px] text-rose-600 font-bold">
-                          {m.registration_expiry_date} ({Math.abs(diffDays)}d ago)
+                  {/* Registration Expiry Status Indicator */}
+                  {expiryInfo && (expiryInfo.isExpired || expiryInfo.isExpiringSoon) && (
+                    <div
+                      className={`mt-2.5 p-2 rounded-xl border text-xs flex items-center justify-between gap-2 shadow-2xs ${
+                        expiryInfo.isExpired
+                          ? 'bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-900 text-rose-900 dark:text-rose-200'
+                          : 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-900 text-amber-900 dark:text-amber-200'
+                      }`}
+                    >
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <AlertCircle className={`w-3.5 h-3.5 shrink-0 ${expiryInfo.isExpired ? 'text-rose-600 dark:text-rose-400' : 'text-amber-600 dark:text-amber-400'}`} />
+                        <span className="font-bold truncate text-[11px]">
+                          {expiryInfo.isExpired ? 'Registration Expired' : 'Reg. Expiring Soon'}
                         </span>
                       </div>
-                    )
-                  }
-                  if (diffDays <= 30) {
-                    return (
-                      <div className="mt-2.5 p-2 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 text-[11px] flex items-center justify-between">
-                        <span className="font-bold flex items-center gap-1 text-amber-700">
-                          <AlertCircle className="w-3.5 h-3.5 shrink-0 text-amber-600" />
-                          Reg. Expiring Soon
-                        </span>
-                        <span className="font-mono text-[10px] text-amber-700 font-bold">
-                          {diffDays === 0 ? 'Expires Today!' : `in ${diffDays} day${diffDays === 1 ? '' : 's'}`}
-                        </span>
-                      </div>
-                    )
-                  }
-                  return null
-                })()}
-              </div>
+                      <span className={`font-mono text-[10px] font-bold shrink-0 px-2 py-0.5 rounded-md ${
+                        expiryInfo.isExpired
+                          ? 'bg-rose-100 dark:bg-rose-900/60 text-rose-700 dark:text-rose-300'
+                          : 'bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300'
+                      }`}>
+                        {expiryInfo.diffDays < 0
+                          ? `${expiryInfo.expiryDateStr} (${Math.abs(expiryInfo.diffDays)}d ago)`
+                          : expiryInfo.diffDays === 0
+                            ? 'Expires Today'
+                            : `in ${expiryInfo.diffDays} day${expiryInfo.diffDays === 1 ? '' : 's'}`}
+                      </span>
+                    </div>
+                  )}
+                </div>
 
               <div className="mt-4 pt-3 border-t border-stone/15 space-y-3">
                 <div className="flex items-center justify-between text-xs text-ink-muted font-mono">
@@ -1416,7 +1433,7 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
                 </div>
               </div>
             </div>
-          ))}
+          )})}
         </div>
       )}
 
@@ -1589,14 +1606,36 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
                     )
                   }
                   return (
-                    <div className="w-full h-10 px-3 rounded-lg border border-[#6B7A5E]/40 bg-[#6B7A5E]/5 flex items-center justify-between gap-2">
-                      <div className="min-w-0 truncate text-xs">
-                        <span className="font-semibold text-ink">{motor.brand} {motor.model}</span>
-                        <span className="ml-1.5 font-mono text-[10px] text-ink-muted">{motor.plate_number}</span>
+                    <div>
+                      <div className="w-full h-10 px-3 rounded-lg border border-[#6B7A5E]/40 bg-[#6B7A5E]/5 flex items-center justify-between gap-2">
+                        <div className="min-w-0 truncate text-xs">
+                          <span className="font-semibold text-ink">{motor.brand} {motor.model}</span>
+                          <span className="ml-1.5 font-mono text-[10px] text-ink-muted">{motor.plate_number}</span>
+                        </div>
+                        <span className="shrink-0 text-[11px] font-bold text-[#6B7A5E]">
+                          ₱{Number(motor.rental_rate).toLocaleString()}/{motor.rate_type}
+                        </span>
                       </div>
-                      <span className="shrink-0 text-[11px] font-bold text-[#6B7A5E]">
-                        ₱{Number(motor.rental_rate).toLocaleString()}/{motor.rate_type}
-                      </span>
+                      {(() => {
+                        const expiryInfo = getMotorRegistrationExpiry(motor.registration_expiry_date)
+                        if (!expiryInfo || (!expiryInfo.isExpired && !expiryInfo.isExpiringSoon)) return null
+                        return (
+                          <div
+                            className={`mt-1.5 p-2 rounded-lg border text-[11px] font-medium flex items-center gap-1.5 ${
+                              expiryInfo.isExpired
+                                ? 'bg-rose-50 border-rose-200 text-rose-800'
+                                : 'bg-amber-50 border-amber-200 text-amber-800'
+                            }`}
+                          >
+                            <AlertTriangle className={`w-3.5 h-3.5 shrink-0 ${expiryInfo.isExpired ? 'text-rose-600' : 'text-amber-600'}`} />
+                            <span className="truncate">
+                              {expiryInfo.isExpired
+                                ? `Warning: OR/CR Registration is EXPIRED (${expiryInfo.diffDays < 0 ? Math.abs(expiryInfo.diffDays) + 'd ago' : ''})`
+                                : `Note: OR/CR Registration expiring soon (${expiryInfo.detailLabel})`}
+                            </span>
+                          </div>
+                        )
+                      })()}
                     </div>
                   )
                 })()}

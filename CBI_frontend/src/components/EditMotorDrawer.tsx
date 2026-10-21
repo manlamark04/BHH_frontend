@@ -13,6 +13,7 @@ import {
 import { motorcyclesApi, type Motorcycle } from '../api/motorcycles'
 import { resolveAssetUrl } from '../api/client'
 import ConfirmDialog from './ConfirmDialog'
+import { getMotorRegistrationExpiry } from '../utils/motorcycleExpiry'
 
 interface EditMotorDrawerProps {
   isOpen: boolean
@@ -98,10 +99,10 @@ export default function EditMotorDrawer({
       setColor(motor.color || '')
       setDisplacement(motor.displacement || '')
       setRegisteredOwner(motor.registered_owner || '')
-      setRegistrationExpiryDate(motor.registration_expiry_date || '')
+      setRegistrationExpiryDate(motor.registration_expiry_date ? String(motor.registration_expiry_date).split('T')[0] : '')
       setInsuranceProvider(motor.insurance_provider || '')
       setInsurancePolicyNumber(motor.insurance_policy_number || '')
-      setInsuranceExpiryDate(motor.insurance_expiry_date || '')
+      setInsuranceExpiryDate(motor.insurance_expiry_date ? String(motor.insurance_expiry_date).split('T')[0] : '')
       setSelectedFile(null)
       setPreviewUrl(resolveAssetUrl(motor.image_url) || '')
       setOrSelectedFile(null)
@@ -181,10 +182,10 @@ export default function EditMotorDrawer({
       color.trim() !== (motor.color || '').trim() ||
       displacement.trim() !== (motor.displacement || '').trim() ||
       registeredOwner.trim() !== (motor.registered_owner || '').trim() ||
-      registrationExpiryDate !== (motor.registration_expiry_date || '') ||
+      registrationExpiryDate !== (motor.registration_expiry_date ? String(motor.registration_expiry_date).split('T')[0] : '') ||
       insuranceProvider.trim() !== (motor.insurance_provider || '').trim() ||
       insurancePolicyNumber.trim() !== (motor.insurance_policy_number || '').trim() ||
-      insuranceExpiryDate !== (motor.insurance_expiry_date || '') ||
+      insuranceExpiryDate !== (motor.insurance_expiry_date ? String(motor.insurance_expiry_date).split('T')[0] : '') ||
       previewUrl !== (motor.image_url || '') ||
       orPreviewUrl !== (motor.or_image_url || '') ||
       crPreviewUrl !== (motor.cr_image_url || '')
@@ -362,18 +363,18 @@ export default function EditMotorDrawer({
         status: status,
         description: description.trim() || undefined,
         image_url: previewUrl || undefined,
-        or_image_url: orPreviewUrl || undefined,
-        cr_image_url: crPreviewUrl || undefined,
-        registration_expiry_date: registrationExpiryDate || undefined,
-        year_model: yearModel ? parseInt(yearModel, 10) : undefined,
-        color: color.trim() || undefined,
-        displacement: displacement.trim() || undefined,
-        engine_number: engineNumber.trim() || undefined,
-        chassis_number: chassisNumber.trim() || undefined,
-        registered_owner: registeredOwner.trim() || undefined,
-        insurance_provider: insuranceProvider.trim() || undefined,
-        insurance_policy_number: insurancePolicyNumber.trim() || undefined,
-        insurance_expiry_date: insuranceExpiryDate || undefined,
+        or_image_url: orPreviewUrl || null,
+        cr_image_url: crPreviewUrl || null,
+        registration_expiry_date: registrationExpiryDate || null,
+        year_model: yearModel ? parseInt(yearModel, 10) : null,
+        color: color.trim() || null,
+        displacement: displacement.trim() || null,
+        engine_number: engineNumber.trim() || null,
+        chassis_number: chassisNumber.trim() || null,
+        registered_owner: registeredOwner.trim() || null,
+        insurance_provider: insuranceProvider.trim() || null,
+        insurance_policy_number: insurancePolicyNumber.trim() || null,
+        insurance_expiry_date: insuranceExpiryDate || null,
       }
 
       if (motor) {
@@ -722,6 +723,43 @@ export default function EditMotorDrawer({
                 onChange={(e) => setRegistrationExpiryDate(e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-xl border border-stone/30 bg-white text-xs text-ink font-semibold focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]/40 focus:border-[#6B7A5E] transition-all"
               />
+              {(() => {
+                const info = getMotorRegistrationExpiry(registrationExpiryDate)
+                if (!info) return null
+                return (
+                  <div
+                    className={`mt-2 p-2 rounded-xl border text-[11px] font-medium flex items-center justify-between gap-2 ${
+                      info.isExpired
+                        ? 'bg-rose-50 border-rose-200 text-rose-800'
+                        : info.isExpiringSoon
+                          ? 'bg-amber-50 border-amber-200 text-amber-800'
+                          : 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <AlertCircle
+                        className={`w-3.5 h-3.5 shrink-0 ${
+                          info.isExpired ? 'text-rose-600' : info.isExpiringSoon ? 'text-amber-600' : 'text-emerald-600'
+                        }`}
+                      />
+                      <span className="font-bold">
+                        {info.isExpired
+                          ? 'Registration Expired'
+                          : info.isExpiringSoon
+                            ? 'Expiring Soon'
+                            : 'Registration Valid'}
+                      </span>
+                    </div>
+                    <span className="font-mono text-[10px] font-bold">
+                      {info.diffDays < 0
+                        ? `${Math.abs(info.diffDays)}d ago`
+                        : info.diffDays === 0
+                          ? 'Expires today'
+                          : `in ${info.diffDays} day${info.diffDays === 1 ? '' : 's'}`}
+                    </span>
+                  </div>
+                )
+              })()}
             </div>
           </div>
 
