@@ -124,21 +124,24 @@ export default function AdminCheckInOut({ onNavigate }: { onNavigate?: (view: Vi
   }, [])
 
   // 1. Categorized booking sets
-  // Upcoming Arrivals: Any booked room awaiting check-in/arrival
+  // Upcoming Arrivals: Any booked room awaiting check-in/arrival (guest has NOT yet arrived)
   const upcomingArrivals = useMemo(() => {
     return bookings
       .filter((b) => {
+        const isArrived = Number(b.is_arrived || 0) === 1 || Boolean(b.is_arrived)
         const st = String(b.status || '').toLowerCase().replace('-', '_').replace(' ', '_')
-        return PRE_CHECKIN_STATUSES.includes(st)
+        return PRE_CHECKIN_STATUSES.includes(st) && !isArrived
       })
       .sort((a, b) => new Date(a.check_in || 0).getTime() - new Date(b.check_in || 0).getTime())
   }, [bookings])
 
-  // In-House Guests / Today's Arrival: All currently checked-in occupants
+  // In-House Guests / Today's Arrival: All currently checked-in occupants AND arrived guests
   const inHouseGuests = useMemo(() => {
     return bookings.filter((b) => {
       const st = String(b.status || '').toLowerCase().replace('-', '_').replace(' ', '_')
-      return st === 'checked_in'
+      const isArrived = Number(b.is_arrived || 0) === 1 || Boolean(b.is_arrived)
+      if (['cancelled', 'rejected', 'no_show', 'checked_out', 'completed'].includes(st)) return false
+      return st === 'checked_in' || isArrived
     })
   }, [bookings])
 
@@ -227,9 +230,31 @@ export default function AdminCheckInOut({ onNavigate }: { onNavigate?: (view: Vi
     }
   }
 
-  // Quick Record Payment Handler
-  const handleRecordPayment = async (e: React.FormEvent) => {
-    e.preventDefault()
+  // Confirm arrival without immediate payment (Keep Payment Pending, Move to In-House)
+  const handleConfirmArrivalPending = async () => {
+    if (!payingBooking) return
+    setPaySubmitting(true)
+    try {
+      if (!payingBooking.is_arrived) {
+        await bookingsApi.markArrived(payingBooking.id)
+      }
+      fireToast(`✓ Guest ${payingBooking.customer_name} marked as Arrived (Payment Pending). Moved to In-House Guests.`)
+      setPayingBooking(null)
+      setPayAmount('')
+      setPayRef('')
+      setPayNotes('')
+      loadData()
+      window.dispatchEvent(new Event('billing-updated'))
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to mark arrived')
+    } finally {
+      setPaySubmitting(false)
+    }
+  }
+
+  // Quick Record Payment / Settle Payment Handler
+  const handleRecordPayment = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
     if (!payingBooking) return
 
     setPaySubmitting(true)
@@ -238,7 +263,7 @@ export default function AdminCheckInOut({ onNavigate }: { onNavigate?: (view: Vi
         await bookingsApi.markArrived(payingBooking.id)
       }
       
-      fireToast(`Guest Arrived. Proceeding to Payments.`)
+      fireToast(`✓ Guest Arrived. Proceeding to Payments & Billing.`)
       setPayingBooking(null)
       setPayAmount('')
       setPayRef('')
@@ -662,6 +687,17 @@ export default function AdminCheckInOut({ onNavigate }: { onNavigate?: (view: Vi
                             Arrived Today
                           </span>
                         )}
+                        {rem > 0 ? (
+                          <span className="text-[9px] bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 font-bold px-1.5 py-0.5 rounded uppercase flex items-center gap-1 border border-amber-300/80 dark:border-amber-700/80 shadow-2xs">
+                            <Clock className="w-2.5 h-2.5 shrink-0" />
+                            Pending Payment
+                          </span>
+                        ) : (
+                          <span className="text-[9px] bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 font-bold px-1.5 py-0.5 rounded uppercase flex items-center gap-1 border border-emerald-300/80 dark:border-emerald-700/80">
+                            <Check className="w-2.5 h-2.5 shrink-0" />
+                            Paid
+                          </span>
+                        )}
                         {isOverdue ? (
                           <span className="text-[9px] bg-rose-100 dark:bg-rose-900/40 text-rose-800 dark:text-rose-300 font-bold px-1.5 py-0.5 rounded uppercase">Overdue</span>
                         ) : isDueToday ? (
@@ -684,8 +720,9 @@ export default function AdminCheckInOut({ onNavigate }: { onNavigate?: (view: Vi
                         ₱{Number(b.total_price || 0).toLocaleString()}
                       </span>
                       {rem > 0 ? (
-                        <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50">
-                          Bal: ₱{rem.toLocaleString()}
+                        <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50 flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                          Pending: ₱{rem.toLocaleString()}
                         </span>
                       ) : (
                         <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50">
@@ -733,12 +770,13 @@ export default function AdminCheckInOut({ onNavigate }: { onNavigate?: (view: Vi
                         {rem > 0 ? (
                           <button
                             onClick={() => onNavigate && onNavigate('staff-billing')}
-                            className={`py-2 bg-amber-100 hover:bg-amber-200 dark:bg-amber-900/50 dark:hover:bg-amber-800/50 text-amber-900 dark:text-amber-200 border border-amber-300/70 dark:border-amber-700 rounded-xl text-xs font-semibold shadow-2xs transition-all flex items-center justify-center gap-1 cursor-pointer ${
+                            className={`py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-semibold shadow-xs transition-all flex items-center justify-center gap-1 cursor-pointer ${
                               isOverdue ? 'col-span-4' : 'col-span-6'
                             }`}
-                            title="Go to Billing to settle balance"
+                            title="Guest has pending balance — Go to Billing to settle"
                           >
-                            <span className="truncate">Settle Bill</span>
+                            <Banknote className="w-3.5 h-3.5 shrink-0" />
+                            <span className="truncate">Settle Bill (Pending)</span>
                           </button>
                         ) : (
                           <button
@@ -902,7 +940,7 @@ export default function AdminCheckInOut({ onNavigate }: { onNavigate?: (view: Vi
         })()}
       </Modal>
 
-      {/* ─── MODAL: QUICK RECORD PAYMENT ─── */}
+      {/* ─── MODAL: CONFIRM GUEST ARRIVAL ─── */}
       <Modal
         isOpen={Boolean(payingBooking)}
         onClose={() => {
@@ -915,22 +953,28 @@ export default function AdminCheckInOut({ onNavigate }: { onNavigate?: (view: Vi
         size="md"
       >
         {payingBooking && (
-          <form onSubmit={handleRecordPayment} className="space-y-4 font-sans text-xs">
-            <div className="p-4 bg-emerald-50/50 border border-emerald-100 rounded-2xl space-y-2">
+          <div className="space-y-4 font-sans text-xs">
+            <div className="p-4 bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-800/40 rounded-2xl space-y-2">
               <div className="flex justify-between items-start">
                 <div>
-                  <h4 className="font-display font-bold text-emerald-900 text-lg">{payingBooking.customer_name}</h4>
-                  <p className="text-xs text-emerald-700">Room {payingBooking.room_number} · {payingBooking.room_type}</p>
+                  <h4 className="font-display font-bold text-emerald-900 dark:text-emerald-200 text-lg">{payingBooking.customer_name}</h4>
+                  <p className="text-xs text-emerald-700 dark:text-emerald-400">Room {payingBooking.room_number} · {payingBooking.room_type}</p>
                 </div>
-                <span className="font-mono text-xs font-bold text-emerald-800">{payingBooking.booking_ref}</span>
+                <span className="font-mono text-xs font-bold text-emerald-800 dark:text-emerald-300">{payingBooking.booking_ref}</span>
               </div>
-              <div className="pt-2 border-t border-emerald-200/50 flex justify-between text-emerald-800">
-                <span>Remaining Balance Due:</span>
-                <span className="font-mono font-bold text-base">₱{Number(payingBooking.remaining_balance || 0).toLocaleString()}</span>
+              <div className="pt-2 border-t border-emerald-200/50 dark:border-emerald-800/40 flex justify-between items-center text-emerald-800 dark:text-emerald-300">
+                <span className="font-medium">Remaining Balance Due:</span>
+                <span className="font-mono font-bold text-base text-amber-700 dark:text-amber-400">
+                  ₱{Number(payingBooking.remaining_balance || 0).toLocaleString()} (Pending)
+                </span>
               </div>
             </div>
 
-            <div className="flex gap-3 pt-2">
+            <p className="text-neutral-600 dark:text-neutral-400 text-xs leading-relaxed">
+              Confirming arrival will move <strong>{payingBooking.customer_name}</strong> to <strong>In-House Guests / Today's Arrival</strong> with room set to <strong>Occupied</strong>. If the guest has not paid yet, the status will show as <strong>Pending Payment</strong>.
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-2.5 pt-2 border-t border-black/[0.06] dark:border-neutral-800">
               <button
                 type="button"
                 onClick={() => {
@@ -939,19 +983,32 @@ export default function AdminCheckInOut({ onNavigate }: { onNavigate?: (view: Vi
                   setPayRef('')
                   setPayNotes('')
                 }}
-                className="flex-1 py-2.5 border border-stone/30 rounded-xl font-semibold text-ink-muted hover:bg-sand transition-colors"
+                className="py-2.5 px-3 border border-stone/30 dark:border-neutral-700 rounded-xl font-semibold text-ink-muted dark:text-neutral-400 hover:bg-sand dark:hover:bg-neutral-800 transition-colors cursor-pointer"
               >
                 Cancel
               </button>
+
               <button
-                type="submit"
+                type="button"
                 disabled={paySubmitting}
-                className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl font-semibold shadow-sm transition-all"
+                onClick={handleConfirmArrivalPending}
+                className="flex-1 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-semibold shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
               >
-                {paySubmitting ? 'Processing...' : 'Confirm & proceed to payment'}
+                <Clock className="w-3.5 h-3.5" />
+                <span>Confirm Arrival (Payment Pending)</span>
+              </button>
+
+              <button
+                type="button"
+                disabled={paySubmitting}
+                onClick={() => handleRecordPayment()}
+                className="py-2.5 px-4 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl font-semibold shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                <Banknote className="w-3.5 h-3.5" />
+                <span>Confirm & Settle Now</span>
               </button>
             </div>
-          </form>
+          </div>
         )}
       </Modal>
 

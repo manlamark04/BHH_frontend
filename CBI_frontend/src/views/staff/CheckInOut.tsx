@@ -70,15 +70,18 @@ export default function StaffCheckInOut() {
       const cIn = toLocalDateStr(b.check_in)
       const cOut = toLocalDateStr(b.check_out)
       const st = String(b.status || '').toLowerCase().replace('-', '_').replace(' ', '_')
+      const isArrived = Number(b.is_arrived || 0) === 1 || Boolean(b.is_arrived)
       const isActiveArrival = cIn === todayStr || (cIn <= todayStr && cOut >= todayStr)
-      return isActiveArrival && PRE_CHECKIN_STATUSES.includes(st)
+      return isActiveArrival && PRE_CHECKIN_STATUSES.includes(st) && !isArrived
     }),
     [bookings, todayStr]
   )
   const inHouseGuests = useMemo(() =>
     bookings.filter((b) => {
       const st = String(b.status || '').toLowerCase().replace('-', '_').replace(' ', '_')
-      return st === 'checked_in'
+      const isArrived = Number(b.is_arrived || 0) === 1 || Boolean(b.is_arrived)
+      if (['cancelled', 'rejected', 'no_show', 'checked_out', 'completed'].includes(st)) return false
+      return st === 'checked_in' || isArrived
     }),
     [bookings]
   )
@@ -87,7 +90,8 @@ export default function StaffCheckInOut() {
       .filter((b) => {
         const cIn = toLocalDateStr(b.check_in)
         const st = String(b.status || '').toLowerCase().replace('-', '_').replace(' ', '_')
-        return cIn > todayStr && PRE_CHECKIN_STATUSES.includes(st)
+        const isArrived = Number(b.is_arrived || 0) === 1 || Boolean(b.is_arrived)
+        return cIn > todayStr && PRE_CHECKIN_STATUSES.includes(st) && !isArrived
       })
       .sort((a, b) => new Date(String(a.check_in || 0)).getTime() - new Date(String(b.check_in || 0)).getTime()),
     [bookings, todayStr]
