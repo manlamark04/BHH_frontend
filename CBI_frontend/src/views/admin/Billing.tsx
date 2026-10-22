@@ -27,6 +27,7 @@ import {
   Wallet,
   DollarSign,
   Filter,
+  Lock,
 } from 'lucide-react'
 import { billingApi, type InvoiceItem, type PaymentTransaction, type OfficialReceiptData } from '../../api/billing'
 import { bookingsApi, type BookingItem } from '../../api/bookings'
@@ -43,7 +44,11 @@ import { useDebounce } from '../../hooks/useDebounce'
 type FilterOption = 'All' | 'Paid' | 'Partially Paid' | 'Pending' | 'Cancelled' | 'Refunded'
 type SortOption = 'newest' | 'oldest' | 'amount_desc' | 'amount_asc' | 'guest_asc' | 'invoice_asc'
 
-export default function AdminBilling() {
+interface AdminBillingProps {
+  userRole?: 'admin' | 'staff' | string
+}
+
+export default function AdminBilling({ userRole = 'staff' }: AdminBillingProps) {
   const [invoices, setInvoices] = useState<InvoiceItem[]>([])
   const [bookings, setBookings] = useState<BookingItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -217,6 +222,183 @@ export default function AdminBilling() {
       details: 'Direct Settlement',
       isHourly: false,
       tagColor: 'bg-stone-100 dark:bg-stone-800 text-stone-800 dark:text-stone-300 border-stone-300 dark:border-stone-700',
+    }
+  }
+
+  // ─── HELPER: Smart Status Guard for In-Stay / Service Refunds & Credits ───
+  const checkRefundEligibility = (inv: InvoiceItem) => {
+    const hasUnrefundedPayment = inv.payments?.some((p) => !p.is_refunded) || (Number(inv.paid_amount || 0) > 0 && String(inv.status).toUpperCase() !== 'REFUNDED')
+
+    if (!hasUnrefundedPayment) {
+      return {
+        canRefund: false,
+        badge: 'No Refundable Funds',
+        badgeClass: 'bg-neutral-100 text-neutral-500 border-neutral-200 dark:bg-neutral-800 dark:text-neutral-400 dark:border-neutral-700',
+        tooltip: 'All payments on this invoice have already been refunded, or no payment was received.',
+        buttonText: 'Refunded',
+        reason: 'No refundable payment transactions found on this invoice.',
+        isRoomStay: false,
+        statusCategory: 'none' as const,
+      }
+    }
+
+    const matchingBk = inv.booking_id ? bookings.find((b) => b.id === inv.booking_id) : null
+    const isRoomBooking = Boolean(inv.booking_id || inv.room_number || matchingBk?.room_id)
+    const rawStatus = (inv.booking_status || matchingBk?.status || '').toLowerCase().trim()
+    const isArrived = Number(inv.is_arrived ?? matchingBk?.is_arrived ?? 0) === 1
+
+    const isAdmin = userRole === 'admin'
+
+    // If it is NOT a room booking (e.g. Motorcycle rental, Pickleball court, general invoice)
+    if (!isRoomBooking) {
+      return {
+        canRefund: true,
+        badge: 'Active Service / Rental',
+        badgeClass: 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800',
+        tooltip: 'Non-room service or rental invoice. Direct refund or rebooking credit is permitted.',
+        buttonText: 'Refund',
+        reason: 'Service / rental transaction is eligible for direct refund or credit.',
+        isRoomStay: false,
+        statusCategory: 'non_room' as const,
+      }
+    }
+
+    // Room Booking Handling
+    const isActivelyInRoom = rawStatus === 'checked_in' || (isArrived && rawStatus !== 'checked_out' && rawStatus !== 'cancelled')
+    const isCheckedOut = ['checked_out', 'completed'].includes(rawStatus)
+    const isPreArrival = ['confirmed', 'requested', 'pending', 'pending_payment', 'reserved'].includes(rawStatus) && !isArrived
+    const isCancelled = ['cancelled', 'rejected'].includes(rawStatus)
+    const isNoShow = rawStatus === 'no_show'
+
+    // 1. Actively in Room: Guest is in-house! Both Staff & Admin can refund/credit for in-stay compensation
+    if (isActivelyInRoom) {
+      return {
+        canRefund: true,
+        badge: '🟢 In-Room Active',
+        badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800',
+        tooltip: 'Guest is currently checked in to the room. In-stay compensation or partial refund is allowed.',
+        buttonText: '🟢 In-Room Refund',
+        reason: 'Guest is currently in the room. In-stay refund or rebooking credit authorized.',
+        isRoomStay: true,
+        statusCategory: 'in_room' as const,
+      }
+    }
+
+    // 2. Pre-Arrival (Confirmed / Pending payment): Staff must cancel booking first to release room inventory
+    if (isPreArrival) {
+      if (isAdmin) {
+        return {
+          canRefund: true,
+          badge: '⚡ Admin Override (Pre-Arrival)',
+          badgeClass: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800',
+          tooltip: 'Admin Master Override: Pre-arrival guest. (Tip: Cancelling booking via Bookings tab releases room automatically).',
+          buttonText: '⚡ Admin Refund',
+          reason: 'Admin Master Override applied for pre-arrival guest.',
+          isRoomStay: true,
+          statusCategory: 'admin_override' as const,
+        }
+      }
+      return {
+        canRefund: false,
+        badge: '🔒 Pre-Arrival (Cancel First)',
+        badgeClass: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800',
+        tooltip: 'Guest has not checked in yet. To release the room inventory and return/credit deposit, please cancel the booking in the Bookings tab.',
+        buttonText: 'Locked (Pre-Arrival)',
+        reason: 'Direct refund locked prior to check-in. Please cancel the booking via Bookings to release the room and issue refund/credit.',
+        isRoomStay: true,
+        statusCategory: 'pre_arrival' as const,
+      }
+    }
+
+    // 3. Checked Out: Stay finished. Locked for staff to prevent post-stay tampering; Admin Master Override allowed
+    if (isCheckedOut) {
+      if (isAdmin) {
+        return {
+          canRefund: true,
+          badge: '⚡ Admin Override (Checked Out)',
+          badgeClass: 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800',
+          tooltip: 'Admin Master Override: Guest has checked out. Admin authorized for post-stay billing correction.',
+          buttonText: '⚡ Admin Refund',
+          reason: 'Admin Master Override applied for post-checkout refund.',
+          isRoomStay: true,
+          statusCategory: 'admin_override' as const,
+        }
+      }
+      return {
+        canRefund: false,
+        badge: '🔒 Checked Out (Admin Only)',
+        badgeClass: 'bg-neutral-100 text-neutral-600 border-neutral-200 dark:bg-neutral-800 dark:text-neutral-400 dark:border-neutral-700',
+        tooltip: 'Guest has completed checkout. Post-stay adjustments require Admin Master Override.',
+        buttonText: 'Locked (Checked Out)',
+        reason: 'Guest has already checked out. Only an Admin can issue post-checkout refunds.',
+        isRoomStay: true,
+        statusCategory: 'checked_out' as const,
+      }
+    }
+
+    // 4. Cancelled: Room is already released. Staff & Admin can refund or credit paid deposit
+    if (isCancelled) {
+      return {
+        canRefund: true,
+        badge: '⚪ Cancelled Booking',
+        badgeClass: 'bg-stone-100 text-stone-700 border-stone-200 dark:bg-stone-800 dark:text-stone-300 dark:border-stone-700',
+        tooltip: 'Booking was cancelled. Staff can refund or issue rebooking credit for paid funds.',
+        buttonText: 'Refund Credit',
+        reason: 'Booking is cancelled. Refund or rebooking credit permitted for paid balance.',
+        isRoomStay: true,
+        statusCategory: 'cancelled' as const,
+      }
+    }
+
+    // 5. No-Show
+    if (isNoShow) {
+      if (isAdmin) {
+        return {
+          canRefund: true,
+          badge: '⚡ Admin Override (No-Show)',
+          badgeClass: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800',
+          tooltip: 'Admin Master Override: Refund for No-Show booking.',
+          buttonText: '⚡ Admin Refund',
+          reason: 'Admin Master Override applied for No-Show booking.',
+          isRoomStay: true,
+          statusCategory: 'admin_override' as const,
+        }
+      }
+      return {
+        canRefund: false,
+        badge: '🔒 No-Show (Admin Only)',
+        badgeClass: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800',
+        tooltip: 'Guest was marked No-Show. Refunds require Admin Master Override.',
+        buttonText: 'Locked (No-Show)',
+        reason: 'No-show bookings require Admin approval for refund.',
+        isRoomStay: true,
+        statusCategory: 'no_show' as const,
+      }
+    }
+
+    // Fallback: If room booking has unknown status
+    if (isAdmin) {
+      return {
+        canRefund: true,
+        badge: '⚡ Admin Refund',
+        badgeClass: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800',
+        tooltip: 'Admin Master Override.',
+        buttonText: '⚡ Admin Refund',
+        reason: 'Admin Master Override applied.',
+        isRoomStay: true,
+        statusCategory: 'admin_override' as const,
+      }
+    }
+
+    return {
+      canRefund: false,
+      badge: '🔒 In-Room Only',
+      badgeClass: 'bg-neutral-100 text-neutral-600 border-neutral-200 dark:bg-neutral-800 dark:text-neutral-400 dark:border-neutral-700',
+      tooltip: 'Room refunds are only available while the guest is actively in the room.',
+      buttonText: 'Locked',
+      reason: 'Refunds for room stays are only permitted while the guest is actively checked in.',
+      isRoomStay: true,
+      statusCategory: 'pre_arrival' as const,
     }
   }
 
@@ -1213,23 +1395,47 @@ export default function AdminBilling() {
                           </button>
                         )}
 
-                        {/* 3. DIRECT REFUND / CREDIT */}
-                        {inv.payments?.some((p) => !p.is_refunded) && (
-                          <button
-                            onClick={() => {
-                              const p = inv.payments.find((x) => !x.is_refunded) || inv.payments[0]
-                              setRefundTarget({ invoice: inv, payment: p })
-                              setRefundAmount(String(p.amount || ''))
-                              setRefundType('rebooking_credit')
-                              setRefundReason('')
-                            }}
-                            className="px-2.5 py-1 text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-900/40 border border-red-200 dark:border-red-800/60 rounded-lg font-semibold transition-all shadow-2xs shrink-0 cursor-pointer flex items-center gap-1"
-                            title="Issue Refund or Rebooking Credit"
-                          >
-                            <RotateCcw className="w-3 h-3" />
-                            <span>Refund</span>
-                          </button>
-                        )}
+                        {/* 3. DIRECT REFUND / CREDIT (Smart Status Guard) */}
+                        {inv.payments?.some((p) => !p.is_refunded) && (() => {
+                          const guard = checkRefundEligibility(inv)
+                          const p = inv.payments.find((x) => !x.is_refunded) || inv.payments[0]
+
+                          if (guard.canRefund) {
+                            return (
+                              <button
+                                onClick={() => {
+                                  setRefundTarget({ invoice: inv, payment: p })
+                                  setRefundAmount(String(p.amount || ''))
+                                  setRefundType('rebooking_credit')
+                                  setRefundReason('')
+                                }}
+                                className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all shadow-2xs shrink-0 cursor-pointer flex items-center gap-1 border ${
+                                  guard.statusCategory === 'in_room'
+                                    ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 border-emerald-300 dark:border-emerald-700'
+                                    : guard.statusCategory === 'admin_override'
+                                    ? 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/50 border-amber-300 dark:border-amber-700'
+                                    : 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-900/40 border-red-200 dark:border-red-800/60'
+                                }`}
+                                title={guard.tooltip}
+                              >
+                                <RotateCcw className="w-3 h-3" />
+                                <span>{guard.buttonText}</span>
+                              </button>
+                            )
+                          }
+
+                          return (
+                            <button
+                              type="button"
+                              disabled
+                              className="px-2.5 py-1 text-xs text-neutral-400 dark:text-neutral-500 bg-neutral-100 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700/60 rounded-lg font-medium transition-all shadow-2xs shrink-0 cursor-not-allowed flex items-center gap-1 opacity-80"
+                              title={guard.tooltip}
+                            >
+                              <Lock className="w-3 h-3 text-neutral-400" />
+                              <span>{guard.buttonText}</span>
+                            </button>
+                          )
+                        })()}
 
                         {/* Pay */}
                         {Number(inv.remaining_balance || inv.balance || 0) > 0 && String(inv.status).toUpperCase() !== 'CANCELLED' && String(inv.status).toUpperCase() !== 'NO_SHOW' && (
@@ -2169,19 +2375,44 @@ export default function AdminBilling() {
                           <span>Receipt</span>
                         </button>
 
-                        {!p.is_refunded && (
-                          <button
-                            onClick={() => {
-                              setRefundTarget({ invoice: viewInvoice, payment: p })
-                              setRefundAmount(String(p.amount || ''))
-                              setRefundType('rebooking_credit')
-                              setRefundReason('')
-                            }}
-                            className="px-2.5 py-1 text-[11px] text-red-600 border border-red-200 rounded-lg hover:bg-red-50 font-semibold transition-all cursor-pointer"
-                          >
-                            Refund / Credit
-                          </button>
-                        )}
+                        {!p.is_refunded && (() => {
+                          const guard = checkRefundEligibility(viewInvoice)
+                          if (guard.canRefund) {
+                            return (
+                              <button
+                                onClick={() => {
+                                  setRefundTarget({ invoice: viewInvoice, payment: p })
+                                  setRefundAmount(String(p.amount || ''))
+                                  setRefundType('rebooking_credit')
+                                  setRefundReason('')
+                                }}
+                                className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition-all cursor-pointer flex items-center gap-1 border ${
+                                  guard.statusCategory === 'in_room'
+                                    ? 'text-emerald-700 border-emerald-300 bg-emerald-50 hover:bg-emerald-100'
+                                    : guard.statusCategory === 'admin_override'
+                                    ? 'text-amber-700 border-amber-300 bg-amber-50 hover:bg-amber-100'
+                                    : 'text-red-600 border-red-200 bg-red-50 hover:bg-red-100'
+                                }`}
+                                title={guard.tooltip}
+                              >
+                                <RotateCcw className="w-3 h-3" />
+                                <span>{guard.buttonText}</span>
+                              </button>
+                            )
+                          }
+
+                          return (
+                            <button
+                              type="button"
+                              disabled
+                              className="px-2.5 py-1 text-[11px] text-neutral-400 border border-neutral-200 bg-neutral-100 rounded-lg font-medium cursor-not-allowed flex items-center gap-1 opacity-80"
+                              title={guard.tooltip}
+                            >
+                              <Lock className="w-3 h-3 text-neutral-400" />
+                              <span>{guard.buttonText}</span>
+                            </button>
+                          )
+                        })()}
                       </div>
                     </div>
                   ))}
@@ -2218,6 +2449,37 @@ export default function AdminBilling() {
         {refundTarget && (
           <div className="space-y-4 text-xs font-sans">
             
+            {/* Smart Status Guard Banner */}
+            {(() => {
+              const guard = checkRefundEligibility(refundTarget.invoice)
+              return (
+                <div className={`p-2.5 rounded-xl border flex items-center gap-2.5 ${guard.badgeClass}`}>
+                  <div className="shrink-0">
+                    {guard.statusCategory === 'in_room' ? (
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse block" />
+                    ) : guard.statusCategory === 'admin_override' ? (
+                      <ShieldCheck className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                    ) : (
+                      <ShieldCheck className="w-4 h-4 text-neutral-500" />
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-1.5 font-bold text-[11px]">
+                      <span>{guard.badge}</span>
+                      {guard.isRoomStay && refundTarget.invoice.room_number && (
+                        <span className="text-[10px] font-semibold opacity-85">
+                          • Room {refundTarget.invoice.room_number}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[10px] opacity-90 leading-tight">
+                      {guard.reason}
+                    </p>
+                  </div>
+                </div>
+              )
+            })()}
+
             {/* Payment Context Card */}
             <div className="p-3.5 bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700 rounded-xl space-y-1">
               <div className="flex items-center justify-between">

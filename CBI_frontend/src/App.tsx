@@ -336,9 +336,9 @@ export default function App() {
       case 'staff-pickleball':
         return <StaffPickleball />
       case 'staff-billing':
-        return <AdminBilling />
+        return <AdminBilling userRole={role} />
       case 'staff-payments':
-        return <AdminPayments />
+        return <AdminPayments userRole={role} />
       case 'staff-customers':
         return <StaffCustomers />
       case 'staff-profile':
@@ -356,9 +356,9 @@ export default function App() {
       case 'admin-checkinout':
         return <AdminCheckInOut onNavigate={navigate} />
       case 'admin-billing':
-        return <AdminBilling />
+        return <AdminBilling userRole={role} />
       case 'admin-payments':
-        return <AdminPayments />
+        return <AdminPayments userRole={role} />
       case 'admin-users':
         return <AdminUsers />
       case 'admin-rooms':
