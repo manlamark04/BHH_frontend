@@ -629,11 +629,7 @@ export default function AdminPayments({ userRole = 'staff' }: AdminPaymentsProps
       0
     )
     if (payMethod === 'rebooking_credit') {
-      if (guestCredit <= 0) {
-        alert('This guest has no available rebooking credit.')
-        return
-      }
-      if (amountNum > guestCredit) {
+      if (guestCredit > 0 && amountNum > guestCredit) {
         alert(`Payment amount (₱${amountNum.toLocaleString()}) exceeds the guest's available rebooking credit (₱${guestCredit.toLocaleString()}).`)
         return
       }
@@ -1474,25 +1470,20 @@ export default function AdminPayments({ userRole = 'staff' }: AdminPaymentsProps
                     type="button"
                     onClick={() => {
                       setPayMethod('rebooking_credit')
-                      if (guestCredit > 0) {
-                        const payNum = Math.min(activeDueAmount, guestCredit)
-                        setPayAmount(String(payNum))
-                      }
+                      const payNum = guestCredit > 0 ? Math.min(activeDueAmount, guestCredit) : activeDueAmount
+                      setPayAmount(String(payNum))
                     }}
-                    disabled={guestCredit <= 0}
-                    className={`p-2.5 rounded-xl border text-left transition-all flex items-center justify-between ${
+                    className={`p-2.5 rounded-xl border text-left transition-all flex items-center justify-between cursor-pointer ${
                       payMethod === 'rebooking_credit'
-                        ? 'border-[#6B7A5E] bg-[#6B7A5E]/15 text-[#2B3524] dark:text-white ring-2 ring-[#6B7A5E]/20 font-bold cursor-pointer'
-                        : guestCredit > 0
-                        ? 'border-stone/30 bg-white dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:border-[#6B7A5E]/50 cursor-pointer'
-                        : 'border-stone/20 bg-neutral-100 dark:bg-neutral-900 text-neutral-400 opacity-60 cursor-not-allowed'
+                        ? 'border-[#6B7A5E] bg-[#6B7A5E]/15 text-[#2B3524] dark:text-white ring-2 ring-[#6B7A5E]/20 font-bold'
+                        : 'border-stone/30 bg-white dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:border-[#6B7A5E]/50'
                     }`}
                   >
                     <span className="flex items-center gap-1.5">
                       <span className="text-[#6B7A5E] font-bold">✦</span> Rebooking Credit
                     </span>
                     <span className="text-[10px] font-mono font-bold text-[#6B7A5E]">
-                      ₱{guestCredit.toLocaleString()}
+                      {guestCredit > 0 ? `₱${guestCredit.toLocaleString()}` : 'Account Credit'}
                     </span>
                   </button>
                 </div>
