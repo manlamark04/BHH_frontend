@@ -744,7 +744,11 @@ export default function AdminBilling({ userRole = 'staff' }: AdminBillingProps) 
       return
     }
 
-    const guestCredit = Number(selectedInvoice?.customer_credit_balance || 0)
+    const guestCredit = Number(
+      selectedInvoice?.customer_credit_balance ??
+      invoices.find((i) => (selectedInvoice?.customer_id && i.customer_id === selectedInvoice.customer_id) || (selectedInvoice?.customer_name && i.customer_name === selectedInvoice.customer_name && Number(i.customer_credit_balance || 0) > 0))?.customer_credit_balance ??
+      0
+    )
     if (payMethod === 'rebooking_credit') {
       if (guestCredit <= 0) {
         alert('This guest has no available rebooking credit.')
@@ -1787,7 +1791,11 @@ export default function AdminBilling({ userRole = 'staff' }: AdminBillingProps) 
 
           {/* Settlement Mode Selection: Cash vs Rebooking Credit */}
           {(() => {
-            const guestCredit = Number(selectedInvoice?.customer_credit_balance || 0)
+            const guestCredit = Number(
+              selectedInvoice?.customer_credit_balance ??
+              invoices.find((i) => (selectedInvoice?.customer_id && i.customer_id === selectedInvoice.customer_id) || (selectedInvoice?.customer_name && i.customer_name === selectedInvoice.customer_name && Number(i.customer_credit_balance || 0) > 0))?.customer_credit_balance ??
+              0
+            )
             return (
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
