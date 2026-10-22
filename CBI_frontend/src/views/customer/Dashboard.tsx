@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import {
   BedDouble,
   Bike,
@@ -75,6 +75,68 @@ export default function CustomerDashboard({ onNavigate, userName, userId, photoU
       return String(dateStr).split('T')[0]
     }
   }
+
+  const displayActivities = useMemo(() => {
+    const defaultActivities = [
+      {
+        id: 'pickleball',
+        name: 'Pickleball Court Reservation',
+        description: 'Outdoor regulation pickleball court. Includes paddle and ball rentals for 2 players.',
+        price_per_unit: 100,
+        unit: 'hour',
+        image_url: pickleballCourtImg,
+        targetView: 'customer-pickleball' as View,
+      },
+      {
+        id: 'motor',
+        name: 'Motorcycle & Scooter Rental',
+        description: 'Automatic Honda Click and Beat scooters with safety helmets.',
+        price_per_unit: 500,
+        unit: 'day',
+        image_url: hondaClickImg,
+        targetView: 'customer-motorcycles' as View,
+      },
+    ]
+
+    if (!activities || activities.length === 0) {
+      return defaultActivities
+    }
+
+    const hasPickleball = activities.some((a) => {
+      const name = String(a.name || '').toLowerCase()
+      return name.includes('pickleball') || name.includes('court')
+    })
+
+    const hasMotor = activities.some((a) => {
+      const name = String(a.name || '').toLowerCase()
+      return (
+        name.includes('motor') ||
+        name.includes('scooter') ||
+        name.includes('bike') ||
+        name.includes('click') ||
+        name.includes('vario')
+      )
+    })
+
+    const list = activities.map((raw) => {
+      const a = raw as Record<string, unknown>
+      const name = String(a.name || '').toLowerCase()
+      const isCourt = name.includes('pickleball') || name.includes('court')
+      return {
+        ...a,
+        targetView: isCourt ? ('customer-pickleball' as View) : ('customer-motorcycles' as View),
+      }
+    })
+
+    if (!hasPickleball) {
+      list.unshift(defaultActivities[0])
+    }
+    if (!hasMotor) {
+      list.push(defaultActivities[1])
+    }
+
+    return list.slice(0, 4)
+  }, [activities])
 
   return (
     <div className="p-4 sm:p-5 max-w-7xl mx-auto space-y-4 font-sans">
@@ -256,38 +318,22 @@ export default function CustomerDashboard({ onNavigate, userName, userId, photoU
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-          {(activities.length > 0 ? activities : [
-            {
-              id: 'pickleball',
-              name: 'Pickleball Court Reservation',
-              description: 'Outdoor regulation pickleball court. Includes paddle and ball set.',
-              price_per_unit: 150,
-              unit: 'hour',
-              image_url: pickleballCourtImg,
-            },
-            {
-              id: 'motor',
-              name: 'Motorcycle & Scooter Rental',
-              description: 'Automatic Honda Click and Beat scooters with safety helmets.',
-              price_per_unit: 450,
-              unit: 'day',
-              image_url: hondaClickImg,
-            }
-          ]).slice(0, 4).map((a) => {
+          {displayActivities.map((a) => {
             const name = String(a.name || '').toLowerCase()
+            const isCourt = name.includes('pickleball') || name.includes('court')
             let imgSrc = String(a.image_url || '')
-            if (name.includes('pickleball') || name.includes('court')) {
+            if (isCourt) {
               imgSrc = pickleballCourtImg
             } else if (name.includes('motor') || name.includes('scooter') || name.includes('bike') || name.includes('click') || name.includes('vario')) {
               imgSrc = hondaClickImg
             } else if (!imgSrc || imgSrc.includes('placeholder')) {
-              imgSrc = pickleballCourtImg
+              imgSrc = isCourt ? pickleballCourtImg : hondaClickImg
             }
 
             return (
               <div
                 key={String(a.id)}
-                onClick={() => onNavigate('customer-activities')}
+                onClick={() => onNavigate((a as any).targetView || (isCourt ? 'customer-pickleball' : 'customer-motorcycles'))}
                 className="rounded-xl border border-black/[0.06] dark:border-neutral-800 overflow-hidden bg-neutral-50/70 dark:bg-[#14171C] hover:shadow-sm hover:border-[#6B7A5E]/40 transition-all cursor-pointer group"
               >
                 <div className="h-28 bg-neutral-200 dark:bg-neutral-800 overflow-hidden relative">
@@ -296,7 +342,7 @@ export default function CustomerDashboard({ onNavigate, userName, userId, photoU
                     alt={String(a.name)}
                     onError={(e) => {
                       const target = e.currentTarget
-                      if (name.includes('pickleball') || name.includes('court')) {
+                      if (isCourt) {
                         target.src = pickleballCourtImg
                       } else {
                         target.src = hondaClickImg
