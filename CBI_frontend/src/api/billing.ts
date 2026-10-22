@@ -25,6 +25,7 @@ export interface InvoiceItem {
   customer_code?: string
   customer_email?: string
   customer_phone?: string
+  customer_credit_balance?: number
   booking_id?: number
   booking_ref?: string
   booking_status?: string
@@ -169,16 +170,23 @@ export const billingApi = {
     return res
   },
 
-  /** POST /api/bills/payments/:id/refund — Admin: refund payment */
-  refundPayment: async (payment_id: number, reason: string) => {
+  /** POST /api/bills/payments/:id/refund — Admin/Staff: refund payment or issue rebooking credit */
+  refundPayment: async (payment_id: number, payload: string | { reason: string; refund_type?: string; amount?: number }) => {
+    const body = typeof payload === 'string' ? { reason: payload } : payload
     const res = await api.post<{
       message: string
       refunded_amount: number
+      refund_type?: string
       new_total_paid: number
       bill_status: string
-    }>(`/api/bills/payments/${payment_id}/refund`, { reason })
+    }>(`/api/bills/payments/${payment_id}/refund`, body)
     if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('billing-updated'))
     return res
+  },
+
+  /** GET /api/bills/refunds — Staff/Admin: list all refunds and rebooking credits */
+  getRefunds: async () => {
+    return api.get<any[]>('/api/bills/refunds')
   },
 
   /** POST /api/bills/:id/cancel — Staff/Admin: cancel unpaid bill */
@@ -240,6 +248,9 @@ export interface EODReportData {
     bankTotal: number
     otherTotal: number
     refundsTotal: number
+    cashRefundsTotal?: number
+    creditRefundsTotal?: number
+    digitalRefundsTotal?: number
     transactionCount: number
   }
   transactions: Array<{

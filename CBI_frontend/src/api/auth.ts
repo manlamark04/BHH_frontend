@@ -33,6 +33,7 @@ export interface MeResponse {
   must_change_password: boolean
   profile_photo_url?: string | null
   created_at: string
+  credit_balance?: number | string
 }
 
 export const authApi = {

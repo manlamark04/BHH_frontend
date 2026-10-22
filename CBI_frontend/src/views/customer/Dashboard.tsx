@@ -20,6 +20,7 @@ import { bookingsApi } from '../../api/bookings'
 import Avatar from '../../components/Avatar'
 import { billingApi } from '../../api/billing'
 import { catalogApi } from '../../api/services'
+import { authApi } from '../../api/auth'
 import StatusBadge from '../../components/StatusBadge'
 import GuestItinerary from '../../components/GuestItinerary'
 import pickleballCourtImg from '../../imports/pickleball_court.jpg'
@@ -36,6 +37,7 @@ export default function CustomerDashboard({ onNavigate, userName, userId, photoU
   const [bookings, setBookings] = useState<Record<string, unknown>[]>([])
   const [bills, setBills] = useState<Record<string, unknown>[]>([])
   const [activities, setActivities] = useState<Record<string, unknown>[]>([])
+  const [creditBalance, setCreditBalance] = useState<number>(0)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -44,10 +46,14 @@ export default function CustomerDashboard({ onNavigate, userName, userId, photoU
       bookingsApi.getMyBookings().catch(() => []),
       billingApi.getMyBills().catch(() => []),
       catalogApi.getActivities().catch(() => []),
-    ]).then(([bkData, blData, actData]) => {
+      authApi.getMe().catch(() => null),
+    ]).then(([bkData, blData, actData, meData]) => {
       setBookings(bkData as Record<string, unknown>[])
       setBills(blData as Record<string, unknown>[])
       setActivities(actData as Record<string, unknown>[])
+      if (meData?.credit_balance) {
+        setCreditBalance(Number(meData.credit_balance || 0))
+      }
     }).finally(() => setLoading(false))
   }, [])
 
@@ -158,7 +164,22 @@ export default function CustomerDashboard({ onNavigate, userName, userId, photoU
           </div>
         </div>
 
-        <div className="flex items-center gap-2 self-end sm:self-auto">
+        <div className="flex items-center gap-2.5 self-end sm:self-auto">
+          {creditBalance > 0 && (
+            <div className="px-3 py-1.5 rounded-xl border border-[#6B7A5E]/20 bg-[#6B7A5E]/5 dark:bg-[#6B7A5E]/10 flex items-center gap-2 text-left">
+              <div className="w-6 h-6 rounded-lg bg-[#6B7A5E]/20 text-[#6B7A5E] flex items-center justify-center font-bold text-xs shrink-0">
+                ✦
+              </div>
+              <div>
+                <span className="text-[9px] font-bold uppercase tracking-wider text-[#6B7A5E] block leading-none">
+                  Rebooking Credit
+                </span>
+                <span className="font-mono font-bold text-xs text-neutral-900 dark:text-white">
+                  ₱{creditBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+              </div>
+            </div>
+          )}
           <button
             onClick={() => onNavigate('customer-profile')}
             className="px-3.5 py-1.5 bg-neutral-50 dark:bg-[#20252E] hover:bg-neutral-100 dark:hover:bg-neutral-800 border border-black/[0.08] dark:border-neutral-700 text-neutral-900 dark:text-white rounded-lg text-xs font-semibold transition-all cursor-pointer"
@@ -167,6 +188,27 @@ export default function CustomerDashboard({ onNavigate, userName, userId, photoU
           </button>
         </div>
       </div>
+
+      {/* Credit Balance Alert if user has credit */}
+      {creditBalance > 0 && (
+        <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 rounded-xl flex items-center justify-between gap-3 text-emerald-900 dark:text-emerald-200 text-xs">
+          <div className="flex items-center gap-2.5">
+            <span className="text-base">✦</span>
+            <div>
+              <p className="font-bold">Available Rebooking Credit: ₱{creditBalance.toLocaleString()}</p>
+              <p className="text-[11px] text-emerald-700 dark:text-emerald-400 mt-0.5">
+                Ready to apply towards your next room stay, pickleball court reservation, or motorcycle rental!
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => onNavigate('customer-rooms')}
+            className="px-3 py-1.5 bg-[#6B7A5E] hover:bg-[#57644c] text-white rounded-lg text-xs font-bold shrink-0 transition-colors cursor-pointer"
+          >
+            Book Now →
+          </button>
+        </div>
+      )}
 
       {/* ─── 2. STATISTIC KPI SUMMARY CARDS ─── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">

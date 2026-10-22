@@ -179,7 +179,9 @@ export default function CashierEODModal({ isOpen, onClose }: CashierEODModalProp
   // Financial calculations
   const grossCash = report?.metrics.cashTotal || 0
   const pettyCashTotal = report?.metrics.expensesTotal || 0
-  const expectedDrawerCash = report?.metrics.netCashTotal ?? (grossCash - pettyCashTotal)
+  const cashRefundsTotal = report?.metrics.cashRefundsTotal || 0
+  const creditRefundsTotal = report?.metrics.creditRefundsTotal || 0
+  const expectedDrawerCash = report?.metrics.netCashTotal ?? (grossCash - pettyCashTotal - cashRefundsTotal)
   const digitalTotal = (report?.metrics.gcashTotal || 0) + (report?.metrics.cardTotal || 0) + (report?.metrics.bankTotal || 0)
   const netRevenue = report?.metrics.netTotal || 0
 
@@ -507,6 +509,30 @@ export default function CashierEODModal({ isOpen, onClose }: CashierEODModalProp
               <p className="text-[10px] text-neutral-500 mt-0.5">GCash, Maya & Card transfers</p>
             </div>
           </div>
+
+          {/* Refund Breakdown Notices */}
+          {(cashRefundsTotal > 0 || creditRefundsTotal > 0) && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+              {cashRefundsTotal > 0 && (
+                <div className="p-3 bg-red-50/80 rounded-xl border border-red-200 text-red-900 flex items-center justify-between">
+                  <div>
+                    <span className="font-bold block text-[11px] text-red-800">💵 Cash Refunds Paid Out</span>
+                    <p className="text-[10px] text-red-700">Deducted from physical drawer cash</p>
+                  </div>
+                  <span className="font-mono font-bold text-sm text-red-700">-₱{cashRefundsTotal.toLocaleString()}</span>
+                </div>
+              )}
+              {creditRefundsTotal > 0 && (
+                <div className="p-3 bg-emerald-50/80 rounded-xl border border-emerald-200 text-emerald-900 flex items-center justify-between">
+                  <div>
+                    <span className="font-bold block text-[11px] text-emerald-800">✦ Rebooking Credits Issued</span>
+                    <p className="text-[10px] text-emerald-700">Zero physical cash drawer impact</p>
+                  </div>
+                  <span className="font-mono font-bold text-sm text-emerald-700">₱{creditRefundsTotal.toLocaleString()}</span>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* ─── PHYSICAL CASH DRAWER COUNT & DISCREPANCY RECONCILIATION ─── */}
           <div className="p-4 sm:p-5 bg-gradient-to-br from-amber-50/60 to-orange-50/40 border border-amber-300 rounded-2xl space-y-4">

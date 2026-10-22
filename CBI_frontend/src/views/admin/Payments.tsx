@@ -75,6 +75,8 @@ export default function AdminPayments() {
     invoice: InvoiceItem
     payment: PaymentTransaction
   } | null>(null)
+  const [refundType, setRefundType] = useState<'rebooking_credit' | 'cash' | 'gcash'>('rebooking_credit')
+  const [refundAmount, setRefundAmount] = useState('')
   const [refundReason, setRefundReason] = useState('')
   const [processingRefund, setProcessingRefund] = useState(false)
 
@@ -439,6 +441,18 @@ export default function AdminPayments() {
       return
     }
 
+    const guestCredit = Number(selectedInvoice?.customer_credit_balance || 0)
+    if (payMethod === 'rebooking_credit') {
+      if (guestCredit <= 0) {
+        alert('This guest has no available rebooking credit.')
+        return
+      }
+      if (amountNum > guestCredit) {
+        alert(`Payment amount (₱${amountNum.toLocaleString()}) exceeds the guest's available rebooking credit (₱${guestCredit.toLocaleString()}).`)
+        return
+      }
+    }
+
     if (activeDueAmount > 0 && amountNum < activeDueAmount) {
       alert(`Amount received (₱${amountNum.toLocaleString()}) must be at least ₱${activeDueAmount.toLocaleString()} to settle this invoice.`)
       return
@@ -513,20 +527,30 @@ export default function AdminPayments() {
   // ─── 4. REFUND PAYMENT HANDLER ───
   const handleConfirmRefund = async () => {
     if (!refundTarget || !refundReason.trim()) {
-      alert('Please state a valid reason for this refund.')
+      toast.error('Please state a valid reason for this refund.')
+      return
+    }
+
+    const numAmount = Number(refundAmount) || Number(refundTarget.payment.amount)
+    if (numAmount <= 0 || numAmount > Number(refundTarget.payment.amount)) {
+      toast.error(`Refund amount must be between ₱1 and ₱${Number(refundTarget.payment.amount).toLocaleString()}`)
       return
     }
 
     setProcessingRefund(true)
     try {
-      await billingApi.refundPayment(refundTarget.payment.id, refundReason.trim())
-      toast.success(`Payment of ₱${Number(refundTarget.payment.amount).toLocaleString()} refunded successfully.`, 'Refund Processed')
+      const res = await billingApi.refundPayment(refundTarget.payment.id, {
+        reason: refundReason.trim(),
+        refund_type: refundType,
+        amount: numAmount,
+      })
+      toast.success(res.message || `Refund of ₱${numAmount.toLocaleString()} processed successfully.`)
       setRefundTarget(null)
       setRefundReason('')
       setViewInvoice(null)
       loadData()
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to process refund')
+      toast.error(err instanceof Error ? err.message : 'Failed to process refund')
     } finally {
       setProcessingRefund(false)
     }
@@ -881,6 +905,24 @@ export default function AdminPayments() {
                           </button>
                         )}
 
+                        {/* 3. DIRECT REFUND / CREDIT */}
+                        {inv.payments?.some((p) => !p.is_refunded) && (
+                          <button
+                            onClick={() => {
+                              const p = inv.payments.find((x) => !x.is_refunded) || inv.payments[0]
+                              setRefundTarget({ invoice: inv, payment: p })
+                              setRefundAmount(String(p.amount || ''))
+                              setRefundType('rebooking_credit')
+                              setRefundReason('')
+                            }}
+                            className="px-2.5 py-1 text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-900/40 border border-red-200 dark:border-red-800/60 rounded-lg font-semibold transition-all shadow-xs shrink-0 cursor-pointer flex items-center gap-1"
+                            title="Issue Refund or Rebooking Credit"
+                          >
+                            <RotateCcw className="w-3 h-3" />
+                            <span>Refund</span>
+                          </button>
+                        )}
+
                         {/* 3. PAY (Active whenever there is an unpaid remaining balance) */}
                         {Number(inv.remaining_balance || 0) > 0 && String(inv.status).toUpperCase() !== 'PAID' && (
                             <button
@@ -1185,16 +1227,69 @@ export default function AdminPayments() {
             </div>
           )}
 
-          {/* Cash Payment Indicator Banner */}
-          <div className="flex items-center justify-between px-3.5 py-2.5 bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/50 rounded-xl text-xs">
-            <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-300 font-semibold">
-              <Banknote className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-              <span>Settlement Mode</span>
-            </div>
-            <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider bg-emerald-600 text-white px-2.5 py-0.5 rounded-lg shadow-2xs">
-              Cash Payment Only
-            </span>
-          </div>
+          {/* Settlement Mode Selection: Cash vs Rebooking Credit */}
+          {(() => {
+            const guestCredit = Number(selectedInvoice?.customer_credit_balance || 0)
+            return (
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="font-semibold text-ink uppercase tracking-wider text-[11px]">Settlement Method *</label>
+                  {guestCredit > 0 && (
+                    <span className="text-[10px] text-[#6B7A5E] font-bold">
+                      Guest Available Credit: ₱{guestCredit.toLocaleString()}
+                    </span>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPayMethod('Cash')}
+                    className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between ${
+                      payMethod === 'Cash'
+                        ? 'border-emerald-600 bg-emerald-50/80 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-200 ring-2 ring-emerald-500/20 font-bold'
+                        : 'border-stone/30 bg-white dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50'
+                    }`}
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <Banknote className="w-4 h-4 text-emerald-600 shrink-0" /> Cash Tender
+                    </span>
+                    <span className="text-[10px] uppercase font-bold text-emerald-600">Drawer</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPayMethod('rebooking_credit')
+                      if (guestCredit > 0) {
+                        const payNum = Math.min(activeDueAmount, guestCredit)
+                        setPayAmount(String(payNum))
+                      }
+                    }}
+                    disabled={guestCredit <= 0}
+                    className={`p-2.5 rounded-xl border text-left transition-all flex items-center justify-between ${
+                      payMethod === 'rebooking_credit'
+                        ? 'border-[#6B7A5E] bg-[#6B7A5E]/15 text-[#2B3524] dark:text-white ring-2 ring-[#6B7A5E]/20 font-bold cursor-pointer'
+                        : guestCredit > 0
+                        ? 'border-stone/30 bg-white dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:border-[#6B7A5E]/50 cursor-pointer'
+                        : 'border-stone/20 bg-neutral-100 dark:bg-neutral-900 text-neutral-400 opacity-60 cursor-not-allowed'
+                    }`}
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <span className="text-[#6B7A5E] font-bold">✦</span> Rebooking Credit
+                    </span>
+                    <span className="text-[10px] font-mono font-bold text-[#6B7A5E]">
+                      ₱{guestCredit.toLocaleString()}
+                    </span>
+                  </button>
+                </div>
+                {payMethod === 'rebooking_credit' && (
+                  <p className="text-[11px] text-[#6B7A5E] font-semibold bg-[#6B7A5E]/10 p-2 rounded-lg">
+                    ✦ Settle using store credit on file. Customer credit balance will be debited upon confirmation.
+                  </p>
+                )}
+              </div>
+            )
+          })()}
 
           {/* ─── 2. PAYMENT RECEIVED & PAYMENT DATE ─── */}
           <div className="grid grid-cols-2 gap-3">
@@ -1705,10 +1800,14 @@ export default function AdminPayments() {
 
                         {!p.is_refunded && (
                           <button
-                            onClick={() => setRefundTarget({ invoice: viewInvoice, payment: p })}
-                            className="px-2.5 py-1 text-[11px] text-red-600 border border-red-200 rounded-lg hover:bg-red-50 font-semibold transition-all cursor-pointer"
+                            onClick={() => {
+                              setRefundTarget({ invoice: viewInvoice, payment: p })
+                              setRefundAmount(String(p.amount))
+                              setRefundType('rebooking_credit')
+                            }}
+                            className="px-2.5 py-1 text-[11px] text-[#6B7A5E] border border-[#6B7A5E]/30 rounded-lg hover:bg-[#6B7A5E]/10 font-semibold transition-all cursor-pointer"
                           >
-                            Refund
+                            Refund / Credit
                           </button>
                         )}
                       </div>
@@ -1736,51 +1835,192 @@ export default function AdminPayments() {
       </Modal>
 
       {/* ══════════════════════════════════════════════════════════════
-          MODAL 3: REFUND PAYMENT CONFIRMATION
+          MODAL 3: HYBRID REFUND & REBOOKING CREDIT MODAL
          ══════════════════════════════════════════════════════════════ */}
       <Modal
         isOpen={Boolean(refundTarget)}
         onClose={() => setRefundTarget(null)}
-        title="Confirm Payment Refund"
-        size="sm"
+        title="Process Refund / Issue Rebooking Credit"
+        size="md"
       >
         {refundTarget && (
           <div className="space-y-4 text-xs font-sans">
             
-            <div className="p-3.5 bg-red-50 border border-red-200 rounded-2xl space-y-1.5 text-red-950">
-              <p className="font-bold text-sm">Refund Payment?</p>
-              <p className="text-[11px] text-red-800">
-                You are issuing a refund for receipt <strong className="font-mono">{refundTarget.payment.receipt_number && refundTarget.payment.receipt_number !== '—' ? refundTarget.payment.receipt_number : `TXN-${refundTarget.payment.id}`}</strong> of <strong>₱{Number(refundTarget.payment.amount).toLocaleString()}</strong> ({refundTarget.payment.method}) associated with {refundTarget.invoice.customer_name}.
-              </p>
+            {/* Payment Context Card */}
+            <div className="p-3.5 bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700 rounded-xl space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
+                  Transaction Receipt
+                </span>
+                <span className="font-mono font-bold text-neutral-800 dark:text-neutral-200 text-xs">
+                  {refundTarget.payment.receipt_number && refundTarget.payment.receipt_number !== '—'
+                    ? refundTarget.payment.receipt_number
+                    : `TXN-${refundTarget.payment.id}`}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-neutral-600 dark:text-neutral-300">
+                  Guest: <strong className="text-neutral-900 dark:text-white">{refundTarget.invoice.customer_name}</strong>
+                </span>
+                <span className="font-mono font-bold text-emerald-700 dark:text-emerald-400">
+                  Paid ₱{Number(refundTarget.payment.amount).toLocaleString()} ({refundTarget.payment.method})
+                </span>
+              </div>
             </div>
 
+            {/* Refund Type Selection */}
             <div>
-              <label className="block font-semibold text-ink uppercase tracking-wider mb-1.5">Reason for Refund *</label>
+              <label className="block font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider text-[11px] mb-2">
+                Select Refund Action *
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                {/* 1. Rebooking Credit */}
+                <button
+                  type="button"
+                  onClick={() => setRefundType('rebooking_credit')}
+                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                    refundType === 'rebooking_credit'
+                      ? 'border-[#6B7A5E] bg-[#6B7A5E]/10 ring-2 ring-[#6B7A5E]/20 text-[#2B3524] dark:text-white'
+                      : 'border-black/[0.08] dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800/40 text-neutral-700 dark:text-neutral-300'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-bold text-xs flex items-center gap-1 text-[#6B7A5E]">
+                      ✦ Rebooking Credit
+                    </span>
+                    <span className="text-[9px] font-bold uppercase px-1.5 py-0.2 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300">
+                      Recommended
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-neutral-500 dark:text-neutral-400 leading-tight">
+                    Saved to guest account for future stay/motor. Zero cash out.
+                  </p>
+                </button>
+
+                {/* 2. Cash Refund */}
+                <button
+                  type="button"
+                  onClick={() => setRefundType('cash')}
+                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                    refundType === 'cash'
+                      ? 'border-amber-600 bg-amber-50 dark:bg-amber-950/30 ring-2 ring-amber-500/20 text-amber-950 dark:text-white'
+                      : 'border-black/[0.08] dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800/40 text-neutral-700 dark:text-neutral-300'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-bold text-xs flex items-center gap-1 text-amber-700 dark:text-amber-400">
+                      💵 Cash Refund
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-neutral-500 dark:text-neutral-400 leading-tight">
+                    Returned from drawer. Automatically deducted in Cashier EOD.
+                  </p>
+                </button>
+
+                {/* 3. GCash / Electronic */}
+                <button
+                  type="button"
+                  onClick={() => setRefundType('gcash')}
+                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                    refundType === 'gcash'
+                      ? 'border-blue-600 bg-blue-50 dark:bg-blue-950/30 ring-2 ring-blue-500/20 text-blue-950 dark:text-white'
+                      : 'border-black/[0.08] dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800/40 text-neutral-700 dark:text-neutral-300'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-bold text-xs flex items-center gap-1 text-blue-700 dark:text-blue-400">
+                      📱 GCash / Bank
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-neutral-500 dark:text-neutral-400 leading-tight">
+                    Sent via electronic transfer directly to the guest's wallet.
+                  </p>
+                </button>
+              </div>
+            </div>
+
+            {/* Refund Amount Input */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider text-[11px]">
+                  Refund Amount (₱) *
+                </label>
+                <span className="text-[10px] text-neutral-500 dark:text-neutral-400">
+                  Max: <strong className="font-mono">₱{Number(refundTarget.payment.amount).toLocaleString()}</strong>
+                </span>
+              </div>
+              <div className="relative">
+                <span className="absolute left-3 top-2.5 font-bold font-mono text-neutral-400 text-xs">₱</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="1"
+                  max={Number(refundTarget.payment.amount)}
+                  value={refundAmount}
+                  onChange={(e) => setRefundAmount(e.target.value)}
+                  className="w-full pl-7 pr-3 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white font-mono font-bold text-sm focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]"
+                />
+              </div>
+            </div>
+
+            {/* Preset Reason Quick Buttons */}
+            <div>
+              <label className="block font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider text-[11px] mb-1.5">
+                Quick Reason Presets
+              </label>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  'Typhoon / Rough Sea Ferry Cancellation',
+                  'Emergency / Flight Disruption',
+                  'Room Maintenance Issue',
+                  'Overpayment / Billing Correction',
+                  'Deposit Release for Motorcycle',
+                ].map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => setRefundReason(preset)}
+                    className="px-2 py-1 rounded-lg text-[10px] font-semibold border border-black/[0.08] dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800 hover:bg-[#6B7A5E]/10 hover:border-[#6B7A5E]/30 text-neutral-700 dark:text-neutral-300 transition-colors cursor-pointer"
+                  >
+                    {preset}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Detailed Reason Field */}
+            <div>
+              <label className="block font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider text-[11px] mb-1">
+                Reason & Notes *
+              </label>
               <textarea
                 required
-                rows={3}
+                rows={2}
                 value={refundReason}
                 onChange={(e) => setRefundReason(e.target.value)}
-                placeholder="e.g. Booking cancelled upon guest request, billing adjustment, overpayment"
-                className="w-full px-3 py-2 rounded-xl border border-stone text-xs resize-none focus:outline-none focus:ring-2 focus:ring-red-400"
+                placeholder="State the justification for this refund or rebooking credit..."
+                className="w-full px-3 py-2 rounded-xl border border-black/[0.1] dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white text-xs resize-none focus:outline-none focus:ring-2 focus:ring-[#6B7A5E]"
               />
             </div>
 
-            <div className="flex gap-2 pt-1">
+            {/* Actions */}
+            <div className="flex gap-2 pt-2 border-t border-black/[0.06] dark:border-neutral-800">
               <button
                 type="button"
                 onClick={() => setRefundTarget(null)}
-                className="flex-1 py-2.5 border border-stone rounded-xl text-ink-muted hover:bg-sand font-semibold cursor-pointer"
+                className="flex-1 py-2.5 border border-stone/30 dark:border-neutral-700 rounded-xl text-neutral-600 dark:text-neutral-300 hover:bg-sand dark:hover:bg-neutral-800 font-semibold cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleConfirmRefund}
-                disabled={processingRefund || !refundReason.trim()}
-                className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-semibold shadow-sm disabled:opacity-50 cursor-pointer"
+                disabled={processingRefund || !refundReason.trim() || !Number(refundAmount)}
+                className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#57644c] text-white rounded-xl font-bold shadow-sm disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1.5 transition-colors"
               >
-                {processingRefund ? 'Processing...' : 'Confirm Refund'}
+                {processingRefund ? 'Processing...' : (
+                  refundType === 'rebooking_credit' ? 'Issue Rebooking Credit' : 'Confirm Refund'
+                )}
               </button>
             </div>
 

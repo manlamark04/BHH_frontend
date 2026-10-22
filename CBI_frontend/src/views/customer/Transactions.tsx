@@ -17,9 +17,11 @@ import {
   Check,
   Loader2,
   BedDouble,
+  Sparkles,
 } from 'lucide-react'
 import { billingApi } from '../../api/billing'
 import { bookingsApi, type BookingItem } from '../../api/bookings'
+import { authApi } from '../../api/auth'
 import StatusBadge from '../../components/StatusBadge'
 import Modal from '../../components/Modal'
 import { SkeletonTable } from '../../components/SkeletonLoader'
@@ -78,6 +80,7 @@ export default function CustomerTransactions() {
   const [cancelCustomNotes, setCancelCustomNotes] = useState<string>('')
   const [cancelSubmitting, setCancelSubmitting] = useState(false)
   const [cancelError, setCancelError] = useState('')
+  const [creditBalance, setCreditBalance] = useState<number>(0)
   const [toast, setToast] = useState('')
 
   const fireToast = (msg: string) => {
@@ -89,10 +92,14 @@ export default function CustomerTransactions() {
     setLoading(true)
     Promise.all([
       billingApi.getMyBills().catch(() => []),
-      bookingsApi.getMyBookings().catch(() => [])
-    ]).then(([billsData, bkgsData]) => {
+      bookingsApi.getMyBookings().catch(() => []),
+      authApi.getMe().catch(() => null),
+    ]).then(([billsData, bkgsData, meData]) => {
       setBills(billsData as Record<string, unknown>[])
       setBookings(bkgsData as BookingItem[])
+      if (meData?.credit_balance) {
+        setCreditBalance(Number(meData.credit_balance || 0))
+      }
     }).finally(() => setLoading(false))
   }
 
@@ -206,7 +213,7 @@ export default function CustomerTransactions() {
       )}
 
       {/* ─── 1. STATS SUMMARY ─── */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+      <div className={`grid grid-cols-1 ${creditBalance > 0 ? 'sm:grid-cols-2 lg:grid-cols-4' : 'sm:grid-cols-3'} gap-3.5`}>
         <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50 flex items-center justify-center shrink-0">
             <CheckCircle2 className="w-4 h-4" strokeWidth={1.5} />
@@ -239,6 +246,19 @@ export default function CustomerTransactions() {
             <span className="text-[10px] text-neutral-500 dark:text-neutral-400 font-medium">Total booking requests</span>
           </div>
         </div>
+
+        {creditBalance > 0 && (
+          <div className="bg-white dark:bg-[#181B20] p-3.5 sm:p-4 rounded-xl border border-emerald-300 dark:border-emerald-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50 flex items-center justify-center shrink-0">
+              <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-300" strokeWidth={1.5} />
+            </div>
+            <div>
+              <span className="text-[10px] text-emerald-800 dark:text-emerald-400 uppercase font-bold tracking-wider block">REBOOKING CREDIT</span>
+              <p className="font-display font-bold text-xl sm:text-2xl text-emerald-700 dark:text-emerald-300 leading-tight">₱{creditBalance.toLocaleString()}</p>
+              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">Available store credit</span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ─── 2. TAB CONTROLS & SEARCH ─── */}

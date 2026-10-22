@@ -50,6 +50,7 @@ export default function CustomerProfile({ userName, userId, mustChangePassword, 
   const [changingPassword, setChangingPassword] = useState(Boolean(mustChangePassword))
   const [copiedId, setCopiedId] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [creditBalance, setCreditBalance] = useState<number>(0)
   const toast = useToast()
 
   const [currentPw, setCurrentPw] = useState('')
@@ -86,6 +87,7 @@ export default function CustomerProfile({ userName, userId, mustChangePassword, 
       setStatus(user.status || 'ACTIVE')
       setCreatedAt(String(user.created_at || '').substring(0, 10))
       setPhotoUrl(user.profile_photo_url || null)
+      setCreditBalance(Number(user.credit_balance || 0))
       if (user.must_change_password) {
         setMustChangePasswordState(true)
         setChangingPassword(true)
@@ -256,16 +258,48 @@ export default function CustomerProfile({ userName, userId, mustChangePassword, 
           </div>
         </div>
 
-        {!editing && (
-          <button
-            onClick={() => setEditing(true)}
-            className="px-3.5 py-1.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-lg font-semibold text-xs shadow-xs hover:shadow-sm transition-all flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
-          >
-            <Edit3 className="w-3.5 h-3.5" strokeWidth={2} />
-            <span>Edit Profile</span>
-          </button>
-        )}
+        <div className="flex items-center gap-2.5 self-start sm:self-auto">
+          {/* Rebooking Credit Pill */}
+          <div className="px-3 py-1.5 rounded-xl border border-[#6B7A5E]/20 bg-[#6B7A5E]/5 dark:bg-[#6B7A5E]/10 flex items-center gap-2 text-left">
+            <div className="w-6 h-6 rounded-lg bg-[#6B7A5E]/20 text-[#6B7A5E] flex items-center justify-center font-bold text-xs shrink-0">
+              ✦
+            </div>
+            <div>
+              <span className="text-[9px] font-bold uppercase tracking-wider text-[#6B7A5E] block leading-none">
+                Rebooking Credit
+              </span>
+              <span className="font-mono font-bold text-xs text-neutral-900 dark:text-white">
+                ₱{creditBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+            </div>
+          </div>
+
+          {!editing && (
+            <button
+              onClick={() => setEditing(true)}
+              className="px-3.5 py-1.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-lg font-semibold text-xs shadow-xs hover:shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+            >
+              <Edit3 className="w-3.5 h-3.5" strokeWidth={2} />
+              <span>Edit Profile</span>
+            </button>
+          )}
+        </div>
       </div>
+
+      {/* Credit Balance Announcement Banner if user has credit */}
+      {creditBalance > 0 && (
+        <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 rounded-xl flex items-center justify-between gap-3 text-emerald-900 dark:text-emerald-200 text-xs">
+          <div className="flex items-center gap-2.5">
+            <span className="text-base">🎉</span>
+            <div>
+              <p className="font-bold">You have ₱{creditBalance.toLocaleString()} in Available Rebooking Credit!</p>
+              <p className="text-[11px] text-emerald-700 dark:text-emerald-400 mt-0.5">
+                This store credit never expires and can be redeemed towards your next room stay, pickleball court reservation, or motor rental.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ─── 2. PERSONAL DETAILS CARD ─── */}
       <div className="bg-white dark:bg-[#181B20] rounded-xl border border-black/[0.07] dark:border-neutral-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-4 sm:p-5 space-y-4">
