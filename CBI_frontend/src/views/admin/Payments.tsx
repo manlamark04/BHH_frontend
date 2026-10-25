@@ -21,12 +21,14 @@ import {
   Globe,
   Tag,
   Lock,
+  Loader2,
 } from 'lucide-react'
 import { billingApi, type InvoiceItem, type PaymentTransaction, type OfficialReceiptData } from '../../api/billing'
 import { bookingsApi, type BookingItem } from '../../api/bookings'
 import StatusBadge from '../../components/StatusBadge'
 import Modal from '../../components/Modal'
 import { OfficialReceiptModal } from '../../components/OfficialReceiptModal'
+import { PaymentProcessingModal, type PaymentProcessingState } from '../../components/PaymentProcessingModal'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import EmptyState from '../../components/EmptyState'
 import CashierEODModal from '../../components/CashierEODModal'
@@ -74,6 +76,10 @@ export default function AdminPayments({ userRole = 'staff' }: AdminPaymentsProps
   const [payRefNumber, setPayRefNumber] = useState('')
   const [payRemarks, setPayRemarks] = useState('')
   const [processingPayment, setProcessingPayment] = useState(false)
+  const [paymentProcessingState, setPaymentProcessingState] = useState<PaymentProcessingState>({
+    isOpen: false,
+    step: 'processing',
+  })
 
   // Refund Modal
   const [refundTarget, setRefundTarget] = useState<{
@@ -647,8 +653,23 @@ export default function AdminPayments({ userRole = 'staff' }: AdminPaymentsProps
       : payRemarks.trim() || undefined
 
     setProcessingPayment(true)
+    const found = invoices.find((inv) => String(inv.id) === String(selectedBillId))
+    const customerDisplayName = found?.customer_name || selectedBooking?.guest_name || 'Guest'
+    const invoiceDisplayNumber = found?.invoice_number || (selectedBillId ? `INV-2026-${String(selectedBillId).padStart(4, '0')}` : undefined)
+
+    // Immediately trigger the animated Payment Processing screen
+    setPaymentProcessingState({
+      isOpen: true,
+      step: 'processing',
+      amount: amountToRecord,
+      method: payMethod,
+      customerName: customerDisplayName,
+      invoiceNumber: invoiceDisplayNumber,
+    })
+    setRecordModalOpen(false)
+
     try {
-      const found = invoices.find((inv) => String(inv.id) === String(selectedBillId))
+      const startTime = Date.now()
       const res = await billingApi.recordPayment({
         bill_id: selectedBillId ? Number(selectedBillId) : undefined,
         booking_id: selectedBookingId ? Number(selectedBookingId) : undefined,
@@ -657,6 +678,19 @@ export default function AdminPayments({ userRole = 'staff' }: AdminPaymentsProps
         ref_number: payRefNumber.trim() || undefined,
         notes: finalNotes,
       })
+
+      // Ensure smooth minimum duration so cashier sees the processing state clearly
+      const elapsed = Date.now() - startTime
+      if (elapsed < 1200) {
+        await new Promise((r) => setTimeout(r, 1200 - elapsed))
+      }
+
+      // Transition step to 'success' briefly before receipt modal pops
+      setPaymentProcessingState((prev) => ({
+        ...prev,
+        step: 'success',
+      }))
+      await new Promise((r) => setTimeout(r, 600))
 
       toast.success(
         `Payment of ₱${amountToRecord.toLocaleString()} recorded successfully!${change > 0 ? ` (Change: ₱${change.toLocaleString()})` : ''} Receipt No.: ${res.receipt_number || '—'}`,
@@ -688,7 +722,6 @@ export default function AdminPayments({ userRole = 'staff' }: AdminPaymentsProps
         promo_code: found?.promo_code,
       }
 
-      setRecordModalOpen(false)
       setSelectedBillId('')
       setSelectedBookingId('')
       setPayAmount('')
@@ -697,9 +730,12 @@ export default function AdminPayments({ userRole = 'staff' }: AdminPaymentsProps
       setViewInvoice(null)
       loadData()
 
-      // Immediately display the generated Official Receipt
+      // Conclude processing loading and pop the Official Receipt!
+      setPaymentProcessingState({ isOpen: false, step: 'processing' })
       setActiveReceipt(receiptSnapshot)
     } catch (err) {
+      setPaymentProcessingState({ isOpen: false, step: 'processing' })
+      setRecordModalOpen(true)
       alert(err instanceof Error ? err.message : 'Failed to record payment')
     } finally {
       setProcessingPayment(false)
@@ -1609,13 +1645,18 @@ export default function AdminPayments({ userRole = 'staff' }: AdminPaymentsProps
                 paymentReceivedNum <= 0 ||
                 !isPayingMotorLicenseVerified
               }
-              className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl font-semibold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center justify-center gap-1.5"
+              className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl font-semibold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center justify-center gap-2"
             >
-              {processingPayment
-                ? 'Recording...'
-                : !isPayingMotorLicenseVerified
-                  ? "Verification Required"
-                  : 'Record Payment'}
+              {processingPayment ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                  <span>Processing Payment...</span>
+                </>
+              ) : !isPayingMotorLicenseVerified ? (
+                "Verification Required"
+              ) : (
+                'Record Payment'
+              )}
             </button>
           </div>
         </form>
@@ -2289,6 +2330,11 @@ export default function AdminPayments({ userRole = 'staff' }: AdminPaymentsProps
           </div>
         )}
       </Modal>
+
+      {/* ══════════════════════════════════════════════════════════════
+          PAYMENT PROCESSING ANIMATION MODAL (BEFORE RECEIPT)
+         ══════════════════════════════════════════════════════════════ */}
+      <PaymentProcessingModal state={paymentProcessingState} />
 
       {/* ══════════════════════════════════════════════════════════════
           MODAL 4: OFFICIAL PAYMENT RECEIPT (PRINTABLE)

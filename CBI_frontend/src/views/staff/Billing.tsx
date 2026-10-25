@@ -14,11 +14,13 @@ import {
   AlertCircle,
   Banknote,
   Printer,
+  Loader2,
 } from 'lucide-react'
 import { billingApi, type InvoiceItem, type OfficialReceiptData } from '../../api/billing'
 import StatusBadge from '../../components/StatusBadge'
 import Modal from '../../components/Modal'
 import { OfficialReceiptModal } from '../../components/OfficialReceiptModal'
+import { PaymentProcessingModal, type PaymentProcessingState } from '../../components/PaymentProcessingModal'
 import CashierEODModal from '../../components/CashierEODModal'
 
 export default function StaffBilling() {
@@ -31,6 +33,10 @@ export default function StaffBilling() {
   const [payAmount, setPayAmount] = useState('')
   const [payMethod, setPayMethod] = useState<'cash' | 'card' | 'ewallet'>('cash')
   const [submitting, setSubmitting] = useState(false)
+  const [paymentProcessingState, setPaymentProcessingState] = useState<PaymentProcessingState>({
+    isOpen: false,
+    step: 'processing',
+  })
   const [toast, setToast] = useState('')
   const [idVerified, setIdVerified] = useState(false)
   const [showEodModal, setShowEodModal] = useState(false)
@@ -147,8 +153,20 @@ export default function StaffBilling() {
       : undefined
 
     setSubmitting(true)
+    const currentBill = paymentBill
+    const currentBillCopy = paymentBill
+    setPaymentProcessingState({
+      isOpen: true,
+      step: 'processing',
+      amount: amountToRecord,
+      method: payMethod,
+      customerName: currentBill.customer_name || 'Guest',
+      invoiceNumber: currentBill.invoice_number || currentBill.bill_number,
+    })
+    setPaymentBill(null)
+
     try {
-      const currentBill = paymentBill
+      const startTime = Date.now()
       const res = await billingApi.recordPayment({
         bill_id: Number(currentBill.id),
         amount: amountToRecord,
@@ -159,6 +177,17 @@ export default function StaffBilling() {
         (currentBill.service_name || '').toLowerCase().includes('pickleball') ||
         (currentBill.service_type || '').toLowerCase().includes('pickleball') ||
         (currentBill.bill_number || '').includes('BILL-ACT')
+      
+      const elapsed = Date.now() - startTime
+      if (elapsed < 1200) {
+        await new Promise((r) => setTimeout(r, 1200 - elapsed))
+      }
+
+      setPaymentProcessingState((prev) => ({
+        ...prev,
+        step: 'success',
+      }))
+      await new Promise((r) => setTimeout(r, 600))
       
       const receiptSnapshot: OfficialReceiptData = res.receipt_data || {
         receipt_number: res.receipt_number || '—',
@@ -182,7 +211,6 @@ export default function StaffBilling() {
         paid_at: new Date().toISOString(),
       }
 
-      setPaymentBill(null)
       setPayAmount('')
       setIdVerified(false)
       setToast(
@@ -193,9 +221,12 @@ export default function StaffBilling() {
       setTimeout(() => setToast(''), 4500)
       load()
 
-      // Immediately show Official Receipt
+      // Conclude processing loading and pop the Official Receipt!
+      setPaymentProcessingState({ isOpen: false, step: 'processing' })
       setActiveReceipt(receiptSnapshot)
     } catch (err) {
+      setPaymentProcessingState({ isOpen: false, step: 'processing' })
+      setPaymentBill(currentBillCopy)
       alert(err instanceof Error ? err.message : 'Failed')
     } finally {
       setSubmitting(false)
@@ -638,15 +669,27 @@ export default function StaffBilling() {
                 <button
                   onClick={handlePayment}
                   disabled={submitting || !payAmount || isInsufficient || isExceeded || paymentReceivedNum <= 0 || (!isPayingMotorRental && !idVerified)}
-                  className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl text-xs font-semibold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="flex-1 py-2.5 bg-[#6B7A5E] hover:bg-[#4F5D45] text-white rounded-xl text-xs font-semibold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  {submitting ? 'Processing...' : (!isPayingMotorRental && !idVerified) ? 'ID Verification Required' : 'Record Payment'}
+                  {submitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                      <span>Processing Payment...</span>
+                    </>
+                  ) : (!isPayingMotorRental && !idVerified) ? (
+                    'ID Verification Required'
+                  ) : (
+                    'Record Payment'
+                  )}
                 </button>
               </div>
             </div>
           )
         })()}
       </Modal>
+
+      {/* ─── PAYMENT PROCESSING ANIMATION MODAL (BEFORE RECEIPT) ─── */}
+      <PaymentProcessingModal state={paymentProcessingState} />
 
       {/* ─── OFFICIAL PAYMENT RECEIPT MODAL (PRINTABLE) ─── */}
       <OfficialReceiptModal
