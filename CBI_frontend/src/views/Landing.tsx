@@ -7,6 +7,7 @@ import { reviewsApi, type Review } from '../api/reviews'
 import logo from '../imports/logo.png'
 import InteractiveLogoMark from '../components/InteractiveLogoMark'
 import Modal from '../components/Modal'
+import StatusBadge from '../components/StatusBadge'
 import pickleballCourtImg from '../imports/pickleball_court.jpg'
 import hondaClickImg from '../imports/Honda Vario_Click 125 Blue.jpg'
 import landingImg from '../imports/landing.jpg'
@@ -194,6 +195,7 @@ interface HeroRoom {
   amenities: { icon: typeof Wind; label: string }[]
   image: string
   thumbnail?: string
+  status?: string
 }
 
 const DEFAULT_HERO_ROOMS: HeroRoom[] = [
@@ -435,6 +437,7 @@ export default function Landing({ onNavigate }: LandingProps) {
           { icon: Sparkles, label: 'Modern Comfort' },
         ],
         image: img,
+        status: String(r.status || 'available').toLowerCase(),
       }
     })
 
@@ -514,7 +517,46 @@ export default function Landing({ onNavigate }: LandingProps) {
     image?: string
   }
 
-  const displayRooms = rooms.slice(0, 3)
+  const fallbackLandingRooms = useMemo(() => [
+    {
+      id: 'fb-101',
+      room_number: '101',
+      name: 'Room 101',
+      room_type: 'Room',
+      description: 'A breezy 8-bed mixed dorm featuring our signature hammock-style bunks. Includes personal lockers and garden views.',
+      capacity: 8,
+      bed_type: '1 Queen Bed',
+      rate_per_night: 1000,
+      status: 'available',
+      image: 'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=800&auto=format&fit=crop&q=80',
+    },
+    {
+      id: 'fb-102',
+      room_number: '102',
+      name: 'Room 102',
+      room_type: 'Room',
+      description: 'A comfortable 6-bed female-only dorm. Features privacy curtains, reading lights, and air conditioning.',
+      capacity: 6,
+      bed_type: '1 Queen Bed',
+      rate_per_night: 800,
+      status: 'available',
+      image: '/kubokubo.jpg',
+    },
+    {
+      id: 'fb-201',
+      room_number: '201',
+      name: 'Room 201',
+      room_type: 'Room',
+      description: 'A cozy private room with a double bed, private en-suite bathroom, and a small balcony overlooking the resort grounds.',
+      capacity: 2,
+      bed_type: '1 Queen Bed',
+      rate_per_night: 900,
+      status: 'available',
+      image: 'https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=800&auto=format&fit=crop&q=80',
+    },
+  ], [])
+
+  const displayRooms = rooms.length > 0 ? rooms.slice(0, 3) : fallbackLandingRooms
 
   const displayActivities = useMemo<ActivityItem[]>(() => {
     const defaultActivities: ActivityItem[] = [
@@ -908,6 +950,18 @@ export default function Landing({ onNavigate }: LandingProps) {
                       <BedDouble className="w-3.5 h-3.5 text-[#C9A66B]" strokeWidth={2} />
                       <span>{room.bedType}</span>
                     </div>
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-black/40 border border-white/15 backdrop-blur-xs">
+                      <span className={`w-2 h-2 rounded-full shrink-0 ${
+                        (room.status || '').toLowerCase() === 'occupied'
+                          ? 'bg-amber-400'
+                          : (room.status || '').toLowerCase() === 'reserved'
+                          ? 'bg-blue-400'
+                          : 'bg-emerald-400'
+                      }`} />
+                      <span className="capitalize text-white/90 text-[11px] font-semibold tracking-wide">
+                        {room.status || 'available'}
+                      </span>
+                    </div>
                   </div>
 
                   {/* One-line Description */}
@@ -1135,6 +1189,10 @@ export default function Landing({ onNavigate }: LandingProps) {
               const image = (room.image_urls ? (Array.isArray(room.image_urls) ? (room.image_urls as string[])[0] : '') : (room.image || '')) as string
               const price = Number(room.rate_per_night || room.price || 0)
               const id = room.id || room.roomId || room.room_id
+              const rawStatus = String(room.status || 'available').toLowerCase()
+              const isAvailable = rawStatus === 'available'
+              const isReserved = rawStatus === 'reserved'
+              const isOccupied = rawStatus === 'occupied'
 
               return (
                 <Reveal key={String(id)} delay={idx + 1}>
@@ -1147,6 +1205,11 @@ export default function Landing({ onNavigate }: LandingProps) {
                         className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-[600ms] ease-out"
                         style={{ filter: 'saturate(0.92)' }}
                       />
+                      {/* Status indicator on top-left of image */}
+                      <div className="absolute top-4 left-4 shadow-[0_2px_8px_rgba(0,0,0,0.18)]">
+                        <StatusBadge status={rawStatus.toUpperCase()} size="sm" />
+                      </div>
+
                       <span className="absolute top-4 right-4 bg-[#2A3126]/70 backdrop-blur-sm text-white text-[11px] font-medium px-3 py-1 rounded-lg tracking-wide">
                         {roomType}
                       </span>
@@ -1155,7 +1218,10 @@ export default function Landing({ onNavigate }: LandingProps) {
                     {/* Body */}
                     <div className="p-6 flex-1 flex flex-col justify-between">
                       <div>
-                        <h3 className="font-display text-[1.25rem] font-bold text-ink leading-tight tracking-[-0.01em] mb-1.5">{name}</h3>
+                        <div className="flex items-start justify-between gap-2 mb-1.5">
+                          <h3 className="font-display text-[1.25rem] font-bold text-ink leading-tight tracking-[-0.01em]">{name}</h3>
+                          <StatusBadge status={rawStatus.toUpperCase()} size="sm" />
+                        </div>
                         <p className="text-[13px] text-ink-muted leading-[1.65] line-clamp-2">
                           {description || 'Comfortable accommodation equipped with modern amenities and serene garden views.'}
                         </p>
@@ -1181,12 +1247,22 @@ export default function Landing({ onNavigate }: LandingProps) {
                           >
                             Details
                           </button>
-                          <button
-                            onClick={() => onNavigate('login')}
-                            className={`${btnPrimary} h-9 px-5 text-[12px]`}
-                          >
-                            Reserve
-                          </button>
+                          {isAvailable ? (
+                            <button
+                              onClick={() => onNavigate('login')}
+                              className={`${btnPrimary} h-9 px-5 text-[12px]`}
+                            >
+                              Reserve
+                            </button>
+                          ) : (
+                            <button
+                              disabled
+                              className="h-9 px-4 text-[12px] rounded-[10px] font-medium bg-stone-200 text-stone-500 cursor-not-allowed select-none border border-stone-300/60"
+                              title={`This room is currently ${rawStatus}`}
+                            >
+                              {isReserved ? 'Reserved' : isOccupied ? 'Occupied' : 'Unavailable'}
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1662,56 +1738,81 @@ export default function Landing({ onNavigate }: LandingProps) {
 
       {/* ─── ROOM DETAILS MODAL ─── */}
       <Modal isOpen={Boolean(viewRoom)} onClose={() => setViewRoom(null)} title={(viewRoom?.name || viewRoom?.room_type || 'Room Details') as string}>
-        {viewRoom && (
-          <div className="space-y-6 text-sm text-ink font-sans">
-            <img 
-              src={(viewRoom.image_urls ? (Array.isArray(viewRoom.image_urls) ? viewRoom.image_urls[0] : '') : (viewRoom.image || 'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=800&auto=format&fit=crop&q=80')) as string} 
-              alt={(viewRoom.name || 'Room') as string} 
-              className="w-full h-48 sm:h-56 object-cover rounded-xl shadow-xs"
-            />
-            
-            <div>
-              <h3 className="font-display text-lg font-bold">About This Room</h3>
-              <p className="text-ink-muted mt-1.5 leading-relaxed">
-                {(viewRoom.description || 'Comfortable accommodation equipped with modern amenities and serene garden views.') as string}
-              </p>
-            </div>
+        {viewRoom && (() => {
+          const vStatus = String(viewRoom.status || 'available').toLowerCase()
+          const vIsAvail = vStatus === 'available'
+          return (
+            <div className="space-y-6 text-sm text-ink font-sans">
+              <div className="relative overflow-hidden rounded-xl">
+                <img 
+                  src={(viewRoom.image_urls ? (Array.isArray(viewRoom.image_urls) ? viewRoom.image_urls[0] : '') : (viewRoom.image || 'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=800&auto=format&fit=crop&q=80')) as string} 
+                  alt={(viewRoom.name || 'Room') as string} 
+                  className="w-full h-48 sm:h-56 object-cover shadow-xs"
+                />
+                <div className="absolute top-3 left-3 shadow-[0_2px_8px_rgba(0,0,0,0.18)]">
+                  <StatusBadge status={vStatus.toUpperCase()} size="sm" />
+                </div>
+              </div>
+              
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <h3 className="font-display text-lg font-bold">About This Room</h3>
+                  <StatusBadge status={vStatus.toUpperCase()} size="sm" />
+                </div>
+                <p className="text-ink-muted mt-1.5 leading-relaxed">
+                  {(viewRoom.description || 'Comfortable accommodation equipped with modern amenities and serene garden views.') as string}
+                </p>
+              </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 bg-stone/10 rounded-xl border border-stone/20">
-                <div className="flex items-center gap-2 mb-1">
-                  <Users className="w-4 h-4 text-[#6B7A5E]" />
-                  <span className="font-semibold text-[10px] uppercase tracking-wider text-ink-muted">Capacity</span>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 bg-stone/10 rounded-xl border border-stone/20">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Users className="w-4 h-4 text-[#6B7A5E]" />
+                    <span className="font-semibold text-[10px] uppercase tracking-wider text-ink-muted">Capacity</span>
+                  </div>
+                  <p className="font-bold">Sleeps {viewRoom.capacity || viewRoom.max_guests || 2} Guests</p>
                 </div>
-                <p className="font-bold">Sleeps {viewRoom.capacity || viewRoom.max_guests || 2} Guests</p>
-              </div>
-              <div className="p-4 bg-stone/10 rounded-xl border border-stone/20">
-                <div className="flex items-center gap-2 mb-1">
-                  <BedDouble className="w-4 h-4 text-[#6B7A5E]" />
-                  <span className="font-semibold text-[10px] uppercase tracking-wider text-ink-muted">Bed Type</span>
+                <div className="p-4 bg-stone/10 rounded-xl border border-stone/20">
+                  <div className="flex items-center gap-2 mb-1">
+                    <BedDouble className="w-4 h-4 text-[#6B7A5E]" />
+                    <span className="font-semibold text-[10px] uppercase tracking-wider text-ink-muted">Bed Type</span>
+                  </div>
+                  <p className="font-bold">{(viewRoom.bed_type || viewRoom.bedType || '1 Queen Bed') as string}</p>
                 </div>
-                <p className="font-bold">{(viewRoom.bed_type || viewRoom.bedType || '1 Queen Bed') as string}</p>
               </div>
-            </div>
 
-            <div className="pt-4 border-t border-stone/12">
-              <div className="flex items-end justify-between">
-                <div>
-                  <span className="font-display text-[1.5rem] font-bold text-ink tracking-[-0.01em]">
-                    ₱{Number(viewRoom.rate_per_night || viewRoom.price || 0).toLocaleString()}
-                  </span>
-                  <span className="text-[12px] text-ink-muted ml-1">/night</span>
+              <div className="pt-4 border-t border-stone/12">
+                <div className="flex items-end justify-between">
+                  <div>
+                    <span className="font-display text-[1.5rem] font-bold text-ink tracking-[-0.01em]">
+                      ₱{Number(viewRoom.rate_per_night || viewRoom.price || 0).toLocaleString()}
+                    </span>
+                    <span className="text-[12px] text-ink-muted ml-1">/night</span>
+                  </div>
+                  {vIsAvail ? (
+                    <button
+                      onClick={() => onNavigate('login')}
+                      className={`${btnPrimary} h-11 px-6 text-[13px] font-bold`}
+                    >
+                      Reserve Now
+                    </button>
+                  ) : (
+                    <button
+                      disabled
+                      className="h-11 px-6 text-[13px] font-bold rounded-xl bg-stone-200 text-stone-500 cursor-not-allowed select-none border border-stone-300/60"
+                    >
+                      {vStatus === 'reserved'
+                        ? 'Currently Reserved'
+                        : vStatus === 'occupied'
+                        ? 'Currently Occupied'
+                        : 'Unavailable'}
+                    </button>
+                  )}
                 </div>
-                <button
-                  onClick={() => onNavigate('login')}
-                  className={`${btnPrimary} h-11 px-6 text-[13px] font-bold`}
-                >
-                  Reserve Now
-                </button>
               </div>
             </div>
-          </div>
-        )}
+          )
+        })()}
       </Modal>
     </div>
   )

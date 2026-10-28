@@ -15,16 +15,21 @@ import {
   UserX,
   Ban,
   ArrowLeftRight,
+  Sparkles,
+  Receipt,
 } from 'lucide-react'
 import { bookingsApi, type BookingItem } from '../../api/bookings'
 import { billingApi } from '../../api/billing'
 import { roomsApi, type RoomRecord } from '../../api/rooms'
+import { guestServicesApi, type GuestServiceAvailment } from '../../api/guestServices'
 import type { View } from '../../types'
 import StatusBadge from '../../components/StatusBadge'
 import Modal from '../../components/Modal'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import SwitchRoomModal from '../../components/SwitchRoomModal'
 import GuestVipBadge from '../../components/GuestVipBadge'
+import AvailServiceModal from '../../components/AvailServiceModal'
+import RunningBillModal from '../../components/RunningBillModal'
 
 type FilterOption = 'all' | 'upcoming' | 'inhouse' | 'duetoday' | 'overdue'
 
@@ -72,6 +77,13 @@ export default function AdminCheckInOut({ onNavigate }: { onNavigate?: (view: Vi
   const [amountTendered, setAmountTendered] = useState('')
   const [processingCheckOut, setProcessingCheckOut] = useState(false)
   const [guestUnpaidBills, setGuestUnpaidBills] = useState<any[]>([])
+  const [guestUnpaidServices, setGuestUnpaidServices] = useState<GuestServiceAvailment[]>([])
+
+  // Avail Service Modal
+  const [availServiceBooking, setAvailServiceBooking] = useState<{ id: number; booking_ref?: string; customer_name?: string; room_number?: string | number; room_type?: string } | null>(null)
+
+  // Running Bill Modal
+  const [runningBillBookingId, setRunningBillBookingId] = useState<number | null>(null)
 
   useEffect(() => {
     if (checkOutTarget) {
@@ -83,8 +95,13 @@ export default function AdminCheckInOut({ onNavigate }: { onNavigate?: (view: Vi
         )
         setGuestUnpaidBills(unpaid)
       }).catch(() => setGuestUnpaidBills([]))
+
+      guestServicesApi.getUnpaidCharges(checkOutTarget.id).then((res: any) => {
+        setGuestUnpaidServices(res?.items || [])
+      }).catch(() => setGuestUnpaidServices([]))
     } else {
       setGuestUnpaidBills([])
+      setGuestUnpaidServices([])
     }
   }, [checkOutTarget])
 
@@ -197,6 +214,11 @@ export default function AdminCheckInOut({ onNavigate }: { onNavigate?: (view: Vi
     if (!checkOutTarget) return
     setProcessingCheckOut(true)
     try {
+      if (guestUnpaidServices.length > 0) {
+        await guestServicesApi.settleAtCheckout(checkOutTarget.id, {
+          payment_method: payMethod,
+        }).catch((e) => console.warn('settleAtCheckout warning:', e))
+      }
       await bookingsApi.updateBookingStatus(checkOutTarget.id, 'completed')
       fireToast(`✓ Check-out completed for ${checkOutTarget.customer_name}! Room ${checkOutTarget.room_number} set to CLEANING for housekeeping.`)
       setCheckOutTarget(null)
@@ -731,35 +753,56 @@ export default function AdminCheckInOut({ onNavigate }: { onNavigate?: (view: Vi
                       )}
                     </div>
 
-                    {/* 4. Dedicated Action Buttons Row (Full width) */}
-                    <div className="pt-2 border-t border-stone/15 dark:border-neutral-800">
-                      <div className="grid grid-cols-12 gap-1.5 items-center">
+                    {/* 4. Dedicated Action Buttons Rows (Full width) */}
+                    <div className="pt-2 border-t border-stone/15 dark:border-neutral-800 space-y-1.5">
+                      {/* Row 1: Operations (Details, Switch, Avail, Running Bill) */}
+                      <div className="grid grid-cols-4 gap-1.5 items-center">
                         <button
                           onClick={() => setViewArrivalTarget(b)}
-                          className="col-span-2 py-2 bg-sand dark:bg-[#20252E] hover:bg-stone/30 dark:hover:bg-neutral-700 text-ink dark:text-white rounded-xl text-xs font-semibold border border-stone/30 dark:border-neutral-700 shadow-2xs transition-all flex items-center justify-center cursor-pointer"
+                          className="py-2 bg-sand dark:bg-[#20252E] hover:bg-stone/30 dark:hover:bg-neutral-700 text-ink dark:text-white rounded-xl text-xs font-semibold border border-stone/30 dark:border-neutral-700 shadow-2xs transition-all flex items-center justify-center gap-1 cursor-pointer"
                           title="View Details"
                         >
-                          <Eye className="w-3.5 h-3.5 text-ink-muted dark:text-neutral-400" />
+                          <Eye className="w-3.5 h-3.5 text-ink-muted dark:text-neutral-400 shrink-0" />
+                          <span className="hidden sm:inline">Details</span>
                         </button>
 
                         <button
                           onClick={() => setSwitchRoomBooking(b)}
-                          className={`py-2 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:hover:bg-amber-900/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50 rounded-xl text-xs font-semibold shadow-2xs transition-all flex items-center justify-center gap-1 cursor-pointer ${
-                            isOverdue ? 'col-span-3' : 'col-span-4'
-                          }`}
+                          className="py-2 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:hover:bg-amber-900/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50 rounded-xl text-xs font-semibold shadow-2xs transition-all flex items-center justify-center gap-1 cursor-pointer"
                           title="Switch / Transfer to another room"
                         >
                           <ArrowLeftRight className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
                           <span>Switch</span>
                         </button>
 
+                        <button
+                          onClick={() => setAvailServiceBooking({ id: b.id, booking_ref: b.booking_ref, customer_name: b.customer_name, room_number: b.room_number, room_type: b.room_type })}
+                          className="py-2 bg-[#6B7A5E]/10 hover:bg-[#6B7A5E]/20 text-[#6B7A5E] dark:text-[#9BB08C] border border-[#6B7A5E]/30 rounded-xl text-xs font-semibold shadow-2xs transition-all flex items-center justify-center gap-1 cursor-pointer"
+                          title="Avail Amenity / Service (Pay Now or Charge to Room)"
+                        >
+                          <Sparkles className="w-3.5 h-3.5 text-[#6B7A5E] dark:text-[#9BB08C] shrink-0" />
+                          <span>Avail</span>
+                        </button>
+
+                        <button
+                          onClick={() => setRunningBillBookingId(b.id)}
+                          className="py-2 bg-sand dark:bg-[#20252E] hover:bg-stone/30 text-ink dark:text-white border border-stone/30 rounded-xl text-xs font-semibold shadow-2xs transition-all flex items-center justify-center gap-1 cursor-pointer"
+                          title="View Live Running Bill & Guest Tab"
+                        >
+                          <Receipt className="w-3.5 h-3.5 text-ink-muted shrink-0" />
+                          <span>Bill</span>
+                        </button>
+                      </div>
+
+                      {/* Row 2: Status & Checkout Flow */}
+                      <div className="flex gap-1.5 items-center">
                         {isOverdue && (
                           <button
                             onClick={() => {
                               setNoShowBooking(b)
                               setNoShowReason('Guest failed to arrive/check in on scheduled check-in date')
                             }}
-                            className="col-span-3 py-2 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/50 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1 cursor-pointer"
+                            className="flex-1 py-2 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/50 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1 cursor-pointer"
                             title="Mark as No-Show & release room"
                           >
                             <UserX className="w-3.5 h-3.5 shrink-0" strokeWidth={2} />
@@ -770,20 +813,16 @@ export default function AdminCheckInOut({ onNavigate }: { onNavigate?: (view: Vi
                         {rem > 0 ? (
                           <button
                             onClick={() => onNavigate && onNavigate('staff-billing')}
-                            className={`py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-semibold shadow-xs transition-all flex items-center justify-center gap-1 cursor-pointer ${
-                              isOverdue ? 'col-span-4' : 'col-span-6'
-                            }`}
+                            className="flex-1 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-semibold shadow-xs transition-all flex items-center justify-center gap-1 cursor-pointer"
                             title="Guest has pending balance — Go to Billing to settle"
                           >
                             <Banknote className="w-3.5 h-3.5 shrink-0" />
-                            <span className="truncate">Settle Bill (Pending)</span>
+                            <span className="truncate">Settle Bill (Pending ₱{rem.toLocaleString()})</span>
                           </button>
                         ) : (
                           <button
                             onClick={() => { setCheckOutTarget(b); setAdditionalCharges('0'); setChargesRemarks('') }}
-                            className={`py-2 bg-stone-900 hover:bg-black dark:bg-stone-700 dark:hover:bg-stone-600 text-white rounded-xl text-xs font-semibold shadow-xs transition-all flex items-center justify-center gap-1 cursor-pointer ${
-                              isOverdue ? 'col-span-4' : 'col-span-6'
-                            }`}
+                            className="flex-1 py-2 bg-stone-900 hover:bg-black dark:bg-stone-700 dark:hover:bg-stone-600 text-white rounded-xl text-xs font-semibold shadow-xs transition-all flex items-center justify-center gap-1 cursor-pointer"
                             title="Process Guest Check-Out"
                           >
                             <span className="truncate">Check Out</span>
@@ -1080,6 +1119,28 @@ export default function AdminCheckInOut({ onNavigate }: { onNavigate?: (view: Vi
                 </div>
               )}
 
+              {/* Pending Amenities / Services Charged to Room */}
+              {guestUnpaidServices.length > 0 && (
+                <div className="pt-2 border-t border-stone/15">
+                  <p className="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase mb-1 flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    Amenities / Services Charged to Room (Running Bill) ({guestUnpaidServices.length})
+                  </p>
+                  {guestUnpaidServices.map((s) => (
+                    <div key={s.id} className="flex justify-between text-xs text-amber-800 dark:text-amber-300 font-medium mb-1">
+                      <span>{s.service_name} (x{Number(s.quantity)})</span>
+                      <span>₱{Number(s.total_amount).toLocaleString()}</span>
+                    </div>
+                  ))}
+                  <div className="flex justify-between text-ink-muted text-xs mt-1 border-t border-stone/10 pt-1">
+                    <span>Amenities Total:</span>
+                    <span className="font-semibold text-amber-700 dark:text-amber-400">
+                      ₱{guestUnpaidServices.reduce((s, item) => s + Number(item.total_amount || 0), 0).toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              )}
+
               <div className="pt-2 border-t border-stone/15 grid grid-cols-2 gap-2">
                 <div>
                   <label className="block text-[10px] font-bold text-ink uppercase mb-1">Additional Charges (₱)</label>
@@ -1107,8 +1168,9 @@ export default function AdminCheckInOut({ onNavigate }: { onNavigate?: (view: Vi
               {/* Final Settlement Total */}
               {(() => {
                 const unpaidBillsTotal = guestUnpaidBills.reduce((s, b) => s + Number(b.remaining_balance ?? b.total_amount ?? 0), 0)
+                const unpaidServicesTotal = guestUnpaidServices.reduce((s, item) => s + Number(item.total_amount || 0), 0)
                 const extra = parseFloat(additionalCharges) || 0
-                const rem = Math.max(0, (checkOutTarget.remaining_balance || 0) + extra + unpaidBillsTotal)
+                const rem = Math.max(0, (checkOutTarget.remaining_balance || 0) + extra + unpaidBillsTotal + unpaidServicesTotal)
                 return (
                   <div className="pt-2 border-t border-stone/20 flex justify-between items-center text-sm">
                     <span className="font-bold text-ink">Remaining Balance Due:</span>
@@ -1123,13 +1185,14 @@ export default function AdminCheckInOut({ onNavigate }: { onNavigate?: (view: Vi
             {/* Error Message if Balance Due */}
             {(() => {
               const unpaidBillsTotal = guestUnpaidBills.reduce((s, b) => s + Number(b.remaining_balance ?? b.total_amount ?? 0), 0)
+              const unpaidServicesTotal = guestUnpaidServices.reduce((s, item) => s + Number(item.total_amount || 0), 0)
               const extra = parseFloat(additionalCharges) || 0
-              const rem = Math.max(0, (checkOutTarget.remaining_balance || 0) + extra + unpaidBillsTotal)
+              const rem = Math.max(0, (checkOutTarget.remaining_balance || 0) + extra + unpaidBillsTotal + unpaidServicesTotal)
               if (rem > 0) {
                 return (
                   <div className="p-3 bg-rose-50/70 border border-rose-200 rounded-xl text-[11px] text-rose-900 leading-relaxed flex items-center gap-2 mt-3">
                     <AlertCircle className="w-4 h-4 text-rose-700 shrink-0" />
-                    <span><strong>Cannot complete check-out.</strong> Guest has an unpaid balance of ₱{rem.toLocaleString()}. Please settle all bills in the <strong>Billing & Payments</strong> module before checking out.</span>
+                    <span><strong>Cannot complete check-out.</strong> Guest has an unpaid balance of ₱{rem.toLocaleString()} (including room, activity, or pending amenity charges). Please settle all bills before checking out.</span>
                   </div>
                 )
               }
@@ -1160,8 +1223,9 @@ export default function AdminCheckInOut({ onNavigate }: { onNavigate?: (view: Vi
                   processingCheckOut || 
                   (() => {
                     const unpaidBillsTotal = guestUnpaidBills.reduce((s, b) => s + Number(b.remaining_balance ?? b.total_amount ?? 0), 0)
+                    const unpaidServicesTotal = guestUnpaidServices.reduce((s, item) => s + Number(item.total_amount || 0), 0)
                     const extra = parseFloat(additionalCharges) || 0
-                    const rem = Math.max(0, (checkOutTarget.remaining_balance || 0) + extra + unpaidBillsTotal)
+                    const rem = Math.max(0, (checkOutTarget.remaining_balance || 0) + extra + unpaidBillsTotal + unpaidServicesTotal)
                     return rem > 0
                   })()
                 }
@@ -1253,6 +1317,36 @@ export default function AdminCheckInOut({ onNavigate }: { onNavigate?: (view: Vi
         onSuccess={(msg) => {
           fireToast(msg)
           loadData()
+        }}
+      />
+
+      {/* ─── AVAIL SERVICE / AMENITY MODAL ─── */}
+      <AvailServiceModal
+        isOpen={Boolean(availServiceBooking)}
+        onClose={() => setAvailServiceBooking(null)}
+        booking={availServiceBooking}
+        onSuccess={(availment) => {
+          fireToast(`✓ Amenity "${availment.service_name}" recorded for Room ${availServiceBooking?.room_number}!`)
+          loadData()
+        }}
+      />
+
+      {/* ─── GUEST RUNNING BILL FOLIO MODAL ─── */}
+      <RunningBillModal
+        isOpen={Boolean(runningBillBookingId)}
+        onClose={() => setRunningBillBookingId(null)}
+        bookingId={runningBillBookingId}
+        onOpenAvailModal={() => {
+          const target = bookings.find((b) => b.id === runningBillBookingId)
+          if (target) {
+            setAvailServiceBooking({
+              id: target.id,
+              booking_ref: target.booking_ref,
+              customer_name: target.customer_name,
+              room_number: target.room_number,
+              room_type: target.room_type,
+            })
+          }
         }}
       />
 

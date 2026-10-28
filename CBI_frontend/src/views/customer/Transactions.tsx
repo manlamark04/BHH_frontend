@@ -28,6 +28,7 @@ import { SkeletonTable } from '../../components/SkeletonLoader'
 import EmptyState from '../../components/EmptyState'
 import { useDebounce } from '../../hooks/useDebounce'
 import BookingVoucherModal, { type BookingVoucherData } from '../../components/BookingVoucherModal'
+import RunningBillModal from '../../components/RunningBillModal'
 
 const CANCELLATION_REASONS = [
   {
@@ -81,6 +82,7 @@ export default function CustomerTransactions() {
   const [cancelSubmitting, setCancelSubmitting] = useState(false)
   const [cancelError, setCancelError] = useState('')
   const [creditBalance, setCreditBalance] = useState<number>(0)
+  const [runningBillBookingId, setRunningBillBookingId] = useState<number | null>(null)
   const [toast, setToast] = useState('')
 
   const fireToast = (msg: string) => {
@@ -486,6 +488,15 @@ export default function CustomerTransactions() {
                           <Printer className="w-3.5 h-3.5" />
                           <span>Print Voucher</span>
                         </button>
+                        <button
+                          type="button"
+                          onClick={() => setRunningBillBookingId(b.id)}
+                          className="px-3 py-1.5 bg-sand dark:bg-[#1E232B] hover:bg-stone/30 text-ink dark:text-white border border-stone/30 dark:border-neutral-700 font-semibold rounded-lg text-xs shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer"
+                          title="View live room charges and availed amenities statement"
+                        >
+                          <Receipt className="w-3.5 h-3.5 text-ink-muted" />
+                          <span>Running Bill</span>
+                        </button>
                       </div>
                     </div>
                   )}
@@ -873,6 +884,14 @@ export default function CustomerTransactions() {
           </div>
         )}
       </Modal>
+
+      {/* ─── GUEST RUNNING BILL FOLIO MODAL ─── */}
+      <RunningBillModal
+        isOpen={Boolean(runningBillBookingId)}
+        onClose={() => setRunningBillBookingId(null)}
+        bookingId={runningBillBookingId}
+        canManage={false}
+      />
 
     </div>
   )

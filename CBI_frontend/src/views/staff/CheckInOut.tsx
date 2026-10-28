@@ -12,6 +12,8 @@ import {
   Banknote,
   AlertCircle,
   ArrowLeftRight,
+  Sparkles,
+  Receipt,
 } from 'lucide-react'
 import { bookingsApi } from '../../api/bookings'
 import { roomsApi } from '../../api/rooms'
@@ -20,6 +22,8 @@ import Modal from '../../components/Modal'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import SwitchRoomModal from '../../components/SwitchRoomModal'
 import GuestVipBadge from '../../components/GuestVipBadge'
+import AvailServiceModal from '../../components/AvailServiceModal'
+import RunningBillModal from '../../components/RunningBillModal'
 
 const PRE_CHECKIN_STATUSES = ['confirmed', 'reserved', 'pending', 'pending_payment', 'requested']
 
@@ -52,6 +56,12 @@ export default function StaffCheckInOut() {
 
   // Switch Room Modal
   const [switchRoomBooking, setSwitchRoomBooking] = useState<Record<string, unknown> | null>(null)
+
+  // Avail Service Modal
+  const [availServiceBooking, setAvailServiceBooking] = useState<{ id: number; booking_ref?: string; customer_name?: string; room_number?: string | number; room_type?: string } | null>(null)
+
+  // Running Bill Modal
+  const [runningBillBookingId, setRunningBillBookingId] = useState<number | null>(null)
 
   const todayStr = useMemo(() => toLocalDateStr(new Date()), [])
 
@@ -336,13 +346,33 @@ export default function StaffCheckInOut() {
                               </>
                             )
                           })()}
-                          {tab === 'inhouse' && status.toLowerCase() === 'checked_in' && (
-                            <button
-                              onClick={() => setConfirmAction({ id, status: 'checked_out', label: 'Check-Out', name })}
-                              className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-stone-800 hover:bg-black text-white shadow-xs transition-all cursor-pointer"
-                            >
-                              Check Out
-                            </button>
+                          {tab === 'inhouse' && (
+                            <>
+                              <button
+                                onClick={() => setAvailServiceBooking({ id, booking_ref: String(b.booking_ref || `#BK-${id}`), customer_name: name, room_number: String(b.room_number || ''), room_type: String(b.room_type || '') })}
+                                className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-[#6B7A5E]/10 hover:bg-[#6B7A5E]/20 text-[#6B7A5E] dark:text-[#9BB08C] border border-[#6B7A5E]/30 shadow-2xs transition-all flex items-center gap-1 cursor-pointer"
+                                title="Avail Amenity / Service (Pay Now or Charge to Room)"
+                              >
+                                <Sparkles className="w-3.5 h-3.5 text-[#6B7A5E] dark:text-[#9BB08C]" />
+                                <span className="hidden sm:inline">Avail Service</span>
+                              </button>
+                              <button
+                                onClick={() => setRunningBillBookingId(id)}
+                                className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-sand hover:bg-stone/30 text-ink border border-stone/30 shadow-2xs transition-all flex items-center gap-1 cursor-pointer"
+                                title="View Live Running Bill Statement"
+                              >
+                                <Receipt className="w-3.5 h-3.5 text-ink-muted" />
+                                <span className="hidden sm:inline">Running Bill</span>
+                              </button>
+                              {status.toLowerCase() === 'checked_in' && (
+                                <button
+                                  onClick={() => setConfirmAction({ id, status: 'checked_out', label: 'Check-Out', name })}
+                                  className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-stone-800 hover:bg-black text-white shadow-xs transition-all cursor-pointer"
+                                >
+                                  Check Out
+                                </button>
+                              )}
+                            </>
                           )}
                           {tab === 'upcoming' && (
                             <button
@@ -532,6 +562,36 @@ export default function StaffCheckInOut() {
         variant="success"
         onConfirm={handleStatusUpdate}
         onCancel={() => setConfirmAction(null)}
+      />
+
+      {/* ─── MODAL: AVAIL SERVICE / AMENITY ─── */}
+      <AvailServiceModal
+        isOpen={Boolean(availServiceBooking)}
+        onClose={() => setAvailServiceBooking(null)}
+        booking={availServiceBooking}
+        onSuccess={(availment) => {
+          fire(`✓ Amenity "${availment.service_name}" recorded for Room ${availServiceBooking?.room_number}!`)
+          load()
+        }}
+      />
+
+      {/* ─── MODAL: GUEST RUNNING BILL ─── */}
+      <RunningBillModal
+        isOpen={Boolean(runningBillBookingId)}
+        onClose={() => setRunningBillBookingId(null)}
+        bookingId={runningBillBookingId}
+        onOpenAvailModal={() => {
+          const target = bookings.find((b) => Number(b.id) === runningBillBookingId)
+          if (target) {
+            setAvailServiceBooking({
+              id: Number(target.id),
+              booking_ref: String(target.booking_ref || `#BK-${target.id}`),
+              customer_name: String(target.customer_name || 'Guest'),
+              room_number: String(target.room_number || ''),
+              room_type: String(target.room_type || ''),
+            })
+          }
+        }}
       />
     </div>
   )
