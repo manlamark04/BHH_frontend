@@ -26,6 +26,7 @@ import {
   Gauge,
   Fuel,
   AlertTriangle,
+  Unlock,
 } from 'lucide-react'
 import {
   motorcyclesApi,
@@ -231,6 +232,10 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
   const [rejectReason, setRejectReason] = useState('Dates/time slot no longer available')
   const [rejectNotes, setRejectNotes] = useState('')
   const [processingApproval, setProcessingApproval] = useState(false)
+
+  // Release Motor Modal State
+  const [releasingRental, setReleasingRental] = useState<MotorRental | null>(null)
+  const [processingRelease, setProcessingRelease] = useState(false)
 
   const loadData = () => {
     setLoading(true)
@@ -751,6 +756,22 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
     }
   }
 
+  const handleReleaseRental = async () => {
+    if (!releasingRental) return
+    setProcessingRelease(true)
+    try {
+      await motorcyclesApi.releaseRental(releasingRental.id)
+      setSuccessMsg(`🏍️ Motor released! Rental ${releasingRental.rental_id} (${releasingRental.brand} ${releasingRental.model}) is now ACTIVE. Payment deferred to checkout.`)
+      setTimeout(() => setSuccessMsg(''), 6000)
+      setReleasingRental(null)
+      loadData()
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to release motorcycle')
+    } finally {
+      setProcessingRelease(false)
+    }
+  }
+
   const handleRejectRental = async () => {
     if (!rejectingRental) return
     setProcessingApproval(true)
@@ -1015,9 +1036,19 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
 
 
                         {String(r.status) === 'PENDING_PAYMENT' && (
-                          <span className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md font-medium">
-                            Awaiting Payment
-                          </span>
+                          <>
+                            <button
+                              onClick={() => setReleasingRental(r)}
+                              className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800 dark:hover:bg-blue-900/50"
+                              title="Release motorcycle to guest — payment will be charged at checkout"
+                            >
+                              <Unlock className="w-3 h-3" />
+                              <span>Release Motor</span>
+                            </button>
+                            <span className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md font-medium">
+                              Awaiting Payment
+                            </span>
+                          </>
                         )}
                         {(r.status === 'ACTIVE' || r.status === 'OVERDUE' || r.status === 'RESERVED') && (
                           <button
@@ -4311,6 +4342,86 @@ export default function StaffMotorcycles({ userRole = 'staff' }: Props) {
                 className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold shadow-sm cursor-pointer disabled:opacity-50"
               >
                 {processingApproval ? 'Rejecting...' : 'Reject Reservation'}
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* ─── MODAL: RELEASE MOTORCYCLE TO GUEST ─── */}
+      <Modal
+        isOpen={!!releasingRental}
+        onClose={() => setReleasingRental(null)}
+        title="Release Motorcycle to Guest"
+        size="sm"
+      >
+        {releasingRental && (
+          <div className="space-y-4 text-xs font-sans">
+            {/* Info Banner */}
+            <div className="flex items-start gap-2.5 p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-xl">
+              <Unlock className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-bold text-blue-900 dark:text-blue-200 text-[13px]">
+                  Release motor without upfront payment
+                </p>
+                <p className="text-blue-700 dark:text-blue-400 mt-0.5 leading-relaxed">
+                  The motorcycle will be dispatched to the guest immediately. The rental charge of{' '}
+                  <strong className="font-mono">₱{Number(releasingRental.total_amount).toLocaleString()}</strong>{' '}
+                  will remain on the guest's running bill and can be settled at checkout.
+                </p>
+              </div>
+            </div>
+
+            {/* Rental Details */}
+            <div className="space-y-2 p-3 bg-neutral-50 dark:bg-neutral-800/50 rounded-xl">
+              <div className="flex justify-between">
+                <span className="text-neutral-500 dark:text-neutral-400">Rental ID:</span>
+                <span className="font-mono font-bold text-[#6B7A5E]">{releasingRental.rental_id}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-neutral-500 dark:text-neutral-400">Guest:</span>
+                <span className="font-bold text-neutral-900 dark:text-white">{releasingRental.customer_name || 'Guest'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-neutral-500 dark:text-neutral-400">Motorcycle:</span>
+                <span className="font-bold text-neutral-900 dark:text-white">{releasingRental.brand} {releasingRental.model}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-neutral-500 dark:text-neutral-400">Plate:</span>
+                <span className="font-mono font-semibold text-[#6B7A5E]">{releasingRental.plate_number}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-neutral-500 dark:text-neutral-400">Period:</span>
+                <span className="font-mono font-medium text-neutral-900 dark:text-white text-[10px]">
+                  {formatDateTimeWithAmPm(releasingRental.start_datetime)} → {formatDateTimeWithAmPm(releasingRental.expected_return_datetime)}
+                </span>
+              </div>
+              <div className="flex justify-between border-t border-neutral-200 dark:border-neutral-700 pt-2 mt-1">
+                <span className="text-neutral-500 dark:text-neutral-400 font-semibold">Total Amount:</span>
+                <span className="font-display font-bold text-[#6B7A5E] text-sm">₱{Number(releasingRental.total_amount).toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-neutral-500 dark:text-neutral-400">Payment:</span>
+                <span className="text-amber-700 dark:text-amber-400 font-semibold">Deferred to Checkout</span>
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setReleasingRental(null)}
+                className="flex-1 py-2.5 border border-black/[0.1] dark:border-neutral-700 rounded-xl text-xs font-semibold text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 cursor-pointer transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={processingRelease}
+                onClick={handleReleaseRental}
+                className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-sm flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 transition-all"
+              >
+                <Unlock className="w-3.5 h-3.5" />
+                <span>{processingRelease ? 'Releasing...' : 'Release Motor'}</span>
               </button>
             </div>
           </div>

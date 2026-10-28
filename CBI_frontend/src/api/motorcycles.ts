@@ -286,4 +286,8 @@ export const motorcyclesApi = {
   /** POST /api/motorcycles/rentals/:id/cancel — Cancel Rental */
   cancelRental: (id: number | string) =>
     api.post<{ message: string }>(`/api/motorcycles/rentals/${id}/cancel`),
+
+  /** PATCH /api/motorcycles/rentals/:id/release — Staff/Admin: Release motor to guest (defer payment to checkout) */
+  releaseRental: (id: number | string) =>
+    api.patch<{ success: boolean; message: string; rental: MotorRental }>(`/api/motorcycles/rentals/${id}/release`, {}),
 }

@@ -12,6 +12,7 @@ import {
   Wrench,
   Camera,
   X,
+  Unlock,
 } from 'lucide-react'
 import { catalogApi } from '../../api/services'
 import { motorcyclesApi, type Motorcycle, type MotorRental } from '../../api/motorcycles'
@@ -32,6 +33,8 @@ export default function AdminServices() {
   const [showAddMotor, setShowAddMotor] = useState(false)
   const [editingMotor, setEditingMotor] = useState<Motorcycle | null>(null)
   const [returnRentalModal, setReturnRentalModal] = useState<MotorRental | null>(null)
+  const [releasingRental, setReleasingRental] = useState<MotorRental | null>(null)
+  const [processingRelease, setProcessingRelease] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [loading, setLoading] = useState(true)
   const [toast, setToast] = useState('')
@@ -221,6 +224,22 @@ export default function AdminServices() {
       loadData()
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to update status')
+    }
+  }
+
+  // Handle Release Motor (Unpaid / Pay at Checkout)
+  const handleReleaseRental = async () => {
+    if (!releasingRental) return
+    setProcessingRelease(true)
+    try {
+      await motorcyclesApi.releaseRental(releasingRental.id)
+      fireToast(`🏍️ Motor released! Rental ${releasingRental.rental_id} (${releasingRental.brand} ${releasingRental.model}) is now ACTIVE. Payment deferred to checkout.`)
+      setReleasingRental(null)
+      loadData()
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to release motorcycle')
+    } finally {
+      setProcessingRelease(false)
     }
   }
 
@@ -662,6 +681,21 @@ export default function AdminServices() {
                         <StatusBadge status={r.status} />
                       </td>
                       <td className="px-5 py-4 text-right">
+                        {String(r.status) === 'PENDING_PAYMENT' && (
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              onClick={() => setReleasingRental(r)}
+                              className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800"
+                              title="Release motorcycle to guest — payment will be charged at checkout"
+                            >
+                              <Unlock className="w-3 h-3" />
+                              <span>Release Motor</span>
+                            </button>
+                            <span className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md font-medium">
+                              Awaiting Payment
+                            </span>
+                          </div>
+                        )}
                         {(r.status === 'ACTIVE' || r.status === 'OVERDUE') && (
                           <button
                             onClick={() => setReturnRentalModal(r)}
@@ -1211,6 +1245,72 @@ export default function AdminServices() {
             </div>
           )
         })()}
+      </Modal>
+
+      {/* ─── RELEASE MOTOR CONFIRMATION MODAL ─── */}
+      <Modal
+        isOpen={!!releasingRental}
+        onClose={() => setReleasingRental(null)}
+        title="Release Motorcycle (Unpaid / Pay at Checkout)"
+        maxWidth="max-w-md"
+      >
+        {releasingRental && (
+          <div className="space-y-4 text-xs">
+            <div className="p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/50 rounded-xl text-blue-900 dark:text-blue-200 space-y-1">
+              <p className="font-semibold flex items-center gap-1.5 text-blue-800 dark:text-blue-300">
+                <Unlock className="w-4 h-4 text-blue-600" />
+                Dispatch unit before upfront payment
+              </p>
+              <p className="text-[11px] leading-relaxed text-blue-700 dark:text-blue-300/80">
+                The motorcycle will be marked <strong>RENTED</strong> and rental status set to <strong>ACTIVE</strong>.
+                The charge of <strong className="font-mono">₱{Number(releasingRental.total_amount).toLocaleString()}</strong> will remain unpaid on the guest’s folio and can be settled at checkout.
+              </p>
+            </div>
+
+            <div className="bg-sand/30 dark:bg-neutral-800/50 p-3 rounded-xl border border-stone/20 dark:border-neutral-700 space-y-2 text-ink dark:text-neutral-200">
+              <div className="flex justify-between">
+                <span className="text-ink-muted">Rental ID:</span>
+                <span className="font-mono font-bold text-[#6B7A5E]">{releasingRental.rental_id}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-ink-muted">Guest:</span>
+                <span className="font-bold text-neutral-900 dark:text-white">{releasingRental.customer_name || 'Guest'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-ink-muted">Unit:</span>
+                <span className="font-bold text-neutral-900 dark:text-white">{releasingRental.brand} {releasingRental.model}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-ink-muted">Plate Number:</span>
+                <span className="font-mono font-semibold text-[#6B7A5E]">{releasingRental.plate_number}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-ink-muted">Amount Due:</span>
+                <span className="font-display font-bold text-[#6B7A5E] text-sm">₱{Number(releasingRental.total_amount).toLocaleString()}</span>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-stone/15 dark:border-neutral-800">
+              <button
+                type="button"
+                onClick={() => setReleasingRental(null)}
+                disabled={processingRelease}
+                className="px-4 py-2 border border-stone/30 dark:border-neutral-700 hover:bg-sand/40 dark:hover:bg-neutral-800 rounded-xl font-semibold text-ink-muted hover:text-ink transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleReleaseRental}
+                disabled={processingRelease}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold transition-all cursor-pointer flex items-center gap-1.5 shadow-xs"
+              >
+                <Unlock className="w-3.5 h-3.5" />
+                <span>{processingRelease ? 'Releasing...' : 'Confirm & Release Motor'}</span>
+              </button>
+            </div>
+          </div>
+        )}
       </Modal>
 
       {/* ─── SLIDE-OVER DRAWER: EDIT MOTORCYCLE (Admin Only) ─── */}
