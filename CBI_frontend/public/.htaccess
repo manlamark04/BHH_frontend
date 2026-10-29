@@ -10,8 +10,8 @@ Options -MultiViews -Indexes
   RewriteCond %{HTTP:X-Forwarded-Proto} !https
   RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
-  # Uploaded images live on the backend (Render). Redirect any /uploads/* request there.
-  RewriteRule ^uploads/(.*)$ https://bhh-backend-7vl6.onrender.com/uploads/$1 [R=302,L]
+  # Uploaded images live on the backend (Vercel). Redirect any /uploads/* request there.
+  RewriteRule ^uploads/(.*)$ https://bhh-backend.vercel.app/uploads/$1 [R=302,L]
 
   # Serve existing files/folders directly
   RewriteCond %{REQUEST_FILENAME} -f [OR]

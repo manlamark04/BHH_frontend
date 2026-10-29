@@ -56,6 +56,10 @@ export default function NotificationCenter({ role, onNavigate }: NotificationCen
       if (!token) return
 
       const socketUrl = import.meta.env.VITE_WS_URL || API_BASE_URL || (import.meta.env.DEV ? 'http://localhost:5000' : window.location.origin)
+      if (socketUrl.includes('.vercel.app')) {
+        const pollId = window.setInterval(fetchNotifications, 30000)
+        return () => window.clearInterval(pollId)
+      }
       const socket = io(socketUrl, {
         auth: { token },
         withCredentials: true,
